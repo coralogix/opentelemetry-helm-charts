@@ -205,6 +205,28 @@ presets:
     enabled: true
 ```
 
+### Configuration for retrieving kubernetes events
+
+> ⚠️ WARNING
+> 
+> The 'k8sobjects' is a ALPHA receiver and may be changed anytime.
+
+The collector can be configured to collect Kubernetes events and other kubernetes objects.
+
+This feature is disabled by default. It has the following requirements:
+
+- It requires [k8sobjects](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/k8sobjectsreceiver) receiver to be included in the collector, such as [contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) version of the collector image.
+
+To enable this feature, set the  `presets.kubernetesObjects.enabled` property to `true`.
+Here is an example `values.yaml`:
+
+```yaml
+mode: deployment
+presets:
+  kubernetesObjects:
+    enabled: true
+```
+
 ### CRDs
 
 At this time, Prometheus CRDs are supported but other CRDs are not.
