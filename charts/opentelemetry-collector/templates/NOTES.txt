@@ -33,6 +33,6 @@
 {{ end }}
 {{ end }}
 
-{{- if .Values.presets.kubernetesObjects.enabled }}
+{{- if .Values.presets.kubernetesEvents.enabled }}
 [WARNING] The 'k8sobjects' is a ALPHA receiver and may be changed anytime.
 {{ end }}
