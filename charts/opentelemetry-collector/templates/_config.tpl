@@ -71,6 +71,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.kubernetesAttributes.enabled }}
 {{- $config = (include "opentelemetry-collector.applyKubernetesAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.kubernetesObjects.enabled }}
+{{- $config = (include "opentelemetry-collector.applyKubernetesObjectsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.clusterMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyClusterMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -308,4 +311,34 @@ processors:
 {{- end }}
 {{- end }}
 {{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyKubernetesObjectsConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.kubernetesObjectsConfig" .Values | fromYaml) .config }}
+{{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers "k8sobjects" | uniq)  }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.kubernetesObjectsConfig" -}}
+receivers:
+  k8sobjects:
+    objects:
+      - name: events
+        mode: {{ .Values.presets.kubernetesObjects.defaultEventsConfig.mode }}
+        group: {{ .Values.presets.kubernetesObjects.defaultEventsConfig.group }}
+        {{- if .Values.presets.kubernetesObjects.defaultEventsConfig.labelSelector }}
+        label_selector: {{ .Values.presets.kubernetesObjects.defaultEventsConfig.labelSelector }}
+        {{- end }}
+        {{- if .Values.presets.kubernetesObjects.defaultEventsConfig.fieldSelector }}
+        field_selector: {{ .Values.presets.kubernetesObjects.defaultEventsConfig.fieldSelector }}
+        {{- end }}
+        {{- if .Values.presets.kubernetesObjects.defaultEventsConfig.resourceVersion }}
+        resource_version: {{ .Values.presets.kubernetesObjects.defaultEventsConfig.resourceVersion }}
+        {{- end }}
+        {{- if eq .Values.presets.kubernetesObjects.defaultEventsConfig.mode "pull"}}
+        interval: {{ .Values.presets.kubernetesObjects.defaultEventsConfig.interval }}
+        {{- end }}
+        {{- if .Values.presets.kubernetesObjects.defaultEventsConfig.namespaces }}
+        namespaces: {{ .Values.presets.kubernetesObjects.defaultEventsConfig.namespaces }}
+        {{- end }}
 {{- end }}

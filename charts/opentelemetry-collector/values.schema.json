@@ -87,6 +87,20 @@
             }
           }
         },
+        "kubernetesObjects": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether the collector should collect Kubernetes objects.",
+              "type": "boolean"
+            },
+            "defaultEventsConfig": {
+              "description": "Specifies the default mode for k8sobjects events collection pull or watch (default = watch).",
+              "type": "object"
+            }
+          }
+        },
         "clusterMetrics": {
           "type": "object",
           "additionalProperties": false,
