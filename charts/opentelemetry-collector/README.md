@@ -211,7 +211,7 @@ presets:
 > 
 > The 'k8sobjects' is a ALPHA receiver and may be changed anytime.
 
-The collector can be configured to collect Kubernetes events and other kubernetes objects.
+The collector can be configured to collect Kubernetes events.
 
 This feature is disabled by default. It has the following requirements:
 
