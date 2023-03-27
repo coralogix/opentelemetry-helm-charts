@@ -40,7 +40,7 @@ presets:
   # Best used with mode = daemonset.
   kubernetesAttributes:
     enabled: false
-  # Configures the collector to collect kubernetes objects.
+  # Configures the collector to collect kubernetes events.
   # Adds the k8sobject receiver to the logs pipeline
   # and collects kubernetes events by default.
   # Best used with mode = deployment or statefulset.
