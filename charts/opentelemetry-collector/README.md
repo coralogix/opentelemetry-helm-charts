@@ -205,7 +205,7 @@ presets:
     enabled: true
 ```
 
-### Configuration for retrieving kubernetes events
+### Configuration for retrieving Kubernetes events
 
 > ⚠️ WARNING
 > 
