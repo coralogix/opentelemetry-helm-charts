@@ -30,7 +30,7 @@ presets:
     storeCheckpoints: false
     # The maximum bytes size of the recombined field.
     # Once the size exceeds the limit, all received entries of the source will be combined and flushed.
-    maxRecombineLogSize: 102400
+    maxRecombineLogSize: 1048576
     # Add additional filelog operators
     # ref: https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/pkg/stanza/docs/operators
     extraFilelogOperators: []
