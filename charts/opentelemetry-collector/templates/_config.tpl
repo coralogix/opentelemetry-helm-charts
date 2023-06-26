@@ -227,7 +227,7 @@ receivers:
           parse_from: attributes.time
           layout: '%Y-%m-%dT%H:%M:%S.%LZ'
       - type: recombine
-        id: containerd-recombine
+        id: cri-containerd-recombine
         output: extract_metadata_from_filepath
         combine_field: attributes.log
         source_identifier: attributes["log.file.path"]
@@ -237,10 +237,17 @@ receivers:
       # Parse Docker format
       - type: json_parser
         id: parser-docker
-        output: extract_metadata_from_filepath
         timestamp:
           parse_from: attributes.time
           layout: '%Y-%m-%dT%H:%M:%S.%LZ'
+      - type: recombine
+        id: docker-recombine
+        output: extract_metadata_from_filepath
+        combine_field: attributes.log
+        source_identifier: attributes["log.file.path"]
+        is_last_entry: attributes.log endsWith "\n"
+        combine_with: ""
+        max_log_size: {{ $.Values.presets.logsCollection.maxRecombineLogSize }}
       # Extract metadata from file path
       - type: regex_parser
         id: extract_metadata_from_filepath
