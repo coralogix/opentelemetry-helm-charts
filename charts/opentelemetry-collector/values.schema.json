@@ -33,7 +33,12 @@
     },
     "mode": {
       "type": "string",
-      "enum": ["daemonset", "deployment", "statefulset", ""]
+      "enum": [
+        "daemonset",
+        "deployment",
+        "statefulset",
+        ""
+      ]
     },
     "presets": {
       "type": "object",
@@ -55,9 +60,9 @@
               "description": "Specifies whether logs checkpoints should be stored in /var/lib/otelcol/ host directory.",
               "type": "boolean"
             },
-            "maxRecombineLogSize": {
-              "description": "Specifies the max recombine log size.",
-              "type": "integer"
+            "extraFilelogOperators": {
+              "description": "Specifies additional filelog operators.",
+              "type": "array"
             }
           }
         },
@@ -142,7 +147,11 @@
         },
         "pullPolicy": {
           "type": "string",
-          "enum": ["IfNotPresent", "Always", "Never"]
+          "enum": [
+            "IfNotPresent",
+            "Always",
+            "Never"
+          ]
         }
       }
     },
@@ -182,7 +191,9 @@
           "type": "string"
         }
       },
-      "required": ["create"]
+      "required": [
+        "create"
+      ]
     },
     "clusterRole": {
       "type": "object",
@@ -216,7 +227,9 @@
           }
         }
       },
-      "required": ["create"]
+      "required": [
+        "create"
+      ]
     },
     "podSecurityContext": {
       "type": "object"
@@ -255,7 +268,9 @@
             "type": "string"
           }
         },
-        "required": ["name"]
+        "required": [
+          "name"
+        ]
       }
     },
     "initContainers": {
@@ -268,7 +283,9 @@
             "type": "string"
           }
         },
-        "required": ["name"]
+        "required": [
+          "name"
+        ]
       }
     },
     "extraEnvs": {
@@ -342,7 +359,9 @@
               "type": "string"
             }
           },
-          "required": ["enabled"]
+          "required": [
+            "enabled"
+          ]
         }
       }
     },
@@ -353,7 +372,9 @@
           "type": "boolean"
         }
       },
-      "required": ["enabled"]
+      "required": [
+        "enabled"
+      ]
     },
     "resources": {
       "type": "object",
@@ -364,7 +385,10 @@
           "additionalProperties": false,
           "properties": {
             "cpu": {
-              "type": ["string", "integer"]
+              "type": [
+                "string",
+                "integer"
+              ]
             },
             "memory": {
               "type": "string"
@@ -376,7 +400,10 @@
           "additionalProperties": false,
           "properties": {
             "cpu": {
-              "type": ["string", "integer"]
+              "type": [
+                "string",
+                "integer"
+              ]
             },
             "memory": {
               "type": "string"
@@ -429,10 +456,14 @@
           },
           "oneOf": [
             {
-              "required": ["exec"]
+              "required": [
+                "exec"
+              ]
             },
             {
-              "required": ["httpGet"]
+              "required": [
+                "httpGet"
+              ]
             }
           ]
         },
@@ -476,10 +507,14 @@
           },
           "oneOf": [
             {
-              "required": ["exec"]
+              "required": [
+                "exec"
+              ]
             },
             {
-              "required": ["httpGet"]
+              "required": [
+                "httpGet"
+              ]
             }
           ]
         }
@@ -562,7 +597,13 @@
     },
     "dnsPolicy": {
       "type": "string",
-      "enum": ["ClusterFirst", "ClusterFirstWithHostNet", "Default", "None", ""]
+      "enum": [
+        "ClusterFirst",
+        "ClusterFirstWithHostNet",
+        "Default",
+        "None",
+        ""
+      ]
     },
     "dnsConfig": {
       "type": "object"
@@ -585,7 +626,12 @@
         },
         "type": {
           "type": "string",
-          "enum": ["ClusterIP", "NodePort", "LoadBalancer", "ExternalName"]
+          "enum": [
+            "ClusterIP",
+            "NodePort",
+            "LoadBalancer",
+            "ExternalName"
+          ]
         },
         "clusterIP": {
           "type": "string"
@@ -604,11 +650,19 @@
         },
         "internalTrafficPolicy": {
           "type": "string",
-          "enum": ["Cluster", "Local", ""]
+          "enum": [
+            "Cluster",
+            "Local",
+            ""
+          ]
         },
         "externalTrafficPolicy": {
           "type": "string",
-          "enum": ["Cluster", "Local", ""]
+          "enum": [
+            "Cluster",
+            "Local",
+            ""
+          ]
         }
       }
     },
@@ -645,17 +699,27 @@
                     },
                     "pathType": {
                       "type": "string",
-                      "enum": ["Exact", "Prefix", "ImplementationSpecific"]
+                      "enum": [
+                        "Exact",
+                        "Prefix",
+                        "ImplementationSpecific"
+                      ]
                     },
                     "port": {
                       "type": "integer"
                     }
                   },
-                  "required": ["path", "pathType", "port"]
+                  "required": [
+                    "path",
+                    "pathType",
+                    "port"
+                  ]
                 }
               }
             },
-            "required": ["paths"]
+            "required": [
+              "paths"
+            ]
           }
         },
         "tls": {
@@ -721,11 +785,17 @@
                             "type": "integer"
                           }
                         },
-                        "required": ["path", "pathType", "port"]
+                        "required": [
+                          "path",
+                          "pathType",
+                          "port"
+                        ]
                       }
                     }
                   },
-                  "required": ["paths"]
+                  "required": [
+                    "paths"
+                  ]
                 }
               },
               "tls": {
@@ -747,11 +817,15 @@
                 }
               }
             },
-            "required": ["name"]
+            "required": [
+              "name"
+            ]
           }
         }
       },
-      "required": ["enabled"]
+      "required": [
+        "enabled"
+      ]
     },
     "podMonitor": {
       "type": "object",
@@ -769,7 +843,9 @@
           "type": "object"
         }
       },
-      "required": ["enabled"]
+      "required": [
+        "enabled"
+      ]
     },
     "serviceMonitor": {
       "type": "object",
@@ -787,7 +863,9 @@
           "type": "object"
         }
       },
-      "required": ["enabled"]
+      "required": [
+        "enabled"
+      ]
     },
     "podDisruptionBudget": {
       "type": "object",
@@ -796,7 +874,9 @@
           "type": "boolean"
         }
       },
-      "required": ["enabled"]
+      "required": [
+        "enabled"
+      ]
     },
     "autoscaling": {
       "type": "object",
@@ -817,7 +897,9 @@
           "type": "integer"
         }
       },
-      "required": ["enabled"]
+      "required": [
+        "enabled"
+      ]
     },
     "rollout": {
       "type": "object",
@@ -835,11 +917,17 @@
         },
         "strategy": {
           "type": "string",
-          "enum": ["OnDelete", "Recreate", "RollingUpdate"],
+          "enum": [
+            "OnDelete",
+            "Recreate",
+            "RollingUpdate"
+          ],
           "default": "RollingUpdate"
         }
       },
-      "required": ["strategy"]
+      "required": [
+        "strategy"
+      ]
     },
     "prometheusRule": {
       "type": "object",
@@ -860,13 +948,17 @@
               "type": "boolean"
             }
           },
-          "required": ["enabled"]
+          "required": [
+            "enabled"
+          ]
         },
         "extraLabels": {
           "type": "object"
         }
       },
-      "required": ["enabled"]
+      "required": [
+        "enabled"
+      ]
     },
     "statefulset": {
       "type": "object",
@@ -883,38 +975,40 @@
       }
     },
     "networkPolicy": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-            "enabled": {
-                "type": "boolean"
-            },
-            "annotations": {
-              "type": "object"
-            },
-            "allowIngressFrom": {
-              "type": "array",
-              "description": "List of sources which should be able to access the collector. See the standard NetworkPolicy 'spec.ingress.from' definition for more information: https://kubernetes.io/docs/reference/kubernetes-api/policy-resources/network-policy-v1/. If left empty, ingress traffic will be permitted on to all enabled ports from all sources.",
-              "items": {
-                "type": "object"
-              }
-            },
-            "extraIngressRules": {
-              "type": "array",
-              "description": "Additional ingress rules to apply to the policy. See the standard NetworkPolicy 'spec.ingress' definition for more information: https://kubernetes.io/docs/reference/kubernetes-api/policy-resources/network-policy-v1/",
-              "items": {
-                "type": "object"
-              }
-            },
-            "egressRules": {
-              "description": "Optional egress configuration, see the standard NetworkPolicy 'spec.egress' definition for more information: https://kubernetes.io/docs/reference/kubernetes-api/policy-resources/network-policy-v1/",
-              "type": "array",
-              "items": {
-                "type": "object"
-              }
-            }
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "annotations": {
+          "type": "object"
+        },
+        "allowIngressFrom": {
+          "type": "array",
+          "description": "List of sources which should be able to access the collector. See the standard NetworkPolicy 'spec.ingress.from' definition for more information: https://kubernetes.io/docs/reference/kubernetes-api/policy-resources/network-policy-v1/. If left empty, ingress traffic will be permitted on to all enabled ports from all sources.",
+          "items": {
+            "type": "object"
+          }
+        },
+        "extraIngressRules": {
+          "type": "array",
+          "description": "Additional ingress rules to apply to the policy. See the standard NetworkPolicy 'spec.ingress' definition for more information: https://kubernetes.io/docs/reference/kubernetes-api/policy-resources/network-policy-v1/",
+          "items": {
+            "type": "object"
+          }
+        },
+        "egressRules": {
+          "description": "Optional egress configuration, see the standard NetworkPolicy 'spec.egress' definition for more information: https://kubernetes.io/docs/reference/kubernetes-api/policy-resources/network-policy-v1/",
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
         }
+      }
     }
   },
-  "required": ["mode"]
+  "required": [
+    "mode"
+  ]
 }

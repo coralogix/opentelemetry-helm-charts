@@ -5,17 +5,10 @@ kind: DaemonSet
 metadata:
   name: example-opentelemetry-collector-agent
   labels:
-<<<<<<< HEAD
-    helm.sh/chart: opentelemetry-collector-0.65.1
-    app.kubernetes.io/name: opentelemetry-collector
-    app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "0.82.0"
-=======
-    helm.sh/chart: opentelemetry-collector-0.61.0
+    helm.sh/chart: opentelemetry-collector-0.61.1
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.77.0"
->>>>>>> 7599b69 (feat: add ci for coralogix opentelemetry collector helm chart (#3))
     app.kubernetes.io/managed-by: Helm
 spec:
   selector:
@@ -28,25 +21,22 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 89f5724fc9fa901ed0364c93351a950dbbfa64a7ccb46e582c4fd20d5ac53339
-        
+        checksum/config: 422c1e8dc46591d15e0133f6c00e4e9f4b34cc29b645e17c3542a10b4c195c8d
+
       labels:
         app.kubernetes.io/name: opentelemetry-collector
         app.kubernetes.io/instance: example
         component: agent-collector
-        
+
     spec:
-      
       serviceAccountName: example-opentelemetry-collector
-      securityContext:
-        {}
+      securityContext: {}
       containers:
         - name: opentelemetry-collector
           command:
             - /otelcol-contrib
             - --config=/conf/relay.yaml
-          securityContext:
-            {}
+          securityContext: {}
           image: "otel/opentelemetry-collector-contrib:0.77.0"
           imagePullPolicy: IfNotPresent
           ports:
