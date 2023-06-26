@@ -58,6 +58,10 @@
             "maxRecombineLogSize": {
               "description": "Specifies the max recombine log size.",
               "type": "integer"
+            },
+            "extraFilelogOperators": {
+              "description": "Specifies additional filelog operators.",
+              "type": "array"
             }
           }
         },
