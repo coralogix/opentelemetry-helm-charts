@@ -5,7 +5,7 @@ kind: StatefulSet
 metadata:
   name: example-opentelemetry-collector
   labels:
-    helm.sh/chart: opentelemetry-collector-0.61.2
+    helm.sh/chart: opentelemetry-collector-0.62.0
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.81.0"
@@ -24,7 +24,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 100f0d06ac82d856fe3e4efbc4684e8d28470a35df7c0be81c51a2fb3ea3cf83
+        checksum/config: 579e486986672820e4ea85fa636401aa539b02e4fdbfe2c1504ea8e11962866d
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
