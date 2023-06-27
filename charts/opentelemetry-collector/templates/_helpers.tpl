@@ -107,6 +107,18 @@ Create the name of the clusterRoleBinding to use
 {{- end }}
 {{- end }}
 
+{{- define "opentelemetry-target-allocator.podMonitorSelector" -}}
+{{- if .Values.collectorCRD.targetAllocator.prometheusCR.podMonitorSelector }}
+{{- tpl (.Values.collectorCRD.targetAllocator.prometheusCR.podMonitorSelector | toYaml) . }}
+{{- end }}
+{{- end }}
+
+{{- define "opentelemetry-target-allocator.serviceMonitorSelector" -}}
+{{- if .Values.collectorCRD.targetAllocator.prometheusCR.serviceMonitorSelector }}
+{{- tpl (.Values.collectorCRD.targetAllocator.prometheusCR.serviceMonitorSelector | toYaml) . }}
+{{- end }}
+{{- end }}
+
 {{/*
 Return the appropriate apiVersion for podDisruptionBudget.
 */}}
@@ -135,11 +147,9 @@ Check if logs collection is enabled via deprecated "containerLogs" or "preset.lo
 Compute Service creation on mode
 */}}
 {{- define "opentelemetry-collector.serviceEnabled" }}
-  {{- $serviceEnabled := true }}
-  {{- if not (eq (toString .Values.service.enabled) "<nil>") }}
-    {{- $serviceEnabled = .Values.service.enabled -}}
-  {{- end }}
-  {{- if and (eq .Values.mode "daemonset") (not .Values.service.enabled) }}
+  {{- $serviceEnabled := true -}}
+
+  {{- if or (and (eq .Values.mode "daemonset") (not .Values.service.enabled)) (.Values.collectorCRD.generate) }}
     {{- $serviceEnabled = false -}}
   {{- end }}
 
