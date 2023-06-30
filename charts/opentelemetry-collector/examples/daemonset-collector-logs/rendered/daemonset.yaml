@@ -5,7 +5,7 @@ kind: DaemonSet
 metadata:
   name: example-opentelemetry-collector-agent
   labels:
-    helm.sh/chart: opentelemetry-collector-0.62.1
+    helm.sh/chart: opentelemetry-collector-0.62.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.81.0"
@@ -21,7 +21,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 74f731fb9ebd5b945190965c037398caa1180fbfc3691a0c2e687f6e91d0df93
+        checksum/config: 3d0426d4fdea64aadb7ad27a9f5e9f2780bc0c7e2a0ca921e391201f1f498d98
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -104,4 +104,6 @@ spec:
         - name: varlibdockercontainers
           hostPath:
             path: /var/lib/docker/containers
+      nodeSelector:
+        kubernetes.io/os: linux
       hostNetwork: false
