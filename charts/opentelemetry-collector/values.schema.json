@@ -53,7 +53,11 @@
         },
         "updateStrategy": {
           "type": "string",
-          "enum": ["automatic", "none", ""]
+          "enum": [
+            "automatic",
+            "none",
+            ""
+          ]
         },
         "resources": {
           "type": "object",
@@ -64,7 +68,10 @@
               "additionalProperties": false,
               "properties": {
                 "cpu": {
-                  "type": ["string", "integer"]
+                  "type": [
+                    "string",
+                    "integer"
+                  ]
                 },
                 "memory": {
                   "type": "string"
@@ -76,7 +83,10 @@
               "additionalProperties": false,
               "properties": {
                 "cpu": {
-                  "type": ["string", "integer"]
+                  "type": [
+                    "string",
+                    "integer"
+                  ]
                 },
                 "memory": {
                   "type": "string"
@@ -105,11 +115,18 @@
             },
             "allocationStrategy": {
               "type": "string",
-              "enum": ["least-weighted", "consistent-hashing", ""]
+              "enum": [
+                "least-weighted",
+                "consistent-hashing",
+                ""
+              ]
             },
             "filterStrategy": {
               "type": "string",
-              "enum": ["relabel-config", ""]
+              "enum": [
+                "relabel-config",
+                ""
+              ]
             },
             "image": {
               "type": "object",
@@ -138,7 +155,10 @@
                   "additionalProperties": false,
                   "properties": {
                     "cpu": {
-                      "type": ["string", "integer"]
+                      "type": [
+                        "string",
+                        "integer"
+                      ]
                     },
                     "memory": {
                       "type": "string"
@@ -150,7 +170,10 @@
                   "additionalProperties": false,
                   "properties": {
                     "cpu": {
-                      "type": ["string", "integer"]
+                      "type": [
+                        "string",
+                        "integer"
+                      ]
                     },
                     "memory": {
                       "type": "string"
@@ -190,6 +213,66 @@
             "extraFilelogOperators": {
               "description": "Specifies additional filelog operators.",
               "type": "array"
+            }
+          }
+        },
+        "mysql": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "metrics": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Specifies whether the collector should collect MySQL metrics.",
+                  "type": "boolean"
+                },
+                "instances": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "labelSelectors": {
+                      "description": "Specifies the pods for MySQL instance.",
+                      "type": "object"
+                    },
+                    "username": {
+                      "description": "Specifies the MySQL user for metrics collection.",
+                      "type": "string"
+                    },
+                    "password": {
+                      "description": "Specifies the MySQL password for metrics collection.",
+                      "type": "string"
+                    },
+                    "port": {
+                      "description": "Specifies the MySQL port for metrics collection.",
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            },
+            "extraLogs": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Specifies whether the collector should collect MySQL metrics.",
+                  "type": "boolean"
+                },
+                "mountPath": {
+                  "type": "string"
+                },
+                "volumeMountName": {
+                  "type": "string"
+                },
+                "logFilesPath": {
+                  "type": "string"
+                },
+                "logFilesExtension": {
+                  "type": "string"
+                }
+              }
             }
           }
         },
@@ -1132,10 +1215,160 @@
             "type": "object"
           }
         }
+      },
+      "networkExplorer": {
+        "description": "Splunk Network Explorer Configuration",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "description": "Enable network explorer",
+            "type": "boolean"
+          },
+          "clusterName": {
+            "description": "Cluster Name",
+            "type": "string"
+          },
+          "resources": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "limits": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "cpu": {
+                    "type": [
+                      "string",
+                      "integer"
+                    ]
+                  },
+                  "memory": {
+                    "type": "string"
+                  }
+                }
+              },
+              "requests": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "cpu": {
+                    "type": [
+                      "string",
+                      "integer"
+                    ]
+                  },
+                  "memory": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "images": {
+            "description": "images",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "tag": {
+                "type": "string"
+              },
+              "repository": {
+                "type": "string"
+              },
+              "pullPolicy": {
+                "type": "string",
+                "enum": [
+                  "IfNotPresent",
+                  "Always",
+                  "Never"
+                ]
+              }
+            }
+          },
+          "imagePullSecrets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "log": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "console": {
+                "type": "boolean"
+              },
+              "level": {
+                "type": "string",
+                "enum": [
+                  "error",
+                  "warning",
+                  "info",
+                  "debug",
+                  "trace"
+                ]
+              }
+            }
+          },
+          "debug": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "storeMinidump": {
+                "type": "boolean"
+              },
+              "sendUnplannedExitMetric": {
+                "type": "boolean"
+              }
+            }
+          },
+          "kernelCollector": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "cloudCollector": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "k8sCollector": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "reducer": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "rbac": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "create": {
+                "type": "boolean"
+              }
+            }
+          },
+          "podSecurityPolicy": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "annotations": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
       }
-    }
-  },
-  "required": [
-    "mode"
-  ]
+    },
+    "required": [
+      "mode"
+    ]
+  }
 }
