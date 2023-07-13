@@ -4,7 +4,7 @@
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/opentelemetry-helm)](https://artifacthub.io/packages/search?repo=opentelemetry-helm)
 
 This repository contains [Helm](https://helm.sh/) charts for OpenTelemetry project.
-
+bla bla bla
 ## Usage
 
 [Helm](https://helm.sh) must be installed to use the charts.
