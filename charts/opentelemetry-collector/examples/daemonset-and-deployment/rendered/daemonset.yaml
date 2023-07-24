@@ -5,7 +5,7 @@ kind: DaemonSet
 metadata:
   name: example-opentelemetry-collector-agent
   labels:
-    helm.sh/chart: opentelemetry-collector-0.63.0
+    helm.sh/chart: opentelemetry-collector-0.64.0
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.81.0"
@@ -21,7 +21,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 05d49ab2d6fdf2c4ae24177bd3388603215677eeb0d7f8d04212d08eea78eef1
+        checksum/config: d7631a37786c70e5a5e46946c3ce27da02e893a66921eab015ae014c74aee7f2
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -74,6 +74,10 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: status.podIP
+            - name: K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           livenessProbe:
             httpGet:
               path: /
