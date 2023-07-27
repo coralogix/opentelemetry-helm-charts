@@ -5,7 +5,7 @@ kind: ConfigMap
 metadata:
   name: example-opentelemetry-collector
   labels:
-    helm.sh/chart: opentelemetry-collector-0.64.1
+    helm.sh/chart: opentelemetry-collector-0.65.0
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.81.0"
@@ -24,7 +24,7 @@ data:
         extract:
           metadata:
           - k8s.namespace.name
-          - k8s.deployment.name
+          - k8s.replicaset.name
           - k8s.statefulset.name
           - k8s.daemonset.name
           - k8s.cronjob.name
@@ -47,6 +47,14 @@ data:
         check_interval: 5s
         limit_percentage: 80
         spike_limit_percentage: 25
+      transform/k8s_attributes:
+        metric_statements:
+        - context: resource
+          statements:
+          - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
+          - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
+            "$$1")
+          - delete_key(attributes, "k8s.replicaset.name")
     receivers:
       jaeger:
         protocols:
