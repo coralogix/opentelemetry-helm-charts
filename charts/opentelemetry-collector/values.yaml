@@ -525,6 +525,7 @@ podMonitor:
   metricsEndpoints:
     - port: metrics
       # interval: 15s
+  targetLabels: []
 
   # additional labels for the PodMonitor
   extraLabels: {}
@@ -537,6 +538,7 @@ serviceMonitor:
   metricsEndpoints:
     - port: metrics
       # interval: 15s
+  targetLabels: []
 
   # additional labels for the ServiceMonitor
   extraLabels: {}
