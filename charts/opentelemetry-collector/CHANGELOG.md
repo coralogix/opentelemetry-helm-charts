@@ -1,6 +1,7 @@
 # Changelog
 
 ## OpenTelemetry Collector
+
 ### V0.75.1 / 2023-10-30
 - [FIX] Set insecure_skip_verify: true for kubelstats preset. See https://github.com/open-telemetry/opentelemetry-collector-contrib/releases/tag/v0.87.0 breaking changes section.
 
