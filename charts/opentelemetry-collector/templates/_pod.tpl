@@ -121,7 +121,7 @@ containers:
         mountPath: /var/lib/otelcol
       {{- end }}
       {{- end }}
-      {{- if .Values.presets.hostMetrics.enabled }}
+      {{- if or (.Values.presets.hostMetrics.enabled) (.Values.presets.journaldLogs.enabled) }}
       - name: hostfs
         mountPath: /hostfs
         readOnly: true
@@ -163,7 +163,7 @@ volumes:
     hostPath:
       path: /var/lib/docker/containers
   {{- end }}
-  {{- if .Values.presets.hostMetrics.enabled }}
+  {{- if or (.Values.presets.hostMetrics.enabled) (.Values.presets.journaldLogs.enabled) }}
   - name: hostfs
     hostPath:
       path: /

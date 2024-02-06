@@ -65,6 +65,16 @@
             }
           }
         },
+        "journaldLogs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether the collector should collect journald logs collection.",
+              "type": "boolean"
+            }
+          }
+        },
         "hostMetrics": {
           "type": "object",
           "additionalProperties": false,

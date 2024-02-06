@@ -58,6 +58,10 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.clusterMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyClusterMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.journaldLogs.enabled }}
+{{- $config = (include "opentelemetry-collector.applyJournaldLogsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+
 {{- tpl (toYaml $config) . }}
 {{- end }}
 
@@ -143,6 +147,18 @@ receivers:
               - tracefs
             match_type: strict
         network:
+{{- end }}
+
+{{- define "opentelemetry-collector.applyJournaldLogsConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.journaldLogsConfig" .Values | fromYaml) .config }}
+{{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers "journald" | uniq)  }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.journaldLogsConfig" -}}
+receivers:
+  journald:
+    directory: /hostfs/var/log/journal
 {{- end }}
 
 {{- define "opentelemetry-collector.applyClusterMetricsConfig" -}}
