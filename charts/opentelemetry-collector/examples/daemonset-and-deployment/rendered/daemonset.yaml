@@ -6,10 +6,10 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.87.3
+    helm.sh/chart: opentelemetry-collector-0.87.4
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "0.104.0"
+    app.kubernetes.io/version: "0.106.0"
     app.kubernetes.io/managed-by: Helm
     
 spec:
@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: ceaa05915ad8886fb7e281a1dae70b88dc80caf2561e18d117aecea5be007970
+        checksum/config: db42f0c48abefae1c00b3561a9963205d713057cdc9fc7b552452453466267eb
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -42,7 +42,7 @@ spec:
             - --config=/conf/relay.yaml
           securityContext:
             {}
-          image: "otel/opentelemetry-collector-contrib:0.104.0"
+          image: "otel/opentelemetry-collector-contrib:0.106.0"
           imagePullPolicy: IfNotPresent
           ports:
             
