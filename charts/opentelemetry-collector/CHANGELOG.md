@@ -4,6 +4,12 @@
 ### v0.88.1 / 2024-07-31
 - [Feat] Allow configuration of scrape interval value for target allocator prometheus custom resources.
 
+### v0.88.2 / 2024-08-01
+- [Fix] ignore exe errors for hostmetrics process preset
+
+### v0.88.1 / 2024-08-01
+- [Feat] Bump collector version to `0.106.1`
+
 ### v0.88.0 / 2024-07-31
 - [Feat] Bump collector version to `0.106.0`
 
