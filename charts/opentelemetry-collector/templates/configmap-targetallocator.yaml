@@ -19,7 +19,7 @@ data:
       {{- if .Values.targetAllocator.prometheusCR.scrapeInterval }}
       scrape_interval: {{ .Values.targetAllocator.prometheusCR.scrapeInterval }}
       {{- else }}
-      scrape_interval: 30s
+      scrape_interval: {{ .Values.targetAllocator.prometheusCR.scrapeInterval | default "30s" }}
       {{- end }}
       {{- if .Values.targetAllocator.prometheusCR.podMonitorSelector }}
       pod_monitor_selector:
