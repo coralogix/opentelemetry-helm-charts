@@ -4,6 +4,15 @@
 ### v0.89.1 / 2024-07-31
 - [Feat] Allow configuration of scrape interval value for target allocator prometheus custom resources.
 
+### v0.88.5 / 2024-08-05
+- [Feat] add more system attributes to host entity event preset
+
+### v0.88.4 / 2024-08-05
+- [Fix] Add fleet management preset
+
+### v0.88.3 / 2024-08-05
+- [Feat] add more attributes to host entity event preset
+
 ### v0.88.2 / 2024-08-01
 - [Fix] ignore exe errors for hostmetrics process preset
 

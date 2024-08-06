@@ -85,6 +85,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.reduceResourceAttributes.enabled }}
 {{- $config = (include "opentelemetry-collector.applyReduceResourceAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.fleetManagement.enabled }}
+{{- $config = (include "opentelemetry-collector.applyFleetManagementConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- tpl (toYaml $config) . }}
 {{- end }}
@@ -143,6 +146,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.reduceResourceAttributes.enabled }}
 {{- $config = (include "opentelemetry-collector.applyReduceResourceAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.fleetManagement.enabled }}
+{{- $config = (include "opentelemetry-collector.applyFleetManagementConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- tpl (toYaml $config) . }}
@@ -688,6 +694,36 @@ processors:
 
 {{- end }}
 
+{{- define "opentelemetry-collector.applyFleetManagementConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.fleetManagementConfig" .Values | fromYaml) .config }}
+{{- if and ($config.service.extensions) (not (has "opamp" $config.service.extensions)) }}
+{{- $_ := set $config.service "extensions" (append $config.service.extensions "opamp" | uniq)  }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.fleetManagementConfig" -}}
+extensions:
+    opamp:
+      server:
+        http:
+          endpoint: "https://ingress.{{.Values.global.domain}}/opamp/v1"
+          headers:
+            Authorization: "Bearer ${env:CORALOGIX_PRIVATE_KEY}"
+      agent_description:
+        non_identifying_attributes:
+        {{- if .Values.presets.fleetManagement.agentType }}
+        - cx.agent.type: "{{.Values.presets.fleetManagement.agentType}}"
+        {{- end }}
+        {{- if .Values.presets.fleetManagement.clusterName }}
+        - cx.cluster.name: "{{.Values.presets.fleetManagement.clusterName}}"
+        {{- end }}
+        {{- if .Values.presets.fleetManagement.integrationID }}
+        - cx.integrationID: "{{.Values.presets.fleetManagement.integrationID}}"
+        {{- end }}
+        - k8s.node.name: ${env:KUBE_NODE_NAME}
+{{- end }}
+
 {{- define "opentelemetry-collector.applySpanMetricsConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.spanMetricsConfig" .Values | fromYaml) .config }}
 {{- if and ($config.service.pipelines.traces) (not (has "spanmetrics" $config.service.pipelines.traces.exporters)) }}
@@ -984,17 +1020,39 @@ exporters:
         x-coralogix-ingress: "metadata-as-otlp-logs/v1alpha1"
 
 processors:
+  resourcedetection/entity:
+    detectors: ["system", "env"]
+    timeout: 2s
+    override: false
+    system:
+      resource_attributes:
+        host.id:
+          enabled: true
+        host.cpu.cache.l2.size:
+          enabled: true
+        host.cpu.stepping:
+          enabled: true
+        host.cpu.model.name:
+          enabled: true
+        host.cpu.model.id:
+          enabled: true
+        host.cpu.family:
+          enabled: true
+        host.cpu.vendor.id:
+          enabled: true
+        host.mac:
+          enabled: true
+        host.ip:
+          enabled: true
+        os.description:
+          enabled: true
   transform/entity-event:
-    error_mode: ignore
+    error_mode: silent
     log_statements:
       - context: log
         statements:
           - set(attributes["otel.entity.id"]["host.id"], resource.attributes["host.id"])
-          - set(attributes["host.name"], resource.attributes["host.name"])
-          - set(attributes["host.type"], resource.attributes["host.type"])
-          - set(attributes["host.image.id"], resource.attributes["host.image.id"])
-          - set(attributes["host.image.name"], resource.attributes["host.image.name"])
-          - set(attributes["k8s.node.name"], resource.attributes["k8s.node.name"])
+          - merge_maps(attributes, resource.attributes, "insert")
       - context: resource
         statements:
           - keep_keys(attributes, [""])
@@ -1006,7 +1064,7 @@ service:
       processors:
         - memory_limiter
         - k8sattributes
-        - resourcedetection/env
+        - resourcedetection/entity
         - resourcedetection/region
         - transform/entity-event
       receivers:
