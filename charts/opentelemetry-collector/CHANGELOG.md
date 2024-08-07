@@ -1,7 +1,7 @@
 # Changelog
 
 ## OpenTelemetry Collector
-### v0.88.6 / 2024-08-06
+### v0.88.6 / 2024-08-07
 - [Feat] Allow configuration of scrape interval value for target allocator prometheus custom resources.
 
 ### v0.88.5 / 2024-08-05
