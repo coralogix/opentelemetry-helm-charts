@@ -61,6 +61,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.clusterMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyClusterMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.kubernetesExtraMetrics.enabled }}
+{{- $config = (include "opentelemetry-collector.applyKubernetesExtraMetrics" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.metadata.enabled }}
 {{- $config = (include "opentelemetry-collector.applyMetadataConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -743,6 +746,11 @@ extensions:
 {{- define "opentelemetry-collector.spanMetricsConfig" -}}
 connectors:
   spanmetrics:
+{{- if .Values.presets.spanMetrics.namespace }}
+    namespace: "{{ .Values.presets.spanMetrics.namespace }}"
+{{- else }}
+    namespace: ""
+{{- end }}
 {{- if .Values.presets.spanMetrics.histogramBuckets }}
     histogram:
       explicit:
@@ -812,6 +820,11 @@ connectors:
         pipelines: [traces/{{- $index }}]
       {{- end }}
   spanmetrics/default:
+{{- if .Values.presets.spanMetrics.namespace }}
+    namespace: "{{ .Values.presets.spanMetrics.namespace }}"
+{{- else }}
+    namespace: ""
+{{- end }}
     histogram:
       explicit:
         buckets: {{ .Values.presets.spanMetricsMulti.defaultHistogramBuckets | toYaml | nindent 12 }}
@@ -832,6 +845,11 @@ connectors:
   {{- $root := . }}
   {{- range $index, $cfg := .Values.presets.spanMetricsMulti.configs }}
   spanmetrics/{{- $index -}}:
+    {{- if $root.Values.presets.spanMetricsMulti.namespace }}
+    namespace: "{{ $root.Values.presets.spanMetricsMulti.namespace }}"
+    {{- else }}
+    namespace: ""
+    {{- end }}
     histogram:
       explicit:
         buckets: {{ $cfg.histogramBuckets | toYaml | nindent 12 }}

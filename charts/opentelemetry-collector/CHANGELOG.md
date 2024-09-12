@@ -2,6 +2,12 @@
 
 ## OpenTelemetry Collector
 
+### v0.94.0 / 2024-09-18
+- [Feat] Allow kubernetesExtraMetrics preset on daemonset.
+
+### v0.93.1 / 2024-09-12
+- [Fix] Allow changing spanmetrics namespace
+
 ### v0.93.0 / 2024-09-11
 - [Feat] Bump collector version to `0.108.0`
 
