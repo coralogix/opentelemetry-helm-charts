@@ -58,6 +58,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.kubernetesAttributes.enabled }}
 {{- $config = (include "opentelemetry-collector.applyKubernetesAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.kubernetesExtraMetrics.enabled }}
+{{- $config = (include "opentelemetry-collector.applyKubernetesExtraMetrics" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.clusterMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyClusterMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -513,6 +516,21 @@ receivers:
   prometheus/k8s_extra_metrics:
     config:
       scrape_configs:
+      {{- if .Values.presets.kubernetesExtraMetrics.perNode }}
+      - job_name: kubernetes-cadvisor
+        honor_timestamps: true
+        metrics_path: /metrics/cadvisor
+        scheme: https
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: true
+        relabel_configs:
+          - target_label: __address__
+            replacement: $K8S_NODE_IP:10250
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+      {{- else }}
       - job_name: kubernetes-apiserver
         honor_timestamps: true
         scheme: https
@@ -544,6 +562,7 @@ receivers:
         relabel_configs:
           - action: labelmap
             regex: __meta_kubernetes_node_label_(.+)
+      {{- end }}
 processors:
   filter/k8s_extra_metrics:
     metrics:

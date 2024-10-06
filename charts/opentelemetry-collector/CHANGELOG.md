@@ -1,6 +1,8 @@
 # Changelog
 
 ## OpenTelemetry Collector
+### v0.93.3 / 2024-10.07
+- [Feat] Add support for scraping cadvisor metrics per node on daemonset
 
 ### v0.93.3 / 2024-09-23
 - [Fix] agent_description.non_identifying_attributes expected a map, got 'slice'
