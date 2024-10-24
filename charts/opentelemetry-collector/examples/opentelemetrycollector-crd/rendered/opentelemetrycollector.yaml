@@ -1,6 +1,6 @@
 ---
 # Source: opentelemetry-collector/templates/opentelemetrycollector.yaml
-apiVersion: opentelemetry.io/v1alpha1
+apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector
 metadata:
   name: example-opentelemetry-collector
@@ -91,7 +91,7 @@ spec:
     kubernetes.io/arch: arm64
   serviceAccount: default
   hostNetwork: false
-  config: |
+  config:
     exporters:
       debug: {}
     extensions:
