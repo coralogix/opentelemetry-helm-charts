@@ -6,15 +6,16 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.94.1
+    helm.sh/chart: opentelemetry-collector-0.97.0
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "0.110.0"
+    app.kubernetes.io/version: "0.111.0"
     app.kubernetes.io/managed-by: Helm
     
 data:
   relay: |
     connectors:
+      forward/db: {}
       spanmetrics:
         histogram:
           explicit:
@@ -25,6 +26,27 @@ data:
         metrics_expiration: 5m
         metrics_flush_interval: 30s
         namespace: ""
+      spanmetrics/db:
+        dimensions:
+        - name: db.namespace
+        - name: db.operation.name
+        - name: db.collection_name
+        - name: db.system
+        histogram:
+          explicit:
+            buckets:
+            - 100us
+            - 1ms
+            - 2ms
+            - 2.5ms
+            - 4ms
+            - 6ms
+            - 10ms
+            - 100ms
+            - 250ms
+        metrics_expiration: 5m
+        metrics_flush_interval: 30s
+        namespace: db
     exporters:
       debug: {}
     extensions:
@@ -36,16 +58,10 @@ data:
         observe_pods: true
     processors:
       batch: {}
-      filter/k8s_extra_metrics:
-        metrics:
-          metric:
-          - resource.attributes["service.name"] == "kubernetes-apiserver" and name !=
-            "kubernetes_build_info"
-          - resource.attributes["service.name"] == "kubernetes-cadvisor" and (name !=
-            "container_fs_writes_total" and name != "container_fs_reads_total" and name
-            != "container_fs_writes_bytes_total" and name != "container_fs_reads_bytes_total"
-            and name != "container_fs_usage_bytes" and name != "container_cpu_cfs_throttled_periods_total"
-            and name != "container_cpu_cfs_periods_total")
+      filter/db_spanmetrics:
+        traces:
+          span:
+          - attributes["db.system"] == nil
       k8sattributes:
         extract:
           metadata:
@@ -75,6 +91,37 @@ data:
         check_interval: 5s
         limit_percentage: 80
         spike_limit_percentage: 25
+      transform/db:
+        error_mode: silent
+        trace_statements:
+        - context: span
+          statements:
+          - set(attributes["db.namespace"], attributes["db.name"]) where attributes["db.namespace"]
+            == nil
+          - set(attributes["db.namespace"], attributes["server.address"]) where attributes["db.namespace"]
+            == nil
+          - set(attributes["db.namespace"], attributes["network.peer.name"]) where attributes["db.namespace"]
+            == nil
+          - set(attributes["db.namespace"], attributes["net.peer.name"]) where attributes["db.namespace"]
+            == nil
+          - set(attributes["db.namespace"], attributes["db.system"]) where attributes["db.namespace"]
+            == nil
+          - set(attributes["db.operation.name"], attributes["db.operation"]) where attributes["db.operation.name"]
+            == nil
+          - set(attributes["db.collection_name"], attributes["db.sql.table"]) where attributes["db.collection_name"]
+            == nil
+          - set(attributes["db.collection_name"], attributes["db.cassandra.table"]) where
+            attributes["db.collection.name"] == nil
+          - set(attributes["db.collection_name"], attributes["db.mongodb.collection"])
+            where attributes["db.collection.name"] == nil
+          - set(attributes["db.collection_name"], attributes["db.redis.database_index"])
+            where attributes["db.collection.name"] == nil
+          - set(attributes["db.collection_name"], attributes["db.elasticsearch.path_parts.index"])
+            where attributes["db.collection.name"] == nil
+          - set(attributes["db.collection_name"], attributes["db.cosmosdb.container"])
+            where attributes["db.collection.name"] == nil
+          - set(attributes["db.collection_name"], attributes["aws_dynamodb.table_names"])
+            where attributes["db.collection.name"] == nil
       transform/k8s_attributes:
         log_statements:
         - context: resource
@@ -221,6 +268,7 @@ data:
           combine_with: ""
           id: kube-system_app-.*_http
           is_first_entry: (attributes.log) matches "^[^\\s].*"
+          max_batch_size: 1000
           max_log_size: 1048576
           max_unmatched_batch_size: 1
           output: clean-up-log-record
@@ -229,6 +277,7 @@ data:
           combine_with: ""
           id: default_app-.*
           is_first_entry: (attributes.log) matches "^[^\\s].*"
+          max_batch_size: 1000
           max_log_size: 1048576
           max_unmatched_batch_size: 1
           output: clean-up-log-record
@@ -237,6 +286,7 @@ data:
           combine_with: ""
           id: test
           is_first_entry: (attributes.log) matches "^[^\\s].*"
+          max_batch_size: 1000
           max_log_size: 1048576
           max_unmatched_batch_size: 1
           output: clean-up-log-record
@@ -361,10 +411,12 @@ data:
           - receiver_creator/mysql
           - prometheus/k8s_extra_metrics
           - spanmetrics
+          - spanmetrics/db
         traces:
           exporters:
           - debug
           - spanmetrics
+          - forward/db
           processors:
           - transform/span_name
           - k8sattributes
@@ -375,6 +427,15 @@ data:
           - otlp
           - jaeger
           - zipkin
+        traces/db:
+          exporters:
+          - spanmetrics/db
+          processors:
+          - filter/db_spanmetrics
+          - transform/db
+          - batch
+          receivers:
+          - forward/db
       telemetry:
         metrics:
           address: ${env:MY_POD_IP}:8888

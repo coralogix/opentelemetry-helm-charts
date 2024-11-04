@@ -475,6 +475,7 @@ receivers:
         is_first_entry: '(attributes.log) matches {{ .firstEntryRegex | quote }}'
         max_log_size: {{ $.Values.presets.logsCollection.maxRecombineLogSize }}
         max_unmatched_batch_size: {{ $.Values.presets.logsCollection.maxUnmatchedBatchSize }}
+        max_batch_size: {{ $.Values.presets.logsCollection.maxBatchSize }}
         {{- if hasKey . "combineWith" }}
         combine_with: {{ .combineWith | quote }}
         {{- end }}
@@ -751,12 +752,23 @@ extensions:
 {{- if and ($config.service.pipelines.traces) (not (has "spanmetrics" $config.service.pipelines.traces.exporters)) }}
 {{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters "spanmetrics" | uniq)  }}
 {{- end }}
+{{- if .Values.Values.presets.spanMetrics.dbMetrics.enabled}}
+{{- if and ($config.service.pipelines.traces) (not (has "forward/db" $config.service.pipelines.traces.exporters)) }}
+{{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters "forward/db" | uniq)  }}
+{{- end }}
+{{- end }}
 {{- if .Values.Values.presets.spanMetrics.spanNameReplacePattern}}
 {{- $_ := set $config.service.pipelines.traces "processors" (prepend $config.service.pipelines.traces.processors "transform/span_name" | uniq)  }}
 {{- end }}
 {{- if and ($config.service.pipelines.metrics) (not (has "spanmetrics" $config.service.pipelines.metrics.receivers)) }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "spanmetrics" | uniq)  }}
 {{- end }}
+{{- if .Values.Values.presets.spanMetrics.dbMetrics.enabled}}
+{{- if and ($config.service.pipelines.metrics) (not (has "spanmetrics/db" $config.service.pipelines.metrics.receivers)) }}
+{{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "spanmetrics/db" | uniq)  }}
+{{- end }}
+{{- end }}
+
 {{- $config | toYaml }}
 {{- end }}
 
@@ -785,10 +797,35 @@ connectors:
 {{- if .Values.presets.spanMetrics.metricsExpiration }}
     metrics_expiration: "{{ .Values.presets.spanMetrics.metricsExpiration }}"
 {{- else }}
-   metrics_expiration: 0
+    metrics_expiration: 0
 {{- end }}
-{{- if .Values.presets.spanMetrics.spanNameReplacePattern }}
+{{- if .Values.presets.spanMetrics.dbMetrics.enabled }}
+  spanmetrics/db:
+    namespace: "db"
+    histogram:
+      explicit:
+        buckets: [100us, 1ms, 2ms, 2.5ms, 4ms, 6ms, 10ms, 100ms, 250ms]
+    dimensions:
+      - name: db.namespace
+      - name: db.operation.name
+      - name: db.collection_name
+      - name: db.system
+{{- if .Values.presets.spanMetrics.metricsExpiration }}
+    metrics_expiration: "{{ .Values.presets.spanMetrics.metricsExpiration }}"
+{{- else }}
+    metrics_expiration: 0
+{{- end }}
+{{- if .Values.presets.spanMetrics.collectionInterval }}
+    metrics_flush_interval: "{{ .Values.presets.spanMetrics.collectionInterval }}"
+{{- else }}
+    metrics_flush_interval: 15s
+{{- end }}
+  forward/db: {}
+{{- end }}
+{{- if or (.Values.presets.spanMetrics.spanNameReplacePattern) (.Values.presets.spanMetrics.dbMetrics.enabled) }}
 processors:
+{{- end}}
+{{- if .Values.presets.spanMetrics.spanNameReplacePattern }}
   transform/span_name:
     trace_statements:
       - context: span
@@ -796,6 +833,35 @@ processors:
         {{- range $index, $pattern := .Values.presets.spanMetrics.spanNameReplacePattern }}
         - replace_pattern(name, "{{ $pattern.regex }}", "{{ $pattern.replacement }}")
         {{- end}}
+{{- end }}
+{{- if .Values.presets.spanMetrics.dbMetrics.enabled }}
+  filter/db_spanmetrics:
+    traces:
+      span:
+        - 'attributes["db.system"] == nil'
+{{- if .Values.presets.spanMetrics.dbMetrics.transformStatements }}
+  transform/db:
+    error_mode: silent
+    trace_statements:
+      - context: span
+        statements:
+        {{- range $index, $pattern := .Values.presets.spanMetrics.dbMetrics.transformStatements }}
+        - {{ $pattern }}
+        {{- end}}
+{{- end }}
+service:
+  pipelines:
+    traces/db:
+      exporters:
+      - spanmetrics/db
+      processors:
+      - filter/db_spanmetrics
+      {{- if .Values.presets.spanMetrics.dbMetrics.transformStatements }}
+      - transform/db
+      {{- end }}
+      - batch
+      receivers:
+      - forward/db
 {{- end }}
 {{- end }}
 

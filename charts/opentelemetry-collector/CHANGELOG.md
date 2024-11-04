@@ -4,6 +4,22 @@
 ### v0.93.3 / 2024-10.07
 - [Feat] Add support for scraping cadvisor metrics per node on daemonset
 
+### v0.97.0 / 2024-11-04
+- [Feat] logsCollection preset allow changing max_batch_size
+- [Fix] Revert collector version to `0.111.0` due to https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/35990
+
+### v0.96.0 / 2024-10-24
+- [Feat] Bump collector version to `0.112.0`
+
+### v0.95.4 / 2024-10-22
+- [Fix] dbMetrics wrongly generated filter connector instead of filter processor
+
+### v0.95.3 / 2024-10-22
+- [Fix] dbMetrics silent transform/db processor
+
+### v0.95.2 / 2024-10-22
+- [Feat] add dbMetrics option to spanmetrics preset
+
 ### v0.93.3 / 2024-09-23
 - [Fix] agent_description.non_identifying_attributes expected a map, got 'slice'
 
