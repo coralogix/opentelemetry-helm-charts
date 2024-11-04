@@ -1,7 +1,7 @@
 # Changelog
 
 ## OpenTelemetry Collector
-### v0.93.3 / 2024-10.07
+### v0.98.0 / 2024-10.07
 - [Feat] Add support for scraping cadvisor metrics per node on daemonset
 
 ### v0.97.0 / 2024-11-04
