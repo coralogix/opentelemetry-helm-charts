@@ -523,14 +523,11 @@ receivers:
         metrics_path: /metrics/cadvisor
         scheme: https
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        static_configs:
+          - targets: [ "${env:K8S_NODE_IP}:10250" ]
         tls_config:
           ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
           insecure_skip_verify: true
-        relabel_configs:
-          - target_label: __address__
-            replacement: $K8S_NODE_IP:10250
-          - action: labelmap
-            regex: __meta_kubernetes_node_label_(.+)
       {{- else }}
       - job_name: kubernetes-apiserver
         honor_timestamps: true
