@@ -4,6 +4,9 @@
 ### v0.98.0 / 2024-10.07
 - [Feat] Add support for scraping cadvisor metrics per node on daemonset
 
+### v0.97.1 / 2024-11-05
+- [Feat] add aks/eks/gcp resource detecion for kubernetes resource collection.
+
 ### v0.97.0 / 2024-11-04
 - [Feat] logsCollection preset allow changing max_batch_size
 - [Fix] Revert collector version to `0.111.0` due to https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/35990

@@ -62,6 +62,10 @@ rules:
   {{- end }}
   {{- if .Values.presets.kubernetesResources.enabled }}
   - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["aws-auth"]
+    verbs: ["get"]
+  - apiGroups: [""]
     resources:
     - namespaces
     - nodes

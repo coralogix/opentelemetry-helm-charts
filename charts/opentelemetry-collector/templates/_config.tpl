@@ -957,6 +957,24 @@ connectors:
 {{- end }}
 
 {{- define "opentelemetry-collector.kubernetesResourcesConfig" -}}
+processors:
+  resourcedetection/resource_catalog:
+    detectors:
+    - eks
+    - aks
+    - gcp
+    override: true
+    timeout: 2s
+    gcp:
+      resource_attributes:
+        host.id:
+          enabled: false
+        host.name:
+          enabled: false
+        host.type:
+          enabled: false
+        k8s.cluster.name:
+          enabled: false
 exporters:
   coralogix/resource_catalog:
     timeout: "30s"
@@ -1096,6 +1114,7 @@ service:
         - coralogix/resource_catalog
       processors:
         - memory_limiter
+        - resourcedetection/resource_catalog
         - resource/metadata
         - batch
       receivers:
