@@ -22,7 +22,7 @@ rules:
     resources: ["replicasets"]
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
-    resources: ["pods", "endpoints", "nodes/stats", "nodes/metrics", "nodes", "services"]
+    resources: ["nodes", "nodes/stats", "nodes/metrics"]
     verbs: ["get", "watch", "list"]
   - nonResourceURLs:
     - "/metrics"
