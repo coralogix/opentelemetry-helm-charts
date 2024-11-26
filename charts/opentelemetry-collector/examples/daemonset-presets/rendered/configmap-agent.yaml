@@ -17,6 +17,9 @@ data:
     connectors:
       forward/db: {}
       spanmetrics:
+        dimensions:
+        - name: http.response.status_code
+        - name: rpc.grpc.status_code
         histogram:
           explicit:
             buckets:
@@ -433,6 +436,7 @@ data:
           - k8sattributes
           - memory_limiter
           - transform/k8s_attributes
+          - transform/errortracking
           - batch
           receivers:
           - otlp
