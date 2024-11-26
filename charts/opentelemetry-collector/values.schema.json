@@ -458,6 +458,20 @@
                 }
               }
             },
+            "errorTracking": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Specifies whether to enable error tracking.",
+                  "type": "boolean"
+                },
+                "transformStatements": {
+                  "description": "Specifies additional transform statements.",
+                  "type": "array"
+                }
+              }
+            },
             "namespace": {
               "description": "Defines the namespace of the generated metrics. If namespace provided, generated metric name will be added namespace. prefix.",
               "type": "string"

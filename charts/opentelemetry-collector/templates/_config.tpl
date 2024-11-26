@@ -757,6 +757,11 @@ extensions:
 {{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters "forward/db" | uniq)  }}
 {{- end }}
 {{- end }}
+{{- if .Values.Values.presets.spanMetrics.errorTracking.enabled}}
+{{- if and ($config.service.pipelines.traces) (not (has "transform/errortracking" $config.service.pipelines.traces.processors)) }}
+{{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/errortracking" | uniq)  }}
+{{- end }}
+{{- end }}
 {{- if .Values.Values.presets.spanMetrics.spanNameReplacePattern}}
 {{- $_ := set $config.service.pipelines.traces "processors" (prepend $config.service.pipelines.traces.processors "transform/span_name" | uniq)  }}
 {{- end }}
@@ -772,6 +777,54 @@ extensions:
 {{- $config | toYaml }}
 {{- end }}
 
+{{- define "opentelemetry-collector.spanmetrics.processors" -}}
+{{- if .Values.presets.spanMetrics.spanNameReplacePattern }}
+transform/span_name:
+  trace_statements:
+    - context: span
+      statements:
+      {{- range $index, $pattern := .Values.presets.spanMetrics.spanNameReplacePattern }}
+      - replace_pattern(name, "{{ $pattern.regex }}", "{{ $pattern.replacement }}")
+      {{- end}}
+{{- end }}
+{{- if .Values.presets.spanMetrics.dbMetrics.enabled }}
+filter/db_spanmetrics:
+  traces:
+    span:
+      - 'attributes["db.system"] == nil'
+{{- end }}
+{{- if .Values.presets.spanMetrics.dbMetrics.transformStatements }}
+transform/db:
+  error_mode: silent
+  trace_statements:
+    - context: span
+      statements:
+      {{- range $index, $pattern := .Values.presets.spanMetrics.dbMetrics.transformStatements }}
+      - {{ $pattern }}
+      {{- end}}
+{{- end }}
+{{ if .Values.presets.spanMetrics.transformStatements }}
+transform/errortracking:
+  error_mode: silent
+  trace_statements:
+    - context: span
+      statements:
+      {{- range $index, $pattern := .Values.presets.spanMetrics.errorTracking.transformStatements }}
+      - {{ $pattern }}
+      {{- end}}
+{{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.spanMetrics.extraDimensions" }}
+{{- if .Values.presets.spanMetrics.extraDimensions }}
+{{- .Values.presets.spanMetrics.extraDimensions | toYaml }}
+{{- end }}
+{{- if .Values.presets.spanMetrics.errorTracking.enabled }}
+- name: http.response.status_code
+- name: rpc.grpc.status_code
+{{- end }}
+{{- end}}
+
 {{- define "opentelemetry-collector.spanMetricsConfig" -}}
 connectors:
   spanmetrics:
@@ -785,9 +838,10 @@ connectors:
       explicit:
         buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
 {{- end }}
-{{- if .Values.presets.spanMetrics.extraDimensions }}
+{{- $extraDimensions := include "opentelemetry-collector.spanMetrics.extraDimensions" . }}
+{{- if and $extraDimensions (gt (len $extraDimensions) 0) }}
     dimensions:
-{{- .Values.presets.spanMetrics.extraDimensions | toYaml | nindent 10 }}
+{{- $extraDimensions |  nindent 10 }}
 {{- end }}
 {{- if .Values.presets.spanMetrics.collectionInterval }}
     metrics_flush_interval: "{{ .Values.presets.spanMetrics.collectionInterval }}"
@@ -821,33 +875,9 @@ connectors:
     metrics_flush_interval: 15s
 {{- end }}
   forward/db: {}
-{{- end }}
-{{- if or (.Values.presets.spanMetrics.spanNameReplacePattern) (.Values.presets.spanMetrics.dbMetrics.enabled) }}
-processors:
-{{- end}}
-{{- if .Values.presets.spanMetrics.spanNameReplacePattern }}
-  transform/span_name:
-    trace_statements:
-      - context: span
-        statements:
-        {{- range $index, $pattern := .Values.presets.spanMetrics.spanNameReplacePattern }}
-        - replace_pattern(name, "{{ $pattern.regex }}", "{{ $pattern.replacement }}")
-        {{- end}}
-{{- end }}
-{{- if .Values.presets.spanMetrics.dbMetrics.enabled }}
-  filter/db_spanmetrics:
-    traces:
-      span:
-        - 'attributes["db.system"] == nil'
-{{- if .Values.presets.spanMetrics.dbMetrics.transformStatements }}
-  transform/db:
-    error_mode: silent
-    trace_statements:
-      - context: span
-        statements:
-        {{- range $index, $pattern := .Values.presets.spanMetrics.dbMetrics.transformStatements }}
-        - {{ $pattern }}
-        {{- end}}
+{{- $processors := include "opentelemetry-collector.spanmetrics.processors" . | fromYaml }}
+{{- if and $processors (gt (len $processors) 0) }}
+processors: {{ $processors | toYaml | nindent 2 }}
 {{- end }}
 service:
   pipelines:
@@ -864,6 +894,16 @@ service:
       - forward/db
 {{- end }}
 {{- end }}
+
+{{- define "opentelemetry-collector.spanMetricsMulti.extraDimensions" }}
+{{- if .Values.presets.spanMetricsMulti.extraDimensions }}
+{{- .Values.presets.spanMetricsMulti.extraDimensions | toYaml }}
+{{- end }}
+{{- if .Values.presets.spanMetrics.errorTracking.enabled }}
+- name: http.response.status_code
+- name: rpc.grpc.status_code
+{{- end }}
+{{- end}}
 
 {{- define "opentelemetry-collector.applySpanMetricsMultiConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.spanMetricsMultiConfig" .Values | fromYaml) .config }}
@@ -921,9 +961,10 @@ connectors:
     {{- else }}
     metrics_expiration: 0
     {{- end }}
-    {{- if .Values.presets.spanMetricsMulti.extraDimensions }}
+    {{- $extraDimensions := include "opentelemetry-collector.spanMetricsMulti.extraDimensions" . }}
+    {{- if and $extraDimensions (gt (len $extraDimensions) 0) }}
     dimensions:
-    {{- .Values.presets.spanMetricsMulti.extraDimensions | toYaml | nindent 10 }}
+    {{- $extraDimensions |  nindent 10 }}
     {{- end }}
   {{- $root := . }}
   {{- range $index, $cfg := .Values.presets.spanMetricsMulti.configs }}
