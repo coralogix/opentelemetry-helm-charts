@@ -777,44 +777,6 @@ extensions:
 {{- $config | toYaml }}
 {{- end }}
 
-{{- define "opentelemetry-collector.spanmetrics.processors" -}}
-{{- if .Values.presets.spanMetrics.spanNameReplacePattern }}
-transform/span_name:
-  trace_statements:
-    - context: span
-      statements:
-      {{- range $index, $pattern := .Values.presets.spanMetrics.spanNameReplacePattern }}
-      - replace_pattern(name, "{{ $pattern.regex }}", "{{ $pattern.replacement }}")
-      {{- end}}
-{{- end }}
-{{- if .Values.presets.spanMetrics.dbMetrics.enabled }}
-filter/db_spanmetrics:
-  traces:
-    span:
-      - 'attributes["db.system"] == nil'
-{{- end }}
-{{- if .Values.presets.spanMetrics.dbMetrics.transformStatements }}
-transform/db:
-  error_mode: silent
-  trace_statements:
-    - context: span
-      statements:
-      {{- range $index, $pattern := .Values.presets.spanMetrics.dbMetrics.transformStatements }}
-      - {{ $pattern }}
-      {{- end}}
-{{- end }}
-{{ if .Values.presets.spanMetrics.transformStatements }}
-transform/spanmetrics:
-  error_mode: silent
-  trace_statements:
-    - context: span
-      statements:
-      {{- range $index, $pattern := .Values.presets.spanMetrics.transformStatements }}
-      - {{ $pattern }}
-      {{- end}}
-{{- end }}
-{{- end }}
-
 {{- define "opentelemetry-collector.spanMetrics.extraDimensions" }}
 {{- if .Values.presets.spanMetrics.extraDimensions }}
 {{- .Values.presets.spanMetrics.extraDimensions | toYaml }}
@@ -875,9 +837,43 @@ connectors:
     metrics_flush_interval: 15s
 {{- end }}
   forward/db: {}
-{{- $processors := include "opentelemetry-collector.spanmetrics.processors" . | fromYaml }}
-{{- if and $processors (gt (len $processors) 0) }}
-processors: {{ $processors | toYaml | nindent 2 }}
+{{- end }}
+{{- if or (.Values.presets.spanMetrics.spanNameReplacePattern) (.Values.presets.spanMetrics.dbMetrics.enabled) }}
+processors:
+{{- end}}
+{{- if .Values.presets.spanMetrics.spanNameReplacePattern }}
+  transform/span_name:
+    trace_statements:
+      - context: span
+        statements:
+        {{- range $index, $pattern := .Values.presets.spanMetrics.spanNameReplacePattern }}
+        - replace_pattern(name, "{{ $pattern.regex }}", "{{ $pattern.replacement }}")
+        {{- end}}
+{{- end }}
+{{- if .Values.presets.spanMetrics.dbMetrics.enabled }}
+  filter/db_spanmetrics:
+    traces:
+      span:
+        - 'attributes["db.system"] == nil'
+{{- if .Values.presets.spanMetrics.transformStatements }}
+  transform/spanmetrics:
+    error_mode: silent
+    trace_statements:
+      - context: span
+        statements:
+        {{- range $index, $pattern := .Values.presets.spanMetrics.transformStatements }}
+        - {{ $pattern }}
+        {{- end}}
+{{- end }}
+{{- if .Values.presets.spanMetrics.dbMetrics.transformStatements }}
+  transform/db:
+    error_mode: silent
+    trace_statements:
+      - context: span
+        statements:
+        {{- range $index, $pattern := .Values.presets.spanMetrics.dbMetrics.transformStatements }}
+        - {{ $pattern }}
+        {{- end}}
 {{- end }}
 service:
   pipelines:
