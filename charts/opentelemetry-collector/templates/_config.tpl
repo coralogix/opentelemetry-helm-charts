@@ -757,9 +757,9 @@ extensions:
 {{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters "forward/db" | uniq)  }}
 {{- end }}
 {{- end }}
-{{- if .Values.Values.presets.spanMetrics.errorTracking.enabled}}
-{{- if and ($config.service.pipelines.traces) (not (has "transform/errortracking" $config.service.pipelines.traces.processors)) }}
-{{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/errortracking" | uniq)  }}
+{{- if .Values.Values.presets.spanMetrics.transformStatements}}
+{{- if and ($config.service.pipelines.traces) (not (has "transform/spanmetrics" $config.service.pipelines.traces.processors)) }}
+{{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/spanmetrics" | uniq)  }}
 {{- end }}
 {{- end }}
 {{- if .Values.Values.presets.spanMetrics.spanNameReplacePattern}}
@@ -804,12 +804,12 @@ transform/db:
       {{- end}}
 {{- end }}
 {{ if .Values.presets.spanMetrics.transformStatements }}
-transform/errortracking:
+transform/spanmetrics:
   error_mode: silent
   trace_statements:
     - context: span
       statements:
-      {{- range $index, $pattern := .Values.presets.spanMetrics.errorTracking.transformStatements }}
+      {{- range $index, $pattern := .Values.presets.spanMetrics.transformStatements }}
       - {{ $pattern }}
       {{- end}}
 {{- end }}
