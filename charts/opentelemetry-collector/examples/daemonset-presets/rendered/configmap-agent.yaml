@@ -180,6 +180,13 @@ data:
         - context: span
           statements:
           - replace_pattern(name, "^(.*)$", "$$1")
+      transform/spanmetrics:
+        error_mode: silent
+        trace_statements:
+        - context: span
+          statements:
+          - set(attributes["http.response.status_code"], attributes["http.status_code"])
+            where attributes["http.response.status_code"] == nil
     receivers:
       filelog:
         exclude: []
@@ -436,7 +443,7 @@ data:
           - k8sattributes
           - memory_limiter
           - transform/k8s_attributes
-          - transform/errortracking
+          - transform/spanmetrics
           - batch
           receivers:
           - otlp
