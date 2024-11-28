@@ -2,6 +2,9 @@
 
 ## OpenTelemetry Collector
 
+### v0.98.4 / 2024-11-28
+- [Fix] Make the metrics telemetry service listen on `0.0.0.0` instead of using shell var expansion to resolve the pod IP.
+
 ### v0.98.3 / 2024-11-26
 - [Feat] Add the new `errorTracking` preset.
 
