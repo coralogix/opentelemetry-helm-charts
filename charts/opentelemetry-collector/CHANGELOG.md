@@ -3,7 +3,7 @@
 ## OpenTelemetry Collector
 
 ### v0.98.6 / 2024-12-02
-- [Fix] Target Alloctor services always being created with.
+- [Fix] Create the Target Allocator service only when applicable. 
 
 ### v0.98.5 / 2024-11-28
 - [Feat] Adding new configs to the Target Allocator.
