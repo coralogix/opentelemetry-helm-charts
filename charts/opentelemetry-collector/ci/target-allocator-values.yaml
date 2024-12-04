@@ -2,12 +2,12 @@ mode: daemonset
 
 targetAllocator:
   enabled: true
-  allocationStrategy: "per-node"
+  allocationStrategy: per-node
   scrapeConfigs:
-  - job_name: 'otel-collector'
+  - job_name: otel-collector
     scrape_interval: 10s
     static_configs:
-      - targets: [ '0.0.0.0:8888' ]
+      - targets: ["0.0.0.0:8888"]
   prometheusCR:
     enabled: false
   image:
