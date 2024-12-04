@@ -1,7 +1,7 @@
 mode: daemonset
 
 presets:
-  spanmetrics:
+  spanMetrics:
     enabled: true
     errorTracking:
       enabled: true
