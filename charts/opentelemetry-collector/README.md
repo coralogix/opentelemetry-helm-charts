@@ -39,6 +39,10 @@ More info is available in the [Security Best Practices docummentation](https://g
 
 Some care must be taken when using `hostNetwork: true`, as then OpenTelemetry Collector will listen on all the addresses in the host network namespace.
 
+### Fleet management
+
+Please check the [Configuration for secret management section](#configuration-for-fleet-management)  for security considerations when using the feature.
+
 ## Configuration
 
 ### Default configuration
@@ -257,6 +261,30 @@ This setting will:
 Note due to limited access, these options will not work:
 - `presets.hostMetrics`
 - `presets.logsCollection.storeCheckpoints`
+
+### Configuration for fleet management
+
+The Collector can be configured to connect to the Coralogix fleet management server through setting the `presets.fleetManagement.enabled` property to `true`. This connection happens through the OpAMP extension of the Collector and the endpoint used is: `https://ingress.<CORALOGIX_DOMAIN>/opamp/v1`. This feature is disabled by default.
+
+> [!CAUTION]
+> Important security consideration when enabling this feature:
+>
+> - Because this extension shares your Collector's configuration with the fleet management server, it's important to ensure that any secret contained in it is using the environment variable expansion syntax.
+> - The default capabilities of the OpAMP extension **do not** include remote configuration or packages.
+> - By default, the extension will pool the server every 2 minutes. Additional network requests might be made between the server and the Collector, depending on the configuration on both sides.
+
+The Collector can be configured to send extra metadata that will be associated with it to the fleet management server, like a cluster name, agent type, and integration ID.
+
+To enable this feature, set the `presets.fleetManagement.enabled` property to `true`. Here is an example `values.yaml`:
+
+```yaml
+presets:
+  fleetManagement:
+    enabled: true
+    clusterName: "my-cluster"
+    agentType: "my-agent-type"
+    integrationId: "my-integration-id"
+```
 
 ## CRDs
 
