@@ -360,4 +360,4 @@ spec:
           - zipkin
       telemetry:
         metrics:
-          address: 0.0.0.0:8888
+          address: ${env:MY_POD_IP}:8888
