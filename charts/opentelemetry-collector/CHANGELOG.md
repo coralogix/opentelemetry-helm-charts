@@ -3,7 +3,7 @@
 ## OpenTelemetry Collector
 
 ### v0.103.0 / 2025-01-03
-- [Feat] Bump collector version to `0.116.0`
+- [Feat] Bump collector version to `0.116.1`
 
 ### v0.102.0 / 2025-01-02
 - [Fix] Revert the change in metrics telemetry service host from `0.0.0.0` to `${env:MY_POD_IP}`
