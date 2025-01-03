@@ -12,4 +12,4 @@ sources:
 icon: https://opentelemetry.io/img/logos/opentelemetry-logo-nav.png
 maintainers:
   - name: povilasv
-appVersion: 0.115.1
+appVersion: 0.116.0
