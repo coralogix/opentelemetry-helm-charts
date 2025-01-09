@@ -4,6 +4,3 @@
 
 ### Helm ###
 **/charts/*.tgz
-
-### Private folder to safely store dev files ###
-private/
