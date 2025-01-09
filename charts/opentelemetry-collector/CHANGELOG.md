@@ -5,10 +5,6 @@
 ### v0.105.0 / 2025-01-09
 - [Feat] Bump collector version to `0.117.0`
 
-### v0.104.0 / 2025-01-08
-
-- [Feat] Bump collector version to `0.117.0`
-
 ### v0.103.0 / 2025-01-03
 - [Feat] Bump collector version to `0.116.1`
 
