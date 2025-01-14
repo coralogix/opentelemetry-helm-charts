@@ -2,7 +2,7 @@
 
 ## OpenTelemetry Collector
 
-### v0.106.0 / 2025-01-14
+### v0.105.1 / 2025-01-14
 - [Fix] Add missing `source_identifier` to `presets.logsCollection.multilineConfigs`
 
 ### v0.105.0 / 2025-01-09
