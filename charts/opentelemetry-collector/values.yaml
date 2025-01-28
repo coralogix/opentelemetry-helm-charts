@@ -299,6 +299,39 @@ configMap:
   # Specifies whether a configMap should be created (true by default)
   create: true
 
+# extraConfig:
+#   exporters:
+#     debug: {}
+#   receivers:
+#     otlp:
+#       protocols:
+#         grpc:
+#           endpoint: ${env:MY_POD_IP}:4317
+#         http:
+#           endpoint: ${env:MY_POD_IP}:4318
+#    service:
+#     pipelines:
+#       logs:
+#         processors:
+#           - memory_limiter
+#           - batch
+#         receivers:
+#           - otlp
+
+extraLogReceivers:
+  otlp/3:
+    protocols:
+      grpc:
+        endpoint: ${env:MY_POD_IP}:4317
+      http:
+        endpoint: ${env:MY_POD_IP}:4318
+  otlp/2:
+    protocols:
+      grpc:
+        endpoint: ${env:MY_POD_IP}:4315
+      http:
+        endpoint: ${env:MY_POD_IP}:4316
+
 # Base collector configuration.
 # Supports templating. To escape existing instances of {{ }}, use {{` <original content> `}}.
 # For example, {{ REDACTED_EMAIL }} becomes {{` {{ REDACTED_EMAIL }} `}}.

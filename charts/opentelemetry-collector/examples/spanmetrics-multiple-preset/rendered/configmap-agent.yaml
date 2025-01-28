@@ -82,6 +82,18 @@ data:
     extensions:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
+    otlp/2:
+      protocols:
+        grpc:
+          endpoint: ${env:MY_POD_IP}:4315
+        http:
+          endpoint: ${env:MY_POD_IP}:4316
+    otlp/3:
+      protocols:
+        grpc:
+          endpoint: ${env:MY_POD_IP}:4317
+        http:
+          endpoint: ${env:MY_POD_IP}:4318
     processors:
       batch: {}
       memory_limiter:
@@ -125,6 +137,8 @@ data:
           - batch
           receivers:
           - otlp
+          - otlp/2
+          - otlp/3
         metrics:
           exporters:
           - debug

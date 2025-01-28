@@ -91,6 +91,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.fleetManagement.enabled }}
 {{- $config = (include "opentelemetry-collector.applyFleetManagementConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.extraLogReceivers }}
+{{- $config = (include "opentelemetry-collector.applyExtraLogReceivers" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- tpl (toYaml $config) . }}
 {{- end }}
@@ -185,6 +188,22 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 
 {{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyExtraLogReceivers" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.extraLogReceivers" .Values | fromYaml) .config }}
+{{- range $key, $value := .Values.Values.extraLogReceivers }}
+{{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers $key | uniq) }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.extraLogReceivers" -}}
+{{- $extraLogReceivers := .Values.extraLogReceivers }}
+{{- range $key, $value := $extraLogReceivers }}
+{{- $_ := set $extraLogReceivers $key $value }}
+{{- end }}
+{{- $extraLogReceivers | toYaml }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyTargetAllocatorConfig" -}}
