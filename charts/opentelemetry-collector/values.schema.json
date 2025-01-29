@@ -278,6 +278,10 @@
       "type": "string",
       "description": "Name of the namespace to deploy the resources into."
     },
+    "extraLogReceivers": {
+      "type": "object",
+      "additionalProperties": true
+    },
     "presets": {
       "type": "object",
       "additionalProperties": false,

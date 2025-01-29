@@ -61,6 +61,18 @@ data:
         auth_type: serviceAccount
         node: ${env:K8S_NODE_NAME}
         observe_pods: true
+    otlp/2:
+      protocols:
+        grpc:
+          endpoint: ${env:MY_POD_IP}:4315
+        http:
+          endpoint: ${env:MY_POD_IP}:4316
+    otlp/3:
+      protocols:
+        grpc:
+          endpoint: ${env:MY_POD_IP}:4317
+        http:
+          endpoint: ${env:MY_POD_IP}:4318
     processors:
       batch: {}
       filter/db_spanmetrics:
@@ -424,6 +436,8 @@ data:
           receivers:
           - otlp
           - filelog
+          - otlp/2
+          - otlp/3
         metrics:
           exporters:
           - debug

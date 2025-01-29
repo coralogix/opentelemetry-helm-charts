@@ -42,6 +42,18 @@ data:
             headers:
               Authorization: Bearer ${env:CORALOGIX_PRIVATE_KEY}
             polling_interval: 2m
+    otlp/2:
+      protocols:
+        grpc:
+          endpoint: ${env:MY_POD_IP}:4315
+        http:
+          endpoint: ${env:MY_POD_IP}:4316
+    otlp/3:
+      protocols:
+        grpc:
+          endpoint: ${env:MY_POD_IP}:4317
+        http:
+          endpoint: ${env:MY_POD_IP}:4318
     processors:
       batch: {}
       memory_limiter:
@@ -186,6 +198,8 @@ data:
           - batch
           receivers:
           - otlp
+          - otlp/2
+          - otlp/3
         logs/resource_catalog:
           exporters:
           - coralogix/resource_catalog
