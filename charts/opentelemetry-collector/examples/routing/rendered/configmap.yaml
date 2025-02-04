@@ -119,8 +119,8 @@ data:
           exporters:
           - debug
           processors:
-          - k8sattributes
           - memory_limiter
+          - k8sattributes
           - transform/k8s_attributes
           - batch
           receivers:
@@ -129,8 +129,8 @@ data:
           exporters:
           - debug
           processors:
-          - k8sattributes
           - memory_limiter
+          - k8sattributes
           - transform/k8s_attributes
           - batch
           receivers:
