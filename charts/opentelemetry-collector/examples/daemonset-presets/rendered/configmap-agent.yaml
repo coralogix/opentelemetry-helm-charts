@@ -456,6 +456,7 @@ data:
           - memory_limiter
           - transform/k8s_attributes
           - transform/spanmetrics
+          - transform/db
           - transform/test
           - batch
           receivers:
@@ -467,7 +468,6 @@ data:
           - spanmetrics/db
           processors:
           - filter/db_spanmetrics
-          - transform/db
           - batch
           receivers:
           - forward/db
