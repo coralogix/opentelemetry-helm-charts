@@ -826,6 +826,11 @@ extensions:
 {{- if and ($config.service.pipelines.traces) (not (has "spanmetrics" $config.service.pipelines.traces.exporters)) }}
 {{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters "spanmetrics" | uniq)  }}
 {{- end }}
+{{- if .Values.Values.presets.spanMetrics.dbMetrics.enabled}}
+{{- if and ($config.service.pipelines.traces) (not (has "forward/db" $config.service.pipelines.traces.exporters)) }}
+{{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters "forward/db" | uniq)  }}
+{{- end }}
+{{- end }}
 {{- if .Values.Values.presets.spanMetrics.transformStatements}}
 {{- if and ($config.service.pipelines.traces) (not (has "transform/spanmetrics" $config.service.pipelines.traces.processors)) }}
 {{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/spanmetrics" | uniq)  }}
@@ -838,17 +843,9 @@ extensions:
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "spanmetrics" | uniq)  }}
 {{- end }}
 {{- if .Values.Values.presets.spanMetrics.dbMetrics.enabled}}
-  {{- if and ($config.service.pipelines.metrics) (not (has "spanmetrics/db" $config.service.pipelines.metrics.receivers)) }}
-  {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "spanmetrics/db" | uniq)  }}
-  {{- end }}
-  {{- if .Values.Values.presets.spanMetrics.transformStatements }}
-    {{- if and ($config.service.pipelines.traces) (not (has "transform/db" $config.service.pipelines.traces.processors)) }}
-    {{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/db" | uniq)  }}
-    {{- end }}
-  {{- end }}
-  {{- if and ($config.service.pipelines.traces) (not (has "forward/db" $config.service.pipelines.traces.exporters)) }}
-  {{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters "forward/db" | uniq)  }}
-  {{- end }}
+{{- if and ($config.service.pipelines.metrics) (not (has "spanmetrics/db" $config.service.pipelines.metrics.receivers)) }}
+{{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "spanmetrics/db" | uniq)  }}
+{{- end }}
 {{- end }}
 
 {{- $config | toYaml }}
@@ -965,6 +962,9 @@ service:
       - spanmetrics/db
       processors:
       - filter/db_spanmetrics
+      {{- if .Values.presets.spanMetrics.dbMetrics.transformStatements }}
+      - transform/db
+      {{- end }}
       - batch
       receivers:
       - forward/db
