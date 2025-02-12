@@ -23,13 +23,6 @@ data:
         metrics_expiration: 0
         metrics_flush_interval: 15s
         namespace: ""
-      transform/spanmetrics:
-        error_mode: silent
-        trace_statements:
-        - context: span
-          statements:
-          - set(attributes["http.response.status_code"], attributes["http.status_code"])
-            where attributes["http.response.status_code"] == nil
     exporters:
       debug: {}
       otlp:
@@ -45,6 +38,13 @@ data:
         check_interval: 5s
         limit_percentage: 80
         spike_limit_percentage: 25
+      transform/spanmetrics:
+        error_mode: silent
+        trace_statements:
+        - context: span
+          statements:
+          - set(attributes["http.response.status_code"], attributes["http.status_code"])
+            where attributes["http.response.status_code"] == nil
     receivers:
       jaeger:
         protocols:
