@@ -2,8 +2,8 @@
 
 ## OpenTelemetry Collector
 
-### v0.106.3 / 2025-02-11
-- [Fix] Apply semantic convention for `dbMetrics` preset in the `traces` pipeline instead of `traces/db`.
+### v0.106.3 / 2025-02-12
+- [Fix] `spanMetrics.transformStatements` are correctly created even when `spanMetrics.dbMetrics` is not enabled.
 
 ### v0.106.2 / 2025-02-05
 - [Feat] Add support for CUSTOM autoscaling mode alongside HPA mode
