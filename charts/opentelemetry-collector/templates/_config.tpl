@@ -935,6 +935,7 @@ processors:
     traces:
       span:
         - 'attributes["db.system"] == nil'
+{{- end }}
 {{- if .Values.presets.spanMetrics.transformStatements }}
   transform/spanmetrics:
     error_mode: silent
@@ -955,6 +956,7 @@ processors:
         - {{ $pattern }}
         {{- end}}
 {{- end }}
+{{- if .Values.presets.spanMetrics.dbMetrics.enabled }}
 service:
   pipelines:
     traces/db:
