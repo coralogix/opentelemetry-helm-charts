@@ -870,3 +870,6 @@ networkPolicy:
 # See https://github.com/open-telemetry/opentelemetry-helm-charts/issues/891
 # for more details.
 useGOMEMLIMIT: true
+
+opentelemetry-ebpf-profiler:
+  enabled: false

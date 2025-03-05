@@ -1,0 +1,6 @@
+dependencies:
+- name: opentelemetry-ebpf-profiler
+  repository: file://../opentelemetry-ebpf-profiler
+  version: 0.108.0
+digest: sha256:3017f1f271379aa1ff07513de055d570f67f0dce05b0023e181e9c1048071aa1
+generated: "2025-03-05T15:28:18.904922+01:00"

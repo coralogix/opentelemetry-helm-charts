@@ -13,3 +13,8 @@ icon: https://opentelemetry.io/img/logos/opentelemetry-logo-nav.png
 maintainers:
   - name: povilasv
 appVersion: 0.120.0
+dependencies:
+  - name: opentelemetry-ebpf-profiler
+    version: 0.108.0
+    condition: opentelemetry-ebpf-profiler.enabled
+    repository: "file://../opentelemetry-ebpf-profiler"

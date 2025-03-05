@@ -1626,6 +1626,16 @@
     },
     "useGOMEMLIMIT": {
       "type": "boolean"
+    },
+    "opentelemetry-ebpf-profiler": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "default": {}
     }
   },
   "required": ["mode"]
