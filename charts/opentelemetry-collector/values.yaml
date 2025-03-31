@@ -297,7 +297,7 @@ presets:
       enabled: true
   # Configures Host Metrics receiver to collect Entity Events.
   hostEntityEvents:
-    enabled: false
+    enabled: true
   # Configures the collector to communicate with the remote Coralogix fleet management service.
   fleetManagement:
     enabled: false
