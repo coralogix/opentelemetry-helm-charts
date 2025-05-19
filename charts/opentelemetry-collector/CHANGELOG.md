@@ -2,8 +2,11 @@
 
 ## OpenTelemetry Collector
 
-## v0.114.5 / 2025-05-19
+## v0.114.6 / 2025-05-19
 - [Update] `kubeletstatsreceiver`: set `collect_all_network_interfaces` on `pods`
+
+## v0.114.5 / 2025-05-19
+- [Fix] Fix utilization metric name and unit in `kubeletMetrics` preset to keep the metrics' backward compatibility for dashboards
 
 ## v0.114.4 / 2025-05-16
 - [Feat] Add resourceDetection preset to add system and environment information to resource attributes
