@@ -5,7 +5,7 @@ kind: OpenTelemetryCollector
 metadata:
   name: example-opentelemetry-collector
   labels:
-    helm.sh/chart: opentelemetry-collector-0.115.1
+    helm.sh/chart: opentelemetry-collector-0.115.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.126.0"
@@ -257,12 +257,7 @@ spec:
               system.memory.utilization:
                 enabled: true
           network: null
-      otlp:
-        protocols:
-          grpc:
-            endpoint: ${env:MY_POD_IP}:4317
-          http:
-            endpoint: ${env:MY_POD_IP}:4318
+      nop: {}
       prometheus:
         config:
           scrape_configs:
@@ -283,7 +278,7 @@ spec:
           - memory_limiter
           - batch
           receivers:
-          - otlp
+          - nop
           - filelog
         metrics:
           exporters:
@@ -293,7 +288,7 @@ spec:
           - transform/prometheus
           - batch
           receivers:
-          - otlp
+          - nop
           - hostmetrics
           - prometheus
         traces:
@@ -303,7 +298,7 @@ spec:
           - memory_limiter
           - batch
           receivers:
-          - otlp
+          - nop
       telemetry:
         logs:
           encoding: json

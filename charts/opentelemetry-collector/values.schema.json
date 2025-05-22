@@ -855,6 +855,16 @@
               "type": "boolean"
             }
           }
+        },
+        "otlpReceiver": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether the collector should receive OTLP data.",
+              "type": "boolean"
+            }
+          }
         }
       }
     },
