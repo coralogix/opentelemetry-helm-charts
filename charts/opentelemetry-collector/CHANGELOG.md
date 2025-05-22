@@ -2,6 +2,9 @@
 
 ## OpenTelemetry Collector
 
+## v0.115.2 / 2025-05-22
+- [Feat] Add otlp receiver preset to support receiving otlp trace data
+
 ## v0.115.1 / 2025-05-19
 - [Update] `kubeletstatsreceiver`: set `collect_all_network_interfaces` on `pods`
 

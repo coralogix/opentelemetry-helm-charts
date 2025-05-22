@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.115.1
+    helm.sh/chart: opentelemetry-collector-0.115.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.126.0"
@@ -57,12 +57,7 @@ data:
           - delete_key(attributes, "otel_scope_name") where attributes["service.name"]
             == "opentelemetry-collector"
     receivers:
-      otlp:
-        protocols:
-          grpc:
-            endpoint: ${env:MY_POD_IP}:4317
-          http:
-            endpoint: ${env:MY_POD_IP}:4318
+      nop: {}
       prometheus:
         config:
           scrape_configs:
@@ -115,7 +110,7 @@ data:
           - memory_limiter
           - batch
           receivers:
-          - otlp
+          - nop
         metrics:
           exporters:
           - debug
@@ -125,7 +120,7 @@ data:
           - transform/prometheus
           - batch
           receivers:
-          - otlp
+          - nop
           - prometheus/k8s_extra_metrics
           - prometheus
         traces:
@@ -135,7 +130,7 @@ data:
           - memory_limiter
           - batch
           receivers:
-          - otlp
+          - nop
       telemetry:
         logs:
           encoding: json
