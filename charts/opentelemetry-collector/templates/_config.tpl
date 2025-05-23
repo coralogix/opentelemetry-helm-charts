@@ -1694,10 +1694,28 @@ processors:
 {{- define "opentelemetry-collector.applyKubernetesEventsConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.kubernetesEventsConfig" .Values | fromYaml) .config }}
 {{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers "k8sobjects" | uniq)  }}
+{{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "resource/kube-events" | uniq)  }}
+{{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "transform/kube-events" | uniq)  }}
 {{- $config | toYaml }}
 {{- end }}
 
 {{- define "opentelemetry-collector.kubernetesEventsConfig" -}}
+processors:
+  resource/kube-events:
+    attributes:
+      - key: service.name
+        value: "kube-events"
+        action: upsert
+      - key: k8s.cluster.name
+        value: "{{ .Values.global.clusterName }}"
+        action: upsert
+  transform/kube-events:
+    log_statements:
+      - context: log
+        statements:
+          - keep_keys(body["object"], ["type", "eventTime", "reason", "regarding", "note", "metadata", "deprecatedFirstTimestamp", "deprecatedLastTimestamp"])
+          - keep_keys(body["object"]["metadata"], ["creationTimestamp"])
+          - keep_keys(body["object"]["regarding"], ["kind", "name", "namespace"])
 receivers:
   k8sobjects:
     objects:

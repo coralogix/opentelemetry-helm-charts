@@ -2,6 +2,9 @@
 
 ## OpenTelemetry Collector
 
+## v0.115.4 / 2025-05-30
+- [Feat] Add resource and transform processors to `kubernetesEvents` preset
+
 ## v0.115.3 / 2025-05-24
 - [Feat] Add coralogixExporter preset
 
