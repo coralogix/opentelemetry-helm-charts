@@ -97,6 +97,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.fleetManagement.enabled }}
 {{- $config = (include "opentelemetry-collector.applyFleetManagementConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.coralogixExporter.enabled }}
+{{- $config = (include "opentelemetry-collector.applyCoralogixExporterConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.extraConfig }}
 {{- $config = (include "opentelemetry-collector.applyExtraConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -1447,6 +1450,50 @@ service:
         - transform/entity-event
       receivers:
         - hostmetrics
+{{- end }}
+
+
+{{- define "opentelemetry-collector.applyCoralogixExporterConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.coralogixExporterConfig" .Values | fromYaml) .config }}
+{{- if and ($config.service.pipelines.logs) (not (has "coralogix" $config.service.pipelines.logs.exporters)) }}
+{{- $_ := set $config.service.pipelines.logs "exporters" (append $config.service.pipelines.logs.exporters "coralogix" | uniq)  }}
+{{- end }}
+{{- if and ($config.service.pipelines.metrics) (not (has "coralogix" $config.service.pipelines.metrics.exporters)) }}
+{{- $_ := set $config.service.pipelines.metrics "exporters" (append $config.service.pipelines.metrics.exporters "coralogix" | uniq)  }}
+{{- end }}
+{{- if and ($config.service.pipelines.traces) (not (has "coralogix" $config.service.pipelines.traces.exporters)) }}
+{{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters "coralogix" | uniq)  }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+
+{{- define "opentelemetry-collector.coralogixExporterConfig" -}}
+exporters:
+  coralogix:
+    timeout: "30s"
+    private_key: "{{ .Values.presets.coralogixExporter.privateKey | default .Values.global.coralogixPrivateKey }}"
+    domain: "{{ .Values.presets.coralogixExporter.domain | default .Values.global.domain }}"
+    logs:
+      headers:
+        X-Coralogix-Distribution: "helm-otel-integration/{{ .Values.presets.coralogixExporter.version | default .Values.global.version }}"
+    metrics:
+      headers:
+        X-Coralogix-Distribution: "helm-otel-integration/{{ .Values.presets.coralogixExporter.version | default .Values.global.version }}"
+    traces:
+      headers:
+        X-Coralogix-Distribution: "helm-otel-integration/{{ .Values.presets.coralogixExporter.version | default .Values.global.version }}"
+    application_name: "{{ .Values.presets.coralogixExporter.applicationName | default .Values.global.defaultApplicationName }}"
+    subsystem_name: "{{ .Values.presets.coralogixExporter.subsystemName | default .Values.global.defaultSubsystemName }}"
+    application_name_attributes:
+      - "k8s.namespace.name"
+      - "service.namespace"
+    subsystem_name_attributes:
+      - "k8s.deployment.name"
+      - "k8s.statefulset.name"
+      - "k8s.daemonset.name"
+      - "k8s.cronjob.name"
+      - "service.name"
 {{- end }}
 
 

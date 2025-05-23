@@ -792,6 +792,36 @@
             }
           }
         },
+        "coralogixExporter": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether to configure Coralogix exporter.",
+              "type": "boolean"
+            },
+            "domain": {
+              "description": "Coralogix domain used by the exporter.",
+              "type": "string"
+            },
+            "version": {
+              "description": "Version for X-Coralogix-Distribution header.",
+              "type": "string"
+            },
+            "applicationName": {
+              "description": "Application name for Coralogix exporter.",
+              "type": "string"
+            },
+            "subsystemName": {
+              "description": "Subsystem name for Coralogix exporter.",
+              "type": "string"
+            },
+            "privateKey": {
+              "description": "Private key for Coralogix exporter.",
+              "type": "string"
+            }
+          }
+        },
         "headSampling": {
           "type": "object",
           "additionalProperties": false,

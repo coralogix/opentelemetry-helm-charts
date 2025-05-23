@@ -4,6 +4,9 @@
 global:
   domain: ""
   version: ""
+  defaultApplicationName: ""
+  defaultSubsystemName: ""
+  coralogixPrivateKey: "${env:CORALOGIX_PRIVATE_KEY}"
 
 nameOverride: ""
 fullnameOverride: ""
@@ -333,6 +336,15 @@ presets:
     agentType: ""
     clusterName: ""
     integrationID: ""
+
+  # Configures Coralogix exporter.
+  coralogixExporter:
+    enabled: false
+    domain: ""
+    version: ""
+    applicationName: ""
+    subsystemName: ""
+    privateKey: ""
 
   # Configures the collector to collect MySQL metrics .
   mysql:

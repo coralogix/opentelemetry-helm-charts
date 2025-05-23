@@ -1,6 +1,9 @@
 # Changelog
 
 ## OpenTelemetry Collector
+## v0.115.2 / 2025-05-19
+- [Feat] Add `coralogixExporter` preset for sending data to Coralogix
+
 
 ## v0.115.1 / 2025-05-19
 - [Update] `kubeletstatsreceiver`: set `collect_all_network_interfaces` on `pods`
