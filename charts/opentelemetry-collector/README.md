@@ -200,6 +200,11 @@ replicaCount: 1
 presets:
   clusterMetrics:
     enabled: true
+    # Optional custom metrics used by the Kubernetes dashboard
+    customMetrics:
+      enabled: true
+    # Override the default collection interval
+    collectionInterval: 30s
 ```
 
 ### Configuration for Retrieving Kubernetes Events

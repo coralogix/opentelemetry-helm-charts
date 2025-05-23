@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+## v0.115.6 / 2025-05-24
+- [Feat] Make `collection_interval` of `clusterMetrics` configurable via preset
+- [Feat] Add optional `customMetrics` for `clusterMetrics` preset
+
 ## v0.115.5 / 2025-05-24
 - [Feat] Add statsdReceiver preset
 
