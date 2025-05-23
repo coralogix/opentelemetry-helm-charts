@@ -192,6 +192,8 @@ This feature is disabled by default. It has the following requirements:
 
 To enable this feature, set the  `presets.clusterMetrics.enabled` property to `true`.
 
+`collectionInterval` can be set to adjust how often metrics are collected. Additional metrics required by the Kubernetes Dashboard can be enabled with `presets.clusterMetrics.customMetrics.enabled`.
+
 Here is an example `values.yaml`:
 
 ```yaml
@@ -200,6 +202,9 @@ replicaCount: 1
 presets:
   clusterMetrics:
     enabled: true
+    # collectionInterval: 30s
+    customMetrics:
+      enabled: true
 ```
 
 ### Configuration for Retrieving Kubernetes Events
