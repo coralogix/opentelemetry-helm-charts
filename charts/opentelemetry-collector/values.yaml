@@ -234,6 +234,9 @@ presets:
   clusterMetrics:
     enabled: false
     # collectionInterval: 30s
+    # Enable additional custom metrics used by the Kubernetes dashboard
+    customMetrics:
+      enabled: false
 
   # Configures the collector to collect extra Kubernetes metrics, such as pod status and Kubernetes API version.
   # Best used with mode = deployment or statefulset
