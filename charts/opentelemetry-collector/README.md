@@ -191,6 +191,9 @@ This feature is disabled by default. It has the following requirements:
 - It requires statefulset or deployment mode with a single replica.
 
 To enable this feature, set the  `presets.clusterMetrics.enabled` property to `true`.
+The collection interval can be adjusted via `presets.clusterMetrics.collectionInterval`.
+If `presets.clusterMetrics.customMetrics.enabled` is set to `true` additional
+metrics useful for Kubernetes dashboards will be exported.
 
 Here is an example `values.yaml`:
 
@@ -200,6 +203,10 @@ replicaCount: 1
 presets:
   clusterMetrics:
     enabled: true
+    # collection interval for cluster metrics
+    collectionInterval: 30s
+    customMetrics:
+      enabled: true
 ```
 
 ### Configuration for Retrieving Kubernetes Events
