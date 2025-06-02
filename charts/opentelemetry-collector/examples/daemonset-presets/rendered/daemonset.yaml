@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: e8172e376ce2210bfff825513afffb4a2379b7cc6c85f44e7406e704532fb9a4
+        checksum/config: fbc33f507a9d3d6d081800b4793e9633baf0efa0cb33a562b56e1b69242de69d
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -87,6 +87,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: KUBE_POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
             - name: K8S_NODE_IP
               valueFrom:
                 fieldRef:
