@@ -452,6 +452,13 @@ presets:
   # Also configures volumes and volume mounts for the collector.
   resourceDetection:
     enabled: false
+    # Which pipelines to inject the resourcedetection processors into.
+    # Valid options are "logs", "metrics", and "traces".
+    # Defaults to all pipelines when not specified.
+    pipelines:
+      - logs
+      - metrics
+      - traces
     # Specifies whether to add the node name to OTEL_RESOURCE_ATTRIBUTES.
     k8sNodeName:
       enabled: true

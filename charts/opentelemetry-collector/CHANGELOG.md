@@ -1,6 +1,8 @@
 # Changelog
 
 ## OpenTelemetry Collector
+## v0.115.18 / 2025-05-30
+- [Feat] Allow specifying pipelines for `resourceDetection` preset via `presets.resourceDetection.pipelines`
 ## v0.115.17 / 2025-05-30
 - [Feat] Extend `k8sResourceAttributes` preset with `service.name` and configurable `cx.agent.type`
 ## v0.115.16 / 2025-05-30
