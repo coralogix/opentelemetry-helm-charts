@@ -100,10 +100,6 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: status.hostIP
-          {{- if .Values.k8sCache.replicas }}
-            - name: OTEL_EBPF_KUBE_META_CACHE_ADDRESS
-              value: {{ .Values.k8sCache.service.name }}:{{ .Values.k8sCache.service.port }}
-          {{- end }}
           {{- range $key, $value := .Values.envValueFrom }}
             - name: {{ $key | quote }}
               valueFrom:
