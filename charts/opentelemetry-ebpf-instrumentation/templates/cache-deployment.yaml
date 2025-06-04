@@ -38,7 +38,7 @@ spec:
         {{- end }}
       {{- end }}
       containers:
-        - name: ebpf-instrument-cache
+        - name: obi-k8s-cache
           image: {{ .Values.global.image.registry | default .Values.k8sCache.image.registry }}/{{ .Values.k8sCache.image.repository }}{{ include "obi.k8sCache.imageId" . }}
           imagePullPolicy: {{ .Values.k8sCache.image.pullPolicy }}
           ports:
