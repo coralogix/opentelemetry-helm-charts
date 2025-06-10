@@ -16,7 +16,9 @@ containers:
       {{- end }}
       {{- else }}
       - /{{ .Values.command.name }}
-      {{- if .Values.configMap.create }}
+      {{- if (and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled)) }}
+      - --config=/etc/otelcol-supervisor/config.yaml
+      {{- else if .Values.configMap.create }}
       - --config=/conf/relay.yaml
       {{- end }}
       {{- range .Values.command.extraArgs }}
@@ -35,6 +37,8 @@ containers:
       {{- end }}
     {{- if .Values.image.digest }}
     image: "{{ .Values.image.repository }}@{{ .Values.image.digest }}"
+    {{- else if (and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled)) }}
+    image: "coralogixrepo/otel-supervised-collector:{{ .Values.image.tag | default .Chart.AppVersion }}"
     {{- else }}
     image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
     {{- end }}
@@ -117,6 +121,7 @@ containers:
     lifecycle:
       {{- toYaml .Values.lifecycleHooks | nindent 6 }}
     {{- end }}
+    {{- if not .Values.presets.fleetManagement.supervisor.enabled }}
     livenessProbe:
       {{- if .Values.livenessProbe.initialDelaySeconds | empty | not }}
       initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
@@ -163,6 +168,7 @@ containers:
         {{- end }}
       {{- end }}
     {{- end }}
+    {{- end }}
     readinessProbe:
       {{- if .Values.readinessProbe.initialDelaySeconds | empty | not }}
       initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
@@ -190,6 +196,10 @@ containers:
       {{- if .Values.configMap.create }}
       - mountPath: {{ .Values.isWindows | ternary "C:\\conf" "/conf" }}
         name: {{ include "opentelemetry-collector.lowercase_chartname" . }}-configmap
+      {{- end }}
+      {{- if (and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled)) }}
+      - mountPath: /etc/otelcol-supervisor
+        name: {{ include "opentelemetry-collector.fullname" . }}-supervisor
       {{- end }}
       {{- range .Values.extraConfigMapMounts }}
       - name: {{ .name }}
@@ -298,6 +308,14 @@ volumes:
       items:
         - key: relay
           path: relay.yaml
+  {{- end }}
+  {{- if (and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled)) }}
+  - name: {{ include "opentelemetry-collector.fullname" . }}-supervisor
+    configMap:
+      name: {{ include "opentelemetry-collector.fullname" . }}-supervisor
+      items:
+        - key: supervisor.yaml
+          path: config.yaml
   {{- end }}
   {{- range .Values.extraConfigMapMounts }}
   - name: {{ .name }}
