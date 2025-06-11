@@ -9,22 +9,7 @@ securityContext:
 containers:
   - name: {{ include "opentelemetry-collector.lowercase_chartname" . }}
     command:
-      {{- if .Values.isWindows }}
-      - "C:\\otelcol-contrib.exe"
-      {{- if .Values.configMap.create }}
-      - --config=C:\\conf\relay.yaml
-      {{- end }}
-      {{- else }}
-      - /{{ .Values.command.name }}
-      {{- if (and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled)) }}
-      - --config=/etc/otelcol-supervisor/config.yaml
-      {{- else if .Values.configMap.create }}
-      - --config=/conf/relay.yaml
-      {{- end }}
-      {{- range .Values.command.extraArgs }}
-      - {{ . }}
-      {{- end }}
-      {{- end }}
+      {{- include "opentelemetry-collector.command" . | nindent 6 }}
     securityContext:
       {{- if and (not (.Values.securityContext)) (not (.Values.isWindows)) (or (.Values.presets.logsCollection.storeCheckpoints) (.Values.presets.hostMetrics.process.enabled)) }}
       runAsUser: 0
@@ -35,13 +20,7 @@ containers:
       {{- else -}}
       {{- toYaml .Values.securityContext | nindent 6 }}
       {{- end }}
-    {{- if .Values.image.digest }}
-    image: "{{ .Values.image.repository }}@{{ .Values.image.digest }}"
-    {{- else if (and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled)) }}
-    image: "coralogixrepo/otel-supervised-collector:{{ .Values.image.tag | default .Chart.AppVersion }}"
-    {{- else }}
-    image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-    {{- end }}
+    image: "{{ include "opentelemetry-collector.image" . }}"
     imagePullPolicy: {{ .Values.image.pullPolicy }}
     {{- $ports := include "opentelemetry-collector.podPortsConfig" . }}
     {{- if $ports }}
@@ -198,7 +177,9 @@ containers:
         name: {{ include "opentelemetry-collector.lowercase_chartname" . }}-configmap
       {{- end }}
       {{- if (and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled)) }}
-      - mountPath: /etc/otelcol-supervisor
+      - mountPath: /etc/otelcol-contrib/supervisor.yaml
+        subPath: supervisor.yaml
+        readOnly: true
         name: {{ include "opentelemetry-collector.fullname" . }}-supervisor
       {{- end }}
       {{- range .Values.extraConfigMapMounts }}
@@ -315,7 +296,7 @@ volumes:
       name: {{ include "opentelemetry-collector.fullname" . }}-supervisor
       items:
         - key: supervisor.yaml
-          path: config.yaml
+          path: supervisor.yaml
   {{- end }}
   {{- range .Values.extraConfigMapMounts }}
   - name: {{ .name }}

@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 744c8c031e7be464032e81297c4f97b11c13416bee90e2b87c5d97e563bcac65
+        checksum/config: 0600fc17cdb1b03e3efadffd7296b4b94e07982c4ad67c633c8adee7b9035fa0
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -39,32 +39,14 @@ spec:
         - name: opentelemetry-collector
           command:
             - /opampsupervisor
-            - --config=/etc/otelcol-supervisor/config.yaml
+            - --config=/etc/otelcol-contrib/supervisor.yaml
           securityContext:
             {}
-          image: "coralogixrepo/otel-supervised-collector:0.127.0"
+          image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.128.0"
           imagePullPolicy: IfNotPresent
           ports:
             
               
-              
-              
-            - name: jaeger-binary
-              containerPort: 6832
-              protocol: TCP
-              hostPort: 6832
-            - name: jaeger-compact
-              containerPort: 6831
-              protocol: UDP
-              hostPort: 6831
-            - name: jaeger-grpc
-              containerPort: 14250
-              protocol: TCP
-              hostPort: 14250
-            - name: jaeger-thrift
-              containerPort: 14268
-              protocol: TCP
-              hostPort: 14268
             - name: otlp
               containerPort: 4317
               protocol: TCP
@@ -73,10 +55,6 @@ spec:
               containerPort: 4318
               protocol: TCP
               hostPort: 4318
-            - name: zipkin
-              containerPort: 9411
-              protocol: TCP
-              hostPort: 9411
           env:
             - name: MY_POD_IP
               valueFrom:
@@ -104,6 +82,11 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: spec.nodeName
+            - name: CORALOGIX_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: PRIVATE_KEY
+                  name: coralogix-keys
           readinessProbe:
             httpGet:
               path: /
@@ -111,7 +94,9 @@ spec:
           volumeMounts:
             - mountPath: /conf
               name: opentelemetry-collector-configmap
-            - mountPath: /etc/otelcol-supervisor
+            - mountPath: /etc/otelcol-contrib/supervisor.yaml
+              subPath: supervisor.yaml
+              readOnly: true
               name: example-opentelemetry-collector-supervisor
             - name: varlogpods
               mountPath: /var/log/pods
@@ -139,7 +124,7 @@ spec:
             name: example-opentelemetry-collector-supervisor
             items:
               - key: supervisor.yaml
-                path: config.yaml
+                path: supervisor.yaml
         - name: varlogpods
           hostPath:
             path: /var/log/pods

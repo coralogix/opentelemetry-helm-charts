@@ -26,9 +26,11 @@ data:
       executable: /otelcol-contrib
       passthrough_logs: true
 
+      {{- if .Values.configMap.create }}
       # This passes config files to the Collector.
       config_files:
-        - /etc/otelcol-contrib/config.yaml
+      - {{ .Values.isWindows | ternary "C:\\conf\\" "/conf/" }}relay.yaml
+      {{- end }}
 
       # This adds CLI arguments to the Collector.
       args: []

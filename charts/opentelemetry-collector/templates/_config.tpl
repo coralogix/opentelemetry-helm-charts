@@ -97,7 +97,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.reduceResourceAttributes.enabled }}
 {{- $config = (include "opentelemetry-collector.applyReduceResourceAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if .Values.presets.fleetManagement.enabled }}
+{{- if and (.Values.presets.fleetManagement.enabled) (not .Values.presets.fleetManagement.supervisor.enabled) }}
 {{- $config = (include "opentelemetry-collector.applyFleetManagementConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.k8sResourceAttributes.enabled }}
@@ -202,7 +202,7 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.reduceResourceAttributes.enabled }}
 {{- $config = (include "opentelemetry-collector.applyReduceResourceAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if .Values.presets.fleetManagement.enabled }}
+{{- if and (.Values.presets.fleetManagement.enabled) (not .Values.presets.fleetManagement.supervisor.enabled) }}
 {{- $config = (include "opentelemetry-collector.applyFleetManagementConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.k8sResourceAttributes.enabled }}

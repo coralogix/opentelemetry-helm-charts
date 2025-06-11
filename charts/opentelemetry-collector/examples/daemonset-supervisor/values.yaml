@@ -1,9 +1,12 @@
 global:
   domain: "eu2.coralogix.com"
   clusterName: "douglas-kind-test"
+  defaultApplicationName: otel
+  defaultSubsystemName: integration
+  version: "1.0"
 
 image:
-  tag: 0.127.0
+  tag: 0.128.0
 
 command:
   name: opampsupervisor
@@ -20,28 +23,19 @@ extraVolumeMounts:
     name: etcmachineid
     readOnly: true
 
-config:
-  exporters:
-    coralogix:
-      application_name: "otel"
-      domain: "coralogix.com"
-
 presets:
+  coralogixExporter:
+    enabled: true
+    privateKey: ${env:CORALOGIX_PRIVATE_KEY}
+  batch:
+    enabled: true
   fleetManagement:
     enabled: true
     supervisor:
       enabled: true
   k8sResourceAttributes:
     enabled: true
-  batch:
-    enabled: true
   collectorMetrics:
-    enabled: false
-  jaegerReceiver:
-    enabled: true
-  zipkinReceiver:
-    enabled: true
-  otlpReceiver:
     enabled: true
   resourceDetection:
     enabled: true
@@ -74,20 +68,8 @@ presets:
           value: test
         firstEntryRegex: ^[^\s].*
         combineWith: ""
-  mysql:
-    metrics:
-      enabled: true
-      instances:
-        - username: "root"
-          password: ${env:MYSQL_PASSWORD}
-          collectionInterval: 30s
-          port: 3306
-          labelSelectors:
-            env: "test"
-            team: "teamA"
   headSampling:
     enabled: true
-
   spanMetrics:
     enabled: true
     transformStatements:
