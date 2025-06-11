@@ -31,6 +31,7 @@ presets:
     enabled: true
   fleetManagement:
     enabled: true
+    agentType: "agent"
     supervisor:
       enabled: true
   k8sResourceAttributes:
