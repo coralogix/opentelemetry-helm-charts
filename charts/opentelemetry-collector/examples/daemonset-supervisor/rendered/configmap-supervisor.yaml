@@ -43,7 +43,12 @@ data:
 
       description:
         non_identifying_attributes:
+          k8s.daemonset.name: "example-opentelemetry-collector"
+          k8s.namespace.name: "default"
           k8s.node.name: ${env:KUBE_NODE_NAME}
+          k8s.pod.name: ${env:KUBE_POD_NAME}
+          service.name: "opentelemetry-collector"
+          cx.agent.type: "agent"
 
     # The storage can be used for many things:
     # - It stores configuration sent by the OpAMP server so that new collector
@@ -53,4 +58,4 @@ data:
 
     telemetry:
       logs:
-        level: debug
+        level: info
