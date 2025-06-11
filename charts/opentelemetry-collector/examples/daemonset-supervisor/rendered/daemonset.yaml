@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.115.26
+    helm.sh/chart: opentelemetry-collector-0.115.27
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.126.0"
@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 0600fc17cdb1b03e3efadffd7296b4b94e07982c4ad67c633c8adee7b9035fa0
+        checksum/config: e721a14647a4cd10b9e1808d5396875e976a475191a00b47277b617962b348c9
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -82,11 +82,6 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: spec.nodeName
-            - name: CORALOGIX_PRIVATE_KEY
-              valueFrom:
-                secretKeyRef:
-                  key: PRIVATE_KEY
-                  name: coralogix-keys
           readinessProbe:
             httpGet:
               path: /
