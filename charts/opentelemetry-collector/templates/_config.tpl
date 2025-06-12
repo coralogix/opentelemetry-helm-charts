@@ -1028,16 +1028,10 @@ extensions:
             Authorization: "Bearer ${env:CORALOGIX_PRIVATE_KEY}"
       agent_description:
         non_identifying_attributes:
-        {{- if .Values.presets.fleetManagement.agentType }}
-          cx.agent.type: "{{.Values.presets.fleetManagement.agentType}}"
+        {{- if .Values.presets.k8sResourceAttributes.enabled }}
+          {{- include "opentelemetry-collector.k8sResourceAttributes" . | nindent 10 }}
         {{- end }}
-        {{- if .Values.presets.fleetManagement.clusterName }}
-          cx.cluster.name: "{{.Values.presets.fleetManagement.clusterName}}"
-        {{- end }}
-        {{- if .Values.presets.fleetManagement.integrationID }}
-          cx.integrationID: "{{.Values.presets.fleetManagement.integrationID}}"
-        {{- end }}
-          k8s.node.name: ${env:KUBE_NODE_NAME}
+        {{- include "opentelemetry-collector.fleetAttributes" . | nindent 10 }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyK8sResourceAttributesConfig" -}}
@@ -1050,7 +1044,7 @@ service:
   telemetry:
     resource:
 {{ include "opentelemetry-collector.k8sResourceAttributes" . | indent 6 }}
-{{ include "opentelemetry-collector.resourceAttributes" . | indent 6 }}
+{{ include "opentelemetry-collector.fleetAttributes" . | indent 6 }}
 {{- end }}
 
 {{- define "opentelemetry-collector.k8sResourceAttributes" -}}
@@ -1067,7 +1061,7 @@ k8s.node.name: ${env:KUBE_NODE_NAME}
 k8s.pod.name: ${env:KUBE_POD_NAME}
 {{- end -}}
 
-{{- define "opentelemetry-collector.resourceAttributes" -}}
+{{- define "opentelemetry-collector.fleetAttributes" -}}
 service.name: "opentelemetry-collector"
 {{- if or .Values.presets.fleetManagement.agentType .Values.presets.k8sResourceAttributes.agentType }}
 cx.agent.type: "{{.Values.presets.fleetManagement.agentType | default .Values.presets.k8sResourceAttributes.agentType}}"

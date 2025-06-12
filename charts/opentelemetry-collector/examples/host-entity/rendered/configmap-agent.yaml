@@ -35,7 +35,7 @@ data:
             cx.agent.type: agent
             cx.cluster.name: test
             cx.integrationID: test
-            k8s.node.name: ${env:KUBE_NODE_NAME}
+            service.name: opentelemetry-collector
         server:
           http:
             endpoint: https://ingress.coralogix.com/opamp/v1
