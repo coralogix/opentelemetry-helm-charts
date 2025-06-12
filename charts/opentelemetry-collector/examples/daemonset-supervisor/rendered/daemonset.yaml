@@ -42,7 +42,7 @@ spec:
             - --config=/etc/otelcol-contrib/supervisor.yaml
           securityContext:
             {}
-          image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.128.0"
+          image: "coralogixrepo/otel-supervised-collector:0.128.0"
           imagePullPolicy: IfNotPresent
           ports:
             
