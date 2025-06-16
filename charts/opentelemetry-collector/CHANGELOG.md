@@ -2,6 +2,8 @@
 
 ## OpenTelemetry Collector
 
+## v0.115.31 / 2025-06-17
+- [Feat] Update Collector to v0.128.0
 ## v0.115.30 / 2025-06-16
 - [Fix] Recover metrics `k8s_node_allocatable_cpu__cpu` and `k8s_node_allocatable_memory__By` in `k8sclusterreceiver` on the collector side
 ## v0.115.29 / 2025-06-13
