@@ -313,7 +313,7 @@ k8sCache:
     pullSecrets: []
   service:
     # -- Name of both the Service and Deployment
-    name: otel-ebpf-k8s-cache
+    name: opentelemetry-ebpf-instrumentation-k8s-cache
     # -- Port of the Kubernetes metadata cache service.
     port: 50055
     # -- Service annotations.
