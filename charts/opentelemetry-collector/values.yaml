@@ -475,6 +475,12 @@ presets:
     k8sNodeName:
       enabled: true
 
+  annotationDiscovery:
+    logs:
+      enabled: false
+    metrics:
+      enabled: false
+
 configMap:
   # Specifies whether a configMap should be created (true by default)
   create: true

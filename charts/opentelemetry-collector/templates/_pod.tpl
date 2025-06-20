@@ -39,7 +39,7 @@ containers:
           fieldRef:
             fieldPath: metadata.name
       {{- end }}
-      {{- if or .Values.presets.k8sResourceAttributes.enabled (and .Values.presets.kubernetesAttributes.enabled (or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled)) }}
+      {{- if or .Values.presets.annotationDiscovery.logs.enabled .Values.presets.annotationDiscovery.metrics.enabled .Values.presets.k8sResourceAttributes.enabled (and .Values.presets.kubernetesAttributes.enabled (or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled)) }}
       - name: K8S_NODE_NAME
         valueFrom:
           fieldRef:
@@ -206,7 +206,7 @@ containers:
         subPath: {{ .subPath }}
         {{- end }}
       {{- end }}
-      {{- if .Values.presets.logsCollection.enabled }}
+      {{- if or .Values.presets.logsCollection.enabled .Values.presets.annotationDiscovery.logs.enabled }}
       {{- if .Values.isWindows }}
       - name: varlogpods
         mountPath: C:\var\log\pods
@@ -313,7 +313,7 @@ volumes:
     secret:
       secretName: {{ .secretName }}
   {{- end }}
-  {{- if .Values.presets.logsCollection.enabled }}
+  {{- if or .Values.presets.logsCollection.enabled .Values.presets.annotationDiscovery.logs.enabled }}
   {{- if .Values.isWindows }}
   - name: varlogpods
     hostPath:
