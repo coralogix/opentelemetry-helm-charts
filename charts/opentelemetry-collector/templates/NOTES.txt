@@ -57,3 +57,7 @@
 {{- end }}
 {{- end }}
 {{- end }}
+
+{{- if and .Values.presets.logsCollection.enabled .Values.presets.annotationDiscovery.logs.enabled }}
+{{- fail "[ERROR] logsCollection and annotationDiscovery.logs are mutually exclusive" }}
+{{- end }}

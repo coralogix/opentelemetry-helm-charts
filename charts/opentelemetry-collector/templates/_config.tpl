@@ -612,6 +612,7 @@ receivers:
       enabled: true
       default_annotations:
         io.opentelemetry.discovery.logs/enabled: true
+    receivers:
   {{- end }}
   {{- if .Values.presets.annotationDiscovery.metrics.enabled }}
   receiver_creator/metrics:
@@ -619,6 +620,7 @@ receivers:
       - k8s_observer
     discovery:
       enabled: true
+    receivers:
   {{- end }}
 {{- end }}
 
