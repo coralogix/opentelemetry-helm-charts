@@ -223,7 +223,7 @@ Allow the release namespace to be overridden
   {{- if hasSuffix "e" $mem -}}
     {{- $mem = mulf (trimSuffix "e" $mem | float64) 1e18 -}}
   {{- else if hasSuffix "ei" $mem -}}
-    {{- $mem = mulf (trimSuffix "e" $mem | float64) 0x1p60 -}}
+    {{- $mem = mulf (trimSuffix "ei" $mem | float64) 0x1p60 -}}
   {{- else if hasSuffix "p" $mem -}}
     {{- $mem = mulf (trimSuffix "p" $mem | float64) 1e15 -}}
   {{- else if hasSuffix "pi" $mem -}}
