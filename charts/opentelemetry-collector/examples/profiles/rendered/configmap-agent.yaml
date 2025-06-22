@@ -11,17 +11,19 @@ metadata:
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.126.0"
     app.kubernetes.io/managed-by: Helm
-    
+
 data:
   relay: |
     exporters:
       coralogix/profiles:
         application_name: resource
-        batcher:
+        sending_queue:
           enabled: true
-          flush_timeout: 1s
-          max_size: 2048
-          min_size: 1024
+          queue_size: 10000
+          batch:
+            flush_timeout: 1s
+            max_size: 2048
+            min_size: 1024
           sizer: items
         domain: ""
         private_key: ${CORALOGIX_PRIVATE_KEY}

@@ -757,12 +757,14 @@ exporters:
     domain: "{{.Values.global.domain}}"
     application_name: "resource"
     subsystem_name: "catalog"
-    batcher:
+    sending_queue:
       enabled: true
-      min_size: 1024
-      max_size: 2048
-      sizer: "items"
-      flush_timeout: "1s"
+      queue_size: 10000
+      batch:
+        flush_timeout: 1s
+        max_size: 2048
+        min_size: 1024
+      sizer: items
 service:
   pipelines:
     profiles:
