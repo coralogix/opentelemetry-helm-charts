@@ -2,6 +2,9 @@
 
 ## OpenTelemetry Collector
 
+## v0.117.0 / 2025-07-01
+- [Feat] Update Collector to v0.129.0
+
 ## v0.116.2 / 2025-06-24
 - [Fix] Support templating for `presets.resourceDetection.deploymentEnvironmentName`.
 
