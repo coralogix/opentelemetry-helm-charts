@@ -1687,12 +1687,14 @@ exporters:
 
 {{- define "opentelemetry-collector.applyCoralogixExporterConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.coralogixExporterConfig" .Values | fromYaml) .config }}
-{{- $pipeline := list "all" }}
-{{- with .Values.Values.presets.coralogixExporter.pipeline }}
-  {{- if kindIs "string" . }}
+{{- $pipeline := list }}
+{{- with .Values.Values.presets.coralogixExporter.pipelines }}
+  {{- $pipeline = . }}
+{{- else }}
+  {{- with .Values.Values.presets.coralogixExporter.pipeline }}
     {{- $pipeline = list . }}
-  {{- else if kindIs "slice" . }}
-    {{- $pipeline = . }}
+  {{- else }}
+    {{- $pipeline = list "all" }}
   {{- end }}
 {{- end }}
 
