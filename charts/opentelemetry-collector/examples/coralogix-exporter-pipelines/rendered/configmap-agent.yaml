@@ -1,0 +1,123 @@
+---
+# Source: opentelemetry-collector/templates/configmap-agent.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-opentelemetry-collector-agent
+  namespace: default
+  labels:
+    helm.sh/chart: opentelemetry-collector-0.116.3
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.128.0"
+    app.kubernetes.io/managed-by: Helm
+    
+data:
+  relay: |
+    exporters:
+      coralogix:
+        application_name: otel
+        application_name_attributes:
+        - k8s.namespace.name
+        - service.namespace
+        domain: coralogix.com
+        logs:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/1.0
+        metrics:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/1.0
+        private_key: ${env:CORALOGIX_PRIVATE_KEY}
+        subsystem_name: integration
+        subsystem_name_attributes:
+        - k8s.deployment.name
+        - k8s.statefulset.name
+        - k8s.daemonset.name
+        - k8s.cronjob.name
+        - service.name
+        timeout: 30s
+        traces:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/1.0
+      debug: {}
+    extensions:
+      health_check:
+        endpoint: ${env:MY_POD_IP}:13133
+    processors:
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      transform/prometheus:
+        error_mode: ignore
+        metric_statements:
+        - context: metric
+          statements:
+          - replace_pattern(name, "_total$", "")
+        - context: resource
+          statements:
+          - set(attributes["k8s.pod.ip"], attributes["net.host.name"]) where attributes["service.name"]
+            == "opentelemetry-collector"
+          - delete_key(attributes, "service_name") where attributes["service.name"] ==
+            "opentelemetry-collector"
+        - context: datapoint
+          statements:
+          - delete_key(attributes, "service_name") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - delete_key(attributes, "otel_scope_name") where attributes["service.name"]
+            == "opentelemetry-collector"
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: ${env:MY_POD_IP}:4317
+            max_recv_msg_size_mib: 20
+          http:
+            endpoint: ${env:MY_POD_IP}:4318
+      prometheus:
+        config:
+          scrape_configs:
+          - job_name: opentelemetry-collector
+            scrape_interval: 30s
+            static_configs:
+            - targets:
+              - ${env:MY_POD_IP}:8888
+    service:
+      extensions:
+      - health_check
+      pipelines:
+        logs:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          receivers:
+          - otlp
+        metrics:
+          exporters:
+          - debug
+          - coralogix
+          processors:
+          - memory_limiter
+          - transform/prometheus
+          receivers:
+          - prometheus
+          - otlp
+        traces:
+          exporters:
+          - debug
+          - coralogix
+          processors:
+          - memory_limiter
+          receivers:
+          - otlp
+      telemetry:
+        logs:
+          encoding: json
+        metrics:
+          readers:
+          - pull:
+              exporter:
+                prometheus:
+                  host: ${env:MY_POD_IP}
+                  port: 8888
