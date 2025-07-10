@@ -5,7 +5,7 @@ presets:
     enabled: true
     collectionInterval: "30s"
     metricsExpiration: 5m
-    configs: 
+    configs:
       - selector: route() where attributes["service.name"] == "one"
         histogramBuckets: [1s, 2s]
       - selector: route() where attributes["service.name"] == "two"
