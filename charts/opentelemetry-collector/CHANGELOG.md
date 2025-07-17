@@ -2,6 +2,9 @@
 
 ## OpenTelemetry Collector
 
+### v0.118.3 / 2025-07-17
+- [Fix] Fix `k8sResourceAttributes` preset when `fleetManagement` preset is enabled.
+
 ### v0.118.2 / 2025-07-16
 - [Feat] Add transactions preset to group spans into transactions and enable Coralogix transaction processor
 

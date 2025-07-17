@@ -526,9 +526,7 @@ data:
         logs:
           encoding: json
         resource:
-          helm.chart.opentelemetry-collector.version: 0.118.2
           k8s.daemonset.name: example-opentelemetry-collector
           k8s.namespace.name: default
           k8s.node.name: ${env:KUBE_NODE_NAME}
           k8s.pod.name: ${env:KUBE_POD_NAME}
-          service.name: opentelemetry-collector

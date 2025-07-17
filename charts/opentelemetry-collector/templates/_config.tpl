@@ -100,7 +100,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if and (.Values.presets.fleetManagement.enabled) (not .Values.presets.fleetManagement.supervisor.enabled) }}
 {{- $config = (include "opentelemetry-collector.applyFleetManagementConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if and (.Values.presets.k8sResourceAttributes.enabled) (or (not .Values.presets.fleetManagement.supervisor.enabled) (not .Values.presets.fleetManagement.enabled)) }}
+{{- if and (.Values.presets.k8sResourceAttributes.enabled) }}
 {{- $config = (include "opentelemetry-collector.applyK8sResourceAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.semconv.enabled }}
@@ -1019,7 +1019,7 @@ processors:
 {{- define "opentelemetry-collector.applyFleetManagementConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.fleetManagementConfig" .Values | fromYaml) .config }}
 {{- if and ($config.service.extensions) (not (has "opamp" $config.service.extensions)) }}
-{{- $_ := set $config.service "extensions" (append $config.service.extensions "opamp" | uniq)  }}
+{{- $_ := set $config.service "extensions" (append $config.service.extensions "opamp" | uniq) }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
@@ -1035,26 +1035,30 @@ extensions:
             Authorization: "Bearer ${env:CORALOGIX_PRIVATE_KEY}"
       agent_description:
         non_identifying_attributes:
-        {{- if .Values.presets.k8sResourceAttributes.enabled }}
-          {{- include "opentelemetry-collector.k8sResourceAttributes" . | nindent 10 }}
+        {{- if .Values.presets.k8sResourceAttributes.enabled -}}
+          {{- include "opentelemetry-collector.k8sResourceAttributes" . | nindent 10 -}}
         {{- end }}
-        {{- include "opentelemetry-collector.fleetAttributes" . | nindent 10 }}
-        {{- include "opentelemetry-collector.chartMetadataAttributes" . | nindent 10 }}
+        {{- if .Values.presets.fleetManagement.enabled -}}
+          {{- include "opentelemetry-collector.fleetAttributes" . | nindent 10 -}}
+          {{- include "opentelemetry-collector.chartMetadataAttributes" . | nindent 10 -}}
+        {{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyK8sResourceAttributesConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.k8sResourceAttributesConfig" .Values | fromYaml) .config }}
 {{- $config | toYaml }}
-{{- end }}
+{{- end -}}
 
 {{- define "opentelemetry-collector.k8sResourceAttributesConfig" -}}
 service:
   telemetry:
     resource:
-{{ include "opentelemetry-collector.k8sResourceAttributes" . | indent 6 }}
-{{ include "opentelemetry-collector.fleetAttributes" . | indent 6 }}
-{{ include "opentelemetry-collector.chartMetadataAttributes" . | indent 6 }}
+{{- include "opentelemetry-collector.k8sResourceAttributes" . | nindent 6 -}}
+{{- if .Values.presets.fleetManagement.enabled -}}
+  {{- include "opentelemetry-collector.fleetAttributes" . | nindent 6 -}}
+  {{- include "opentelemetry-collector.chartMetadataAttributes" . | nindent 6 -}}
 {{- end }}
+{{- end -}}
 
 {{- define "opentelemetry-collector.k8sResourceAttributes" -}}
 {{- $root := $ -}}
@@ -1081,7 +1085,7 @@ cx.cluster.name: "{{ .Values.presets.fleetManagement.clusterName }}"
 {{- if .Values.presets.fleetManagement.integrationID }}
 cx.integrationID: "{{ .Values.presets.fleetManagement.integrationID }}"
 {{- end }}
-{{- end }}
+{{- end -}}
 
 {{- define "opentelemetry-collector.applySpanMetricsConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.spanMetricsConfig" .Values | fromYaml) .config }}
