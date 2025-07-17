@@ -864,6 +864,39 @@
             "enabled": {
               "description": "Specifies whether the collector should drop unneeded resource attributes.",
               "type": "boolean"
+            },
+            "pipelines": {
+              "description": "Specifies which pipelines to add the reduce resource attributes processor to.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["metrics", "traces", "logs"]
+              }
+            },
+            "allowlist": {
+              "description": "Specifies the allowlist for the reduce resource attributes processor.",
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "metrics": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "traces": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "logs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
             }
           }
         },

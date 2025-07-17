@@ -100,7 +100,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if and (.Values.presets.fleetManagement.enabled) (not .Values.presets.fleetManagement.supervisor.enabled) }}
 {{- $config = (include "opentelemetry-collector.applyFleetManagementConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if and (.Values.presets.k8sResourceAttributes.enabled) (or (not .Values.presets.fleetManagement.supervisor.enabled) (not .Values.presets.fleetManagement.enabled)) }}
+{{- if and (.Values.presets.k8sResourceAttributes.enabled) }}
 {{- $config = (include "opentelemetry-collector.applyK8sResourceAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.semconv.enabled }}
@@ -967,35 +967,55 @@ processors:
 
 {{- define "opentelemetry-collector.applyReduceResourceAttributesConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.reduceResourceAttributesConfig" .Values | fromYaml) .config }}
-{{- if and ($config.service.pipelines.metrics) (not (has "transform/reduce" $config.service.pipelines.metrics.processors)) }}
-{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/reduce" | uniq)  }}
+{{- $pipelines := .Values.Values.presets.reduceResourceAttributes.pipelines }}
+{{- if has "metrics" $pipelines }}
+  {{- if and ($config.service.pipelines.metrics) (not (has "redaction/metrics" $config.service.pipelines.metrics.processors)) }}
+  {{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "redaction/metrics" | uniq)  }}
+  {{- end }}
+{{- end }}
+{{- if has "traces" $pipelines }}
+  {{- if and ($config.service.pipelines.traces) (not (has "redaction/traces" $config.service.pipelines.traces.processors)) }}
+  {{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "redaction/traces" | uniq)  }}
+  {{- end }}
+{{- end }}
+{{- if has "logs" $pipelines }}
+  {{- if and ($config.service.pipelines.logs) (not (has "redaction/logs" $config.service.pipelines.logs.processors)) }}
+  {{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "redaction/logs" | uniq)  }}
+  {{- end }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
 {{- define "opentelemetry-collector.reduceResourceAttributesConfig" -}}
+{{- $pipelines := .Values.presets.reduceResourceAttributes.pipelines }}
 processors:
-  transform/reduce:
-    error_mode: ignore
-    metric_statements:
-      - context: resource
-        statements:
-           # Removing UIDS from k8scluster / k8sattributes
-          - delete_key(attributes, "container.id")
-          - delete_key(attributes, "k8s.pod.uid")
-          - delete_key(attributes, "k8s.replicaset.uid")
-          - delete_key(attributes, "k8s.daemonset.uid")
-          - delete_key(attributes, "k8s.deployment.uid")
-          - delete_key(attributes, "k8s.statefulset.uid")
-          - delete_key(attributes, "k8s.cronjob.uid")
-          - delete_key(attributes, "k8s.job.uid")
-          - delete_key(attributes, "k8s.hpa.uid")
-          - delete_key(attributes, "k8s.namespace.uid")
-          - delete_key(attributes, "k8s.node.uid")
-          # Removing Prometheus receiver net.host.name + port as it's available in service.instance.id
-          - delete_key(attributes, "net.host.name")
-          - delete_key(attributes, "net.host.port")
-
+  {{- if has "metrics" $pipelines }}
+  redaction/metrics:
+    summary: silent
+    allow_all_keys: false
+    allowed_keys:
+      {{- range $index, $pattern := .Values.presets.reduceResourceAttributes.allowlist.metrics }}
+      - {{ $pattern }}
+      {{- end }}
+  {{- end }}
+  {{- if has "traces" $pipelines }}
+  redaction/traces:
+    summary: silent
+    allow_all_keys: false
+    allowed_keys:
+      {{- range $index, $pattern := .Values.presets.reduceResourceAttributes.allowlist.traces }}
+      - {{ $pattern }}
+      {{- end }}
+  {{- end }}
+  {{- if has "logs" $pipelines }}
+  redaction/logs:
+    summary: silent
+    allow_all_keys: false
+    allowed_keys:
+      {{- range $index, $pattern := .Values.presets.reduceResourceAttributes.allowlist.logs }}
+      - {{ $pattern }}
+      {{- end }}
+  {{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applySemconvConfig" -}}

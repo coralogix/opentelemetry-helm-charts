@@ -151,6 +151,19 @@ data:
       probabilistic_sampler:
         mode: proportional
         sampling_percentage: 10
+      redaction/metrics:
+        allow_all_keys: false
+        allowed_keys:
+        - host.id
+        - k8s.job.name
+        - k8s.node.name
+        - k8s.namespace.name
+        - k8s.pod.name
+        - k8s.cronjob.name
+        - k8s.replicaset.name
+        - k8s.statefulset.name
+        - k8s.daemonset.name
+        summary: silent
       resourcedetection/env:
         detectors:
         - system
@@ -240,24 +253,6 @@ data:
             == "opentelemetry-collector"
           - delete_key(attributes, "otel_scope_name") where attributes["service.name"]
             == "opentelemetry-collector"
-      transform/reduce:
-        error_mode: ignore
-        metric_statements:
-        - context: resource
-          statements:
-          - delete_key(attributes, "container.id")
-          - delete_key(attributes, "k8s.pod.uid")
-          - delete_key(attributes, "k8s.replicaset.uid")
-          - delete_key(attributes, "k8s.daemonset.uid")
-          - delete_key(attributes, "k8s.deployment.uid")
-          - delete_key(attributes, "k8s.statefulset.uid")
-          - delete_key(attributes, "k8s.cronjob.uid")
-          - delete_key(attributes, "k8s.job.uid")
-          - delete_key(attributes, "k8s.hpa.uid")
-          - delete_key(attributes, "k8s.namespace.uid")
-          - delete_key(attributes, "k8s.node.uid")
-          - delete_key(attributes, "net.host.name")
-          - delete_key(attributes, "net.host.port")
       transform/span_name:
         trace_statements:
         - context: span
@@ -482,7 +477,7 @@ data:
           - k8sattributes
           - transform/k8s_attributes
           - filter/k8s_extra_metrics
-          - transform/reduce
+          - redaction/metrics
           - transform/prometheus
           - batch
           receivers:
@@ -536,3 +531,11 @@ data:
                 prometheus:
                   host: ${env:MY_POD_IP}
                   port: 8888
+        resource:
+          cx.agent.type: agent
+          helm.chart.opentelemetry-collector.version: 0.117.3
+          k8s.daemonset.name: example-opentelemetry-collector
+          k8s.namespace.name: default
+          k8s.node.name: ${env:KUBE_NODE_NAME}
+          k8s.pod.name: ${env:KUBE_POD_NAME}
+          service.name: opentelemetry-collector

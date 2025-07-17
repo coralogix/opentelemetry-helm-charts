@@ -352,10 +352,42 @@ presets:
     enabled: false
     waitDuration: 30s
 
-  # Removes uids and other uneeded attributes from metric resources.
-  # This reduces target_info cardinality.
+  # Only allows a small subset of attributes to be sent to Coralogix.
+  # It uses an allowlist policy to ensure stability of the set of allowed attributes.
   reduceResourceAttributes:
     enabled: false
+    pipelines: ["metrics"]
+    allowlist:
+      metrics:
+        - host.id
+        - k8s.job.name
+        - k8s.node.name
+        - k8s.namespace.name
+        - k8s.pod.name
+        - k8s.cronjob.name
+        - k8s.replicaset.name
+        - k8s.statefulset.name
+        - k8s.daemonset.name
+      traces:
+        - host.id
+        - k8s.job.name
+        - k8s.node.name
+        - k8s.namespace.name
+        - k8s.pod.name
+        - k8s.cronjob.name
+        - k8s.replicaset.name
+        - k8s.statefulset.name
+        - k8s.daemonset.name
+      logs:
+        - host.id
+        - k8s.job.name
+        - k8s.node.name
+        - k8s.namespace.name
+        - k8s.pod.name
+        - k8s.cronjob.name
+        - k8s.replicaset.name
+        - k8s.statefulset.name
+        - k8s.daemonset.name
   # Applies semantic convention transformations.
   semconv:
     enabled: false
