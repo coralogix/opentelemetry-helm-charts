@@ -2023,16 +2023,34 @@ service:
 {{- $pipeline = . }}
 {{- end }}
 {{- $includeMetrics := eq $pipeline "metrics" }}
-{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "prometheus" $config.service.pipelines.metrics.receivers)) }}
-{{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus" | uniq)  }}
+{{- $podMonitorEnabled := false }}
+{{- if hasKey .Values "podMonitor" }}
+{{- $podMonitorEnabled = (index .Values.podMonitor "enabled" | default false) }}
+{{- end }}
+{{- $serviceMonitorEnabled := false }}
+{{- if hasKey .Values "serviceMonitor" }}
+{{- $serviceMonitorEnabled = (index .Values.serviceMonitor "enabled" | default false) }}
+{{- end }}
+{{- $metricsReceiverEnabled := not (or $podMonitorEnabled $serviceMonitorEnabled) }}
+{{- if and $includeMetrics ($config.service.pipelines.metrics) $metricsReceiverEnabled (not (has "prometheus" $config.service.pipelines.metrics.receivers)) }}
+{{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus" | uniq) }}
 {{- end }}
 {{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "transform/prometheus" $config.service.pipelines.metrics.processors)) }}
-{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/prometheus" | uniq)  }}
+{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/prometheus" | uniq) }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
 {{- define "opentelemetry-collector.collectorMetricsConfig" -}}
+{{- $podMonitorEnabled := false }}
+{{- if hasKey .Values "podMonitor" }}
+{{- $podMonitorEnabled = (index .Values.podMonitor "enabled" | default false) }}
+{{- end }}
+{{- $serviceMonitorEnabled := false }}
+{{- if hasKey .Values "serviceMonitor" }}
+{{- $serviceMonitorEnabled = (index .Values.serviceMonitor "enabled" | default false) }}
+{{- end }}
+{{- if not (or $podMonitorEnabled $serviceMonitorEnabled) }}
 receivers:
   prometheus:
     config:
@@ -2047,6 +2065,7 @@ receivers:
             - targets:
                 - {{ include "opentelemetry-collector.envEndpoint" (dict "env" "MY_POD_IP" "port" "8888" "context" $) }}
 
+{{- end }}
 processors:
   transform/prometheus:
     error_mode: ignore

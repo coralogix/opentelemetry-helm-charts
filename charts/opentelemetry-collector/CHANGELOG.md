@@ -2,6 +2,9 @@
 
 ## OpenTelemetry Collector
 
+### v0.118.3 / 2025-07-17
+- [Fix] Disable collector metrics Prometheus receiver when PodMonitor or ServiceMonitor is enabled
+
 ### v0.118.2 / 2025-07-16
 - [Feat] Add transactions preset to group spans into transactions and enable Coralogix transaction processor
 

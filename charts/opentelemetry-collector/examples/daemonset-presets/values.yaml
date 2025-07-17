@@ -113,6 +113,10 @@ presets:
   kubernetesExtraMetrics:
     enabled: true
     perNode: true
+podMonitor:
+  enabled: true
+serviceMonitor:
+  enabled: true
 extraConfig:
   processors:
     transform/test:
@@ -126,3 +130,4 @@ extraConfig:
       traces:
         processors:
         - transform/test
+
