@@ -2054,6 +2054,7 @@ processors:
       - context: metric
         statements:
           - replace_pattern(name, "_total$", "") where resource.attributes["service.name"] == "opentelemetry-collector"
+          - set(unit, "") where unit in ["batches", "records", "datapoints", "spans", "items", "units", "times", "combinations"] and resource.attributes["service.name"] == "opentelemetry-collector"
       - context: resource
         statements:
           - set(attributes["k8s.pod.ip"], attributes["net.host.name"]) where attributes["service.name"] == "opentelemetry-collector"

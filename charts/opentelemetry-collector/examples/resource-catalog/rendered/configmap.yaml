@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.118.2
+    helm.sh/chart: opentelemetry-collector-0.118.3
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.130.0"
@@ -106,6 +106,9 @@ data:
         - context: metric
           statements:
           - replace_pattern(name, "_total$", "") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - set(unit, "") where unit in ["batches", "records", "datapoints", "spans",
+            "items", "units", "times", "combinations"] and resource.attributes["service.name"]
             == "opentelemetry-collector"
         - context: resource
           statements:
