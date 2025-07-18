@@ -969,18 +969,18 @@ processors:
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.reduceResourceAttributesConfig" .Values | fromYaml) .config }}
 {{- $pipelines := .Values.Values.presets.reduceResourceAttributes.pipelines }}
 {{- if has "metrics" $pipelines }}
-  {{- if and ($config.service.pipelines.metrics) (not (has "redaction/metrics" $config.service.pipelines.metrics.processors)) }}
-  {{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "redaction/metrics" | uniq)  }}
+  {{- if and ($config.service.pipelines.metrics) (not (has "transform/reduce" $config.service.pipelines.metrics.processors)) }}
+  {{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/reduce" | uniq)  }}
   {{- end }}
 {{- end }}
 {{- if has "traces" $pipelines }}
-  {{- if and ($config.service.pipelines.traces) (not (has "redaction/traces" $config.service.pipelines.traces.processors)) }}
-  {{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "redaction/traces" | uniq)  }}
+  {{- if and ($config.service.pipelines.traces) (not (has "transform/reduce" $config.service.pipelines.traces.processors)) }}
+  {{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/reduce" | uniq)  }}
   {{- end }}
 {{- end }}
 {{- if has "logs" $pipelines }}
-  {{- if and ($config.service.pipelines.logs) (not (has "redaction/logs" $config.service.pipelines.logs.processors)) }}
-  {{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "redaction/logs" | uniq)  }}
+  {{- if and ($config.service.pipelines.logs) (not (has "transform/reduce" $config.service.pipelines.logs.processors)) }}
+  {{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "transform/reduce" | uniq)  }}
   {{- end }}
 {{- end }}
 {{- $config | toYaml }}
@@ -989,33 +989,32 @@ processors:
 {{- define "opentelemetry-collector.reduceResourceAttributesConfig" -}}
 {{- $pipelines := .Values.presets.reduceResourceAttributes.pipelines }}
 processors:
-  {{- if has "metrics" $pipelines }}
-  redaction/metrics:
-    summary: silent
-    allow_all_keys: false
-    allowed_keys:
-      {{- range $index, $pattern := .Values.presets.reduceResourceAttributes.allowlist.metrics }}
-      - {{ $pattern }}
-      {{- end }}
-  {{- end }}
-  {{- if has "traces" $pipelines }}
-  redaction/traces:
-    summary: silent
-    allow_all_keys: false
-    allowed_keys:
-      {{- range $index, $pattern := .Values.presets.reduceResourceAttributes.allowlist.traces }}
-      - {{ $pattern }}
-      {{- end }}
-  {{- end }}
-  {{- if has "logs" $pipelines }}
-  redaction/logs:
-    summary: silent
-    allow_all_keys: false
-    allowed_keys:
-      {{- range $index, $pattern := .Values.presets.reduceResourceAttributes.allowlist.logs }}
-      - {{ $pattern }}
-      {{- end }}
-  {{- end }}
+  transform/reduce:
+    error_mode: ignore
+{{- if has "metrics" $pipelines }}
+    metric_statements:
+      - context: resource
+        statements:
+        {{- range $index, $pattern := .Values.presets.reduceResourceAttributes.denylist.metrics }}
+        - delete_key(attributes, "{{ $pattern }}")
+        {{- end }}
+{{- end }}
+{{- if has "traces" $pipelines }}
+    trace_statements:
+      - context: resource
+        statements:
+        {{- range $index, $pattern := .Values.presets.reduceResourceAttributes.denylist.traces }}
+        - delete_key(attributes, "{{ $pattern }}")
+        {{- end }}
+{{- end }}
+{{- if has "logs" $pipelines }}
+    log_statements:
+      - context: resource
+        statements:
+        {{- range $index, $pattern := .Values.presets.reduceResourceAttributes.denylist.logs }}
+        - delete_key(attributes, "{{ $pattern }}")
+        {{- end }}
+{{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applySemconvConfig" -}}

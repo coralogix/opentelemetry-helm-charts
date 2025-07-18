@@ -873,8 +873,8 @@
                 "enum": ["metrics", "traces", "logs"]
               }
             },
-            "allowlist": {
-              "description": "Specifies the allowlist for the reduce resource attributes processor.",
+            "denylist": {
+              "description": "Specifies the denylist for the reduce resource attributes processor.",
               "type": "object",
               "additionalProperties": false,
               "properties": {
