@@ -100,7 +100,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if and (.Values.presets.fleetManagement.enabled) (not .Values.presets.fleetManagement.supervisor.enabled) }}
 {{- $config = (include "opentelemetry-collector.applyFleetManagementConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if and (.Values.presets.k8sResourceAttributes.enabled) }}
+{{- if and (.Values.presets.k8sResourceAttributes.enabled) (or (not .Values.presets.fleetManagement.supervisor.enabled) (not .Values.presets.fleetManagement.enabled)) }}
 {{- $config = (include "opentelemetry-collector.applyK8sResourceAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.semconv.enabled }}
