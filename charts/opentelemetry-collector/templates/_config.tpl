@@ -1057,10 +1057,8 @@ extensions:
         {{- if .Values.presets.k8sResourceAttributes.enabled -}}
           {{- include "opentelemetry-collector.k8sResourceAttributes" . | nindent 10 -}}
         {{- end }}
-        {{- if .Values.presets.fleetManagement.enabled -}}
-          {{- include "opentelemetry-collector.fleetAttributes" . | nindent 10 -}}
-          {{- include "opentelemetry-collector.chartMetadataAttributes" . | nindent 10 -}}
-        {{- end }}
+        {{- include "opentelemetry-collector.fleetAttributes" . | nindent 10 -}}
+        {{- include "opentelemetry-collector.chartMetadataAttributes" . | nindent 10 -}}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyK8sResourceAttributesConfig" -}}
