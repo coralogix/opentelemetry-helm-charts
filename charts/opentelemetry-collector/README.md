@@ -255,6 +255,26 @@ presets:
     enabled: true
 ```
 
+### Configuration for Resource Detection
+
+The resource detection preset adds system and environment information as resource attributes.
+It also mounts `/etc/machine-id` and `/var/lib/dbus/machine-id` into the collector container.
+
+This feature is disabled by default.
+
+To enable this feature, set the `presets.resourceDetection.enabled` property to `true`.
+The mount of `/var/lib/dbus/machine-id` can be disabled by setting
+`presets.resourceDetection.dbusMachineId.enabled` to `false`.
+Here is an example `values.yaml`:
+
+```yaml
+presets:
+  resourceDetection:
+    enabled: true
+    dbusMachineId:
+      enabled: false
+```
+
 ### Configuration for ZPages
 
 The collector can expose [zPages](https://opentelemetry.io/docs/collector/monitoring/) for debugging.

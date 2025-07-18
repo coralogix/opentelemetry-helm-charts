@@ -556,6 +556,16 @@
             "deploymentEnvironmentName": {
               "description": "Value to set for deployment.environment.name resource attribute.",
               "type": "string"
+            },
+            "dbusMachineId": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Specifies whether to mount /var/lib/dbus/machine-id for system resource detection.",
+                  "type": "boolean"
+                }
+              }
             }
           }
         },

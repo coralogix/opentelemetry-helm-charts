@@ -493,6 +493,10 @@ presets:
       enabled: true
     # Allows setting the deployment environment name in OTEL_RESOURCE_ATTRIBUTES.
     deploymentEnvironmentName: ""
+    # Specifies whether to mount /var/lib/dbus/machine-id to provide a machine ID
+    # file for the system detector.
+    dbusMachineId:
+      enabled: true
 
 configMap:
   # Specifies whether a configMap should be created (true by default)
