@@ -880,7 +880,7 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": ["metrics", "traces", "logs"]
+                "enum": ["metrics", "traces", "logs", "all"]
               }
             },
             "denylist": {

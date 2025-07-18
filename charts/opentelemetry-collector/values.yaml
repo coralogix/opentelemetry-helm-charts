@@ -352,11 +352,15 @@ presets:
     enabled: false
     waitDuration: 30s
 
-  # Only allows a small subset of attributes to be sent to Coralogix.
-  # It uses an allowlist policy to ensure stability of the set of allowed attributes.
+  # Removes a subset of attributes to be sent to Coralogix. It uses a denylist policy.
+  # The possible values for `pipelines` are:
+  # - "all" - applied to all pipelines
+  # - "metrics" - applied to the metrics pipeline
+  # - "traces" - applied to the traces pipeline
+  # - "logs" - applied to the logs pipeline
   reduceResourceAttributes:
     enabled: false
-    pipelines: ["metrics"]
+    pipelines: ["all"]
     denylist:
       metrics:
         - azure.resourcegroup.name

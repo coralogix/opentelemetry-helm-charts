@@ -968,17 +968,17 @@ processors:
 {{- define "opentelemetry-collector.applyReduceResourceAttributesConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.reduceResourceAttributesConfig" .Values | fromYaml) .config }}
 {{- $pipelines := .Values.Values.presets.reduceResourceAttributes.pipelines }}
-{{- if has "metrics" $pipelines }}
+{{- if or (has "metrics" $pipelines) (has "all" $pipelines) }}
   {{- if and ($config.service.pipelines.metrics) (not (has "transform/reduce" $config.service.pipelines.metrics.processors)) }}
   {{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/reduce" | uniq)  }}
   {{- end }}
 {{- end }}
-{{- if has "traces" $pipelines }}
+{{- if or (has "traces" $pipelines) (has "all" $pipelines) }}
   {{- if and ($config.service.pipelines.traces) (not (has "transform/reduce" $config.service.pipelines.traces.processors)) }}
   {{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/reduce" | uniq)  }}
   {{- end }}
 {{- end }}
-{{- if has "logs" $pipelines }}
+{{- if or (has "logs" $pipelines) (has "all" $pipelines) }}
   {{- if and ($config.service.pipelines.logs) (not (has "transform/reduce" $config.service.pipelines.logs.processors)) }}
   {{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "transform/reduce" | uniq)  }}
   {{- end }}
@@ -991,7 +991,7 @@ processors:
 processors:
   transform/reduce:
     error_mode: ignore
-{{- if has "metrics" $pipelines }}
+{{- if or (has "metrics" $pipelines) (has "all" $pipelines) }}
     metric_statements:
       - context: resource
         statements:
@@ -999,7 +999,7 @@ processors:
         - delete_key(attributes, "{{ $pattern }}")
         {{- end }}
 {{- end }}
-{{- if has "traces" $pipelines }}
+{{- if or (has "traces" $pipelines) (has "all" $pipelines) }}
     trace_statements:
       - context: resource
         statements:
@@ -1007,7 +1007,7 @@ processors:
         - delete_key(attributes, "{{ $pattern }}")
         {{- end }}
 {{- end }}
-{{- if has "logs" $pipelines }}
+{{- if or (has "logs" $pipelines) (has "all" $pipelines) }}
     log_statements:
       - context: resource
         statements:
