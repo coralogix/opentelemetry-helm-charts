@@ -363,4 +363,3 @@ spec:
                 prometheus:
                   host: ${env:MY_POD_IP}
                   port: 8888
-                  without_units: true

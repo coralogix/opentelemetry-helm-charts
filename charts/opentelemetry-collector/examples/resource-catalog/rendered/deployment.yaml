@@ -25,7 +25,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 0c741e80531042fab25c93f1ac187c45d596b2cf33bfd0e35a541dd5a69dfeb9
+        checksum/config: 8cc685f271e85cc32379fde17673f377f8ec987df39a8558849cdbd6f99e3194
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
