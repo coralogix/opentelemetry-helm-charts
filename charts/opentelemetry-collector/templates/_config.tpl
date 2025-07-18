@@ -967,35 +967,54 @@ processors:
 
 {{- define "opentelemetry-collector.applyReduceResourceAttributesConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.reduceResourceAttributesConfig" .Values | fromYaml) .config }}
-{{- if and ($config.service.pipelines.metrics) (not (has "transform/reduce" $config.service.pipelines.metrics.processors)) }}
-{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/reduce" | uniq)  }}
+{{- $pipelines := .Values.Values.presets.reduceResourceAttributes.pipelines }}
+{{- if or (has "metrics" $pipelines) (has "all" $pipelines) }}
+  {{- if and ($config.service.pipelines.metrics) (not (has "transform/reduce" $config.service.pipelines.metrics.processors)) }}
+  {{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/reduce" | uniq)  }}
+  {{- end }}
+{{- end }}
+{{- if or (has "traces" $pipelines) (has "all" $pipelines) }}
+  {{- if and ($config.service.pipelines.traces) (not (has "transform/reduce" $config.service.pipelines.traces.processors)) }}
+  {{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/reduce" | uniq)  }}
+  {{- end }}
+{{- end }}
+{{- if or (has "logs" $pipelines) (has "all" $pipelines) }}
+  {{- if and ($config.service.pipelines.logs) (not (has "transform/reduce" $config.service.pipelines.logs.processors)) }}
+  {{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "transform/reduce" | uniq)  }}
+  {{- end }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
 {{- define "opentelemetry-collector.reduceResourceAttributesConfig" -}}
+{{- $pipelines := .Values.presets.reduceResourceAttributes.pipelines }}
 processors:
   transform/reduce:
     error_mode: ignore
+{{- if or (has "metrics" $pipelines) (has "all" $pipelines) }}
     metric_statements:
       - context: resource
         statements:
-           # Removing UIDS from k8scluster / k8sattributes
-          - delete_key(attributes, "container.id")
-          - delete_key(attributes, "k8s.pod.uid")
-          - delete_key(attributes, "k8s.replicaset.uid")
-          - delete_key(attributes, "k8s.daemonset.uid")
-          - delete_key(attributes, "k8s.deployment.uid")
-          - delete_key(attributes, "k8s.statefulset.uid")
-          - delete_key(attributes, "k8s.cronjob.uid")
-          - delete_key(attributes, "k8s.job.uid")
-          - delete_key(attributes, "k8s.hpa.uid")
-          - delete_key(attributes, "k8s.namespace.uid")
-          - delete_key(attributes, "k8s.node.uid")
-          # Removing Prometheus receiver net.host.name + port as it's available in service.instance.id
-          - delete_key(attributes, "net.host.name")
-          - delete_key(attributes, "net.host.port")
-
+        {{- range $index, $pattern := .Values.presets.reduceResourceAttributes.denylist.metrics }}
+        - delete_key(attributes, "{{ $pattern }}")
+        {{- end }}
+{{- end }}
+{{- if or (has "traces" $pipelines) (has "all" $pipelines) }}
+    trace_statements:
+      - context: resource
+        statements:
+        {{- range $index, $pattern := .Values.presets.reduceResourceAttributes.denylist.traces }}
+        - delete_key(attributes, "{{ $pattern }}")
+        {{- end }}
+{{- end }}
+{{- if or (has "logs" $pipelines) (has "all" $pipelines) }}
+    log_statements:
+      - context: resource
+        statements:
+        {{- range $index, $pattern := .Values.presets.reduceResourceAttributes.denylist.logs }}
+        - delete_key(attributes, "{{ $pattern }}")
+        {{- end }}
+{{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applySemconvConfig" -}}
@@ -2027,7 +2046,8 @@ service:
 {{- $pipeline = . }}
 {{- end }}
 {{- $includeMetrics := eq $pipeline "metrics" }}
-{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "prometheus" $config.service.pipelines.metrics.receivers)) }}
+{{- $monitorsEnabled := or .Values.Values.podMonitor.enabled .Values.Values.serviceMonitor.enabled }}
+{{- if and $includeMetrics (not $monitorsEnabled) ($config.service.pipelines.metrics) (not (has "prometheus" $config.service.pipelines.metrics.receivers)) }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus" | uniq)  }}
 {{- end }}
 {{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "transform/prometheus" $config.service.pipelines.metrics.processors)) }}
@@ -2037,6 +2057,8 @@ service:
 {{- end }}
 
 {{- define "opentelemetry-collector.collectorMetricsConfig" -}}
+{{- $monitorsEnabled := or .Values.podMonitor.enabled .Values.serviceMonitor.enabled }}
+{{- if not $monitorsEnabled }}
 receivers:
   prometheus:
     config:
@@ -2050,6 +2072,7 @@ receivers:
           static_configs:
             - targets:
                 - {{ include "opentelemetry-collector.envEndpoint" (dict "env" "MY_POD_IP" "port" "8888" "context" $) }}
+{{- end }}
 
 processors:
   transform/prometheus:

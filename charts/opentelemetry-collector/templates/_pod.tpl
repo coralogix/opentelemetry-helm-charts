@@ -22,10 +22,10 @@ containers:
       {{- end }}
     image: "{{ include "opentelemetry-collector.image" . }}"
     imagePullPolicy: {{ .Values.image.pullPolicy }}
-    {{- $ports := include "opentelemetry-collector.podPortsConfig" . }}
+    {{- $ports := include "opentelemetry-collector.podPortsConfig" . | trim }}
     {{- if $ports }}
     ports:
-      {{- $ports | nindent 6}}
+{{ $ports | indent 6 }}
     {{- end }}
     env:
       - name: MY_POD_IP
@@ -259,7 +259,7 @@ containers:
         name: etcmachineid
         readOnly: true
       {{- end }}
-      {{- if not $dbusMachineIdMountExists }}
+      {{- if and (not $dbusMachineIdMountExists) (.Values.presets.resourceDetection.dbusMachineId.enabled) }}
       - mountPath: /var/lib/dbus/machine-id
         mountPropagation: HostToContainer
         name: varlibdbusmachineid
@@ -369,7 +369,7 @@ volumes:
     hostPath:
       path: /etc/machine-id
   {{- end }}
-  {{- if not $dbusMachineIdVolumeExists }}
+  {{- if and (not $dbusMachineIdVolumeExists) (.Values.presets.resourceDetection.dbusMachineId.enabled) }}
   - name: varlibdbusmachineid
     hostPath:
       path: /var/lib/dbus/machine-id

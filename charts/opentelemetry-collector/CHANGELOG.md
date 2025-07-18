@@ -2,8 +2,27 @@
 
 ## OpenTelemetry Collector
 
-### v0.118.3 / 2025-07-17
-- [Fix] Fix `k8sResourceAttributes` preset when `fleetManagement` preset is enabled.
+### v0.118.9 / 2025-07-18
+- [Fix] `k8sResourceAttributes` preset works correctly when the `fleetManagement` preset is enabled.
+
+### v0.118.8 / 2025-07-18
+- [Feat] The `reduceResourceAttributes` preset now also removes attributes from traces and logs pipelines.
+- [Feat] The `reduceResourceAttributes` preset now removes a few more attributes.
+
+### v0.118.7 / 2025-07-18
+- [Fix] Remove `without_units` from collector metrics preset
+
+### v0.118.6 / 2025-07-18
+- [Fix] Skip prometheus receiver from collectorMetrics preset when PodMonitor or ServiceMonitor is enabled
+
+### v0.118.5 / 2025-07-18
+- [Fix] Remove extra blank lines when rendering container ports
+
+### v0.118.4 / 2025-07-18
+- [Feat] Allow disabling the /var/lib/dbus/machine-id mount via `presets.resourceDetection.dbusMachineId.enabled`
+
+### v0.118.3 / 2025-07-18
+- [Feat] Enable `without_units` in collector metrics preset
 
 ### v0.118.2 / 2025-07-16
 - [Feat] Add transactions preset to group spans into transactions and enable Coralogix transaction processor
