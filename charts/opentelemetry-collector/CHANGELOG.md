@@ -2,6 +2,18 @@
 
 ## OpenTelemetry Collector
 
+### v0.118.6 / 2025-07-18
+- [Fix] Skip prometheus receiver from collectorMetrics preset when PodMonitor or ServiceMonitor is enabled
+
+### v0.118.5 / 2025-07-18
+- [Fix] Remove extra blank lines when rendering container ports
+
+### v0.118.4 / 2025-07-18
+- [Feat] Allow disabling the /var/lib/dbus/machine-id mount via `presets.resourceDetection.dbusMachineId.enabled`
+
+### v0.118.3 / 2025-07-18
+- [Feat] Enable `without_units` in collector metrics preset
+
 ### v0.118.2 / 2025-07-16
 - [Feat] Add transactions preset to group spans into transactions and enable Coralogix transaction processor
 

@@ -2042,7 +2042,8 @@ service:
 {{- $pipeline = . }}
 {{- end }}
 {{- $includeMetrics := eq $pipeline "metrics" }}
-{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "prometheus" $config.service.pipelines.metrics.receivers)) }}
+{{- $monitorsEnabled := or .Values.Values.podMonitor.enabled .Values.Values.serviceMonitor.enabled }}
+{{- if and $includeMetrics (not $monitorsEnabled) ($config.service.pipelines.metrics) (not (has "prometheus" $config.service.pipelines.metrics.receivers)) }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus" | uniq)  }}
 {{- end }}
 {{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "transform/prometheus" $config.service.pipelines.metrics.processors)) }}
@@ -2052,6 +2053,8 @@ service:
 {{- end }}
 
 {{- define "opentelemetry-collector.collectorMetricsConfig" -}}
+{{- $monitorsEnabled := or .Values.podMonitor.enabled .Values.serviceMonitor.enabled }}
+{{- if not $monitorsEnabled }}
 receivers:
   prometheus:
     config:
@@ -2065,6 +2068,7 @@ receivers:
           static_configs:
             - targets:
                 - {{ include "opentelemetry-collector.envEndpoint" (dict "env" "MY_POD_IP" "port" "8888" "context" $) }}
+{{- end }}
 
 processors:
   transform/prometheus:
@@ -2089,6 +2093,7 @@ service:
         - pull:
             exporter:
               prometheus:
+                without_units: true
                 host: {{ include "opentelemetry-collector.envHost" (dict "env" "MY_POD_IP" "context" $) }}
                 port: 8888
 {{- end }}
