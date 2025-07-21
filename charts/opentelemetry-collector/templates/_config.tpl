@@ -1068,6 +1068,7 @@ extensions:
 service:
   telemetry:
     resource:
+      service.name: "opentelemetry-collector"
 {{- include "opentelemetry-collector.k8sResourceAttributes" . | nindent 6 -}}
 {{- end -}}
 
@@ -1086,7 +1087,6 @@ k8s.pod.name: ${env:KUBE_POD_NAME}
 {{- end -}}
 
 {{- define "opentelemetry-collector.fleetAttributes" -}}
-service.name: "opentelemetry-collector"
 {{- if or .Values.presets.fleetManagement.agentType .Values.presets.k8sResourceAttributes.agentType }}
 cx.agent.type: "{{.Values.presets.fleetManagement.agentType | default .Values.presets.k8sResourceAttributes.agentType}}"
 {{- end }}
