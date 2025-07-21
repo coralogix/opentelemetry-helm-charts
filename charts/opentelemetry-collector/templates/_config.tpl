@@ -1053,10 +1053,8 @@ extensions:
           headers:
             Authorization: "Bearer ${env:CORALOGIX_PRIVATE_KEY}"
       agent_description:
+        include_resource_attributes: true
         non_identifying_attributes:
-        {{- if .Values.presets.k8sResourceAttributes.enabled -}}
-          {{- include "opentelemetry-collector.k8sResourceAttributes" . | nindent 10 -}}
-        {{- end }}
         {{- include "opentelemetry-collector.fleetAttributes" . | nindent 10 -}}
         {{- include "opentelemetry-collector.chartMetadataAttributes" . | nindent 10 -}}
 {{- end }}
