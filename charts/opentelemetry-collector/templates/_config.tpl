@@ -1071,10 +1071,6 @@ service:
   telemetry:
     resource:
 {{- include "opentelemetry-collector.k8sResourceAttributes" . | nindent 6 -}}
-{{- if .Values.presets.fleetManagement.enabled -}}
-  {{- include "opentelemetry-collector.fleetAttributes" . | nindent 6 -}}
-  {{- include "opentelemetry-collector.chartMetadataAttributes" . | nindent 6 -}}
-{{- end }}
 {{- end -}}
 
 {{- define "opentelemetry-collector.k8sResourceAttributes" -}}
