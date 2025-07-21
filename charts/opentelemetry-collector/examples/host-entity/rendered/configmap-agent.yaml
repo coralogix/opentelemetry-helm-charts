@@ -31,12 +31,12 @@ data:
         endpoint: ${env:MY_POD_IP}:13133
       opamp:
         agent_description:
+          include_resource_attributes: true
           non_identifying_attributes:
             cx.agent.type: agent
             cx.cluster.name: test
             cx.integrationID: test
             helm.chart.opentelemetry-collector.version: 0.118.9
-            service.name: opentelemetry-collector
         server:
           http:
             endpoint: https://ingress.coralogix.com/opamp/v1

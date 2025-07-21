@@ -630,8 +630,6 @@ data:
                   host: ${env:MY_POD_IP}
                   port: 8888
         resource:
-          cx.agent.type: agent
-          helm.chart.opentelemetry-collector.version: 0.118.9
           k8s.daemonset.name: example-opentelemetry-collector
           k8s.namespace.name: default
           k8s.node.name: ${env:KUBE_NODE_NAME}

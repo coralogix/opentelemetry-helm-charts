@@ -623,3 +623,4 @@ data:
           k8s.namespace.name: default
           k8s.node.name: ${env:KUBE_NODE_NAME}
           k8s.pod.name: ${env:KUBE_POD_NAME}
+          service.name: opentelemetry-collector
