@@ -241,7 +241,7 @@ data:
           - delete_key(attributes, "otel_scope_name") where attributes["service.name"]
             == "opentelemetry-collector"
       transform/reduce:
-        error_mode: ignore
+        error_mode: silent
         log_statements:
         - context: resource
           statements:

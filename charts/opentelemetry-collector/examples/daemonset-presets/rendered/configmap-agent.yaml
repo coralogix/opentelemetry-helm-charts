@@ -202,7 +202,7 @@ data:
             "$$1") where attributes["k8s.replicaset.name"] != nil
           - delete_key(attributes, "k8s.replicaset.name")
       transform/reduce:
-        error_mode: ignore
+        error_mode: silent
         log_statements:
         - context: resource
           statements:
