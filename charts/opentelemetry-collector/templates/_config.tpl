@@ -769,6 +769,7 @@ receivers:
 {{- define "opentelemetry-collector.logsCollectionReduceAttributesConfig" -}}
 processors:
   transform/reduce_log_attributes:
+    error_mode: silent
     log_statements:
       - context: log
         statements:
@@ -1012,7 +1013,7 @@ processors:
 {{- $pipelines := .Values.presets.reduceResourceAttributes.pipelines }}
 processors:
   transform/reduce:
-    error_mode: ignore
+    error_mode: silent
 {{- if or (has "metrics" $pipelines) (has "all" $pipelines) }}
     metric_statements:
       - context: resource
