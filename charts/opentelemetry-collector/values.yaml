@@ -460,6 +460,18 @@ presets:
         - k8s.replicaset.uid
         - k8s.statefulset.uid
         - os.type
+        - os.version
+        - process.command
+        - process.command_line
+        - process.command_args
+        - process.executable.name
+        - process.executable.path
+        - process.owner
+        - process.pid
+        - process.parent_pid
+        - process.runtime.description
+        - process.runtime.name
+        - process.runtime.version
       logs:
         - azure.resourcegroup.name
         - azure.vm.name
@@ -494,6 +506,18 @@ presets:
         - k8s.replicaset.uid
         - k8s.statefulset.uid
         - os.type
+        - os.version
+        - process.command
+        - process.command_line
+        - process.command_args
+        - process.executable.name
+        - process.executable.path
+        - process.owner
+        - process.pid
+        - process.parent_pid
+        - process.runtime.description
+        - process.runtime.name
+        - process.runtime.version
   # Applies semantic convention transformations.
   semconv:
     enabled: false
