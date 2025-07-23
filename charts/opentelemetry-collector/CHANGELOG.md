@@ -2,8 +2,17 @@
 
 ## OpenTelemetry Collector
 
-### v0.118.13 / 2025-07-22
+### v0.118.16 / 2025-07-23
 - [Feat] Add more attribute coming from auto-instrumentation SDKs to the `reduceResourceAttributes` preset.
+
+### v0.118.15 / 2025-07-23
+- [Feat] Fail installation if kubernetesResources preset is enabled in daemonset mode.
+
+### v0.118.14 / 2025-07-23
+- [Feat] Set spanMetrics aggregationCardinalityLimit default to 100000.
+
+### v0.118.13 / 2025-07-22
+- [Feat] Update Collector to v0.130.1
 
 ### v0.118.12 / 2025-07-22
 - [Feat] Add `reduceLogAttributes` preset to remove specified log record attributes from collected logs.
