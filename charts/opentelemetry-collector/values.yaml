@@ -518,6 +518,11 @@ presets:
         - process.runtime.description
         - process.runtime.name
         - process.runtime.version
+        - telemetry.distro.name
+        - telemetry.distro.version
+        - telemetry.sdk.language
+        - telemetry.sdk.name
+        - telemetry.sdk.version
   # Applies semantic convention transformations.
   semconv:
     enabled: false
