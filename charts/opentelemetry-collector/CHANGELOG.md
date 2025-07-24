@@ -2,8 +2,11 @@
 
 ## OpenTelemetry Collector
 
-### v0.118.16 / 2025-07-23
+### v0.118.17 / 2025-07-24
 - [Feat] Add more attribute coming from auto-instrumentation SDKs to the `reduceResourceAttributes` preset.
+
+### v0.118.16 / 2025-07-24
+- [Feat] Add additional Prometheus transform rules for collector metrics preset.
 
 ### v0.118.15 / 2025-07-23
 - [Feat] Fail installation if kubernetesResources preset is enabled in daemonset mode.
