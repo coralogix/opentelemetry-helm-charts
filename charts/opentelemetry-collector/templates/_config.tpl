@@ -767,22 +767,27 @@ receivers:
       - type: json_parser
         parse_to: attributes["parsed_body_tmp"]
         if: (attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log")
+        on_error: send_quiet
       - type: regex_replace
         field: body
         regex: \"resource\":{.*?},?
         replace_with: ""
         if: (attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log")
+        on_error: send_quiet
       - type: move
         from: attributes["parsed_body_tmp"]["resource"]
         to: resource["attributes_tmp"]
         if: (attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log")
+        on_error: send_quiet
       - type: remove
         field: attributes["parsed_body_tmp"]
         if: (attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log")
+        on_error: send_quiet
       - type: flatten
         id: flatten-resource
         if: (attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log")
         field: resource["attributes_tmp"]
+        on_error: send_quiet
       {{- end }}
       {{- if .Values.presets.logsCollection.extraFilelogOperators }}
       {{- .Values.presets.logsCollection.extraFilelogOperators | toYaml | nindent 6 }}
