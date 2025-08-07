@@ -761,7 +761,28 @@ receivers:
       - type: filter
         drop_ratio: 1.0
         expr: '(attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/{{ include "opentelemetry-collector.lowercase_chartname" . }}/.*.log") and ((body contains "logRecord") or (body contains "ResourceLog"))'
-# (body startsWith "{\"level\":\"debug") or
+      # The operators below should only apply to the logs of our own Collector and are necessary
+      # to get the `resource` field from them into the resource attributes that are emitted.
+      # This logic should encompass logs of all agents.
+      - type: json_parser
+        parse_to: attributes["parsed_body_tmp"]
+        if: (attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log")
+      - type: regex_replace
+        field: body
+        regex: \"resource\":{.*?},?
+        replace_with: ""
+        if: (attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log")
+      - type: move
+        from: attributes["parsed_body_tmp"]["resource"]
+        to: resource["attributes_tmp"]
+        if: (attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log")
+      - type: remove
+        field: attributes["parsed_body_tmp"]
+        if: (attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log")
+      - type: flatten
+        id: flatten-resource
+        if: (attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log")
+        field: resource["attributes_tmp"]
       {{- end }}
       {{- if .Values.presets.logsCollection.extraFilelogOperators }}
       {{- .Values.presets.logsCollection.extraFilelogOperators | toYaml | nindent 6 }}
