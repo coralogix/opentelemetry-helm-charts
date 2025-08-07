@@ -764,7 +764,15 @@ receivers:
       # The operators below should only apply to the logs of our own Collector and are necessary
       # to get the `resource` field from them into the resource attributes that are emitted.
       # This logic should encompass logs of all agents.
+      # We do an additional check to ensure the log body has the `resource` field to avoid wasting
+      # time and resources on operators that would simply fail.
+      - type: router
+        routes:
+          - output: parse-body
+            expr: '(body matches "\"resource\":{.*?},?")'
+        default: export
       - type: json_parser
+        id: parse-body
         parse_to: attributes["parsed_body_tmp"]
         if: (attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log")
         on_error: send_quiet
@@ -792,6 +800,10 @@ receivers:
       {{- if .Values.presets.logsCollection.extraFilelogOperators }}
       {{- .Values.presets.logsCollection.extraFilelogOperators | toYaml | nindent 6 }}
       {{- end }}
+      # This noop operator is a helper to quickly route an entry to be exported.
+      # It must always be the last operator in the receiver.
+      - type: noop
+        id: export
 {{- end }}
 
 {{- define "opentelemetry-collector.applyLogsCollectionReduceAttributesConfig" -}}
