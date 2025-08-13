@@ -2,6 +2,9 @@
 
 ## OpenTelemetry Collector
 
+### v0.119.4 / 2025-08-13
+- [Chore] Remove deployment-otlp-traces example.
+
 ### v0.119.3 / 2025-08-13
 - [Feat] Add Kubernetes service resolver to load balancing preset and required RBAC.
 
