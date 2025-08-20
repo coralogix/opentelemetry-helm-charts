@@ -2,6 +2,9 @@
 
 ## OpenTelemetry Collector
 
+### v0.119.4 / 2025-08-20
+- [Feat] Improve profiling preset by extending service name detection.
+
 ### v0.119.3 / 2025-08-13
 - [Feat] Add Kubernetes service resolver to load balancing preset and required RBAC.
 
