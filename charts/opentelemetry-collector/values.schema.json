@@ -397,6 +397,16 @@
             }
           }
         },
+        "ecsAttributesContainerLogs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Enable ECS container logs attribute enrichment processor.",
+              "type": "boolean"
+            }
+          }
+        },
         "mysql": {
           "type": "object",
           "additionalProperties": false,
@@ -906,6 +916,11 @@
             "defaultSubsystemName": {
               "description": "Default subsystem name used by the exporter.",
               "type": "string"
+            },
+            "mode": {
+              "description": "Mode selector for Coralogix exporter defaults.",
+              "type": "string",
+              "enum": ["ecs", ""]
             }
           }
         },
@@ -1158,6 +1173,16 @@
           "properties": {
             "enabled": {
               "description": "Specifies whether the collector should receive StatsD data.",
+              "type": "boolean"
+            }
+          }
+        },
+        "awsecscontainermetricsdReceiver": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Enable AWS ECS Container Metrics Daemon receiver and add to metrics pipeline.",
               "type": "boolean"
             }
           }

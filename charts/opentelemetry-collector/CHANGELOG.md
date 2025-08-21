@@ -2,6 +2,16 @@
 
 ## OpenTelemetry Collector
 
+### v0.119.6 / 2025-08-21
+- [Feat] Coralogix exporter ECS mode: ECS-specific application/subsystem attributes; logs header set to `ecs-ec2-integration/<version>`.
+- [Chore] ECS example: set `presets.metadata.integrationName` to `coralogix-integration-ecs-ec2` and enable ECS mode in Coralogix exporter.
+- [Fix] Resolve `MY_POD_IP` to `0.0.0.0` only in rendered ConfigMap; pod env remains unchanged.
+
+### v0.119.5 / 2025-08-21
+- [Feat] Add ECS example.
+- [Feat] Add `ecsAttributesContainerLogs` preset to enrich container logs with container_id from `log.file.path`.
+- [Feat] Add `awsecscontainermetricsdReceiver` preset to enable `awsecscontainermetricsd` receiver and wire it to metrics pipeline.
+
 ### v0.119.4 / 2025-08-20
 - [Fix] Ensure hostEntityEvents preset references k8sattributes processor only when configured.
 

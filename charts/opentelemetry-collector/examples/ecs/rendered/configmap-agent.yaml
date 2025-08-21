@@ -1,9 +1,10 @@
 ---
-# Source: opentelemetry-collector/templates/opentelemetrycollector.yaml
-apiVersion: opentelemetry.io/v1beta1
-kind: OpenTelemetryCollector
+# Source: opentelemetry-collector/templates/configmap-agent.yaml
+apiVersion: v1
+kind: ConfigMap
 metadata:
-  name: example-opentelemetry-collector
+  name: example-opentelemetry-collector-agent
+  namespace: default
   labels:
     helm.sh/chart: opentelemetry-collector-0.119.6
     app.kubernetes.io/name: opentelemetry-collector
@@ -11,79 +12,205 @@ metadata:
     app.kubernetes.io/version: "0.131.1"
     app.kubernetes.io/managed-by: Helm
     
-spec:
-  managementState: "managed"
-  mode: daemonset
-  podSecurityContext:
-    runAsUser: 0
-    runAsGroup: 0
-  securityContext:
-    privileged: true
-  image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.131.1"
-  imagePullPolicy: IfNotPresent
-  ports:
-    - name: otlp
-      port: 4317
-      protocol: TCP
-    - name: otlp-http
-      port: 4318
-      protocol: TCP
-  env:
-    - name: MY_POD_IP
-      valueFrom:
-        fieldRef:
-          apiVersion: v1
-          fieldPath: status.podIP
-    - name: GOMEMLIMIT
-      value: "152MiB"
-  resources:
-    limits:
-      cpu: 100m
-      memory: 200M
-  volumeMounts:
-    - name: varlogpods
-      mountPath: /var/log/pods
-      readOnly: true
-    - name: varlibdockercontainers
-      mountPath: /var/lib/docker/containers
-      readOnly: true
-    - name: varlibotelcol
-      mountPath: /var/lib/otelcol
-    - name: hostfs
-      mountPath: /hostfs
-      readOnly: true
-      mountPropagation: HostToContainer
-  volumes:
-    - name: varlogpods
-      hostPath:
-        path: /var/log/pods
-    - name: varlibotelcol
-      hostPath:
-        path: /var/lib/otelcol
-        type: DirectoryOrCreate
-    - name: varlibdockercontainers
-      hostPath:
-        path: /var/lib/docker/containers
-    - name: hostfs
-      hostPath:
-        path: /
-  nodeSelector:
-    kubernetes.io/arch: arm64
-  serviceAccount: default
-  hostNetwork: false
-  config:
+data:
+  relay: |
+    connectors:
+      forward/db: {}
+      spanmetrics:
+        aggregation_cardinality_limit: 100000
+        dimensions:
+        - name: http.method
+        - name: cgx.transaction
+        - name: cgx.transaction.root
+        - name: status_code
+        - name: db.namespace
+        - name: db.operation.name
+        - name: db.collection.name
+        - name: db.system
+        - name: http.response.status_code
+        - name: rpc.grpc.status_code
+        - name: service.version
+        histogram:
+          explicit:
+            buckets:
+            - 1ms
+            - 4ms
+            - 10ms
+            - 20ms
+            - 50ms
+            - 100ms
+            - 200ms
+            - 500ms
+            - 1s
+            - 2s
+            - 5s
+        metrics_expiration: 5m
+        metrics_flush_interval: 30s
+        namespace: ""
+      spanmetrics/db:
+        aggregation_cardinality_limit: 100000
+        dimensions:
+        - name: db.namespace
+        - name: db.operation.name
+        - name: db.collection.name
+        - name: db.system
+        - name: service.version
+        histogram:
+          explicit:
+            buckets:
+            - 100us
+            - 1ms
+            - 2ms
+            - 2.5ms
+            - 4ms
+            - 6ms
+            - 10ms
+            - 100ms
+            - 250ms
+        metrics_expiration: 5m
+        metrics_flush_interval: 30s
+        namespace: db
     exporters:
+      coralogix:
+        application_name: ""
+        application_name_attributes:
+        - k8s.namespace.name
+        - service.namespace
+        domain: ""
+        logs:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        metrics:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        private_key: ${env:CORALOGIX_PRIVATE_KEY}
+        profiles:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        subsystem_name: ""
+        subsystem_name_attributes:
+        - k8s.deployment.name
+        - k8s.statefulset.name
+        - k8s.daemonset.name
+        - k8s.cronjob.name
+        - service.name
+        timeout: 30s
+        traces:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+      coralogix/resource_catalog:
+        application_name: resource
+        domain: ""
+        logs:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+            x-coralogix-ingress: metadata-as-otlp-logs/v1
+        private_key: ${CORALOGIX_PRIVATE_KEY}
+        subsystem_name: catalog
+        timeout: 30s
       debug: {}
     extensions:
       file_storage:
         directory: /var/lib/otelcol
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
+      opamp:
+        agent_description:
+          include_resource_attributes: true
+          non_identifying_attributes:
+            cx.agent.type: agent
+            cx.cluster.name: 'ecs'
+            helm.chart.opentelemetry-collector.version: 0.119.6
+        server:
+          http:
+            endpoint: https://ingress./opamp/v1
+            headers:
+              Authorization: Bearer ${env:CORALOGIX_PRIVATE_KEY}
+            polling_interval: 2m
+      pprof:
+        endpoint: localhost:1777
+      zpages:
+        endpoint: localhost:55679
     processors:
+      batch:
+        send_batch_max_size: 2048
+        send_batch_size: 1024
+        timeout: 1s
+      ecsattributes/container-logs:
+        container_id:
+          sources:
+          - log.file.path
+      filter/db_spanmetrics:
+        traces:
+          span:
+          - attributes["db.system"] == nil
       memory_limiter:
         check_interval: 5s
         limit_percentage: 80
         spike_limit_percentage: 25
+      resource/metadata:
+        attributes:
+        - action: upsert
+          key: k8s.cluster.name
+          value: 'ecs'
+        - action: upsert
+          key: cx.otel_integration.name
+          value: coralogix-integration-helm
+      resourcedetection/entity:
+        detectors:
+        - system
+        - env
+        override: false
+        system:
+          resource_attributes:
+            host.cpu.cache.l2.size:
+              enabled: true
+            host.cpu.family:
+              enabled: true
+            host.cpu.model.id:
+              enabled: true
+            host.cpu.model.name:
+              enabled: true
+            host.cpu.stepping:
+              enabled: true
+            host.cpu.vendor.id:
+              enabled: true
+            host.id:
+              enabled: true
+            host.ip:
+              enabled: true
+            host.mac:
+              enabled: true
+            os.description:
+              enabled: true
+        timeout: 2s
+      resourcedetection/env:
+        detectors:
+        - system
+        - env
+        override: false
+        system:
+          resource_attributes:
+            host.id:
+              enabled: true
+        timeout: 2s
+      resourcedetection/region:
+        detectors:
+        - gcp
+        - ec2
+        - azure
+        override: true
+        timeout: 2s
+      transform/entity-event:
+        error_mode: silent
+        log_statements:
+        - context: log
+          statements:
+          - set(attributes["otel.entity.id"]["host.id"], resource.attributes["host.id"])
+          - merge_maps(attributes, resource.attributes, "insert")
+        - context: resource
+          statements:
+          - keep_keys(attributes, [""])
       transform/prometheus:
         error_mode: ignore
         metric_statements:
@@ -132,7 +259,15 @@ spec:
             == "opentelemetry-collector"
           - delete_key(attributes, "otel_scope_name") where attributes["service.name"]
             == "opentelemetry-collector"
+      transform/semconv:
+        error_mode: ignore
+        trace_statements:
+        - context: span
+          statements:
+          - set(attributes["http.method"], attributes["http.request.method"]) where attributes["http.request.method"]
+            != nil
     receivers:
+      awsecscontainermetricsd: {}
       filelog:
         exclude: []
         force_flush_period: 0
@@ -266,7 +401,7 @@ spec:
         start_at: beginning
         storage: file_storage
       hostmetrics:
-        collection_interval: 10s
+        collection_interval: 30s
         root_path: /hostfs
         scrapers:
           cpu:
@@ -318,6 +453,16 @@ spec:
               system.memory.utilization:
                 enabled: true
           network: null
+      jaeger:
+        protocols:
+          grpc:
+            endpoint: ${env:MY_POD_IP}:14250
+          thrift_binary:
+            endpoint: ${env:MY_POD_IP}:6832
+          thrift_compact:
+            endpoint: ${env:MY_POD_IP}:6831
+          thrift_http:
+            endpoint: ${env:MY_POD_IP}:14268
       otlp:
         protocols:
           grpc:
@@ -333,39 +478,88 @@ spec:
             static_configs:
             - targets:
               - ${env:MY_POD_IP}:8888
+      statsd:
+        endpoint: ${env:MY_POD_IP}:8125
+      zipkin:
+        endpoint: ${env:MY_POD_IP}:9411
     service:
       extensions:
       - health_check
       - file_storage
+      - opamp
+      - zpages
+      - pprof
       pipelines:
         logs:
           exporters:
-          - debug
+          - coralogix
           processors:
           - memory_limiter
+          - resource/metadata
+          - resourcedetection/region
+          - resourcedetection/env
+          - ecsattributes/container-logs
+          - batch
           receivers:
           - filelog
           - otlp
-        metrics:
+        logs/resource_catalog:
           exporters:
-          - debug
+          - coralogix/resource_catalog
           processors:
           - memory_limiter
-          - transform/prometheus
+          - resource/metadata
+          - resourcedetection/entity
+          - resourcedetection/region
+          - transform/entity-event
           receivers:
           - hostmetrics
-          - prometheus
-          - otlp
-        traces:
+        metrics:
           exporters:
-          - debug
+          - coralogix
           processors:
           - memory_limiter
+          - resource/metadata
+          - resourcedetection/region
+          - resourcedetection/env
+          - transform/prometheus
+          - batch
           receivers:
+          - hostmetrics
+          - spanmetrics
+          - spanmetrics/db
+          - prometheus
+          - awsecscontainermetricsd
           - otlp
+          - statsd
+        traces:
+          exporters:
+          - spanmetrics
+          - forward/db
+          - coralogix
+          processors:
+          - memory_limiter
+          - resource/metadata
+          - resourcedetection/region
+          - resourcedetection/env
+          - transform/semconv
+          - batch
+          receivers:
+          - jaeger
+          - zipkin
+          - otlp
+        traces/db:
+          exporters:
+          - spanmetrics/db
+          processors:
+          - filter/db_spanmetrics
+          - batch
+          receivers:
+          - forward/db
       telemetry:
         logs:
           encoding: json
+          level: info
         metrics:
           readers:
           - pull:
@@ -373,3 +567,6 @@ spec:
                 prometheus:
                   host: ${env:MY_POD_IP}
                   port: 8888
+        resource:
+          cx.agent.type: agent
+          service.name: opentelemetry-collector
