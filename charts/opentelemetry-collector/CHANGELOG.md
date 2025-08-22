@@ -2,12 +2,14 @@
 
 ## OpenTelemetry Collector
 
-### v0.119.6 / 2025-08-21
+### v0.119.6 / 2025-08-22
+- [Feat] Add `ecsLogsCollection` preset to collect ECS container logs from `/hostfs/var/lib/docker/containers/*/*.log` with JSON parsing and recombine.
+- [Chore] ECS example updated to use `ecsLogsCollection` instead of `logsCollection`.
+
+### v0.119.5 / 2025-08-21
 - [Feat] Coralogix exporter ECS mode: ECS-specific application/subsystem attributes; logs header set to `ecs-ec2-integration/<version>`.
 - [Chore] ECS example: set `presets.metadata.integrationName` to `coralogix-integration-ecs-ec2` and enable ECS mode in Coralogix exporter.
 - [Fix] Resolve `MY_POD_IP` to `0.0.0.0` only in rendered ConfigMap; pod env remains unchanged.
-
-### v0.119.5 / 2025-08-21
 - [Feat] Add ECS example.
 - [Feat] Add `ecsAttributesContainerLogs` preset to enrich container logs with container_id from `log.file.path`.
 - [Feat] Add `awsecscontainermetricsdReceiver` preset to enable `awsecscontainermetricsd` receiver and wire it to metrics pipeline.
