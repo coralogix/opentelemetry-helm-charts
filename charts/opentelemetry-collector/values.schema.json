@@ -397,6 +397,20 @@
             }
           }
         },
+        "ecsLogsCollection": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether the collector should collect ECS container logs from hostfs.",
+              "type": "boolean"
+            },
+            "forceFlushPeriod": {
+              "description": "Time since last read of data from file, after which currently buffered log should be send to pipeline. A value of 0 will disable forced flushing.",
+              "type": "string"
+            }
+          }
+        },
         "ecsAttributesContainerLogs": {
           "type": "object",
           "additionalProperties": false,
@@ -916,12 +930,8 @@
             "defaultSubsystemName": {
               "description": "Default subsystem name used by the exporter.",
               "type": "string"
-            },
-            "mode": {
-              "description": "Mode selector for Coralogix exporter defaults.",
-              "type": "string",
-              "enum": ["ecs", ""]
             }
+            
           }
         },
         "transactions": {

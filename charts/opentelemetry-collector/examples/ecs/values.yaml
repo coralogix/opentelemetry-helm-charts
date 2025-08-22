@@ -5,35 +5,28 @@ global:
 
 mode: daemonset
 hostNetwork: true
-
+distribution: ecs
 presets:
   ecsAttributesContainerLogs:
     enabled: true
+  ecsLogsCollection:
+    enabled: true
+    forceFlushPeriod: "0"
   awsecscontainermetricsdReceiver:
     enabled: true
   metadata:
     enabled: true
     clusterName: "{{.Values.global.clusterName}}"
-    integrationName: "coralogix-integration-helm"
+    integrationName: "coralogix-integration-ecs"
   fleetManagement:
     enabled: true
     agentType: "agent"
     clusterName: "{{.Values.global.clusterName}}"
 
-  logsCollection:
-    enabled: true
-    includeCollectorLogs: true
-    storeCheckpoints: true
-    maxRecombineLogSize: 1048576
-    maxUnmatchedBatchSize: 1
-    maxBatchSize: 1000
-    extraFilelogOperators: []
-    multilineConfigs: []
-
   hostMetrics:
     enabled: true
     process:
-      enabled: false
+      enabled: true
     collectionInterval: 30s
 
   spanMetrics:

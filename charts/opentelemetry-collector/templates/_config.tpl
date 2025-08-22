@@ -43,6 +43,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- $values := deepCopy .Values }}
 {{- $data := dict "Values" $values | mustMergeOverwrite (deepCopy .) }}
 {{- $config := include "opentelemetry-collector.baseConfig" $data | fromYaml }}
+{{- if .Values.presets.ecsLogsCollection.enabled }}
+{{- $config = (include "opentelemetry-collector.applyEcsLogsCollectionConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.logsCollection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyLogsCollectionConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- if .Values.presets.logsCollection.reduceLogAttributes.enabled }}
@@ -163,6 +166,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- $values := deepCopy .Values }}
 {{- $data := dict "Values" $values | mustMergeOverwrite (deepCopy .) }}
 {{- $config := include "opentelemetry-collector.baseConfig" $data | fromYaml }}
+{{- if .Values.presets.ecsLogsCollection.enabled }}
+{{- $config = (include "opentelemetry-collector.applyEcsLogsCollectionConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.logsCollection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyLogsCollectionConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- if .Values.presets.logsCollection.reduceLogAttributes.enabled }}
@@ -403,7 +409,11 @@ connectors:
 receivers:
   hostmetrics:
     {{- if not .Values.isWindows }}
+    {{- if eq .Values.distribution "ecs" }}
+    root_path: /
+    {{- else }}
     root_path: /hostfs
+    {{- end }}
     {{- end }}
     {{- if .Values.presets.hostMetrics.collectionInterval }}
     collection_interval: "{{ .Values.presets.hostMetrics.collectionInterval }}"
@@ -1946,7 +1956,7 @@ exporters:
     domain: "{{ .Values.presets.coralogixExporter.domain | default .Values.global.domain }}"
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq .Values.presets.coralogixExporter.mode "ecs" }}ecs-ec2-integration{{ else }}helm-otel-integration{{ end }}/{{ .Values.presets.coralogixExporter.version | default .Values.global.version }}"
+        X-Coralogix-Distribution: "{{ if eq .Values.distribution "ecs" }}ecs-ec2-integration{{ else }}helm-otel-integration{{ end }}/{{ .Values.presets.coralogixExporter.version | default .Values.global.version }}"
     metrics:
       headers:
         X-Coralogix-Distribution: "helm-otel-integration/{{ .Values.presets.coralogixExporter.version | default .Values.global.version }}"
@@ -1959,7 +1969,7 @@ exporters:
     application_name: "{{ .Values.presets.coralogixExporter.defaultApplicationName | default .Values.global.defaultApplicationName }}"
     subsystem_name: "{{ .Values.presets.coralogixExporter.defaultSubsystemName | default .Values.global.defaultSubsystemName }}"
     application_name_attributes:
-      {{- if eq .Values.presets.coralogixExporter.mode "ecs" }}
+      {{- if eq .Values.distribution "ecs" }}
       - "aws.ecs.cluster"
       - "aws.ecs.task.definition.family"
       {{- else }}
@@ -1967,7 +1977,7 @@ exporters:
       - "service.namespace"
       {{- end }}
     subsystem_name_attributes:
-      {{- if eq .Values.presets.coralogixExporter.mode "ecs" }}
+      {{- if eq .Values.distribution "ecs" }}
       - "aws.ecs.container.name"
       - "aws.ecs.docker.name"
       - "docker.name"
@@ -2511,4 +2521,47 @@ processors:
 
 {{- define "opentelemetry-collector.chartMetadataAttributes" -}}
 helm.chart.{{ .Chart.Name }}.version: "{{ .Chart.Version }}"
+{{- end }}
+
+{{- define "opentelemetry-collector.applyEcsLogsCollectionConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.ecsLogsCollectionConfig" .Values | fromYaml) .config }}
+{{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers "filelog" | uniq)  }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.ecsLogsCollectionConfig" -}}
+receivers:
+  filelog:
+    include: [ /hostfs/var/lib/docker/containers/*/*.log ]
+    include_file_name: false
+    include_file_path: true
+    start_at: end
+    force_flush_period: {{ $.Values.presets.ecsLogsCollection.forceFlushPeriod }}
+    operators:
+      - type: router
+        id: docker_log_json_parser
+        routes:
+          - output: json_parser
+            expr: 'body matches "^\\{\\\"log\\\".*\\\}"'
+        default: move_log_file_path
+      - type: json_parser
+        parse_from: body
+        parse_to: body
+        output: recombine
+        timestamp:
+          parse_from: body.time
+          layout: '%Y-%m-%dT%H:%M:%S.%fZ'
+      - type: recombine
+        id: recombine
+        output: move_log_file_path
+        combine_field: body.log
+        source_identifier: attributes["log.file.path"]
+        is_last_entry: body.log endsWith "\n"
+        force_flush_period: 10s
+        on_error: send
+        combine_with: ""
+      - type: move
+        id: move_log_file_path
+        from: attributes["log.file.path"]
+        to: resource["log.file.path"]
 {{- end }}
