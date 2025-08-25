@@ -2,6 +2,9 @@
 
 ## OpenTelemetry Collector
 
+### v0.119.8 / 2025-08-25
+- [Feat] Add support for EKS Fargate.
+
 ### v0.119.7 / 2025-08-25
 - [Fix] Correct JSON detection regex in logs collection router to match Docker JSON lines with top-level "log" field.
 
