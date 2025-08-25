@@ -1,0 +1,60 @@
+# Example configuration for OpenTelemetry Collector Monitoring deployment on EKS Fargate
+# This is the second collector that monitors the main collector's node
+
+# Global configuration
+global:
+  clusterName: "my-eks-fargate-cluster"
+  domain: "eu2.coralogix.com"
+
+mode: deployment
+replicaCount: 1
+
+# Set distribution to eks/fargate to automatically apply Fargate-specific configurations
+distribution: "eks/fargate"
+
+
+# Configure presets
+presets:
+  # Enable EKS Fargate preset for kubelet stats collection
+  eksFargate:
+    monitoringCollector: true
+
+  coralogixExporter:
+    enabled: true
+    pipeline: none
+    privateKey: ${env:CORALOGIX_PRIVATE_KEY}
+    defaultApplicationName: ${env:CX_APPLICATION}
+    defaultSubsystemName: ${env:CX_SUBSYSTEM}
+
+extraEnvs:
+  - name: CORALOGIX_PRIVATE_KEY
+    valueFrom:
+      secretKeyRef:
+        name: coralogix-keys
+        key: PRIVATE_KEY
+  - name: CORALOGIX_DOMAIN
+    value: "eu2.coralogix.com"
+  - name: CX_APPLICATION
+    value: "otel-fargate-monitoring"
+  - name: CX_SUBSYSTEM
+    value: "eks-fargate-monitoring"
+
+# Resource requests and limits - matching expected Fargate requirements
+resources:
+  limits:
+    cpu: 1
+    memory: 2Gi
+  requests:
+    cpu: 1
+    memory: 2Gi
+
+# Pod security context for Fargate
+podSecurityContext:
+  fsGroup: 65534
+
+# Labels for monitoring collector
+nameOverride: "cx-otel-collector-monitor"
+fullnameOverride: "cx-otel-collector-monitor"
+
+# Node selector is automatically set to fargate when distribution is "eks/fargate"
+# nodeSelector will be: eks.amazonaws.com/compute-type: fargate

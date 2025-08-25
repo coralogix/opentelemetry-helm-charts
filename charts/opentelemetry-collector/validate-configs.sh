@@ -134,6 +134,7 @@ should_ignore_errors() {
         "profiling signal support is at alpha level"
         "gated under the.*profilesSupport.*feature gate"
         "processors.*unknown type.*routing.*for id.*routing" # https://coralogix.atlassian.net/browse/ES-725
+        "Could not load cluster config"
         # Custom Coralogix distribution components not present in upstream otelcol-contrib
         "processors.*unknown type.*ecsattributes.*for id.*ecsattributes/container-logs"
         "unknown type.*ecsattributes"
