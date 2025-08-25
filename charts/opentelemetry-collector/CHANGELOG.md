@@ -3,6 +3,7 @@
 ## OpenTelemetry Collector
 
 ### v0.119.6 / 2025-08-25
+- [Fix] Update OTTL paths to use explicit context prefixes for metrics and spans.
 - [Fix] Simplify JSON match expression for ECS logs parser to avoid over-escaping.
 
 ### v0.119.5 / 2025-08-22
