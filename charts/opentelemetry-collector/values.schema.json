@@ -39,10 +39,7 @@
       "type": "boolean",
       "description": "Specifies whether the chart is deployed on Windows nodes."
     },
-    "namespaceOverride": {
-      "type": "string",
-      "description": "Name of the namespace to deploy the resources into."
-    },
+    
     "mode": {
       "type": "string",
       "enum": ["daemonset", "deployment", "statefulset", ""]
@@ -408,6 +405,24 @@
             "forceFlushPeriod": {
               "description": "Time since last read of data from file, after which currently buffered log should be send to pipeline. A value of 0 will disable forced flushing.",
               "type": "string"
+            },
+            "maxRecombineLogSize": {
+              "description": "Specifies the max recombine log size.",
+              "type": "integer"
+            },
+            "maxBatchSize": {
+              "description": "The maximum number of consecutive entries that will be combined into a single entry.",
+              "type": "integer"
+            },
+            "maxUnmatchedBatchSize": {
+              "description": "The maximum number of consecutive entries that will be combined into a single entry before the match occurs.",
+              "type": "integer"
+            },
+            "multilineConfigs": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
             }
           }
         },
