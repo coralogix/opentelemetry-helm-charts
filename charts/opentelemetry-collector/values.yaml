@@ -148,6 +148,21 @@ presets:
     enabled: false
     # Time since last read of data from file, after which currently buffered log should be send to pipeline. A value of 0 will disable forced flushing.
     forceFlushPeriod: "0"
+    # The maximum bytes size of the recombined field.
+    # Once the size exceeds the limit, all received entries of the source will be combined and flushed.
+    maxRecombineLogSize: 1048576
+    # The maximum number of consecutive entries that will be combined into a single entry before the match occurs
+    maxUnmatchedBatchSize: 1
+    # The maximum number of consecutive entries that will be combined into a single entry.
+    maxBatchSize: 1000
+    # Configure specific multiline options for ECS container logs based on container ID or path pattern.
+    # Matching is evaluated against resource["log.file.path"].
+    multilineConfigs: []
+    #  - containerId:
+    #      value: 5f6c0d1e2a3b
+    #      useRegex: false
+    #    firstEntryRegex: ^[^\s].*
+    #    combineWith: ""
   # Configures the collector to collect logs.
   # Adds the filelog receiver to the logs pipeline
   # and adds the necessary volumes and volume mounts.

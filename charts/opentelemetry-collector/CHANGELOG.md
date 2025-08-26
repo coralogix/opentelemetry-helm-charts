@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.119.8 / 2025-08-26
+- [Feat] ECS logs collection: add configurable multiline support and batch sizing (max_log_size, max_unmatched_batch_size, max_batch_size) aligned with Kubernetes logsCollection preset.
+- [Fix] Add ECS-specific helpers for multiline routing and ensure matching against attributes["log.file.path"].
+
 ### v0.119.7 / 2025-08-25
 - [Fix] Correct JSON detection regex in logs collection router to match Docker JSON lines with top-level "log" field.
 

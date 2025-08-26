@@ -2547,12 +2547,40 @@ receivers:
       - type: json_parser
         parse_from: body
         parse_to: body
-        output: recombine
+        {{- if $.Values.presets.ecsLogsCollection.multilineConfigs }}
+        output: ecs-multiline-router
+        {{- else }}
+        output: ecs-recombine-default
+        {{- end }}
         timestamp:
           parse_from: body.time
           layout: '%Y-%m-%dT%H:%M:%S.%fZ'
+      {{- if $.Values.presets.ecsLogsCollection.multilineConfigs }}
+      - type: router
+        id: ecs-multiline-router
+        routes:
+        {{- range $.Values.presets.ecsLogsCollection.multilineConfigs }}
+          - output: {{ include "opentelemetry-collector.ecsNewlineKey" . | quote }}
+            expr: {{ include "opentelemetry-collector.ecsNewlineExpr" . | quote }}
+        {{- end }}
+        default: ecs-recombine-default
+      {{- range $.Values.presets.ecsLogsCollection.multilineConfigs }}
       - type: recombine
-        id: recombine
+        id: {{ include "opentelemetry-collector.ecsNewlineKey" . | quote }}
+        output: ecs-recombine-default
+        combine_field: body.log
+        source_identifier: attributes["log.file.path"]
+        is_first_entry: '(body.log) matches {{ .firstEntryRegex | quote }}'
+        max_log_size: {{ $.Values.presets.ecsLogsCollection.maxRecombineLogSize }}
+        max_unmatched_batch_size: {{ $.Values.presets.ecsLogsCollection.maxUnmatchedBatchSize }}
+        max_batch_size: {{ $.Values.presets.ecsLogsCollection.maxBatchSize }}
+        {{- if hasKey . "combineWith" }}
+        combine_with: {{ .combineWith | quote }}
+        {{- end }}
+      {{- end }}
+      {{- end }}
+      - type: recombine
+        id: ecs-recombine-default
         output: move_log_file_path
         combine_field: body.log
         source_identifier: attributes["log.file.path"]
@@ -2560,6 +2588,9 @@ receivers:
         force_flush_period: 10s
         on_error: send
         combine_with: ""
+        max_log_size: {{ $.Values.presets.ecsLogsCollection.maxRecombineLogSize }}
+        max_unmatched_batch_size: {{ $.Values.presets.ecsLogsCollection.maxUnmatchedBatchSize }}
+        max_batch_size: {{ $.Values.presets.ecsLogsCollection.maxBatchSize }}
       - type: move
         id: move_log_file_path
         from: attributes["log.file.path"]

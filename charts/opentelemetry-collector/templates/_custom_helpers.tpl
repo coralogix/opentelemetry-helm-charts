@@ -37,6 +37,30 @@ Create a filter expression for multiline logs configuration.
 {{- end -}}
 
 {{/*
+Create ECS-specific identifiers and filter expressions for multiline logs configuration.
+*/}}
+{{- define "opentelemetry-collector.ecsNewlineKey" }}
+{{- $key := "" }}
+{{- if .containerId }}
+{{- $key = printf "%s" .containerId.value }}
+{{- end }}
+{{- $key | trimSuffix "_" }}
+{{- end -}}
+
+{{- define "opentelemetry-collector.ecsNewlineExpr" }}
+{{- $expr := "" }}
+{{- if .containerId }}
+{{- $useRegex := eq (toString .containerId.useRegex | default "false") "true" }}
+{{- if $useRegex }}
+{{- $expr = cat "(attributes[\"log.file.path\"])" "matches" (quote .containerId.value) }}
+{{- else }}
+{{- $expr = cat "(attributes[\"log.file.path\"])" "matches" (quote (printf ".*%s.*" .containerId.value)) }}
+{{- end }}
+{{- end }}
+{{- $expr | trim }}
+{{- end -}}
+
+{{/*
 Determine the container image to use based on presets and user overrides.
 */}}
 {{- define "opentelemetry-collector.image" }}
