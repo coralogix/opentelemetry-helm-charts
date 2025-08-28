@@ -2,6 +2,9 @@
 
 ## OpenTelemetry Collector
 
+### v0.119.9 / 2025-08-28
+- [Feat] Profiling: improve service name detection by otel conventions.
+
 ### v0.119.8 / 2025-08-28
 - [Feat] ECS logs: optional `multiline` block for filelog receiver with `lineStartPattern`/`lineEndPattern` and `omitPattern`.
 - [Chore] ECS example: enable Java stack trace multiline parsing.
