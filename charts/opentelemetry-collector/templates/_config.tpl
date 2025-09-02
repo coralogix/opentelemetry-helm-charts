@@ -127,7 +127,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.profilesCollection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyProfilesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- /* Re-apply load balancing after profiles so profiles pipeline exists when wiring exporters */ -}}
+{{- /* Apply load balancing after profiles so profiles pipeline exists when wiring exporters */ -}}
 {{- if .Values.presets.loadBalancing.enabled }}
 {{- $config = (include "opentelemetry-collector.applyLoadBalancingConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
