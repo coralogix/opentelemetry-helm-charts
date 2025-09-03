@@ -2,8 +2,11 @@
 
 ## OpenTelemetry Collector
 
-### v0.119.12 / 2025-09-02
+### v0.119.13 / 2025-09-03
 - [Feature] Profiling: add `serviceLabels` and `serviceAnnotations` options to `profilesCollection` preset, to allow for custom service name detection.
+
+### v0.119.12 / 2025-09-02
+- [Feat] loadBalancing preset: add `pipelines` option to select pipelines (logs, metrics, traces, profiles). Default is ["traces"].
 
 ### v0.119.11 / 2025-09-01
 - [Fix] Fix quoting issue with EKS Fargate `collectionInterval`.
