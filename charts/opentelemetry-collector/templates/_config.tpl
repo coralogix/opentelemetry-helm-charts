@@ -921,7 +921,7 @@ processors:
           from: {{ $serviceLabel.from | default "pod" | quote }}
       {{- end }}
 
-      {{- if .Values.presets.profilesCollection.enabled }}
+      {{- if .Values.presets.profilesCollection.serviceAnnotations }}
       annotations:
           {{- range $index, $serviceAnnotation := .Values.presets.profilesCollection.serviceAnnotations }}
         - tag_name: {{ $serviceAnnotation.tag_name | quote }}
