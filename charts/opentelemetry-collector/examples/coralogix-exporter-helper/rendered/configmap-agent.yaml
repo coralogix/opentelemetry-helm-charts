@@ -1,9 +1,9 @@
 ---
-# Source: opentelemetry-collector/templates/configmap-statefulset.yaml
+# Source: opentelemetry-collector/templates/configmap-agent.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: example-opentelemetry-collector-statefulset
+  name: example-opentelemetry-collector-agent
   namespace: default
   labels:
     helm.sh/chart: opentelemetry-collector-0.119.17
@@ -16,125 +16,54 @@ data:
   relay: |
     exporters:
       coralogix:
-        application_name: otel-fargate-integration
+        application_name: otel
         application_name_attributes:
         - k8s.namespace.name
         - service.namespace
-        domain: eu2.coralogix.com
+        domain: coralogix.com
         logs:
           headers:
-            X-Coralogix-Distribution: helm-otel-integration/
+            X-Coralogix-Distribution: helm-otel-integration/1.0
         metrics:
           headers:
-            X-Coralogix-Distribution: helm-otel-integration/
+            X-Coralogix-Distribution: helm-otel-integration/1.0
         private_key: ${env:CORALOGIX_PRIVATE_KEY}
         profiles:
           headers:
-            X-Coralogix-Distribution: helm-otel-integration/
-        subsystem_name: eks-fargate
+            X-Coralogix-Distribution: helm-otel-integration/1.0
+        retry_on_failure:
+          enabled: true
+          initial_interval: 2s
+          max_elapsed_time: 120s
+          max_interval: 20s
+          multiplier: 2
+        sending_queue:
+          block_on_overflow: true
+          enabled: true
+          num_consumers: 5
+          queue_size: 500
+          sizer: requests
+          wait_for_result: false
+        subsystem_name: integration
         subsystem_name_attributes:
         - k8s.deployment.name
         - k8s.statefulset.name
         - k8s.daemonset.name
         - k8s.cronjob.name
-        - k8s.job.name
-        - k8s.container.name
-        - k8s.node.name
         - service.name
         timeout: 30s
         traces:
           headers:
-            X-Coralogix-Distribution: helm-otel-integration/
+            X-Coralogix-Distribution: helm-otel-integration/1.0
       debug: {}
     extensions:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
-      k8s_observer:
-        auth_type: serviceAccount
-        observe_nodes: true
-        observe_pods: true
     processors:
-      batch:
-        send_batch_max_size: 2048
-        send_batch_size: 1024
-        timeout: 60s
-      k8sattributes:
-        extract:
-          metadata:
-          - k8s.namespace.name
-          - k8s.replicaset.name
-          - k8s.statefulset.name
-          - k8s.daemonset.name
-          - k8s.cronjob.name
-          - k8s.job.name
-          - k8s.node.name
-          - k8s.pod.name
-          - k8s.pod.uid
-          - k8s.pod.start_time
-        passthrough: false
-        pod_association:
-        - sources:
-          - from: resource_attribute
-            name: k8s.pod.ip
-        - sources:
-          - from: resource_attribute
-            name: k8s.pod.uid
-        - sources:
-          - from: connection
-        - sources:
-          - from: resource_attribute
-            name: k8s.job.name
       memory_limiter:
         check_interval: 5s
         limit_percentage: 80
         spike_limit_percentage: 25
-      resource/metadata:
-        attributes:
-        - action: upsert
-          key: k8s.cluster.name
-          value: 'my-eks-fargate-cluster'
-      resourcedetection/env:
-        detectors:
-        - system
-        - env
-        override: false
-        system:
-          resource_attributes:
-            host.id:
-              enabled: true
-        timeout: 2s
-      resourcedetection/region:
-        detectors:
-        - gcp
-        - ec2
-        - azure
-        - eks
-        eks:
-          node_from_env_var: K8S_NODE_NAME
-        override: true
-        timeout: 2s
-      transform/k8s_attributes:
-        log_statements:
-        - context: resource
-          statements:
-          - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
-          - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
-            "$$1") where attributes["k8s.replicaset.name"] != nil
-          - delete_key(attributes, "k8s.replicaset.name")
-        metric_statements:
-        - context: resource
-          statements:
-          - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
-          - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
-            "$$1") where attributes["k8s.replicaset.name"] != nil
-          - delete_key(attributes, "k8s.replicaset.name")
-        trace_statements:
-        - context: resource
-          statements:
-          - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
-          - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
-            "$$1") where attributes["k8s.replicaset.name"] != nil
-          - delete_key(attributes, "k8s.replicaset.name")
       transform/prometheus:
         error_mode: ignore
         metric_statements:
@@ -201,27 +130,9 @@ data:
             static_configs:
             - targets:
               - ${env:MY_POD_IP}:8888
-      receiver_creator:
-        receivers:
-          kubeletstats:
-            config:
-              auth_type: serviceAccount
-              collection_interval: 30s
-              endpoint: '`endpoint`:`kubelet_endpoint_port`'
-              extra_metadata_labels:
-              - container.id
-              insecure_skip_verify: true
-              metric_groups:
-              - container
-              - pod
-              - node
-            rule: type == "k8s.node" && name contains "fargate" && name != "${env:K8S_NODE_NAME}"
-        watch_observers:
-        - k8s_observer
     service:
       extensions:
       - health_check
-      - k8s_observer
       pipelines:
         logs:
           exporters:
@@ -229,12 +140,6 @@ data:
           - coralogix
           processors:
           - memory_limiter
-          - resource/metadata
-          - resourcedetection/region
-          - resourcedetection/env
-          - k8sattributes
-          - transform/k8s_attributes
-          - batch
           receivers:
           - otlp
         metrics:
@@ -243,52 +148,16 @@ data:
           - coralogix
           processors:
           - memory_limiter
-          - resource/metadata
-          - resourcedetection/region
-          - resourcedetection/env
-          - k8sattributes
-          - transform/k8s_attributes
           - transform/prometheus
-          - batch
           receivers:
           - prometheus
           - otlp
-        metrics/colmon:
-          exporters:
-          - coralogix
-          processors:
-          - memory_limiter
-          - resource/metadata
-          - resourcedetection/region
-          - resourcedetection/env
-          - k8sattributes
-          - transform/k8s_attributes
-          receivers:
-          - receiver_creator
-        metrics/kubeletstats:
-          exporters:
-          - coralogix
-          processors:
-          - memory_limiter
-          - resource/metadata
-          - resourcedetection/region
-          - resourcedetection/env
-          - k8sattributes
-          - transform/k8s_attributes
-          receivers:
-          - receiver_creator
         traces:
           exporters:
           - debug
           - coralogix
           processors:
           - memory_limiter
-          - resource/metadata
-          - resourcedetection/region
-          - resourcedetection/env
-          - k8sattributes
-          - transform/k8s_attributes
-          - batch
           receivers:
           - otlp
       telemetry:
