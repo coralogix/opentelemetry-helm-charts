@@ -2,7 +2,7 @@
 
 ## OpenTelemetry Collector
 
-### v0.119.17 / 2025-09-03
+### v0.119.14 / 2025-09-03
 - [Feat] Coralogix exporter: add exporter helper settings (retry_on_failure, sending_queue); flatten values to `presets.coralogixExporter.retryOnFailure` and `sendingQueue`; add example and schema support.
 
 ### v0.119.13 / 2025-09-03

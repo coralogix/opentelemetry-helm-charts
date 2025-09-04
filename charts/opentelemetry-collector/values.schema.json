@@ -963,7 +963,6 @@
               "type": "string"
             },
             "retryOnFailure": {
-              "description": "Exporter helper retry_on_failure settings.",
               "type": "object",
               "additionalProperties": false,
               "properties": {
@@ -975,7 +974,6 @@
               }
             },
             "sendingQueue": {
-              "description": "Exporter helper sending_queue settings.",
               "type": "object",
               "additionalProperties": false,
               "properties": {
@@ -983,40 +981,11 @@
                 "numConsumers": { "type": "integer" },
                 "waitForResult": { "type": "boolean" },
                 "blockOnOverflow": { "type": "boolean" },
-                "sizer": { "type": "string", "enum": ["requests", "items", "bytes"] },
+                "sizer": { "type": "string" },
                 "queueSize": { "type": "integer" }
               }
-            },
-            "exporterHelper": {
-              "description": "(Deprecated) Nesting for exporter helper settings. Use top-level retryOnFailure and sendingQueue.",
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "retryOnFailure": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "enabled": { "type": "boolean" },
-                    "initialInterval": { "type": "string" },
-                    "maxInterval": { "type": "string" },
-                    "maxElapsedTime": { "type": "string" },
-                    "multiplier": { "type": "number" }
-                  }
-                },
-                "sendingQueue": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "enabled": { "type": "boolean" },
-                    "numConsumers": { "type": "integer" },
-                    "waitForResult": { "type": "boolean" },
-                    "blockOnOverflow": { "type": "boolean" },
-                    "sizer": { "type": "string", "enum": ["requests", "items", "bytes"] },
-                    "queueSize": { "type": "integer" }
-                  }
-                }
-              }
             }
+
 
           }
         },
