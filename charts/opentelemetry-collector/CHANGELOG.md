@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.119.16 / 2025-09-10
+- [CHORE] Bump Collector to 0.135.0
+- `exporterhelper`: Add new `exporter_queue_batch_send_size` and `exporter_queue_batch_send_size_bytes` metrics, showing the size of telemetry batches from the exporter. (#12894)
+
 ### v0.119.15 / 2025-09-05
 - [CHORE] Bump Collector to 0.134.1
 
