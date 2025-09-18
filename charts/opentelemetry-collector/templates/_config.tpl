@@ -897,6 +897,8 @@ processors:
         where resource.attributes["service.name"] == nil and resource.attributes["k8s.container.name"] != nil
 
   k8sattributes/profiles:
+    filter:
+      node_from_env_var: K8S_NODE_NAME
     extract:
       metadata:
         - k8s.namespace.name
