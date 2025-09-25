@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.120.1
+    helm.sh/chart: opentelemetry-collector-0.120.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.136.0"
@@ -78,6 +78,10 @@ data:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
     processors:
+      batch:
+        send_batch_max_size: 2048
+        send_batch_size: 1024
+        timeout: 1s
       filter/drop_histogram:
         metrics:
           metric:
@@ -201,6 +205,7 @@ data:
           - debug
           processors:
           - memory_limiter
+          - batch
           receivers:
           - otlp
         metrics:
@@ -210,6 +215,7 @@ data:
           processors:
           - memory_limiter
           - transform/kubeletstatscpu
+          - batch
           receivers:
           - kubeletstats
           - spanmetrics
@@ -233,6 +239,7 @@ data:
           processors:
           - memory_limiter
           - transform/spanmetrics
+          - batch
           receivers:
           - otlp
         traces/compact:
