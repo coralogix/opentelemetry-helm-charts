@@ -2,6 +2,9 @@
 
 ## OpenTelemetry Collector
 
+### v0.120.1 / 2025-09-25
+- [Feat] Enable compact span metrics preset by default when span metrics are enabled.
+
 ### v0.120.0 / 2025-09-24
 - [CHORE] Bump Collector to 0.136.0
 
