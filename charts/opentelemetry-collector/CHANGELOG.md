@@ -2,6 +2,9 @@
 
 ## OpenTelemetry Collector
 
+### v0.120.2 / 2025-09-25
+- [Feat] Add aws_cloud_map resolver supprot for ecs-ec2.
+
 ### v0.120.1 / 2025-09-25
 - [Feat] Enable spanMetrics compact metrics preset by default.
 - [Chore] Remove spanMetrics presets from bundled examples due to lack of automated testing support.
