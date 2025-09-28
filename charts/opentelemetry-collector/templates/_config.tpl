@@ -2072,7 +2072,7 @@ exporters:
         {{- if .Values.presets.loadBalancing.k8s.timeout }}
         timeout: {{ .Values.presets.loadBalancing.k8s.timeout | quote }}
         {{- end }}
-      {{- else if .Values.presets.loadBalancing.awsCloudMap.enabled }}
+      {{- else if and (.Values.presets.loadBalancing.awsCloudMap) (.Values.presets.loadBalancing.awsCloudMap.enabled) }}
       aws_cloud_map:
         namespace: "{{ .Values.presets.loadBalancing.awsCloudMap.namespace }}"
         service_name: "{{ .Values.presets.loadBalancing.awsCloudMap.serviceName }}"
