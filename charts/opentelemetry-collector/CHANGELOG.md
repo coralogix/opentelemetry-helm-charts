@@ -2,7 +2,7 @@
 
 ## OpenTelemetry Collector
 
-### v0.120.4 / 2025-01-29
+### v0.120.4 / 2025-09-29
 - [Feat] Add AWS CloudMap resolver support for loadbalancing exporter in ECS-EC2 deployments.
 
 ### v0.120.3 / 2025-09-29
