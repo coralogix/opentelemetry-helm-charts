@@ -72,7 +72,6 @@ presets:
   headSampling:
     enabled: true
   spanMetrics:
-    enabled: true
     transformStatements:
       - set(attributes["http.response.status_code"], attributes["http.status_code"]) where attributes["http.response.status_code"] == nil
     dbMetrics:

@@ -43,6 +43,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- $values := deepCopy .Values }}
 {{- $data := dict "Values" $values | mustMergeOverwrite (deepCopy .) }}
 {{- $config := include "opentelemetry-collector.baseConfig" $data | fromYaml }}
+{{- $spanMetricsPresetEnabled := include "opentelemetry-collector.spanMetricsPresetEnabled" (dict "Values" $data) | fromYaml }}
 {{- if .Values.presets.ecsLogsCollection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyEcsLogsCollectionConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -79,7 +80,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.metadata.enabled }}
 {{- $config = (include "opentelemetry-collector.applyMetadataConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if .Values.presets.spanMetrics.enabled }}
+{{- if $spanMetricsPresetEnabled }}
 {{- $config = (include "opentelemetry-collector.applySpanMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.targetAllocator.enabled }}
@@ -170,6 +171,7 @@ Build config file for deployment OpenTelemetry Collector
 {{- $values := deepCopy .Values }}
 {{- $data := dict "Values" $values | mustMergeOverwrite (deepCopy .) }}
 {{- $config := include "opentelemetry-collector.baseConfig" $data | fromYaml }}
+{{- $spanMetricsPresetEnabled := include "opentelemetry-collector.spanMetricsPresetEnabled" (dict "Values" $data) | fromYaml }}
 {{- if eq .Values.distribution "eks/fargate" }}
 {{- $config = (include "opentelemetry-collector.applyEksFargateConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -209,7 +211,7 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.metadata.enabled }}
 {{- $config = (include "opentelemetry-collector.applyMetadataConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if .Values.presets.spanMetrics.enabled }}
+{{- if $spanMetricsPresetEnabled }}
 {{- $config = (include "opentelemetry-collector.applySpanMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.loadBalancing.enabled }}
@@ -1275,6 +1277,23 @@ cx.cluster.name: "{{ .Values.presets.fleetManagement.clusterName }}"
 {{- if .Values.presets.fleetManagement.integrationID }}
 cx.integrationID: "{{ .Values.presets.fleetManagement.integrationID }}"
 {{- end }}
+{{- end -}}
+
+{{- define "opentelemetry-collector.spanMetricsPresetEnabled" -}}
+{{- $ctx := .Values -}}
+{{- $values := $ctx.Values -}}
+{{- $spanMetrics := default (dict) $values.presets.spanMetrics -}}
+{{- $dbMetrics := default (dict) $spanMetrics.dbMetrics -}}
+{{- $hasTransforms := gt (len (default (list) $spanMetrics.transformStatements)) 0 -}}
+{{- $hasSpanNameReplace := gt (len (default (list) $spanMetrics.spanNameReplacePattern)) 0 -}}
+{{- $hasCollectionInterval := ne (default "" $spanMetrics.collectionInterval) "" -}}
+{{- $hasMetricsExpiration := ne (default "" $spanMetrics.metricsExpiration) "" -}}
+{{- $hasNamespace := ne (default "" $spanMetrics.namespace) "" -}}
+{{- $dbTransforms := gt (len (default (list) $dbMetrics.transformStatements)) 0 -}}
+{{- $dbExtraDimensions := gt (len (default (list) $dbMetrics.extraDimensions)) 0 -}}
+{{- $dbCompact := default (dict) $dbMetrics.compactMetrics -}}
+{{- $dbCompactEnabled := eq (default false $dbCompact.enabled) true -}}
+{{- if or $spanMetrics.enabled $hasTransforms $hasSpanNameReplace $hasCollectionInterval $hasMetricsExpiration $hasNamespace $dbTransforms $dbExtraDimensions $dbCompactEnabled }}true{{- else }}false{{- end -}}
 {{- end -}}
 
 {{- define "opentelemetry-collector.applySpanMetricsConfig" -}}

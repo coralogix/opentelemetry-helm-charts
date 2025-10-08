@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.121.1
+    helm.sh/chart: opentelemetry-collector-0.121.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.137.0"
@@ -14,6 +14,84 @@ metadata:
     
 data:
   relay: |
+    connectors:
+      forward/compact: {}
+      forward/db: {}
+      spanmetrics:
+        aggregation_cardinality_limit: 100000
+        dimensions:
+        - name: http.method
+        - name: cgx.transaction
+        - name: cgx.transaction.root
+        - name: status_code
+        - name: db.namespace
+        - name: db.operation.name
+        - name: db.collection.name
+        - name: db.system
+        - name: http.response.status_code
+        - name: rpc.grpc.status_code
+        - name: service.version
+        histogram:
+          explicit:
+            buckets:
+            - 1ms
+            - 4ms
+            - 10ms
+            - 20ms
+            - 50ms
+            - 100ms
+            - 200ms
+            - 500ms
+            - 1s
+            - 2s
+            - 5s
+        metrics_expiration: 0
+        metrics_flush_interval: 15s
+        namespace: ""
+      spanmetrics/compact:
+        aggregation_cardinality_limit: 100000
+        exclude_dimensions:
+        - span.name
+        histogram:
+          explicit:
+            buckets:
+            - 1ms
+            - 4ms
+            - 10ms
+            - 20ms
+            - 50ms
+            - 100ms
+            - 200ms
+            - 500ms
+            - 1s
+            - 2s
+            - 5s
+        metrics_expiration: 0
+        metrics_flush_interval: 15s
+        namespace: compact
+      spanmetrics/db:
+        aggregation_cardinality_limit: 100000
+        dimensions:
+        - name: db.namespace
+        - name: db.operation.name
+        - name: db.collection.name
+        - name: db.system
+        - name: service.version
+        histogram:
+          explicit:
+            buckets:
+            - 100us
+            - 1ms
+            - 2ms
+            - 2.5ms
+            - 4ms
+            - 6ms
+            - 10ms
+            - 100ms
+            - 250ms
+        metrics_expiration: 0
+        metrics_flush_interval: 15s
+        namespace: db
     exporters:
       coralogix/resource_catalog:
         application_name: resource
@@ -36,7 +114,7 @@ data:
             cx.agent.type: agent
             cx.cluster.name: test
             cx.integrationID: test
-            helm.chart.opentelemetry-collector.version: 0.121.1
+            helm.chart.opentelemetry-collector.version: 0.121.2
         server:
           http:
             endpoint: https://ingress.coralogix.com/opamp/v1
@@ -44,6 +122,14 @@ data:
               Authorization: Bearer ${env:CORALOGIX_PRIVATE_KEY}
             polling_interval: 2m
     processors:
+      filter/db_spanmetrics:
+        traces:
+          span:
+          - attributes["db.system"] == nil
+      filter/drop_histogram:
+        metrics:
+          metric:
+          - name == "compact.duration"
       memory_limiter:
         check_interval: 5s
         limit_percentage: 80
@@ -84,6 +170,19 @@ data:
             os.description:
               enabled: true
         timeout: 2s
+      transform/compact:
+        trace_statements:
+        - context: resource
+          statements:
+          - keep_keys(attributes, ["service.name", "k8s.cluster.name", "host.name"])
+      transform/compact_histogram:
+        metric_statements:
+        - context: metric
+          statements:
+          - extract_sum_metric(false, ".sum") where name == "compact.duration"
+          - extract_count_metric(false, ".count") where name == "compact.duration"
+          - set(unit, "") where name == "compact.duration.sum"
+          - set(unit, "") where name == "compact.duration.count"
       transform/entity-event:
         error_mode: silent
         log_statements:
@@ -246,16 +345,47 @@ data:
           - transform/prometheus
           receivers:
           - hostmetrics
+          - spanmetrics
+          - spanmetrics/db
           - prometheus
           - otlp
+        metrics/compact:
+          exporters:
+          - coralogix
+          processors:
+          - memory_limiter
+          - transform/compact_histogram
+          - filter/drop_histogram
+          - batch
+          receivers:
+          - spanmetrics/compact
         traces:
           exporters:
           - debug
+          - spanmetrics
+          - forward/db
+          - forward/compact
           processors:
           - memory_limiter
           - resource/metadata
           receivers:
           - otlp
+        traces/compact:
+          exporters:
+          - spanmetrics/compact
+          processors:
+          - transform/compact
+          - batch
+          receivers:
+          - forward/compact
+        traces/db:
+          exporters:
+          - spanmetrics/db
+          processors:
+          - filter/db_spanmetrics
+          - batch
+          receivers:
+          - forward/db
       telemetry:
         logs:
           encoding: json
