@@ -185,8 +185,6 @@ data:
           type: move
         - id: logs-collection-continue
           type: noop
-        - id: export
-          type: noop
         retry_on_failure:
           enabled: true
         start_at: beginning

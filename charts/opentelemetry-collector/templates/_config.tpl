@@ -828,10 +828,6 @@ receivers:
       {{- if .Values.presets.logsCollection.extraFilelogOperators }}
       {{- .Values.presets.logsCollection.extraFilelogOperators | toYaml | nindent 6 }}
       {{- end }}
-      # This noop operator is a helper to quickly route an entry to be exported.
-      # It must always be the last operator in the receiver.
-      - type: noop
-        id: export
 {{- end }}
 
 {{- define "opentelemetry-collector.applyLogsCollectionReduceAttributesConfig" -}}
