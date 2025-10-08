@@ -183,6 +183,8 @@ data:
           id: clean-up-log-record
           to: body
           type: move
+        - id: logs-collection-continue
+          type: noop
         - id: export
           type: noop
         retry_on_failure:

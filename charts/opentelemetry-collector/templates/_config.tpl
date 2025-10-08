@@ -796,7 +796,7 @@ receivers:
         routes:
           - output: parse-body
             expr: '(body matches "\"resource\":{.*?},?")'
-        default: export
+        default: logs-collection-continue
       - type: json_parser
         id: parse-body
         parse_to: attributes["parsed_body_tmp"]
@@ -823,6 +823,8 @@ receivers:
         field: resource["attributes_tmp"]
         on_error: send_quiet
       {{- end }}
+      - type: noop
+        id: logs-collection-continue
       {{- if .Values.presets.logsCollection.extraFilelogOperators }}
       {{- .Values.presets.logsCollection.extraFilelogOperators | toYaml | nindent 6 }}
       {{- end }}

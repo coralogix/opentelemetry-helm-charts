@@ -339,7 +339,7 @@ spec:
           expr: (attributes["log.file.path"] matches "/var/log/pods/default_example-opentelemetry-collector.*_.*/opentelemetry-collector/.*.log")
             and ((body contains "logRecord") or (body contains "ResourceLog"))
           type: filter
-        - default: export
+        - default: logs-collection-continue
           routes:
           - expr: (body matches "\"resource\":{.*?},?")
             output: parse-body
@@ -369,6 +369,8 @@ spec:
           if: (attributes["log.file.path"] matches "/var/log/pods/default_example-opentelemetry-collector.*_.*/.*/.*.log")
           on_error: send_quiet
           type: flatten
+        - id: logs-collection-continue
+          type: noop
         - id: export
           type: noop
         retry_on_failure:
