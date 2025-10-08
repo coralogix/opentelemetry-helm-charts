@@ -15,6 +15,7 @@ metadata:
 data:
   relay: |
     connectors:
+      forward/compact: {}
       forward/db: {}
       forward/sampled: {}
       spanmetrics:
@@ -40,6 +41,19 @@ data:
         metrics_expiration: 5m
         metrics_flush_interval: 30s
         namespace: ""
+      spanmetrics/compact:
+        aggregation_cardinality_limit: 100000
+        exclude_dimensions:
+        - span.name
+        histogram:
+          explicit:
+            buckets:
+            - 1ms
+            - 1s
+            - 10s
+        metrics_expiration: 5m
+        metrics_flush_interval: 30s
+        namespace: compact
       spanmetrics/db:
         aggregation_cardinality_limit: 100000
         dimensions:
@@ -109,6 +123,10 @@ data:
         traces:
           span:
           - attributes["db.system"] == nil
+      filter/drop_histogram:
+        metrics:
+          metric:
+          - name == "compact.duration"
       filter/k8s_extra_metrics:
         metrics:
           metric:
@@ -174,6 +192,19 @@ data:
           node_from_env_var: K8S_NODE_NAME
         override: true
         timeout: 2s
+      transform/compact:
+        trace_statements:
+        - context: resource
+          statements:
+          - keep_keys(attributes, ["service.name", "k8s.cluster.name", "host.name"])
+      transform/compact_histogram:
+        metric_statements:
+        - context: metric
+          statements:
+          - extract_sum_metric(false, ".sum") where name == "compact.duration"
+          - extract_count_metric(false, ".count") where name == "compact.duration"
+          - set(unit, "") where name == "compact.duration.sum"
+          - set(unit, "") where name == "compact.duration.count"
       transform/db:
         error_mode: silent
         trace_statements:
@@ -707,11 +738,22 @@ data:
           - spanmetrics/db
           - prometheus
           - otlp
+        metrics/compact:
+          exporters:
+          - coralogix
+          processors:
+          - memory_limiter
+          - transform/compact_histogram
+          - filter/drop_histogram
+          - batch
+          receivers:
+          - spanmetrics/compact
         traces:
           exporters:
           - debug
           - spanmetrics
           - forward/db
+          - forward/compact
           - forward/sampled
           processors:
           - memory_limiter
@@ -726,6 +768,14 @@ data:
           - batch
           receivers:
           - otlp
+        traces/compact:
+          exporters:
+          - spanmetrics/compact
+          processors:
+          - transform/compact
+          - batch
+          receivers:
+          - forward/compact
         traces/db:
           exporters:
           - spanmetrics/db
