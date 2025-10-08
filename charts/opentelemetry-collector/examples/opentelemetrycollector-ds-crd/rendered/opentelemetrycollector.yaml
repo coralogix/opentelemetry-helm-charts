@@ -72,84 +72,6 @@ spec:
   serviceAccount: default
   hostNetwork: false
   config:
-    connectors:
-      forward/compact: {}
-      forward/db: {}
-      spanmetrics:
-        aggregation_cardinality_limit: 100000
-        dimensions:
-        - name: http.method
-        - name: cgx.transaction
-        - name: cgx.transaction.root
-        - name: status_code
-        - name: db.namespace
-        - name: db.operation.name
-        - name: db.collection.name
-        - name: db.system
-        - name: http.response.status_code
-        - name: rpc.grpc.status_code
-        - name: service.version
-        histogram:
-          explicit:
-            buckets:
-            - 1ms
-            - 4ms
-            - 10ms
-            - 20ms
-            - 50ms
-            - 100ms
-            - 200ms
-            - 500ms
-            - 1s
-            - 2s
-            - 5s
-        metrics_expiration: 0
-        metrics_flush_interval: 15s
-        namespace: ""
-      spanmetrics/compact:
-        aggregation_cardinality_limit: 100000
-        exclude_dimensions:
-        - span.name
-        histogram:
-          explicit:
-            buckets:
-            - 1ms
-            - 4ms
-            - 10ms
-            - 20ms
-            - 50ms
-            - 100ms
-            - 200ms
-            - 500ms
-            - 1s
-            - 2s
-            - 5s
-        metrics_expiration: 0
-        metrics_flush_interval: 15s
-        namespace: compact
-      spanmetrics/db:
-        aggregation_cardinality_limit: 100000
-        dimensions:
-        - name: db.namespace
-        - name: db.operation.name
-        - name: db.collection.name
-        - name: db.system
-        - name: service.version
-        histogram:
-          explicit:
-            buckets:
-            - 100us
-            - 1ms
-            - 2ms
-            - 2.5ms
-            - 4ms
-            - 6ms
-            - 10ms
-            - 100ms
-            - 250ms
-        metrics_expiration: 0
-        metrics_flush_interval: 15s
-        namespace: db
     exporters:
       debug: {}
     extensions:
@@ -158,31 +80,10 @@ spec:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
     processors:
-      filter/db_spanmetrics:
-        traces:
-          span:
-          - attributes["db.system"] == nil
-      filter/drop_histogram:
-        metrics:
-          metric:
-          - name == "compact.duration"
       memory_limiter:
         check_interval: 5s
         limit_percentage: 80
         spike_limit_percentage: 25
-      transform/compact:
-        trace_statements:
-        - context: resource
-          statements:
-          - keep_keys(attributes, ["service.name", "k8s.cluster.name", "host.name"])
-      transform/compact_histogram:
-        metric_statements:
-        - context: metric
-          statements:
-          - extract_sum_metric(false, ".sum") where name == "compact.duration"
-          - extract_count_metric(false, ".count") where name == "compact.duration"
-          - set(unit, "") where name == "compact.duration.sum"
-          - set(unit, "") where name == "compact.duration.count"
       transform/prometheus:
         error_mode: ignore
         metric_statements:
@@ -330,7 +231,7 @@ spec:
           expr: (attributes["log.file.path"] matches "/var/log/pods/default_example-opentelemetry-collector.*_.*/opentelemetry-collector/.*.log")
             and ((body contains "logRecord") or (body contains "ResourceLog"))
           type: filter
-        - default: logs-collection-continue
+        - default: export
           routes:
           - expr: (body matches "\"resource\":{.*?},?")
             output: parse-body
@@ -360,7 +261,7 @@ spec:
           if: (attributes["log.file.path"] matches "/var/log/pods/default_example-opentelemetry-collector.*_.*/.*/.*.log")
           on_error: send_quiet
           type: flatten
-        - id: logs-collection-continue
+        - id: export
           type: noop
         retry_on_failure:
           enabled: true
@@ -455,46 +356,15 @@ spec:
           - transform/prometheus
           receivers:
           - hostmetrics
-          - spanmetrics
-          - spanmetrics/db
           - prometheus
           - otlp
-        metrics/compact:
-          exporters:
-          - coralogix
-          processors:
-          - memory_limiter
-          - transform/compact_histogram
-          - filter/drop_histogram
-          - batch
-          receivers:
-          - spanmetrics/compact
         traces:
           exporters:
           - debug
-          - spanmetrics
-          - forward/db
-          - forward/compact
           processors:
           - memory_limiter
           receivers:
           - otlp
-        traces/compact:
-          exporters:
-          - spanmetrics/compact
-          processors:
-          - transform/compact
-          - batch
-          receivers:
-          - forward/compact
-        traces/db:
-          exporters:
-          - spanmetrics/db
-          processors:
-          - filter/db_spanmetrics
-          - batch
-          receivers:
-          - forward/db
       telemetry:
         logs:
           encoding: json

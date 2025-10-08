@@ -35,8 +35,7 @@ presets:
     collectionInterval: 30s
 
   spanMetrics:
-    collectionInterval: "30s"
-    metricsExpiration: 5m
+    enabled: false
 
   spanMetricsMulti:
     enabled: false
