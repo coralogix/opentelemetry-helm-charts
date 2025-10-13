@@ -529,6 +529,24 @@ receivers:
     {{- end }}
 processors:
   {{- if  .Values.presets.clusterMetrics.customMetrics.enabled }}
+   metricstransform/servicemetrics:
+    transforms:
+      - include: k8s.pod.cpu.utilization
+        new_name: k8s.service.cpu.utilization.sum
+        action: update
+        operations:
+          - action: aggregate_labels
+            label_set:
+              - service.name
+            aggregation_type: sum
+      - include: k8s.pod.cpu.utilization
+        new_name: k8s.service.cpu.utilization.count
+        action: update
+        operations:
+          - action: aggregate_labels
+            label_set:
+              - service.name
+            aggregation_type: count
   metricstransform/k8s-dashboard:
     transforms:
       - include: k8s.pod.phase
@@ -2238,6 +2256,7 @@ processors:
         - "k8s.job.name"
         - "k8s.node.name"
         - "k8s.pod.name"
+        - "service.name"
         {{- if .Values.presets.kubernetesAttributes.podUid.enabled }}
         - "k8s.pod.uid"
         {{- end }}
@@ -2341,7 +2360,7 @@ processors:
         host.id:
           enabled: true
   resourcedetection/region:
-    detectors: 
+    detectors:
       {{- if eq .Values.distribution "ecs" }}
       ["gcp", "ec2", "azure"]
       {{- else }}
