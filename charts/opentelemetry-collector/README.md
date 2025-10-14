@@ -173,6 +173,34 @@ presets:
       enabled: true
 ```
 
+### Configuration for Resource Detection
+
+The chart can be configured to add resource attributes describing the environment the collector runs in.
+This includes basic system details as well as cloud provider metadata when applicable.
+
+Enable the preset by setting `presets.resourceDetection.enabled` to `true`. The preset exposes a
+`detectors` block that lets you fine-tune which detectors are executed:
+
+- `presets.resourceDetection.detectors.env` defaults to `["system", "env"]` and controls the detectors that collect
+  system-level resource information. Provide your own list to replace the defaults.
+- `presets.resourceDetection.detectors.cloud` accepts an explicit list of cloud detectors such as `["ec2"]` or `["gcp"]`.
+  When omitted, the chart keeps the existing behaviour and runs `gcp`, `ec2`, and `azure` detectors (and also `eks` when the
+  distribution is not `ecs`).
+
+Both detector lists must contain at least one item if they are specified.
+
+Here is an example `values.yaml` that scopes cloud resource detection to AWS EC2:
+
+```yaml
+mode: daemonset
+presets:
+  resourceDetection:
+    enabled: true
+    detectors:
+      cloud:
+        - ec2
+```
+
 ### Configuration for Retrieving Kubelet Metrics
 
 The collector can be configured to collect node, pod, and container metrics from the API server on a kubelet.

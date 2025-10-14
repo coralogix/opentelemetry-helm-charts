@@ -2,6 +2,12 @@
 
 ## OpenTelemetry Collector
 
+### v0.121.5 / 2025-10-14
+- [Feat] Allow scoping resource detection cloud and environment detectors via `presets.resourceDetection.detectors`.
+
+### v0.121.4 / 2025-10-14
+- [Feat] Add standalone distribution option that binds Prometheus endpoints to 0.0.0.0 and scrapes host metrics from the root filesystem.
+
 ### v0.121.3 / 2025-10-13
 - [Feat] Enable compact metrics for span-derived database metrics by default.
 
