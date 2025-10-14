@@ -255,6 +255,35 @@ presets:
     enabled: true
 ```
 
+### Configuration for Resource Detection
+
+The collector can be configured to enrich telemetry with resource attributes that describe the
+environment where it is running.
+
+This feature is disabled by default.
+
+To enable this feature, set the `presets.resourceDetection.enabled` property to `true`.
+The preset exposes a `detectors` block with two optional lists:
+
+- `env` (defaults to `[system, env]`) controls environment detectors that gather host level data.
+- `cloud` accepts an explicit list of cloud detectors (for example `ec2`, `gcp` or `azure`). When
+  omitted, the chart configures the default detectors (`gcp`, `ec2`, `azure` and `eks` when not
+  running on ECS) for the selected distribution.
+
+Here is an example `values.yaml` that scopes the cloud detector to AWS:
+
+```yaml
+presets:
+  resourceDetection:
+    enabled: true
+    detectors:
+      env:
+        - system
+        - env
+      cloud:
+        - ec2
+```
+
 ### Configuration for ZPages
 
 The collector can expose [zPages](https://opentelemetry.io/docs/collector/monitoring/) for debugging.

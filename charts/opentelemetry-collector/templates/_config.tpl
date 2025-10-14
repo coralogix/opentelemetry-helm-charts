@@ -2332,8 +2332,19 @@ processors:
 
 {{- define "opentelemetry-collector.resourceDetectionConfig" -}}
 processors:
+  {{- $detectors := .Values.presets.resourceDetection.detectors | default dict }}
+  {{- $envDetectors := $detectors.env | default (list "system" "env") }}
+  {{- $cloudDetectors := $detectors.cloud }}
+  {{- $defaultCloud := list "gcp" "ec2" "azure" }}
+  {{- if ne .Values.distribution "ecs" }}
+    {{- $defaultCloud = append $defaultCloud "eks" }}
+  {{- end }}
+  {{- if or (not $cloudDetectors) (eq (len $cloudDetectors) 0) }}
+    {{- $cloudDetectors = $defaultCloud }}
+  {{- end }}
   resourcedetection/env:
-    detectors: ["system", "env"]
+    detectors:
+{{- toYaml $envDetectors | nindent 6 }}
     timeout: 2s
     override: false
     system:
@@ -2341,12 +2352,8 @@ processors:
         host.id:
           enabled: true
   resourcedetection/region:
-    detectors: 
-      {{- if eq .Values.distribution "ecs" }}
-      ["gcp", "ec2", "azure"]
-      {{- else }}
-      ["gcp", "ec2", "azure", "eks"]
-      {{- end }}
+    detectors:
+{{- toYaml $cloudDetectors | nindent 6 }}
     timeout: 2s
     override: true
     {{- if ne .Values.distribution "ecs" }}

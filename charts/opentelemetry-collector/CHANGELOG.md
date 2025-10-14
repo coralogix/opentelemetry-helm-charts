@@ -2,6 +2,9 @@
 
 ## OpenTelemetry Collector
 
+### v0.121.4 / 2025-10-14
+- [Feat] Allow configuring environment and cloud resource detectors in the resourceDetection preset.
+
 ### v0.121.3 / 2025-10-13
 - [Feat] Enable compact metrics for span-derived database metrics by default.
 

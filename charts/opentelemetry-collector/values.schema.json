@@ -607,6 +607,29 @@
               "type": "string",
               "enum": ["all", "metrics", "traces", "profiles", "none"]
             },
+            "detectors": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "env": {
+                  "description": "List of resource detection processors for environment data. Defaults to [system, env].",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "default": ["system", "env"]
+                },
+                "cloud": {
+                  "description": "List of cloud resource detectors. When omitted the chart configures detectors based on the selected distribution.",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1
+                }
+              }
+            },
             "k8sNodeName": {
               "type": "object",
               "additionalProperties": false,

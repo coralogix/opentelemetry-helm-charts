@@ -743,6 +743,16 @@ presets:
     # Pipeline to add the resource detection processors to. Possible values are
     # "all", "metrics", "traces" and "none".
     pipeline: all
+    detectors:
+      env:
+        - system
+        - env
+      # cloud:
+      #   - gcp
+      #   - ec2
+      #   - azure
+      # When not specified, the chart automatically configures detectors based on the
+      # selected distribution.
     # Specifies whether to add the node name to OTEL_RESOURCE_ATTRIBUTES.
     k8sNodeName:
       enabled: true
