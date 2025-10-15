@@ -87,7 +87,7 @@ The chart also provides several presets, detailed below, to help configure impor
 
 The resource detection preset can add infrastructure metadata such as the host ID and cloud provider attributes to your telemetry. To enable it, set `presets.resourceDetection.enabled` to `true`.
 
-You can control which detectors are enabled by configuring the `presets.resourceDetection.detectors` block. The `env` list defaults to the chart's built-in environment detectors, while the optional `cloud` list lets you restrict cloud detectors to the platforms you run on. When `cloud` is omitted or left empty, the chart falls back to its default detector list for the selected distribution.
+You can control which detectors are enabled by configuring the `presets.resourceDetection.detectors` block. The `env` list defaults to the chart's built-in environment detectors, while the optional `cloud` list lets you restrict cloud detectors to the platforms you run on. When `cloud` is omitted or left empty, the chart falls back to its default detector list for the selected distribution. The example below demonstrates narrowing the environment detectors to only the `env` detector and limiting cloud detection to GCP and Azure.
 
 Here is an example `values.yaml`:
 
@@ -97,10 +97,10 @@ presets:
     enabled: true
     detectors:
       env:
-        - system
         - env
       cloud:
-        - ec2
+        - gcp
+        - azure
 ```
 
 ### Configuration for Kubernetes Container Logs
