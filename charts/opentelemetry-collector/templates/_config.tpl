@@ -2114,7 +2114,13 @@ exporters:
 {{- $exporterNames := list "coralogix" -}}
 {{- range $index, $endpoint := .Values.Values.presets.coralogixExporter.additionalEndpoints -}}
   {{- if $endpoint.enabled -}}
-    {{- $exporterNames = append $exporterNames (printf "coralogix-%d" $index) -}}
+    {{- $endpointName := "" -}}
+    {{- if $endpoint.name -}}
+      {{- $endpointName = printf "coralogix/%s" $endpoint.name -}}
+    {{- else -}}
+      {{- $endpointName = printf "coralogix/%d" (add $index 1) -}}
+    {{- end -}}
+    {{- $exporterNames = append $exporterNames $endpointName -}}
   {{- end -}}
 {{- end -}}
 
@@ -2142,7 +2148,13 @@ exporters:
 {{- if .Values.presets.coralogixExporter.additionalEndpoints -}}
 {{- range $index, $endpoint := .Values.presets.coralogixExporter.additionalEndpoints -}}
   {{- if $endpoint.enabled -}}
-    {{- $endpoints = append $endpoints (dict "name" (printf "coralogix-%d" $index) "domain" $endpoint.domain "privateKey" $endpoint.privateKey) -}}
+    {{- $endpointName := "" -}}
+    {{- if $endpoint.name -}}
+      {{- $endpointName = printf "coralogix/%s" $endpoint.name -}}
+    {{- else -}}
+      {{- $endpointName = printf "coralogix/%d" (add $index 1) -}}
+    {{- end -}}
+    {{- $endpoints = append $endpoints (dict "name" $endpointName "domain" $endpoint.domain "privateKey" $endpoint.privateKey) -}}
   {{- end -}}
 {{- end -}}
 {{- end -}}
@@ -2230,6 +2242,7 @@ exporters:
       queue_size: {{ .queueSize }}
       {{- end }}
     {{- end }}
+{{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.kubernetesAttributesConfig" -}}

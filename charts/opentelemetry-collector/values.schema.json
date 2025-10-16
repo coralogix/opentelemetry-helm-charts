@@ -1058,6 +1058,10 @@
                     "description": "Specifies whether this additional endpoint is enabled.",
                     "type": "boolean"
                   },
+                  "name": {
+                    "description": "Specifies the name for this endpoint. Will be used as coralogix/{name} in the exporter configuration.",
+                    "type": "string"
+                  },
                   "domain": {
                     "description": "Specifies the Coralogix cluster domain for this endpoint.",
                     "type": "string"
