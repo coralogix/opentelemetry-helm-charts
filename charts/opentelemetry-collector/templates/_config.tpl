@@ -2094,10 +2094,7 @@ exporters:
 {{- end }}
 
 {{- define "opentelemetry-collector.applyCoralogixExporterConfig" -}}
-{{- $coralogixConfig := include "opentelemetry-collector.coralogixExporterConfig" .Values | fromYaml -}}
-{{- $config := .config -}}
-{{- /* Merge coralogix exporters into the existing exporters section */ -}}
-{{- $_ := set $config "exporters" (mustMergeOverwrite $config.exporters $coralogixConfig) -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.coralogixExporterConfig" .Values | fromYaml) .config }}
 {{- $pipeline := list "all" }}
 {{- if .Values.Values.presets.coralogixExporter.pipelines }}
   {{- $pipeline = .Values.Values.presets.coralogixExporter.pipelines }}
@@ -2110,64 +2107,43 @@ exporters:
 {{- $includeTraces := or (has "all" $pipeline) (has "traces" $pipeline) }}
 {{- $includeProfiles := or (has "all" $pipeline) (has "profiles" $pipeline) }}
 
-{{- /* Create a list of all coralogix exporter names */ -}}
-{{- $exporterNames := list "coralogix" -}}
-{{- range $index, $endpoint := .Values.Values.presets.coralogixExporter.additionalEndpoints -}}
-  {{- if $endpoint.enabled -}}
-    {{- $exporterNames = append $exporterNames (printf "coralogix-%d" $index) -}}
-  {{- end -}}
-{{- end -}}
-
-{{- /* Add all coralogix exporters to the appropriate pipelines */ -}}
-{{- range $exporterName := $exporterNames -}}
-{{- if and $includeLogs ($config.service.pipelines.logs) (not (has $exporterName $config.service.pipelines.logs.exporters)) }}
-{{- $_ := set $config.service.pipelines.logs "exporters" (append $config.service.pipelines.logs.exporters $exporterName | uniq) }}
+{{- if and $includeLogs ($config.service.pipelines.logs) (not (has "coralogix" $config.service.pipelines.logs.exporters)) }}
+{{- $_ := set $config.service.pipelines.logs "exporters" (append $config.service.pipelines.logs.exporters "coralogix" | uniq) }}
 {{- end }}
-{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has $exporterName $config.service.pipelines.metrics.exporters)) }}
-{{- $_ := set $config.service.pipelines.metrics "exporters" (append $config.service.pipelines.metrics.exporters $exporterName | uniq) }}
+{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "coralogix" $config.service.pipelines.metrics.exporters)) }}
+{{- $_ := set $config.service.pipelines.metrics "exporters" (append $config.service.pipelines.metrics.exporters "coralogix" | uniq) }}
 {{- end }}
-{{- if and $includeTraces ($config.service.pipelines.traces) (not (has $exporterName $config.service.pipelines.traces.exporters)) }}
-{{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters $exporterName | uniq) }}
+{{- if and $includeTraces ($config.service.pipelines.traces) (not (has "coralogix" $config.service.pipelines.traces.exporters)) }}
+{{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters "coralogix" | uniq) }}
 {{- end }}
-{{- if and $includeProfiles ($config.service.pipelines.profiles) (not (has $exporterName $config.service.pipelines.profiles.exporters)) }}
-{{- $_ := set $config.service.pipelines.profiles "exporters" (append $config.service.pipelines.profiles.exporters $exporterName | uniq) }}
-{{- end }}
+{{- if and $includeProfiles ($config.service.pipelines.profiles) (not (has "coralogix" $config.service.pipelines.profiles.exporters)) }}
+{{- $_ := set $config.service.pipelines.profiles "exporters" (append $config.service.pipelines.profiles.exporters "coralogix" | uniq) }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
 {{- define "opentelemetry-collector.coralogixExporterConfig" -}}
-{{- /* Create a list of all coralogix endpoints (main + additional) */ -}}
-{{- $endpoints := list (dict "name" "coralogix" "domain" (.Values.presets.coralogixExporter.domain | default .Values.global.domain) "privateKey" .Values.presets.coralogixExporter.privateKey) -}}
-{{- if .Values.presets.coralogixExporter.additionalEndpoints -}}
-{{- range $index, $endpoint := .Values.presets.coralogixExporter.additionalEndpoints -}}
-  {{- if $endpoint.enabled -}}
-    {{- $endpoints = append $endpoints (dict "name" (printf "coralogix-%d" $index) "domain" $endpoint.domain "privateKey" $endpoint.privateKey) -}}
-  {{- end -}}
-{{- end -}}
-{{- end -}}
-{{- /* Generate exporter config for each endpoint */ -}}
-{{- range $endpoint := $endpoints -}}
-{{ $endpoint.name }}:
+exporters:
+  coralogix:
     timeout: "30s"
-    private_key: "{{ $endpoint.privateKey }}"
-    domain: "{{ $endpoint.domain }}"
+    private_key: "{{ .Values.presets.coralogixExporter.privateKey }}"
+    domain: "{{ .Values.presets.coralogixExporter.domain | default .Values.global.domain }}"
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else }}helm-otel-integration{{ end }}/{{ $.Values.presets.coralogixExporter.version | default $.Values.global.version }}"
+        X-Coralogix-Distribution: "{{ if eq .Values.distribution "ecs" }}ecs-ec2-integration{{ else }}helm-otel-integration{{ end }}/{{ .Values.presets.coralogixExporter.version | default .Values.global.version }}"
     metrics:
       headers:
-        X-Coralogix-Distribution: "helm-otel-integration/{{ $.Values.presets.coralogixExporter.version | default $.Values.global.version }}"
+        X-Coralogix-Distribution: "helm-otel-integration/{{ .Values.presets.coralogixExporter.version | default .Values.global.version }}"
     traces:
       headers:
-        X-Coralogix-Distribution: "helm-otel-integration/{{ $.Values.presets.coralogixExporter.version | default $.Values.global.version }}"
+        X-Coralogix-Distribution: "helm-otel-integration/{{ .Values.presets.coralogixExporter.version | default .Values.global.version }}"
     profiles:
       headers:
-        X-Coralogix-Distribution: "helm-otel-integration/{{ $.Values.presets.coralogixExporter.version | default $.Values.global.version }}"
-    application_name: "{{ $.Values.presets.coralogixExporter.defaultApplicationName | default $.Values.global.defaultApplicationName }}"
-    subsystem_name: "{{ $.Values.presets.coralogixExporter.defaultSubsystemName | default $.Values.global.defaultSubsystemName }}"
+        X-Coralogix-Distribution: "helm-otel-integration/{{ .Values.presets.coralogixExporter.version | default .Values.global.version }}"
+    application_name: "{{ .Values.presets.coralogixExporter.defaultApplicationName | default .Values.global.defaultApplicationName }}"
+    subsystem_name: "{{ .Values.presets.coralogixExporter.defaultSubsystemName | default .Values.global.defaultSubsystemName }}"
     application_name_attributes:
-      {{- if eq $.Values.distribution "ecs" }}
+      {{- if eq .Values.distribution "ecs" }}
       - "aws.ecs.cluster"
       - "aws.ecs.task.definition.family"
       {{- else }}
@@ -2175,7 +2151,7 @@ exporters:
       - "service.namespace"
       {{- end }}
     subsystem_name_attributes:
-      {{- if eq $.Values.distribution "ecs" }}
+      {{- if eq .Values.distribution "ecs" }}
       - "aws.ecs.container.name"
       - "aws.ecs.docker.name"
       - "docker.name"
@@ -2184,14 +2160,14 @@ exporters:
       - "k8s.statefulset.name"
       - "k8s.daemonset.name"
       - "k8s.cronjob.name"
-      {{- if eq $.Values.distribution "eks/fargate" }}
+      {{- if eq .Values.distribution "eks/fargate" }}
       - "k8s.job.name"
       - "k8s.container.name"
       - "k8s.node.name"
       {{- end }}
       - "service.name"
       {{- end }}
-    {{- with $.Values.presets.coralogixExporter.retryOnFailure }}
+    {{- with .Values.presets.coralogixExporter.retryOnFailure }}
     retry_on_failure:
       {{- if hasKey . "enabled" }}
       enabled: {{ .enabled }}
@@ -2209,7 +2185,7 @@ exporters:
       multiplier: {{ .multiplier }}
       {{- end }}
     {{- end }}
-    {{- with $.Values.presets.coralogixExporter.sendingQueue }}
+    {{- with .Values.presets.coralogixExporter.sendingQueue }}
     sending_queue:
       {{- if hasKey . "enabled" }}
       enabled: {{ .enabled }}
@@ -2230,7 +2206,6 @@ exporters:
       queue_size: {{ .queueSize }}
       {{- end }}
     {{- end }}
-{{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.kubernetesAttributesConfig" -}}
