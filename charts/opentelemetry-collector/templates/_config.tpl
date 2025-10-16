@@ -2094,7 +2094,10 @@ exporters:
 {{- end }}
 
 {{- define "opentelemetry-collector.applyCoralogixExporterConfig" -}}
-{{- $config := mustMergeOverwrite (include "opentelemetry-collector.coralogixExporterConfig" .Values | fromYaml) .config }}
+{{- $coralogixConfig := include "opentelemetry-collector.coralogixExporterConfig" .Values | fromYaml -}}
+{{- $config := .config -}}
+{{- /* Merge coralogix exporters into the existing exporters section */ -}}
+{{- $_ := set $config "exporters" (mustMergeOverwrite $config.exporters $coralogixConfig) -}}
 {{- $pipeline := list "all" }}
 {{- if .Values.Values.presets.coralogixExporter.pipelines }}
   {{- $pipeline = .Values.Values.presets.coralogixExporter.pipelines }}
@@ -2107,27 +2110,48 @@ exporters:
 {{- $includeTraces := or (has "all" $pipeline) (has "traces" $pipeline) }}
 {{- $includeProfiles := or (has "all" $pipeline) (has "profiles" $pipeline) }}
 
-{{- if and $includeLogs ($config.service.pipelines.logs) (not (has "coralogix" $config.service.pipelines.logs.exporters)) }}
-{{- $_ := set $config.service.pipelines.logs "exporters" (append $config.service.pipelines.logs.exporters "coralogix" | uniq) }}
+{{- /* Create a list of all coralogix exporter names */ -}}
+{{- $exporterNames := list "coralogix" -}}
+{{- range $index, $endpoint := .Values.Values.presets.coralogixExporter.additionalEndpoints -}}
+  {{- if $endpoint.enabled -}}
+    {{- $exporterNames = append $exporterNames (printf "coralogix-%d" $index) -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* Add all coralogix exporters to the appropriate pipelines */ -}}
+{{- range $exporterName := $exporterNames -}}
+{{- if and $includeLogs ($config.service.pipelines.logs) (not (has $exporterName $config.service.pipelines.logs.exporters)) }}
+{{- $_ := set $config.service.pipelines.logs "exporters" (append $config.service.pipelines.logs.exporters $exporterName | uniq) }}
 {{- end }}
-{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "coralogix" $config.service.pipelines.metrics.exporters)) }}
-{{- $_ := set $config.service.pipelines.metrics "exporters" (append $config.service.pipelines.metrics.exporters "coralogix" | uniq) }}
+{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has $exporterName $config.service.pipelines.metrics.exporters)) }}
+{{- $_ := set $config.service.pipelines.metrics "exporters" (append $config.service.pipelines.metrics.exporters $exporterName | uniq) }}
 {{- end }}
-{{- if and $includeTraces ($config.service.pipelines.traces) (not (has "coralogix" $config.service.pipelines.traces.exporters)) }}
-{{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters "coralogix" | uniq) }}
+{{- if and $includeTraces ($config.service.pipelines.traces) (not (has $exporterName $config.service.pipelines.traces.exporters)) }}
+{{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters $exporterName | uniq) }}
 {{- end }}
-{{- if and $includeProfiles ($config.service.pipelines.profiles) (not (has "coralogix" $config.service.pipelines.profiles.exporters)) }}
-{{- $_ := set $config.service.pipelines.profiles "exporters" (append $config.service.pipelines.profiles.exporters "coralogix" | uniq) }}
+{{- if and $includeProfiles ($config.service.pipelines.profiles) (not (has $exporterName $config.service.pipelines.profiles.exporters)) }}
+{{- $_ := set $config.service.pipelines.profiles "exporters" (append $config.service.pipelines.profiles.exporters $exporterName | uniq) }}
+{{- end }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
 {{- define "opentelemetry-collector.coralogixExporterConfig" -}}
-exporters:
-  coralogix:
+{{- /* Create a list of all coralogix endpoints (main + additional) */ -}}
+{{- $endpoints := list (dict "name" "coralogix" "domain" (.Values.presets.coralogixExporter.domain | default .Values.global.domain) "privateKey" .Values.presets.coralogixExporter.privateKey) -}}
+{{- if .Values.presets.coralogixExporter.additionalEndpoints -}}
+{{- range $index, $endpoint := .Values.presets.coralogixExporter.additionalEndpoints -}}
+  {{- if $endpoint.enabled -}}
+    {{- $endpoints = append $endpoints (dict "name" (printf "coralogix-%d" $index) "domain" $endpoint.domain "privateKey" $endpoint.privateKey) -}}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+{{- /* Generate exporter config for each endpoint */ -}}
+{{- range $endpoint := $endpoints -}}
+{{ $endpoint.name }}:
     timeout: "30s"
-    private_key: "{{ .Values.presets.coralogixExporter.privateKey }}"
-    domain: "{{ .Values.presets.coralogixExporter.domain | default .Values.global.domain }}"
+    private_key: "{{ $endpoint.privateKey }}"
+    domain: "{{ $endpoint.domain }}"
     logs:
       headers:
         X-Coralogix-Distribution: "{{ if eq .Values.distribution "ecs" }}ecs-ec2-integration{{ else }}helm-otel-integration{{ end }}/{{ .Values.presets.coralogixExporter.version | default .Values.global.version }}"
