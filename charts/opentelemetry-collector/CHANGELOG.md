@@ -2,6 +2,9 @@
 
 ## OpenTelemetry Collector
 
+### v0.121.8 / 2025-10-17
+- [Feat] Add `journaldReceiver` preset to collect systemd journal logs with optional directory, unit, and match filters.
+
 ### v0.121.7 / 2025-10-16
 - [Feat] Add `spanMetricsSanitization` preset to provide span name, URL, and database statement sanitization when span metrics presets are enabled.
 
