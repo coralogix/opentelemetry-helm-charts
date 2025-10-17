@@ -898,6 +898,32 @@
             }
           }
         },
+        "spanMetricsSanitization": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Controls span metrics sanitization. Accepts boolean true/false or the string \"auto\" to enable sanitization automatically when span metrics presets are active.",
+              "anyOf": [
+                { "type": "boolean" },
+                { "type": "string", "enum": ["auto"] }
+              ],
+              "default": "auto"
+            },
+            "sanitize_url": {
+              "description": "Enables URL sanitization for span names and HTTP attributes.",
+              "type": "boolean"
+            },
+            "sanitizeDatabases": {
+              "description": "Allowlist of database types whose statements should be sanitized. Available values: sql, redis, memcached, mongo, opensearch, es",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["sql", "redis", "memcached", "mongo", "opensearch", "es"]
+              }
+            }
+          }
+        },
         "loadBalancing": {
           "type": "object",
           "additionalProperties": false,
@@ -1023,6 +1049,29 @@
             "defaultSubsystemName": {
               "description": "Default subsystem name used by the exporter.",
               "type": "string"
+            },
+            "additionalEndpoints": {
+              "description": "Additional Coralogix endpoints to export to. Each endpoint will create a separate coralogix exporter instance.",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "enabled": {
+                    "description": "Specifies whether this additional endpoint is enabled.",
+                    "type": "boolean"
+                  },
+                  "domain": {
+                    "description": "Specifies the Coralogix cluster domain for this endpoint.",
+                    "type": "string"
+                  },
+                  "privateKey": {
+                    "description": "Specifies the private key used by this endpoint.",
+                    "type": "string"
+                  }
+                },
+                "required": ["enabled", "domain", "privateKey"]
+              }
             },
             "retryOnFailure": {
               "type": "object",

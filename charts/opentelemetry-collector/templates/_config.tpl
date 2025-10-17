@@ -88,6 +88,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.spanMetricsMulti.enabled }}
 {{- $config = (include "opentelemetry-collector.applySpanMetricsMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- $config = (include "opentelemetry-collector.applySpanMetricsSanitizationIfEnabled" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- if .Values.presets.kubernetesResources.enabled }}
 {{- $config = (include "opentelemetry-collector.applyKubernetesResourcesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -224,6 +225,7 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.spanMetricsMulti.enabled }}
 {{- $config = (include "opentelemetry-collector.applySpanMetricsMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- $config = (include "opentelemetry-collector.applySpanMetricsSanitizationIfEnabled" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- if .Values.presets.kubernetesResources.enabled }}
 {{- $config = (include "opentelemetry-collector.applyKubernetesResourcesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -2114,76 +2116,82 @@ exporters:
 {{- $includeTraces := or (has "all" $pipeline) (has "traces" $pipeline) }}
 {{- $includeProfiles := or (has "all" $pipeline) (has "profiles" $pipeline) }}
 
-{{- /* Create a list of all coralogix exporter names */ -}}
-{{- $exporterNames := list "coralogix" -}}
-{{- range $index, $endpoint := .Values.Values.presets.coralogixExporter.additionalEndpoints -}}
-  {{- if $endpoint.enabled -}}
-    {{- $endpointName := "" -}}
-    {{- if $endpoint.name -}}
-      {{- $endpointName = printf "coralogix/%s" $endpoint.name -}}
-    {{- else -}}
-      {{- $endpointName = printf "coralogix/%d" (add $index 1) -}}
-    {{- end -}}
-    {{- $exporterNames = append $exporterNames $endpointName -}}
-  {{- end -}}
-{{- end -}}
+{{- $exporterNames := list "coralogix" }}
+{{- if .Values.Values.presets.coralogixExporter.additionalEndpoints }}
+  {{- range $idx, $endpoint := .Values.Values.presets.coralogixExporter.additionalEndpoints }}
+    {{- if eq $endpoint.enabled true }}
+      {{- $sanitizedDomain := replace "." "_" $endpoint.domain }}
+      {{- $exporterNames = append $exporterNames (printf "coralogix/%s" $sanitizedDomain) }}
+    {{- end }}
+  {{- end }}
+{{- end }}
 
-{{- /* Add all coralogix exporters to the appropriate pipelines */ -}}
-{{- range $exporterName := $exporterNames -}}
-{{- if and $includeLogs ($config.service.pipelines.logs) (not (has $exporterName $config.service.pipelines.logs.exporters)) }}
-{{- $_ := set $config.service.pipelines.logs "exporters" (append $config.service.pipelines.logs.exporters $exporterName | uniq) }}
-{{- end }}
-{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has $exporterName $config.service.pipelines.metrics.exporters)) }}
-{{- $_ := set $config.service.pipelines.metrics "exporters" (append $config.service.pipelines.metrics.exporters $exporterName | uniq) }}
-{{- end }}
-{{- if and $includeTraces ($config.service.pipelines.traces) (not (has $exporterName $config.service.pipelines.traces.exporters)) }}
-{{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters $exporterName | uniq) }}
-{{- end }}
-{{- if and $includeProfiles ($config.service.pipelines.profiles) (not (has $exporterName $config.service.pipelines.profiles.exporters)) }}
-{{- $_ := set $config.service.pipelines.profiles "exporters" (append $config.service.pipelines.profiles.exporters $exporterName | uniq) }}
-{{- end }}
+{{- range $exporterName := $exporterNames }}
+  {{- if and $includeLogs ($config.service.pipelines.logs) (not (has $exporterName $config.service.pipelines.logs.exporters)) }}
+  {{- $_ := set $config.service.pipelines.logs "exporters" (append $config.service.pipelines.logs.exporters $exporterName | uniq) }}
+  {{- end }}
+  {{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has $exporterName $config.service.pipelines.metrics.exporters)) }}
+  {{- $_ := set $config.service.pipelines.metrics "exporters" (append $config.service.pipelines.metrics.exporters $exporterName | uniq) }}
+  {{- end }}
+  {{- if and $includeTraces ($config.service.pipelines.traces) (not (has $exporterName $config.service.pipelines.traces.exporters)) }}
+  {{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters $exporterName | uniq) }}
+  {{- end }}
+  {{- if and $includeProfiles ($config.service.pipelines.profiles) (not (has $exporterName $config.service.pipelines.profiles.exporters)) }}
+  {{- $_ := set $config.service.pipelines.profiles "exporters" (append $config.service.pipelines.profiles.exporters $exporterName | uniq) }}
+  {{- end }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
 {{- define "opentelemetry-collector.coralogixExporterConfig" -}}
-{{- /* Create a list of all coralogix endpoints (main + additional) */ -}}
-{{- $endpoints := list (dict "name" "coralogix" "domain" (.Values.presets.coralogixExporter.domain | default .Values.global.domain) "privateKey" .Values.presets.coralogixExporter.privateKey) -}}
-{{- if .Values.presets.coralogixExporter.additionalEndpoints -}}
-{{- range $index, $endpoint := .Values.presets.coralogixExporter.additionalEndpoints -}}
-  {{- if $endpoint.enabled -}}
-    {{- $endpointName := "" -}}
-    {{- if $endpoint.name -}}
-      {{- $endpointName = printf "coralogix/%s" $endpoint.name -}}
-    {{- else -}}
-      {{- $endpointName = printf "coralogix/%d" (add $index 1) -}}
-    {{- end -}}
-    {{- $endpoints = append $endpoints (dict "name" $endpointName "domain" $endpoint.domain "privateKey" $endpoint.privateKey) -}}
-  {{- end -}}
-{{- end -}}
-{{- end -}}
-{{- /* Generate exporter config for each endpoint */ -}}
-{{- range $endpoint := $endpoints -}}
-{{ $endpoint.name }}:
+{{- $endpoints := list }}
+{{- $mainEndpoint := dict 
+    "name" "coralogix"
+    "domain" (.Values.presets.coralogixExporter.domain | default .Values.global.domain)
+    "privateKey" .Values.presets.coralogixExporter.privateKey
+    "version" (.Values.presets.coralogixExporter.version | default .Values.global.version)
+    "defaultApplicationName" (.Values.presets.coralogixExporter.defaultApplicationName | default .Values.global.defaultApplicationName)
+    "defaultSubsystemName" (.Values.presets.coralogixExporter.defaultSubsystemName | default .Values.global.defaultSubsystemName)
+}}
+{{- $endpoints = append $endpoints $mainEndpoint }}
+{{- if .Values.presets.coralogixExporter.additionalEndpoints }}
+  {{- range $idx, $endpoint := .Values.presets.coralogixExporter.additionalEndpoints }}
+    {{- if eq $endpoint.enabled true }}
+      {{- $sanitizedDomain := replace "." "_" $endpoint.domain }}
+      {{- $endpointConfig := dict 
+          "name" (printf "coralogix/%s" $sanitizedDomain)
+          "domain" $endpoint.domain
+          "privateKey" $endpoint.privateKey
+          "version" (default $.Values.global.version $endpoint.version)
+          "defaultApplicationName" (default $.Values.global.defaultApplicationName $endpoint.defaultApplicationName)
+          "defaultSubsystemName" (default $.Values.global.defaultSubsystemName $endpoint.defaultSubsystemName)
+      }}
+      {{- $endpoints = append $endpoints $endpointConfig }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+exporters:
+{{- range $endpoint := $endpoints }}
+  {{ $endpoint.name }}:
     timeout: "30s"
     private_key: "{{ $endpoint.privateKey }}"
     domain: "{{ $endpoint.domain }}"
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq .Values.distribution "ecs" }}ecs-ec2-integration{{ else }}helm-otel-integration{{ end }}/{{ .Values.presets.coralogixExporter.version | default .Values.global.version }}"
+        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
     metrics:
       headers:
-        X-Coralogix-Distribution: "helm-otel-integration/{{ .Values.presets.coralogixExporter.version | default .Values.global.version }}"
+        X-Coralogix-Distribution: "helm-otel-integration/{{ $endpoint.version }}"
     traces:
       headers:
-        X-Coralogix-Distribution: "helm-otel-integration/{{ .Values.presets.coralogixExporter.version | default .Values.global.version }}"
+        X-Coralogix-Distribution: "helm-otel-integration/{{ $endpoint.version }}"
     profiles:
       headers:
-        X-Coralogix-Distribution: "helm-otel-integration/{{ .Values.presets.coralogixExporter.version | default .Values.global.version }}"
-    application_name: "{{ .Values.presets.coralogixExporter.defaultApplicationName | default .Values.global.defaultApplicationName }}"
-    subsystem_name: "{{ .Values.presets.coralogixExporter.defaultSubsystemName | default .Values.global.defaultSubsystemName }}"
+        X-Coralogix-Distribution: "helm-otel-integration/{{ $endpoint.version }}"
+    application_name: "{{ $endpoint.defaultApplicationName }}"
+    subsystem_name: "{{ $endpoint.defaultSubsystemName }}"
     application_name_attributes:
-      {{- if eq .Values.distribution "ecs" }}
+      {{- if eq $.Values.distribution "ecs" }}
       - "aws.ecs.cluster"
       - "aws.ecs.task.definition.family"
       {{- else }}
@@ -2191,7 +2199,7 @@ exporters:
       - "service.namespace"
       {{- end }}
     subsystem_name_attributes:
-      {{- if eq .Values.distribution "ecs" }}
+      {{- if eq $.Values.distribution "ecs" }}
       - "aws.ecs.container.name"
       - "aws.ecs.docker.name"
       - "docker.name"
@@ -2200,14 +2208,14 @@ exporters:
       - "k8s.statefulset.name"
       - "k8s.daemonset.name"
       - "k8s.cronjob.name"
-      {{- if eq .Values.distribution "eks/fargate" }}
+      {{- if eq $.Values.distribution "eks/fargate" }}
       - "k8s.job.name"
       - "k8s.container.name"
       - "k8s.node.name"
       {{- end }}
       - "service.name"
       {{- end }}
-    {{- with .Values.presets.coralogixExporter.retryOnFailure }}
+    {{- with $.Values.presets.coralogixExporter.retryOnFailure }}
     retry_on_failure:
       {{- if hasKey . "enabled" }}
       enabled: {{ .enabled }}
@@ -2225,7 +2233,7 @@ exporters:
       multiplier: {{ .multiplier }}
       {{- end }}
     {{- end }}
-    {{- with .Values.presets.coralogixExporter.sendingQueue }}
+    {{- with $.Values.presets.coralogixExporter.sendingQueue }}
     sending_queue:
       {{- if hasKey . "enabled" }}
       enabled: {{ .enabled }}
@@ -2923,4 +2931,96 @@ receivers:
         id: move_log_file_path
         from: attributes["log.file.path"]
         to: resource["log.file.path"]
+{{- end }}
+
+{{- define "opentelemetry-collector.applySpanMetricsSanitizationIfEnabled" -}}
+{{- $values := default .Values (.Values.Values) }}
+{{- $config := .config }}
+{{- $presets := $values.presets }}
+{{- $sanitizationPreset := and $presets $presets.spanMetricsSanitization }}
+{{- if not (and $presets $sanitizationPreset) }}
+{{- $config | toYaml }}
+{{- else }}
+{{- $spanSanitizationSetting := $sanitizationPreset.enabled }}
+{{- $spanSanitizationAuto := or (default false (and $presets.spanMetrics $presets.spanMetrics.enabled)) (default false (and $presets.spanMetricsMulti $presets.spanMetricsMulti.enabled)) }}
+{{- $spanSanitizationEnabled := false }}
+{{- if eq $spanSanitizationSetting nil }}
+{{- $spanSanitizationEnabled = $spanSanitizationAuto }}
+{{- else if kindIs "bool" $spanSanitizationSetting }}
+{{- $spanSanitizationEnabled = $spanSanitizationSetting }}
+{{- else if kindIs "string" $spanSanitizationSetting }}
+{{- $normalized := trim (lower $spanSanitizationSetting) }}
+{{- if eq $normalized "auto" }}
+{{- $spanSanitizationEnabled = $spanSanitizationAuto }}
+{{- else if eq $normalized "true" }}
+{{- $spanSanitizationEnabled = true }}
+{{- else if eq $normalized "false" }}
+{{- $spanSanitizationEnabled = false }}
+{{- else }}
+{{- fail (printf "Unsupported value for presets.spanMetricsSanitization.enabled: %s. Expected boolean or \"auto\"." $spanSanitizationSetting) }}
+{{- end }}
+{{- else }}
+{{- fail (printf "Unsupported type for presets.spanMetricsSanitization.enabled: %s" (kindOf $spanSanitizationSetting)) }}
+{{- end }}
+{{- if $spanSanitizationEnabled }}
+{{- $config = (include "opentelemetry-collector.applySpanMetricsSanitization" (dict "Values" (dict "presets" $presets) "config" $config) | fromYaml) }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applySpanMetricsSanitization" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.spanMetricsSanitizationConfig" . | fromYaml) .config }}
+{{- with $config.service }}
+{{- range $name, $_ := .pipelines }}
+{{- if hasPrefix $name "traces" }}
+{{- $pipeline := index $config.service.pipelines $name }}
+{{- $existing := $pipeline.processors | default (list) }}
+{{- $withRedaction := append $existing "redaction/spanname" }}
+{{- $_ := set (index $config.service.pipelines $name) "processors" (uniq $withRedaction) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+
+{{- define "opentelemetry-collector.spanMetricsSanitizationConfig" -}}
+processors:
+  redaction/spanname:
+    allow_all_keys: true
+    url_sanitizer:
+      enabled: {{ .Values.presets.spanMetricsSanitization.sanitize_url }}
+    db_sanitizer:
+{{- $sanitizedDBs := .Values.presets.spanMetricsSanitization.sanitizeDatabases }}
+{{- if has "sql" $sanitizedDBs }}
+      sql:
+        enabled: true
+        attributes: ["db.statement", "db.query"]
+{{- end }}
+{{- if has "redis" $sanitizedDBs }}
+      redis:
+        enabled: true
+        attributes: ["db.statement", "redis.command"]
+{{- end }}
+{{- if has "memcached" $sanitizedDBs }}
+      memcached:
+        enabled: true
+        attributes: ["db.statement", "memcached.command"]
+{{- end }}
+{{- if has "mongo" $sanitizedDBs }}
+      mongo:
+        enabled: true
+        attributes: ["db.statement", "mongodb.query"]
+{{- end }}
+{{- if has "opensearch" $sanitizedDBs }}
+      opensearch:
+        enabled: true
+        attributes: ["db.statement", "opensearch.body"]
+{{- end }}
+{{- if has "es" $sanitizedDBs }}
+      es:
+        enabled: true
+        attributes: ["db.statement", "elasticsearch.body"]
+{{- end }}
 {{- end }}

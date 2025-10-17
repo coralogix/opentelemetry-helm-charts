@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.122.0
+    helm.sh/chart: opentelemetry-collector-v0.121.8
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.137.0"
@@ -55,7 +55,7 @@ data:
         traces:
           headers:
             X-Coralogix-Distribution: helm-otel-integration/1.0
-      coralogix/2:
+      coralogix/coralogixsg_com:
         application_name: otel
         application_name_attributes:
         - k8s.namespace.name
@@ -95,19 +95,19 @@ data:
         traces:
           headers:
             X-Coralogix-Distribution: helm-otel-integration/1.0
-      coralogix/3:
+      coralogix/eu2_coralogix_com:
         application_name: otel
         application_name_attributes:
         - k8s.namespace.name
         - service.namespace
-        domain: us2.coralogix.com
+        domain: eu2.coralogix.com
         logs:
           headers:
             X-Coralogix-Distribution: helm-otel-integration/1.0
         metrics:
           headers:
             X-Coralogix-Distribution: helm-otel-integration/1.0
-        private_key: ${env:CORALOGIX_PRIVATE_KEY_US2}
+        private_key: ${env:CORALOGIX_PRIVATE_KEY_EU2}
         profiles:
           headers:
             X-Coralogix-Distribution: helm-otel-integration/1.0
@@ -135,19 +135,19 @@ data:
         traces:
           headers:
             X-Coralogix-Distribution: helm-otel-integration/1.0
-      coralogix/eu2:
+      coralogix/private_coralogix_com:
         application_name: otel
         application_name_attributes:
         - k8s.namespace.name
         - service.namespace
-        domain: eu2.coralogix.com
+        domain: private.coralogix.com
         logs:
           headers:
             X-Coralogix-Distribution: helm-otel-integration/1.0
         metrics:
           headers:
             X-Coralogix-Distribution: helm-otel-integration/1.0
-        private_key: ${env:CORALOGIX_PRIVATE_KEY_EU2}
+        private_key: ${env:CORALOGIX_PRIVATE_KEY_US2}
         profiles:
           headers:
             X-Coralogix-Distribution: helm-otel-integration/1.0
@@ -258,9 +258,9 @@ data:
           exporters:
           - debug
           - coralogix
-          - coralogix/eu2
-          - coralogix/2
-          - coralogix/3
+          - coralogix/eu2_coralogix_com
+          - coralogix/coralogixsg_com
+          - coralogix/private_coralogix_com
           processors:
           - memory_limiter
           receivers:
@@ -269,9 +269,9 @@ data:
           exporters:
           - debug
           - coralogix
-          - coralogix/eu2
-          - coralogix/2
-          - coralogix/3
+          - coralogix/eu2_coralogix_com
+          - coralogix/coralogixsg_com
+          - coralogix/private_coralogix_com
           processors:
           - memory_limiter
           - transform/prometheus
@@ -282,9 +282,9 @@ data:
           exporters:
           - debug
           - coralogix
-          - coralogix/eu2
-          - coralogix/2
-          - coralogix/3
+          - coralogix/eu2_coralogix_com
+          - coralogix/coralogixsg_com
+          - coralogix/private_coralogix_com
           processors:
           - memory_limiter
           receivers:
