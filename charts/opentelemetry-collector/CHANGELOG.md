@@ -2,7 +2,7 @@
 
 ## OpenTelemetry Collector
 
-### v0.122.0 / 2025-10-20
+### v0.121.10 / 2025-10-20
 - [Feat] Add `prometheusMulti` preset for scraping multiple Prometheus targets with optional custom labels.
 - [Fix] Emit Prometheus multi-target jobs using the provided target name and only apply CX labels when explicitly configured.
 - [Chore] Standalone example enables the `prometheusMulti` preset with contrasting target configurations.
