@@ -1138,19 +1138,52 @@
                 "metrics": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "oneOf": [
+                      { "type": "string" },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["key"],
+                        "properties": {
+                          "key": { "type": "string" },
+                          "condition": { "type": "string" }
+                        }
+                      }
+                    ]
                   }
                 },
                 "traces": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "oneOf": [
+                      { "type": "string" },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["key"],
+                        "properties": {
+                          "key": { "type": "string" },
+                          "condition": { "type": "string" }
+                        }
+                      }
+                    ]
                   }
                 },
                 "logs": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "oneOf": [
+                      { "type": "string" },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["key"],
+                        "properties": {
+                          "key": { "type": "string" },
+                          "condition": { "type": "string" }
+                        }
+                      }
+                    ]
                   }
                 }
               }
@@ -1358,6 +1391,57 @@
             }
           }
         },
+        "prometheusMulti": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Specifies whether the collector should scrape multiple prometheus targets."
+            },
+            "scrapeInterval": {
+              "type": "string",
+              "description": "Scrape interval applied to all prometheus multi targets."
+            },
+            "targets": {
+              "description": "List of prometheus targets to scrape.",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["name", "port"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Unique name for the target. Used as part of the generated prometheus job name."
+                  },
+                  "applicationName": {
+                    "type": "string",
+                    "description": "Application label applied to samples scraped from this target."
+                  },
+                  "subsystemName": {
+                    "type": "string",
+                    "description": "Subsystem label applied to samples scraped from this target."
+                  },
+                  "ip": {
+                    "type": "string",
+                    "description": "Host or IP address to scrape. Defaults to 127.0.0.1 when omitted."
+                  },
+                  "port": {
+                    "type": "integer",
+                    "description": "Port to scrape for this target."
+                  },
+                  "extraLabels": {
+                    "type": "object",
+                    "description": "Additional static labels to add to the scraped samples.",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "jaegerReceiver": {
           "type": "object",
           "additionalProperties": false,
@@ -1421,6 +1505,37 @@
             "enabled": {
               "description": "Specifies whether the collector should receive Zipkin data.",
               "type": "boolean"
+            }
+          }
+        },
+        "journaldReceiver": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether the collector should receive logs from the systemd journal.",
+              "type": "boolean"
+            },
+            "directory": {
+              "description": "Host path to the systemd journal directory to mount into the Collector.",
+              "type": "string"
+            },
+            "units": {
+              "description": "Optional list of systemd units whose logs should be collected.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "matches": {
+              "description": "Optional list of journald matchers to filter collected entries.",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
             }
           }
         },

@@ -163,6 +163,43 @@ config:
           - otlphttp
 ```
 
+### Configuration for Journald Logs
+
+The collector can read logs directly from the systemd journal by enabling the
+`journaldReceiver` preset. When enabled, the chart mounts the host's journal
+directory (default `/run/log/journal`) into the collector pod and adds the
+`journald` receiver to the logs pipeline.
+
+This feature is disabled by default and requires Linux nodes with access to the
+systemd journal. For clusters where hostPath volumes are restricted (such as
+managed serverless offerings), ensure the required permissions are granted
+before enabling the preset.
+
+Optional fields allow further filtering:
+
+- `directory`: Override the journal directory to mount and read from.
+- `units`: Limit collection to specific systemd units.
+- `matches`: Provide additional journald matchers for fine-grained selection.
+
+Here is an example `values.yaml`:
+
+```yaml
+mode: daemonset
+
+presets:
+  journaldReceiver:
+    enabled: true
+    directory: /run/log/journal
+    units:
+      - ssh
+      - kubelet
+      - docker
+    matches:
+      - _SYSTEMD_UNIT: kubelet.service
+      - _SYSTEMD_UNIT: ssh.service
+        _UID: "1000"
+```
+
 ### Configuration for Kubernetes Attributes Processor
 
 The collector can be configured to add Kubernetes metadata, such as pod name and namespace name, as resource attributes to incoming logs, metrics and traces.
@@ -274,6 +311,58 @@ presets:
   hostMetrics:
     enabled: true
 ```
+
+### Configuration for Prometheus Multi-Target Scraping
+
+The Prometheus multi-target preset lets the collector scrape metrics from a list of arbitrary endpoints using a single
+`prometheus` receiver instance. Each target is scraped at the same interval and is automatically annotated with
+`cx.application.name` and `cx.subsystem.name` labels derived from the provided target metadata.
+
+To enable this feature, set the `presets.prometheusMulti.enabled` property to `true` and provide at least one target in
+`presets.prometheusMulti.targets`.
+
+Here is an example `values.yaml`:
+
+```yaml
+presets:
+  prometheusMulti:
+    enabled: true
+    scrapeInterval: 15s
+    targets:
+      - name: mysql
+        applicationName: mysql
+        subsystemName: mysql
+        port: 9101
+      - name: backend
+        port: 9102
+        extraLabels:
+          env: prod
+```
+
+When rendered for a release named `demo`, this configuration produces Prometheus jobs similar to the following:
+
+```yaml
+receivers:
+  prometheus/multi:
+    config:
+      scrape_configs:
+        - job_name: mysql
+          scrape_interval: 15s
+          static_configs:
+            - targets: ["127.0.0.1:9101"]
+              labels:
+                cx.application.name: mysql
+                cx.subsystem.name: mysql
+        - job_name: backend
+          scrape_interval: 15s
+          static_configs:
+            - targets: ["127.0.0.1:9102"]
+              labels:
+                env: prod
+```
+
+The chart only emits the CX labels when the target explicitly defines the corresponding field or sets it through
+`extraLabels`. The scrape host defaults to `127.0.0.1` when the `ip` field is omitted.
 
 ### Configuration for ZPages
 

@@ -116,6 +116,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.collectorMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyCollectorMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.prometheusMulti.enabled }}
+{{- $config = (include "opentelemetry-collector.applyPrometheusMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.jaegerReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyJaegerReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -124,6 +127,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.awsecscontainermetricsdReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyAwsecsContainerMetricsdReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.journaldReceiver.enabled }}
+{{- $config = (include "opentelemetry-collector.applyJournaldReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.profilesCollection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyProfilesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -140,6 +146,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.awsecscontainermetricsdReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyAwsecsContainerMetricsdReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.journaldReceiver.enabled }}
+{{- $config = (include "opentelemetry-collector.applyJournaldReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.statsdReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyStatsdReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -256,11 +265,17 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.collectorMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyCollectorMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.prometheusMulti.enabled }}
+{{- $config = (include "opentelemetry-collector.applyPrometheusMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.jaegerReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyJaegerReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.zipkinReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyZipkinReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.journaldReceiver.enabled }}
+{{- $config = (include "opentelemetry-collector.applyJournaldReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.otlpReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyOtlpReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -1174,26 +1189,47 @@ processors:
     error_mode: silent
 {{- if or (has "metrics" $pipelines) (has "all" $pipelines) }}
     metric_statements:
-      - context: resource
+      - context: metric
         statements:
         {{- range $index, $pattern := .Values.presets.reduceResourceAttributes.denylist.metrics }}
-        - delete_key(attributes, "{{ $pattern }}")
+        {{- if kindIs "string" $pattern }}
+        - delete_key(resource.attributes, "{{ $pattern }}")
+        {{- else if kindIs "map" $pattern }}
+        {{- $key := required "Reduce resource attributes metrics denylist entries of type object must set `key`." (index $pattern "key") }}
+        - delete_key(resource.attributes, "{{ $key }}"){{- with index $pattern "condition" }} where {{ . }}{{- end }}
+        {{- else }}
+        {{- fail (printf "Reduce resource attributes metrics denylist entries must be either strings or objects with `key` and optional `condition`, got %s" (kindOf $pattern)) }}
+        {{- end }}
         {{- end }}
 {{- end }}
 {{- if or (has "traces" $pipelines) (has "all" $pipelines) }}
     trace_statements:
-      - context: resource
+      - context: span
         statements:
         {{- range $index, $pattern := .Values.presets.reduceResourceAttributes.denylist.traces }}
-        - delete_key(attributes, "{{ $pattern }}")
+        {{- if kindIs "string" $pattern }}
+        - delete_key(resource.attributes, "{{ $pattern }}")
+        {{- else if kindIs "map" $pattern }}
+        {{- $key := required "Reduce resource attributes traces denylist entries of type object must set `key`." (index $pattern "key") }}
+        - delete_key(resource.attributes, "{{ $key }}"){{- with index $pattern "condition" }} where {{ . }}{{- end }}
+        {{- else }}
+        {{- fail (printf "Reduce resource attributes traces denylist entries must be either strings or objects with `key` and optional `condition`, got %s" (kindOf $pattern)) }}
+        {{- end }}
         {{- end }}
 {{- end }}
 {{- if or (has "logs" $pipelines) (has "all" $pipelines) }}
     log_statements:
-      - context: resource
+      - context: log
         statements:
         {{- range $index, $pattern := .Values.presets.reduceResourceAttributes.denylist.logs }}
-        - delete_key(attributes, "{{ $pattern }}")
+        {{- if kindIs "string" $pattern }}
+        - delete_key(resource.attributes, "{{ $pattern }}")
+        {{- else if kindIs "map" $pattern }}
+        {{- $key := required "Reduce resource attributes logs denylist entries of type object must set `key`." (index $pattern "key") }}
+        - delete_key(resource.attributes, "{{ $key }}"){{- with index $pattern "condition" }} where {{ . }}{{- end }}
+        {{- else }}
+        {{- fail (printf "Reduce resource attributes logs denylist entries must be either strings or objects with `key` and optional `condition`, got %s" (kindOf $pattern)) }}
+        {{- end }}
         {{- end }}
 {{- end }}
 {{- end }}
@@ -2676,6 +2712,79 @@ receivers:
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "statsd" | uniq)  }}
 {{- end }}
 {{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyJournaldReceiverConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.journaldReceiverConfig" .Values | fromYaml) .config }}
+{{- if and ($config.service.pipelines.logs) (not (has "journald" $config.service.pipelines.logs.receivers)) }}
+{{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers "journald" | uniq)  }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.journaldReceiverConfig" -}}
+{{- $receiver := dict }}
+{{- with .Values.presets.journaldReceiver.directory }}
+{{- $_ := set $receiver "directory" . }}
+{{- end }}
+{{- with .Values.presets.journaldReceiver.units }}
+{{- if . }}
+{{- $_ := set $receiver "units" . }}
+{{- end }}
+{{- end }}
+
+{{- with .Values.presets.journaldReceiver.matches }}
+{{- if . }}
+{{- $_ := set $receiver "matches" . }}
+{{- end }}
+{{- end }}
+receivers:
+  journald:{{- if $receiver }}
+{{ toYaml $receiver | indent 4 }}
+{{- else }} {}
+{{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyPrometheusMultiConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.prometheusMultiConfig" .Values | fromYaml) .config }}
+{{- if and ($config.service.pipelines.metrics) }}
+{{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus/multi" | uniq)  }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.prometheusMultiConfig" -}}
+{{- $targets := .Values.presets.prometheusMulti.targets }}
+{{- $scrapeInterval := default "15s" .Values.presets.prometheusMulti.scrapeInterval }}
+receivers:
+  prometheus/multi:
+    config:
+{{- if $targets }}
+      scrape_configs:
+{{- range $index, $target := $targets }}
+        - job_name: {{ $target.name | quote }}
+          scrape_interval: {{ $scrapeInterval | quote }}
+          static_configs:
+            - targets:
+                - {{ printf "%s:%v" (default "127.0.0.1" $target.ip) $target.port | quote }}
+{{- $labels := dict }}
+{{- if $target.applicationName }}
+{{- $_ := set $labels "cx.application.name" $target.applicationName }}
+{{- end }}
+{{- if $target.subsystemName }}
+{{- $_ := set $labels "cx.subsystem.name" $target.subsystemName }}
+{{- end }}
+{{- if $target.extraLabels }}
+{{- range $labelKey, $labelValue := $target.extraLabels }}
+{{- $_ := set $labels $labelKey $labelValue }}
+{{- end }}
+{{- end }}
+{{- if gt (len $labels) 0 }}
+              labels:
+{{ toYaml $labels | indent 16 }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.statsdReceiverConfig" -}}
