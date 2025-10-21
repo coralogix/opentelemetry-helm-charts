@@ -2,6 +2,9 @@
 
 ## OpenTelemetry Collector
 
+### v0.121.11 / 2025-10-21
+- [Feat] Added `additionalEndpoints` option to `coralogixExporter` preset to add additional Coralogix endpoints.
+
 ### v0.121.10 / 2025-10-20
 - [Feat] Add `prometheusMulti` preset for scraping multiple Prometheus targets with optional custom labels.
 - [Fix] Emit Prometheus multi-target jobs using the provided target name and only apply CX labels when explicitly configured.
