@@ -2198,9 +2198,9 @@ exporters:
           "name" (printf "coralogix/%s" $sanitizedDomain)
           "domain" $endpoint.domain
           "privateKey" $endpoint.privateKey
-          "version" (default .Values.global.version $endpoint.version)
-          "defaultApplicationName" (default .Values.global.defaultApplicationName $endpoint.defaultApplicationName)
-          "defaultSubsystemName" (default .Values.global.defaultSubsystemName $endpoint.defaultSubsystemName)
+          "version" (default $.Values.global.version $endpoint.version)
+          "defaultApplicationName" (default $.Values.global.defaultApplicationName $endpoint.defaultApplicationName)
+          "defaultSubsystemName" (default $.Values.global.defaultSubsystemName $endpoint.defaultSubsystemName)
       }}
       {{- $endpoints = append $endpoints $endpointConfig }}
     {{- end }}
@@ -2214,7 +2214,7 @@ exporters:
     domain: "{{ $endpoint.domain }}"
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq .Values.distribution "ecs" }}ecs-ec2-integration{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
+        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
     metrics:
       headers:
         X-Coralogix-Distribution: "helm-otel-integration/{{ $endpoint.version }}"
@@ -2227,7 +2227,7 @@ exporters:
     application_name: "{{ $endpoint.defaultApplicationName }}"
     subsystem_name: "{{ $endpoint.defaultSubsystemName }}"
     application_name_attributes:
-      {{- if eq .Values.distribution "ecs" }}
+      {{- if eq $.Values.distribution "ecs" }}
       - "aws.ecs.cluster"
       - "aws.ecs.task.definition.family"
       {{- else }}
@@ -2235,7 +2235,7 @@ exporters:
       - "service.namespace"
       {{- end }}
     subsystem_name_attributes:
-      {{- if eq .Values.distribution "ecs" }}
+      {{- if eq $.Values.distribution "ecs" }}
       - "aws.ecs.container.name"
       - "aws.ecs.docker.name"
       - "docker.name"
@@ -2244,14 +2244,14 @@ exporters:
       - "k8s.statefulset.name"
       - "k8s.daemonset.name"
       - "k8s.cronjob.name"
-      {{- if eq .Values.distribution "eks/fargate" }}
+      {{- if eq $.Values.distribution "eks/fargate" }}
       - "k8s.job.name"
       - "k8s.container.name"
       - "k8s.node.name"
       {{- end }}
       - "service.name"
       {{- end }}
-    {{- with .Values.presets.coralogixExporter.retryOnFailure }}
+    {{- with $.Values.presets.coralogixExporter.retryOnFailure }}
     retry_on_failure:
       {{- if hasKey . "enabled" }}
       enabled: {{ .enabled }}
@@ -2269,7 +2269,7 @@ exporters:
       multiplier: {{ .multiplier }}
       {{- end }}
     {{- end }}
-    {{- with .Values.presets.coralogixExporter.sendingQueue }}
+    {{- with $.Values.presets.coralogixExporter.sendingQueue }}
     sending_queue:
       {{- if hasKey . "enabled" }}
       enabled: {{ .enabled }}
