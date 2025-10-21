@@ -2206,7 +2206,6 @@ exporters:
     {{- end }}
   {{- end }}
 {{- end }}
-exporters:
 {{- range $endpoint := $endpoints }}
   {{ $endpoint.name }}:
     timeout: "30s"
