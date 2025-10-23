@@ -1095,36 +1095,7 @@
                 "sizer": { "type": "string" },
                 "queueSize": { "type": "integer" }
               }
-            },
-            "additionalEndpoints": {
-              "description": "Additional Coralogix endpoints to export to. Each endpoint will create a separate coralogix exporter instance.",
-              "type": "array",
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "enabled": {
-                    "description": "Specifies whether this additional endpoint is enabled.",
-                    "type": "boolean"
-                  },
-                  "name": {
-                    "description": "Specifies the name for this endpoint. Will be used as coralogix/{name} in the exporter configuration.",
-                    "type": "string"
-                  },
-                  "domain": {
-                    "description": "Specifies the Coralogix cluster domain for this endpoint.",
-                    "type": "string"
-                  },
-                  "privateKey": {
-                    "description": "Specifies the private key used by this endpoint.",
-                    "type": "string"
-                  }
-                },
-                "required": ["enabled", "domain", "privateKey"]
-              }
             }
-
-
           }
         },
         "transactions": {

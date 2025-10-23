@@ -2,8 +2,14 @@
 
 ## OpenTelemetry Collector
 
-### v0.121.11 / 2025-10-21
+### v0.121.13 / 2025-10-23
 - [Feat] Added `additionalEndpoints` option to `coralogixExporter` preset to add additional Coralogix endpoints.
+
+### v0.121.12 / 2025-10-22
+- [Fix] Emit Coralogix OTLP headers with the `helm-otel-standalone` distribution tag when the standalone distribution is selected.
+
+### v0.121.11 / 2025-10-22
+- [Fix] Derive Coralogix application and subsystem names from `service.namespace` and `service.name` when using the standalone distribution.
 
 ### v0.121.10 / 2025-10-20
 - [Feat] Add `prometheusMulti` preset for scraping multiple Prometheus targets with optional custom labels.
