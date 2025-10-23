@@ -2139,7 +2139,7 @@ exporters:
 {{- $coralogixConfig := include "opentelemetry-collector.coralogixExporterConfig" .Values | fromYaml -}}
 {{- $config := .config -}}
 {{- /* Merge coralogix exporters into the existing exporters section */ -}}
-{{- $_ := set $config "exporters" (mustMergeOverwrite $config.exporters $coralogixConfig) -}}
+{{- $_ := set $config "exporters" (mustMergeOverwrite $coralogixConfig $config.exporters) -}}
 {{- $pipeline := list "all" }}
 {{- if .Values.Values.presets.coralogixExporter.pipelines }}
   {{- $pipeline = .Values.Values.presets.coralogixExporter.pipelines }}
