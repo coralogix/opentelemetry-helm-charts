@@ -2152,15 +2152,7 @@ exporters:
 {{- $includeTraces := or (has "all" $pipeline) (has "traces" $pipeline) }}
 {{- $includeProfiles := or (has "all" $pipeline) (has "profiles" $pipeline) }}
 
-{{- $exporterNames := list "coralogix" }}
-{{- if .Values.Values.presets.coralogixExporter.additionalEndpoints }}
-  {{- range $idx, $endpoint := .Values.Values.presets.coralogixExporter.additionalEndpoints }}
-    {{- if eq $endpoint.enabled true }}
-      {{- $sanitizedDomain := replace "." "_" $endpoint.domain }}
-      {{- $exporterNames = append $exporterNames (printf "coralogix/%s" $sanitizedDomain) }}
-    {{- end }}
-  {{- end }}
-{{- end }}
+{{- $exporterNames := keys $coralogixConfig | sortAlpha }}
 
 {{- range $exporterName := $exporterNames }}
   {{- if and $includeLogs ($config.service.pipelines.logs) (not (has $exporterName $config.service.pipelines.logs.exporters)) }}
