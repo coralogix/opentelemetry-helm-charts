@@ -1123,6 +1123,10 @@
                     "description": "Specifies whether this additional endpoint is enabled.",
                     "type": "boolean"
                   },
+                  "name": {
+                    "description": "Optional custom name for this endpoint exporter (e.g., 'myeu2' creates 'coralogix/myeu2'). If not specified, the domain will be sanitized and used as the name.",
+                    "type": "string"
+                  },
                   "domain": {
                     "description": "Specifies the Coralogix cluster domain for this endpoint.",
                     "type": "string"

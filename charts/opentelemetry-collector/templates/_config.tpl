@@ -2250,15 +2250,21 @@ exporters:
 {{- if .Values.presets.coralogixExporter.additionalEndpoints }}
   {{- range $idx, $endpoint := .Values.presets.coralogixExporter.additionalEndpoints }}
     {{- if eq $endpoint.enabled true }}
-      {{- /* Strip protocol and sanitize domain to create valid YAML key */ -}}
-      {{- $sanitizedDomain := $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
+      {{- /* Use custom name if provided, otherwise sanitize domain to create valid YAML key */ -}}
+      {{- $exporterName := "" }}
+      {{- if $endpoint.name }}
+        {{- $exporterName = printf "coralogix/%s" $endpoint.name }}
+      {{- else }}
+        {{- $sanitizedDomain := $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
+        {{- $exporterName = printf "coralogix/%s" $sanitizedDomain }}
+      {{- end }}
       {{- $endpointConfig := dict 
-          "name" (printf "coralogix/%s" $sanitizedDomain)
+          "name" $exporterName
           "domain" $endpoint.domain
           "privateKey" $endpoint.privateKey
-          "version" (default $.Values.global.version $endpoint.version)
-          "defaultApplicationName" (default $.Values.global.defaultApplicationName $endpoint.defaultApplicationName)
-          "defaultSubsystemName" (default $.Values.global.defaultSubsystemName $endpoint.defaultSubsystemName)
+          "version" (default $.Values.global.version)
+          "defaultApplicationName" (default $.Values.global.defaultApplicationName )
+          "defaultSubsystemName" (default $.Values.global.defaultSubsystemName)
       }}
       {{- $endpoints = append $endpoints $endpointConfig }}
     {{- end }}

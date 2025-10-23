@@ -95,7 +95,7 @@ data:
         traces:
           headers:
             X-Coralogix-Distribution: helm-otel-integration/1.0
-      coralogix/eu2_coralogix_com:
+      coralogix/myeu2:
         application_name: otel
         application_name_attributes:
         - k8s.namespace.name
@@ -259,7 +259,7 @@ data:
           - debug
           - coralogix
           - coralogix/coralogixsg_com
-          - coralogix/eu2_coralogix_com
+          - coralogix/myeu2
           - coralogix/private_coralogix_com
           processors:
           - memory_limiter
@@ -270,7 +270,7 @@ data:
           - debug
           - coralogix
           - coralogix/coralogixsg_com
-          - coralogix/eu2_coralogix_com
+          - coralogix/myeu2
           - coralogix/private_coralogix_com
           processors:
           - memory_limiter
@@ -283,7 +283,7 @@ data:
           - debug
           - coralogix
           - coralogix/coralogixsg_com
-          - coralogix/eu2_coralogix_com
+          - coralogix/myeu2
           - coralogix/private_coralogix_com
           processors:
           - memory_limiter
