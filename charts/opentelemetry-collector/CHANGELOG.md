@@ -2,8 +2,11 @@
 
 ## OpenTelemetry Collector
 
-### v0.121.13 / 2025-10-23
+### v0.121.14 / 2025-10-23
 - [Feat] Added `additionalEndpoints` option to `coralogixExporter` preset to add additional Coralogix endpoints.
+
+### v0.121.13 / 2025-10-23
+- [Feat] Add `filelogMulti` preset for configuring multiple filelog receivers with Coralogix resource annotations.
 
 ### v0.121.12 / 2025-10-22
 - [Fix] Emit Coralogix OTLP headers with the `helm-otel-standalone` distribution tag when the standalone distribution is selected.
