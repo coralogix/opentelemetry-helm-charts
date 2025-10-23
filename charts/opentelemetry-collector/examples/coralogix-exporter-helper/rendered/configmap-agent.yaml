@@ -258,8 +258,8 @@ data:
           exporters:
           - debug
           - coralogix
-          - coralogix/eu2_coralogix_com
           - coralogix/coralogixsg_com
+          - coralogix/eu2_coralogix_com
           - coralogix/private_coralogix_com
           processors:
           - memory_limiter
@@ -269,8 +269,8 @@ data:
           exporters:
           - debug
           - coralogix
-          - coralogix/eu2_coralogix_com
           - coralogix/coralogixsg_com
+          - coralogix/eu2_coralogix_com
           - coralogix/private_coralogix_com
           processors:
           - memory_limiter
@@ -282,8 +282,8 @@ data:
           exporters:
           - debug
           - coralogix
-          - coralogix/eu2_coralogix_com
           - coralogix/coralogixsg_com
+          - coralogix/eu2_coralogix_com
           - coralogix/private_coralogix_com
           processors:
           - memory_limiter

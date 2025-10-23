@@ -2138,8 +2138,6 @@ exporters:
 {{- define "opentelemetry-collector.applyCoralogixExporterConfig" -}}
 {{- $coralogixConfig := include "opentelemetry-collector.coralogixExporterConfig" .Values | fromYaml -}}
 {{- $config := .config -}}
-{{- /* Merge coralogix exporters into the existing exporters section */ -}}
-{{- $_ := set $config "exporters" (mustMergeOverwrite $coralogixConfig $config.exporters) -}}
 {{- $pipeline := list "all" }}
 {{- if .Values.Values.presets.coralogixExporter.pipelines }}
   {{- $pipeline = .Values.Values.presets.coralogixExporter.pipelines }}
@@ -2152,7 +2150,10 @@ exporters:
 {{- $includeTraces := or (has "all" $pipeline) (has "traces" $pipeline) }}
 {{- $includeProfiles := or (has "all" $pipeline) (has "profiles" $pipeline) }}
 
+{{- /* Extract exporter names BEFORE merge, since mustMergeOverwrite modifies first argument in-place */ -}}
 {{- $exporterNames := keys $coralogixConfig | sortAlpha }}
+{{- /* Merge coralogix exporters into the existing exporters section */ -}}
+{{- $_ := set $config "exporters" (mustMergeOverwrite $coralogixConfig $config.exporters) -}}
 
 {{- range $exporterName := $exporterNames }}
   {{- if and $includeLogs ($config.service.pipelines.logs) (not (has $exporterName $config.service.pipelines.logs.exporters)) }}
