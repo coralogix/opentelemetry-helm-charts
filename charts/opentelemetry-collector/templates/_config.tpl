@@ -2193,7 +2193,8 @@ exporters:
 {{- if .Values.presets.coralogixExporter.additionalEndpoints }}
   {{- range $idx, $endpoint := .Values.presets.coralogixExporter.additionalEndpoints }}
     {{- if eq $endpoint.enabled true }}
-      {{- $sanitizedDomain := replace "." "_" $endpoint.domain }}
+      {{- /* Strip protocol and sanitize domain to create valid YAML key */ -}}
+      {{- $sanitizedDomain := $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
       {{- $endpointConfig := dict 
           "name" (printf "coralogix/%s" $sanitizedDomain)
           "domain" $endpoint.domain
