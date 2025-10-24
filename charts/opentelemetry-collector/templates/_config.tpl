@@ -885,6 +885,18 @@ receivers:
     {{- with $receiver.forceFlushPeriod }}
     force_flush_period: {{ . | quote }}
     {{- end }}
+    {{- with $receiver.multiline }}
+    multiline:
+      {{- if hasKey . "lineStartPattern" }}
+      line_start_pattern: {{ .lineStartPattern | quote }}
+      {{- end }}
+      {{- if hasKey . "lineEndPattern" }}
+      line_end_pattern: {{ .lineEndPattern | quote }}
+      {{- end }}
+      {{- if hasKey . "omitPattern" }}
+      omit_pattern: {{ .omitPattern }}
+      {{- end }}
+    {{- end }}
     {{- $extraOperators := default (list) $receiver.extraOperators }}
     {{- $hasApp := and $receiver.applicationName (ne $receiver.applicationName "") }}
     {{- $hasSubsystem := and $receiver.subsystemName (ne $receiver.subsystemName "") }}

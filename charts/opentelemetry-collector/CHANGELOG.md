@@ -2,6 +2,9 @@
 
 ## OpenTelemetry Collector
 
+### v0.121.15 / 2025-10-23
+- [Feat] Allow `filelogMulti` receivers to configure multiline parsing with start/end patterns and delimiter control.
+
 ### v0.121.14 / 2025-10-23
 - [Feat] Allow `filelogMulti` receivers to derive Coralogix application and subsystem names from resource attributes after custom operators run.
 

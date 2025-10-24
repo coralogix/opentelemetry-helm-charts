@@ -365,6 +365,8 @@ receivers:
 
 The `filelogMulti` preset wires additional filelog receivers into the logs pipeline. Each receiver watches its own set of files and automatically annotates collected log records with `cx.application.name` and `cx.subsystem.name` resource attributes. Static values can be supplied through `applicationName` and `subsystemName`, while the `applicationNameAttribute` and `subsystemNameAttribute` options copy resource attributes after any `extraOperators` run (for example, once JSON parsing has promoted values into the resource scope).
 
+Multiline log streams can be combined into single entries by providing a `multiline` block with either a `lineStartPattern` or `lineEndPattern` regular expression. Set `omitPattern` to `true` to drop the matching delimiter from the combined entry.
+
 Enable the preset and define at least one receiver:
 
 ```yaml
@@ -375,6 +377,8 @@ presets:
       - name: backend-logs
         include:
           - /var/log/messages
+        multiline:
+          lineStartPattern: ^[^\s].*
         applicationName: backend
         subsystemName: payments
         extraOperators:
