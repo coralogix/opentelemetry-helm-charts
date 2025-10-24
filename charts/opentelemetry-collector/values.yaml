@@ -224,6 +224,9 @@ presets:
     #   exclude: []
     #   forceFlushPeriod: "0"
     #   startAt: beginning
+    #   multiline:
+    #     lineStartPattern: ^[^\s].*
+    #     omitPattern: false
     #   applicationName: ""
     #   subsystemName: ""
     #   applicationNameAttribute: ""
