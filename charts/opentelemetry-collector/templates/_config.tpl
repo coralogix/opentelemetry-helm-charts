@@ -2259,8 +2259,8 @@ exporters:
     "defaultSubsystemName" (.Values.presets.coralogixExporter.defaultSubsystemName | default .Values.global.defaultSubsystemName)
 }}
 {{- $endpoints = append $endpoints $mainEndpoint }}
-{{- if .Values.presets.coralogixExporter.additionalEndpoints }}
-  {{- range $idx, $endpoint := .Values.presets.coralogixExporter.additionalEndpoints }}
+{{- if .Values.presets.coralogixExporter.additionalEndpoints | default .Values.global.additionalEndpoints }}
+  {{- range $idx, $endpoint := (.Values.presets.coralogixExporter.additionalEndpoints | default .Values.global.additionalEndpoints) }}
     {{- if eq $endpoint.enabled true }}
       {{- /* Use custom name if provided, otherwise sanitize domain to create valid YAML key */ -}}
       {{- $exporterName := "" }}
