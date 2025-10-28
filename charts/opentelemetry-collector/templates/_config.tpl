@@ -1911,6 +1911,24 @@ exporters:
       headers:
         X-Coralogix-Distribution: "{{ if eq .Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq .Values.distribution "standalone" }}helm-otel-standalone{{ else }}helm-otel-integration{{ end }}/{{ .Values.global.version }}"
         x-coralogix-ingress: "metadata-as-otlp-logs/v1"
+{{- if .Values.global.additionalEndpoints }}
+{{- range $endpoint := .Values.global.additionalEndpoints }}
+  {{- if eq $endpoint.enabled true }}
+  {{- $sanitizedDomain := $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
+  {{- $exporterName := printf "coralogix/resource_catalog_%s" $sanitizedDomain }}
+  {{ $exporterName }}:
+    timeout: "30s"
+    private_key: "{{ $endpoint.privateKey }}"
+    domain: "{{ $endpoint.domain }}"
+    application_name: "{{ $endpoint.applicationName | default "resource" }}"
+    subsystem_name: "{{ $endpoint.subsystemName | default "catalog" }}"
+    logs:
+      headers:
+        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else }}helm-otel-integration{{ end }}/{{ $.Values.global.version }}"
+        x-coralogix-ingress: "{{ $endpoint.ingress | default "metadata-as-otlp-logs/v1" }}"
+  {{- end }}
+{{- end }}
+{{- end }}
 
 receivers:
   k8sobjects/resource_catalog:
@@ -2039,6 +2057,14 @@ service:
     logs/resource_catalog:
       exporters:
         - coralogix/resource_catalog
+        {{- if .Values.global.additionalEndpoints }}
+        {{- range $endpoint := .Values.global.additionalEndpoints }}
+        {{- if eq $endpoint.enabled true }}
+        {{- $sanitizedDomain := $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
+        - coralogix/resource_catalog_{{ $sanitizedDomain }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
       processors:
         - memory_limiter
         - resourcedetection/resource_catalog
@@ -2085,6 +2111,24 @@ exporters:
       headers:
         X-Coralogix-Distribution: "{{ if eq .Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq .Values.distribution "standalone" }}helm-otel-standalone{{ else }}helm-otel-integration{{ end }}/{{ .Values.global.version }}"
         x-coralogix-ingress: "metadata-as-otlp-logs/v1"
+{{- if .Values.global.additionalEndpoints }}
+{{- range $endpoint := .Values.global.additionalEndpoints }}
+  {{- if eq $endpoint.enabled true }}
+  {{- $sanitizedDomain := $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
+  {{- $exporterName := printf "coralogix/resource_catalog_%s" $sanitizedDomain }}
+  {{ $exporterName }}:
+    timeout: "30s"
+    private_key: "{{ $endpoint.privateKey }}"
+    domain: "{{ $endpoint.domain }}"
+    application_name: "resource"
+    subsystem_name: "catalog"
+    logs:
+      headers:
+        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else }}helm-otel-integration{{ end }}/{{ $.Values.global.version }}"
+        x-coralogix-ingress: "metadata-as-otlp-logs/v1"
+  {{- end }}
+{{- end }}
+{{- end }}
 
 processors:
   resourcedetection/entity:
@@ -2128,6 +2172,14 @@ service:
     logs/resource_catalog:
       exporters:
         - coralogix/resource_catalog
+        {{- if .Values.global.additionalEndpoints }}
+        {{- range $endpoint := .Values.global.additionalEndpoints }}
+        {{- if eq $endpoint.enabled true }}
+        {{- $sanitizedDomain := $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
+        - coralogix/resource_catalog_{{ $sanitizedDomain }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
       processors:
         - memory_limiter
         - resource/metadata
