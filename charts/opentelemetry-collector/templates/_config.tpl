@@ -37,6 +37,18 @@ Merge user supplied config into memory limiter config.
 {{- end }}
 
 {{/*
+Calculate exporter suffix from endpoint configuration.
+Returns the endpoint name if provided, otherwise sanitizes the domain.
+*/}}
+{{- define "opentelemetry-collector.getExporterSuffix" -}}
+{{- if .name }}
+{{- .name }}
+{{- else }}
+{{- .domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
+{{- end }}
+{{- end }}
+
+{{/*
 Build config file for daemonset OpenTelemetry Collector
 */}}
 {{- define "opentelemetry-collector.daemonsetConfig" -}}
@@ -1337,12 +1349,7 @@ processors:
 {{- if .Values.Values.global.additionalEndpoints }}
 {{- range $endpoint := .Values.Values.global.additionalEndpoints }}
   {{- if eq $endpoint.enabled true }}
-    {{- $exporterSuffix := "" }}
-    {{- if $endpoint.name }}
-      {{- $exporterSuffix = $endpoint.name }}
-    {{- else }}
-      {{- $exporterSuffix = $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
-    {{- end }}
+    {{- $exporterSuffix := include "opentelemetry-collector.getExporterSuffix" $endpoint }}
     {{- $extensionName := printf "opamp/%s" $exporterSuffix }}
     {{- if and ($config.service.extensions) (not (has $extensionName $config.service.extensions)) }}
       {{- $_ := set $config.service "extensions" (append $config.service.extensions $extensionName | uniq) }}
@@ -1370,12 +1377,7 @@ extensions:
 {{- if .Values.global.additionalEndpoints }}
 {{- range $endpoint := .Values.global.additionalEndpoints }}
   {{- if eq $endpoint.enabled true }}
-    {{- $exporterSuffix := "" }}
-    {{- if $endpoint.name }}
-      {{- $exporterSuffix = $endpoint.name }}
-    {{- else }}
-      {{- $exporterSuffix = $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
-    {{- end }}
+    {{- $exporterSuffix := include "opentelemetry-collector.getExporterSuffix" $endpoint }}
     opamp/{{ $exporterSuffix }}:
       server:
         http:
@@ -1955,12 +1957,7 @@ exporters:
 {{- if .Values.global.additionalEndpoints }}
 {{- range $endpoint := .Values.global.additionalEndpoints }}
   {{- if eq $endpoint.enabled true }}
-  {{- $exporterSuffix := "" }}
-  {{- if $endpoint.name }}
-    {{- $exporterSuffix = $endpoint.name }}
-  {{- else }}
-    {{- $exporterSuffix = $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
-  {{- end }}
+  {{- $exporterSuffix := include "opentelemetry-collector.getExporterSuffix" $endpoint }}
   {{- $exporterName := printf "coralogix/resource_catalog_%s" $exporterSuffix }}
   {{ $exporterName }}:
     timeout: "30s"
@@ -2106,12 +2103,7 @@ service:
         {{- if .Values.global.additionalEndpoints }}
         {{- range $endpoint := .Values.global.additionalEndpoints }}
         {{- if eq $endpoint.enabled true }}
-        {{- $exporterSuffix := "" }}
-        {{- if $endpoint.name }}
-          {{- $exporterSuffix = $endpoint.name }}
-        {{- else }}
-          {{- $exporterSuffix = $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
-        {{- end }}
+        {{- $exporterSuffix := include "opentelemetry-collector.getExporterSuffix" $endpoint }}
         - coralogix/resource_catalog_{{ $exporterSuffix }}
         {{- end }}
         {{- end }}
@@ -2165,12 +2157,7 @@ exporters:
 {{- if .Values.global.additionalEndpoints }}
 {{- range $endpoint := .Values.global.additionalEndpoints }}
   {{- if eq $endpoint.enabled true }}
-  {{- $exporterSuffix := "" }}
-  {{- if $endpoint.name }}
-    {{- $exporterSuffix = $endpoint.name }}
-  {{- else }}
-    {{- $exporterSuffix = $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
-  {{- end }}
+  {{- $exporterSuffix := include "opentelemetry-collector.getExporterSuffix" $endpoint }}
   {{- $exporterName := printf "coralogix/resource_catalog_%s" $exporterSuffix }}
   {{ $exporterName }}:
     timeout: "30s"
@@ -2231,12 +2218,7 @@ service:
         {{- if .Values.global.additionalEndpoints }}
         {{- range $endpoint := .Values.global.additionalEndpoints }}
         {{- if eq $endpoint.enabled true }}
-        {{- $exporterSuffix := "" }}
-        {{- if $endpoint.name }}
-          {{- $exporterSuffix = $endpoint.name }}
-        {{- else }}
-          {{- $exporterSuffix = $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
-        {{- end }}
+        {{- $exporterSuffix := include "opentelemetry-collector.getExporterSuffix" $endpoint }}
         - coralogix/resource_catalog_{{ $exporterSuffix }}
         {{- end }}
         {{- end }}
