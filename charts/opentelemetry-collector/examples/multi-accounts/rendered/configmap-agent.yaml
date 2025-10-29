@@ -195,7 +195,7 @@ data:
         private_key: ${env:CORALOGIX_PRIVATE_KEY_AP2}
         subsystem_name: catalog
         timeout: 30s
-      coralogix/resource_catalog_eu2_coralogix_com:
+      coralogix/resource_catalog_myeu2:
         application_name: resource
         domain: eu2.coralogix.com
         logs:
@@ -219,6 +219,50 @@ data:
     extensions:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
+      opamp:
+        agent_description:
+          include_resource_attributes: true
+          non_identifying_attributes:
+            helm.chart.opentelemetry-collector.version: 0.121.15
+        server:
+          http:
+            endpoint: https://ingress.coralogix.com/opamp/v1
+            headers:
+              Authorization: Bearer ${env:CORALOGIX_PRIVATE_KEY}
+            polling_interval: 2m
+      opamp/coralogixsg_com:
+        agent_description:
+          include_resource_attributes: true
+          non_identifying_attributes:
+            helm.chart.opentelemetry-collector.version: 0.121.15
+        server:
+          http:
+            endpoint: https://ingress.coralogixsg.com/opamp/v1
+            headers:
+              Authorization: Bearer ${env:CORALOGIX_PRIVATE_KEY_AP2}
+            polling_interval: 2m
+      opamp/myeu2:
+        agent_description:
+          include_resource_attributes: true
+          non_identifying_attributes:
+            helm.chart.opentelemetry-collector.version: 0.121.15
+        server:
+          http:
+            endpoint: https://ingress.eu2.coralogix.com/opamp/v1
+            headers:
+              Authorization: Bearer ${env:CORALOGIX_PRIVATE_KEY_EU2}
+            polling_interval: 2m
+      opamp/private_coralogix_com:
+        agent_description:
+          include_resource_attributes: true
+          non_identifying_attributes:
+            helm.chart.opentelemetry-collector.version: 0.121.15
+        server:
+          http:
+            endpoint: https://ingress.private.coralogix.com/opamp/v1
+            headers:
+              Authorization: Bearer ${env:CORALOGIX_PRIVATE_KEY_US2}
+            polling_interval: 2m
     processors:
       memory_limiter:
         check_interval: 5s
@@ -384,6 +428,10 @@ data:
     service:
       extensions:
       - health_check
+      - opamp
+      - opamp/myeu2
+      - opamp/coralogixsg_com
+      - opamp/private_coralogix_com
       pipelines:
         logs:
           exporters:
@@ -399,7 +447,7 @@ data:
         logs/resource_catalog:
           exporters:
           - coralogix/resource_catalog
-          - coralogix/resource_catalog_eu2_coralogix_com
+          - coralogix/resource_catalog_myeu2
           - coralogix/resource_catalog_coralogixsg_com
           - coralogix/resource_catalog_private_coralogix_com
           processors:

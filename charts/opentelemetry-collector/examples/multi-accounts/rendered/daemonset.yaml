@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 821c2f2cbabe43542ce56b28d386f6a7b82b4f98043b73213206b0f4b3c75d77
+        checksum/config: 3cea7c32b07a170e02e8a24f93dffe2b0a2dec2ceb6f7a25e47f1a787d75cb76
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -59,6 +59,11 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: status.podIP
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
           livenessProbe:
             httpGet:
               path: /

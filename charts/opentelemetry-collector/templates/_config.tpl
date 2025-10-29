@@ -1333,6 +1333,23 @@ processors:
 {{- if and ($config.service.extensions) (not (has "opamp" $config.service.extensions)) }}
 {{- $_ := set $config.service "extensions" (append $config.service.extensions "opamp" | uniq) }}
 {{- end }}
+{{- /* Add additional opamp extensions for each enabled endpoint */ -}}
+{{- if .Values.Values.global.additionalEndpoints }}
+{{- range $endpoint := .Values.Values.global.additionalEndpoints }}
+  {{- if eq $endpoint.enabled true }}
+    {{- $exporterSuffix := "" }}
+    {{- if $endpoint.name }}
+      {{- $exporterSuffix = $endpoint.name }}
+    {{- else }}
+      {{- $exporterSuffix = $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
+    {{- end }}
+    {{- $extensionName := printf "opamp/%s" $exporterSuffix }}
+    {{- if and ($config.service.extensions) (not (has $extensionName $config.service.extensions)) }}
+      {{- $_ := set $config.service "extensions" (append $config.service.extensions $extensionName | uniq) }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
@@ -1350,6 +1367,30 @@ extensions:
         non_identifying_attributes:
         {{- include "opentelemetry-collector.fleetAttributes" . | nindent 10 -}}
         {{- include "opentelemetry-collector.chartMetadataAttributes" . | nindent 10 -}}
+{{- if .Values.global.additionalEndpoints }}
+{{- range $endpoint := .Values.global.additionalEndpoints }}
+  {{- if eq $endpoint.enabled true }}
+    {{- $exporterSuffix := "" }}
+    {{- if $endpoint.name }}
+      {{- $exporterSuffix = $endpoint.name }}
+    {{- else }}
+      {{- $exporterSuffix = $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
+    {{- end }}
+    opamp/{{ $exporterSuffix }}:
+      server:
+        http:
+          endpoint: "https://ingress.{{ $endpoint.domain }}/opamp/v1"
+          polling_interval: 2m
+          headers:
+            Authorization: "Bearer {{ $endpoint.privateKey }}"
+      agent_description:
+        include_resource_attributes: true
+        non_identifying_attributes:
+        {{- include "opentelemetry-collector.fleetAttributes" $ | nindent 10 -}}
+        {{- include "opentelemetry-collector.chartMetadataAttributes" $ | nindent 10 -}}
+  {{- end }}
+{{- end }}
+{{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyK8sResourceAttributesConfig" -}}
@@ -1914,8 +1955,13 @@ exporters:
 {{- if .Values.global.additionalEndpoints }}
 {{- range $endpoint := .Values.global.additionalEndpoints }}
   {{- if eq $endpoint.enabled true }}
-  {{- $sanitizedDomain := $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
-  {{- $exporterName := printf "coralogix/resource_catalog_%s" $sanitizedDomain }}
+  {{- $exporterSuffix := "" }}
+  {{- if $endpoint.name }}
+    {{- $exporterSuffix = $endpoint.name }}
+  {{- else }}
+    {{- $exporterSuffix = $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
+  {{- end }}
+  {{- $exporterName := printf "coralogix/resource_catalog_%s" $exporterSuffix }}
   {{ $exporterName }}:
     timeout: "30s"
     private_key: "{{ $endpoint.privateKey }}"
@@ -2060,8 +2106,13 @@ service:
         {{- if .Values.global.additionalEndpoints }}
         {{- range $endpoint := .Values.global.additionalEndpoints }}
         {{- if eq $endpoint.enabled true }}
-        {{- $sanitizedDomain := $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
-        - coralogix/resource_catalog_{{ $sanitizedDomain }}
+        {{- $exporterSuffix := "" }}
+        {{- if $endpoint.name }}
+          {{- $exporterSuffix = $endpoint.name }}
+        {{- else }}
+          {{- $exporterSuffix = $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
+        {{- end }}
+        - coralogix/resource_catalog_{{ $exporterSuffix }}
         {{- end }}
         {{- end }}
         {{- end }}
@@ -2114,8 +2165,13 @@ exporters:
 {{- if .Values.global.additionalEndpoints }}
 {{- range $endpoint := .Values.global.additionalEndpoints }}
   {{- if eq $endpoint.enabled true }}
-  {{- $sanitizedDomain := $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
-  {{- $exporterName := printf "coralogix/resource_catalog_%s" $sanitizedDomain }}
+  {{- $exporterSuffix := "" }}
+  {{- if $endpoint.name }}
+    {{- $exporterSuffix = $endpoint.name }}
+  {{- else }}
+    {{- $exporterSuffix = $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
+  {{- end }}
+  {{- $exporterName := printf "coralogix/resource_catalog_%s" $exporterSuffix }}
   {{ $exporterName }}:
     timeout: "30s"
     private_key: "{{ $endpoint.privateKey }}"
@@ -2175,8 +2231,13 @@ service:
         {{- if .Values.global.additionalEndpoints }}
         {{- range $endpoint := .Values.global.additionalEndpoints }}
         {{- if eq $endpoint.enabled true }}
-        {{- $sanitizedDomain := $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
-        - coralogix/resource_catalog_{{ $sanitizedDomain }}
+        {{- $exporterSuffix := "" }}
+        {{- if $endpoint.name }}
+          {{- $exporterSuffix = $endpoint.name }}
+        {{- else }}
+          {{- $exporterSuffix = $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
+        {{- end }}
+        - coralogix/resource_catalog_{{ $exporterSuffix }}
         {{- end }}
         {{- end }}
         {{- end }}
