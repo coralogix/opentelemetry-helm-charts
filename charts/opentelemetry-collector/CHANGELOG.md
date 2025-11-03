@@ -2,7 +2,7 @@
 
 ## OpenTelemetry Collector
 
-### v0.122.0 / 2025-11-03
+### v0.121.17 / 2025-11-03
 - [Feat] Allow `filelogMulti` preset receivers to configure multiline log parsing.
 
 ### v0.121.16 / 2025-10-29
