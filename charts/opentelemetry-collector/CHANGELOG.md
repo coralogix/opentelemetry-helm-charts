@@ -2,6 +2,9 @@
 
 ## OpenTelemetry Collector
 
+### v0.123.1 / 2025-11-06
+- [Feature] Add `deployment.environment.name` resource attribute
+
 ### v0.123.0 / 2025-11-05
 - [CHORE] Revert Collector to 0.137.0
 
@@ -45,7 +48,7 @@
 
 ### v0.121.6 / 2025-10-15
 - [FIX] compact metrics unit name change. compact_duration_count -> compact_duration_ms_count, compact_duration_sum -> compact_duration_ms_sum, db_compact_duration_count -> db_compact_duration_ms_count, compact_duration_sum -> compact_duration_ms_sum
-git 
+git
 ### v0.121.5 / 2025-10-15
 - [Feat] Allow configuring resource detection detectors for environment and cloud metadata.
 
