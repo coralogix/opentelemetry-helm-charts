@@ -1248,6 +1248,9 @@ processors:
       - key: k8s.cluster.name
         value: "{{ .Values.presets.metadata.clusterName }}"
         action: upsert
+      - key: deployment.environment.name
+        value: "{{ .Values.presets.metadata.clusterName }}"
+        action: upsert
       {{- end }}
       {{- if .Values.presets.metadata.integrationName }}
       - key: cx.otel_integration.name
@@ -1656,14 +1659,14 @@ processors:
     trace_statements:
       - context: resource
         statements:
-          - keep_keys(attributes, ["service.name", "k8s.cluster.name", "host.name"])
+          - keep_keys(attributes, ["service.name", "deployment.environment.name", "host.name"])
 {{- end }}
 {{- if .Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled }}
   transform/db_compact:
     trace_statements:
       - context: resource
         statements:
-          - keep_keys(attributes, ["service.name", "k8s.cluster.name", "host.name"])
+          - keep_keys(attributes, ["service.name", "deployment.environment.name", "host.name"])
       - context: span
         statements:
           - keep_keys(attributes, ["db.namespace", "db.system"])
@@ -2357,7 +2360,7 @@ exporters:
 
 {{- define "opentelemetry-collector.coralogixExporterConfig" -}}
 {{- $endpoints := list }}
-{{- $mainEndpoint := dict 
+{{- $mainEndpoint := dict
     "name" "coralogix"
     "domain" (.Values.presets.coralogixExporter.domain | default .Values.global.domain)
     "privateKey" .Values.presets.coralogixExporter.privateKey
@@ -2377,7 +2380,7 @@ exporters:
         {{- $sanitizedDomain := $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
         {{- $exporterName = printf "coralogix/%s" $sanitizedDomain }}
       {{- end }}
-      {{- $endpointConfig := dict 
+      {{- $endpointConfig := dict
           "name" $exporterName
           "domain" $endpoint.domain
           "privateKey" $endpoint.privateKey
