@@ -15,29 +15,26 @@ metadata:
 data:
   relay: |
     exporters:
-      debug: null
+      nop: null
     receivers:
-      otlp:
-        protocols:
-          grpc: null
-          http: null
+      nop: null
     service:
       pipelines:
         logs:
           exporters:
-          - debug
+          - nop
           receivers:
-          - otlp
+          - nop
         metrics:
           exporters:
-          - debug
+          - nop
           receivers:
-          - otlp
+          - nop
         traces:
           exporters:
-          - debug
+          - nop
           receivers:
-          - otlp
+          - nop
       telemetry:
         logs:
           encoding: json
