@@ -16,9 +16,6 @@ spike_limit_percentage: 25
 Merge user supplied config into memory limiter config.
 */}}
 {{- define "opentelemetry-collector.baseConfig" -}}
-{{- if and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
-  {{- include "opentelemetry-collector.supervisorCollectorConfig" . }}
-{{- else }}
   {{- $processorsConfig := get .Values.config "processors" }}
   {{- if not $processorsConfig.memory_limiter }}
   {{-   $_ := set $processorsConfig "memory_limiter" (include "opentelemetry-collector.memoryLimiter" . | fromYaml) }}
@@ -37,7 +34,6 @@ Merge user supplied config into memory limiter config.
   {{- end }}
 
   {{- .Values.config | toYaml }}
-{{- end }}
 {{- end }}
 
 {{/*
@@ -221,6 +217,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- else }}
 {{- if .Values.presets.fleetManagement.enabled }}
 {{- $config = (include "opentelemetry-collector.applyFleetManagementConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
+{{- $config = include "opentelemetry-collector.supervisorCollectorConfig" .  | fromYaml}}
 {{- end }}
 {{- if .Values.extraConfig }}
 {{- $config = (include "opentelemetry-collector.applyExtraConfig" (dict "Values" $data "config" $config) | fromYaml) }}
