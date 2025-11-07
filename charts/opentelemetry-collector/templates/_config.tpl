@@ -41,26 +41,23 @@ Minimal collector config for the supervisor preset.
 */}}
 {{- define "opentelemetry-collector.supervisorCollectorConfig" -}}
 receivers:
-  otlp:
-    protocols:
-      grpc:
-      http:
+  nop:
 exporters:
-  debug:
+  nop:
 service:
   telemetry:
     logs:
       encoding: json
   pipelines:
     traces:
-      receivers: [otlp]
-      exporters: [debug]
+      receivers: [nop]
+      exporters: [nop]
     metrics:
-      receivers: [otlp]
-      exporters: [debug]
+      receivers: [nop]
+      exporters: [nop]
     logs:
-      receivers: [otlp]
-      exporters: [debug]
+      receivers: [nop]
+      exporters: [nop]
 {{- end }}
 
 {{/*
