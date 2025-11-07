@@ -82,8 +82,6 @@ Build config file for daemonset OpenTelemetry Collector
 {{- $values := deepCopy .Values }}
 {{- $data := dict "Values" $values | mustMergeOverwrite (deepCopy .) }}
 {{- $config := include "opentelemetry-collector.baseConfig" $data | fromYaml }}
-{{- $isSupervisorPreset := and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
-{{- if not $isSupervisorPreset }}
 {{- if .Values.presets.ecsLogsCollection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyEcsLogsCollectionConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -142,7 +140,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.reduceResourceAttributes.enabled }}
 {{- $config = (include "opentelemetry-collector.applyReduceResourceAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if .Values.presets.fleetManagement.enabled }}
+{{- if and (.Values.presets.fleetManagement.enabled) (not .Values.presets.fleetManagement.supervisor.enabled) }}
 {{- $config = (include "opentelemetry-collector.applyFleetManagementConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if and (.Values.presets.k8sResourceAttributes.enabled) }}
@@ -214,13 +212,8 @@ Build config file for daemonset OpenTelemetry Collector
 {{- end }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.applyMemoryLimiterProcessorAsFirst" (dict "Values" $data "config" $config) | fromYaml) }}
-{{- else }}
 {{- if and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
-{{- $config = include "opentelemetry-collector.supervisorCollectorConfig" .  | fromYaml}}
-{{- end }}
-{{- if .Values.extraConfig }}
-{{- $config = (include "opentelemetry-collector.applyExtraConfig" (dict "Values" $data "config" $config) | fromYaml) }}
-{{- end }}
+{{- $config = include "opentelemetry-collector.supervisorCollectorConfig" . | fromYaml }}
 {{- end }}
 {{- tpl (toYaml $config) . }}
 {{- end }}
@@ -232,8 +225,6 @@ Build config file for deployment OpenTelemetry Collector
 {{- $values := deepCopy .Values }}
 {{- $data := dict "Values" $values | mustMergeOverwrite (deepCopy .) }}
 {{- $config := include "opentelemetry-collector.baseConfig" $data | fromYaml }}
-{{- $isSupervisorPreset := and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
-{{- if not $isSupervisorPreset }}
 {{- if eq .Values.distribution "eks/fargate" }}
 {{- $config = (include "opentelemetry-collector.applyEksFargateConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -301,7 +292,7 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.reduceResourceAttributes.enabled }}
 {{- $config = (include "opentelemetry-collector.applyReduceResourceAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if .Values.presets.fleetManagement.enabled }}
+{{- if and (.Values.presets.fleetManagement.enabled) (not .Values.presets.fleetManagement.supervisor.enabled) }}
 {{- $config = (include "opentelemetry-collector.applyFleetManagementConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.k8sResourceAttributes.enabled }}
@@ -351,13 +342,8 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.applyMemoryLimiterProcessorAsFirst" (dict "Values" $data "config" $config) | fromYaml) }}
-{{- else }}
 {{- if and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
-{{- $config = include "opentelemetry-collector.supervisorCollectorConfig" .  | fromYaml}}
-{{- end }}
-{{- if .Values.extraConfig }}
-{{- $config = (include "opentelemetry-collector.applyExtraConfig" (dict "Values" $data "config" $config) | fromYaml) }}
-{{- end }}
+{{- $config = include "opentelemetry-collector.supervisorCollectorConfig" .  | fromYaml }}
 {{- end }}
 {{- tpl (toYaml $config) . }}
 {{- end }}
