@@ -16,14 +16,6 @@ data:
   relay: |
     exporters:
       debug: null
-    processors:
-      transform/test:
-        error_mode: silent
-        trace_statements:
-        - context: span
-          statements:
-          - set(attributes["http.response.status_code"], attributes["http.status_code"])
-            where attributes["http.response.status_code"] == nil
     receivers:
       otlp:
         protocols:
@@ -44,8 +36,6 @@ data:
         traces:
           exporters:
           - debug
-          processors:
-          - transform/test
           receivers:
           - otlp
       telemetry:
