@@ -42,9 +42,9 @@ Merge user supplied config into memory limiter config.
 
 {{- define "opentelemetry-collector.supervisorCollectorConfig" -}}
 extensions: {}
-receivers: {}
+receivers: [otlp]
 processors: {}
-exporters: {}
+exporters: [debug]
 connectors: {}
 service:
   telemetry:
@@ -52,7 +52,19 @@ service:
       encoding: json
   extensions:
     - opamp
-  pipelines: {}
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [] # Empty for minimal setup
+      exporters: [debug]
+    metrics:
+      receivers: [otlp]
+      processors: [] # Empty for minimal setup
+      exporters: [debug]
+    logs:
+      receivers: [otlp]
+      processors: [] # Empty for minimal setup
+      exporters: [debug]
 {{- end }}
 
 {{/*
@@ -2401,7 +2413,7 @@ exporters:
 
 {{- define "opentelemetry-collector.coralogixExporterConfig" -}}
 {{- $endpoints := list }}
-{{- $mainEndpoint := dict 
+{{- $mainEndpoint := dict
     "name" "coralogix"
     "domain" (.Values.presets.coralogixExporter.domain | default .Values.global.domain)
     "privateKey" .Values.presets.coralogixExporter.privateKey
@@ -2421,7 +2433,7 @@ exporters:
         {{- $sanitizedDomain := $endpoint.domain | replace "https://" "" | replace "http://" "" | replace ":" "_" | replace "/" "_" | replace "." "_" }}
         {{- $exporterName = printf "coralogix/%s" $sanitizedDomain }}
       {{- end }}
-      {{- $endpointConfig := dict 
+      {{- $endpointConfig := dict
           "name" $exporterName
           "domain" $endpoint.domain
           "privateKey" $endpoint.privateKey
