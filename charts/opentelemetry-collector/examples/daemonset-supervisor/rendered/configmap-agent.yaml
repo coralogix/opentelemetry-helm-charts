@@ -14,8 +14,8 @@ metadata:
     
 data:
   relay: |
-    connectors: {}
-    exporters: {}
+    exporters:
+      debug: null
     extensions:
       opamp:
         agent_description:
@@ -39,11 +39,30 @@ data:
           statements:
           - set(attributes["http.response.status_code"], attributes["http.status_code"])
             where attributes["http.response.status_code"] == nil
-    receivers: {}
+    receivers:
+      otlp:
+        protocols:
+          grpc: null
+          http: null
     service:
-      extensions:
-      - opamp
-      pipelines: {}
+      pipelines:
+        logs:
+          exporters:
+          - debug
+          receivers:
+          - otlp
+        metrics:
+          exporters:
+          - debug
+          receivers:
+          - otlp
+        traces:
+          exporters:
+          - debug
+          processors:
+          - transform/test
+          receivers:
+          - otlp
       telemetry:
         logs:
           encoding: json

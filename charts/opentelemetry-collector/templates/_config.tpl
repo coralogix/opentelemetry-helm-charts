@@ -40,30 +40,30 @@ Merge user supplied config into memory limiter config.
 {{- end }}
 {{- end }}
 
+{{/*
+Minimal collector config for the supervisor preset.
+*/}}
 {{- define "opentelemetry-collector.supervisorCollectorConfig" -}}
-extensions: {}
-receivers: [otlp]
-processors: {}
-exporters: [debug]
-connectors: {}
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+exporters:
+  debug:
 service:
   telemetry:
     logs:
       encoding: json
-  extensions:
-    - opamp
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [] # Empty for minimal setup
       exporters: [debug]
     metrics:
       receivers: [otlp]
-      processors: [] # Empty for minimal setup
       exporters: [debug]
     logs:
       receivers: [otlp]
-      processors: [] # Empty for minimal setup
       exporters: [debug]
 {{- end }}
 
