@@ -81,7 +81,7 @@ config:
       logs: null
 ```
 
-The chart also provides several presets, detailed below, to help configure important Kubernetes components. For more details on each component, see [Kubernetes Collector Components](https://opentelemetry.io/docs/kubernetes/collector/components/).
+The chart also provides several presets, detailed below, to help configure importantKubernetes components. For more details on each component, see [Kubernetes Collector Components](https://opentelemetry.io/docs/kubernetes/collector/components/).
 
 ### Configuration for Resource Detection
 
