@@ -558,6 +558,15 @@ Note: Due to Fargate limitations, these options will not work:
 - `presets.hostMetrics`
 - `presets.logsCollection` (container log collection via hostPath mounts)
 
+### Configuration for Fleet Management
+
+When the the Supervisor preset is enabled (`presets.fleetManagement.supervisor.enabled` is `true`), by default
+the chart will deploy a minimal Collector configuration that connects to the Coralogix Fleet Manager. This
+configuration will not include any other enabled preset, processors, exporters, etc.
+
+To override this behavior and retain the Collector configuration according to the enabled presets, set the
+`presets.fleetManagement.minimalCollectorConfig` to `false`.
+
 ## CRDs
 
 At this time, Prometheus CRDs are supported but other CRDs are not.
