@@ -792,15 +792,29 @@
           "additionalProperties": false,
           "properties": {
             "enabled": {
-              "description": "Specifies whether the collector should collect extra K8s metrics.",
+              "description": "Specifies whether the collector should collect cAdvisor metrics from Kubernetes nodes.",
               "type": "boolean"
             },
             "perNode": {
-              "description": "Each opentelemetry agent collects metrics for the node it runs on.",
+              "description": "When true, each opentelemetry agent collects metrics for the node it runs on. When false, scrapes cAdvisor from all nodes.",
               "type": "boolean"
             },
             "scrapeAll": {
-              "description": "When false (default), collects only fs and cfs throttling metrics. When true, collect all metrics.",
+              "description": "When false (default), collects only fs and cfs throttling metrics. When true, collect all cAdvisor metrics.",
+              "type": "boolean"
+            }
+          }
+        },
+        "kubernetesApiServerMetrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether the collector should collect Kubernetes API server metrics. (e.g., kubernetes_build_info).",
+              "type": "boolean"
+            },
+            "scrapeAll": {
+              "description": "When false (default), collects only kubernetes_build_info metric. When true, collect all API server metrics.",
               "type": "boolean"
             }
           }

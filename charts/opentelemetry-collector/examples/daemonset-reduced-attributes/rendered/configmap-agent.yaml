@@ -6,10 +6,10 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.125.6
+    helm.sh/chart: opentelemetry-collector-0.124.6
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "0.140.1"
+    app.kubernetes.io/version: "0.137.0"
     app.kubernetes.io/managed-by: Helm
     
 data:
@@ -36,8 +36,6 @@ data:
       filter/k8s_extra_metrics:
         metrics:
           metric:
-          - resource.attributes["service.name"] == "kubernetes-apiserver" and name !=
-            "kubernetes_build_info"
           - resource.attributes["service.name"] == "kubernetes-cadvisor" and (name !=
             "container_fs_writes_total" and name != "container_fs_reads_total" and name
             != "container_fs_writes_bytes_total" and name != "container_fs_reads_bytes_total"
@@ -91,7 +89,6 @@ data:
           - k8s.pod.name
           - k8s.node.name
           - container.id
-          - k8s.container.name
           otel_annotations: true
         filter:
           node_from_env_var: K8S_NODE_NAME
@@ -650,6 +647,15 @@ data:
           receivers:
           - receiver_creator/mysql
           - prometheus/k8s_extra_metrics
+          - otlp
+        profiles:
+          exporters: []
+          processors:
+          - memory_limiter
+          - k8sattributes/profiles
+          - resource/metadata
+          - transform/profiles
+          receivers:
           - otlp
         traces:
           exporters:

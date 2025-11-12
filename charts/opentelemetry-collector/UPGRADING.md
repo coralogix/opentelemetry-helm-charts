@@ -16,6 +16,12 @@ created but the Memory Ballast Extension will still be removed.
 Depending on the progress made in [Issue 891](https://github.com/open-telemetry/opentelemetry-helm-charts/issues/891),
 the use of `GOMEMLIMIT` may completely replace the Memory Ballast Extension in the future.
 
+## 0.124.6 and above
+
+The `kubernetesExtraMetrics` preset has been split into two separate presets:
+- `kubernetesExtraMetrics`: Now only handles cAdvisor metrics scraping and is enabled by default on agents
+- `kubernetesApiServerMetrics`: New preset for Kubernetes API server metrics scraping that is enabled by default on the cluster-collector
+
 ## 0.75.1 to 0.76.0
 
 Enable the `useGOMEMLIMIT` feature flag by default. This means by default the chart now does not use the Memory Ballast Extension and any custom configuraiton applied to the Memory Ballast Extension is ignored.

@@ -6,10 +6,10 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.125.6
+    helm.sh/chart: opentelemetry-collector-0.124.6
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "0.140.1"
+    app.kubernetes.io/version: "0.137.0"
     app.kubernetes.io/managed-by: Helm
     
 spec:
@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 60447151df298b319e8d151b1a5fbd642c48d4a8e1bd3b9b2c9bb9463e1dfe69
+        checksum/config: e075763b999c7b0d36f3c834c6c51dd210c12c95c462ef3f9865a08720afbdb0
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -42,7 +42,7 @@ spec:
             - --config=/etc/otelcol-contrib/supervisor.yaml
           securityContext:
             {}
-          image: "cgx.jfrog.io/coralogix-docker-images/otel-supervised-collector:0.129.1"
+          image: "coralogixrepo/otel-supervised-collector:0.129.1"
           imagePullPolicy: IfNotPresent
           ports:
             - name: otlp
@@ -74,7 +74,7 @@ spec:
                   apiVersion: v1
                   fieldPath: status.hostIP
             - name: OTEL_RESOURCE_ATTRIBUTES
-              value: "k8s.node.name=$(K8S_NODE_NAME),deployment.environment.name=douglas-kind-test"
+              value: "k8s.node.name=$(K8S_NODE_NAME)"
             - name: KUBE_NODE_NAME
               valueFrom:
                 fieldRef:

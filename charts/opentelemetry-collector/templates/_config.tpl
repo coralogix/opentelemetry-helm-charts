@@ -117,6 +117,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.kubernetesExtraMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyKubernetesExtraMetrics" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.kubernetesApiServerMetrics.enabled }}
+{{- $config = (include "opentelemetry-collector.applyKubernetesApiServerMetrics" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.clusterMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyClusterMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -267,6 +270,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.kubernetesExtraMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyKubernetesExtraMetrics" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.kubernetesApiServerMetrics.enabled }}
+{{- $config = (include "opentelemetry-collector.applyKubernetesApiServerMetrics" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.metadata.enabled }}
 {{- $config = (include "opentelemetry-collector.applyMetadataConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -1127,9 +1133,12 @@ service:
 {{- end }}
 
 {{- define "opentelemetry-collector.applyKubernetesExtraMetrics" -}}
-{{- $config := mustMergeOverwrite (include "opentelemetry-collector.kubernetesExtraMetricsConfig" .Values | fromYaml) .config }}
+{{- $scrapeAll := .Values.Values.presets.kubernetesExtraMetrics.scrapeAll | default false }}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.kubernetesExtraMetricsConfig" (dict "Values" .Values.Values "scrapeAll" $scrapeAll) | fromYaml) .config }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus/k8s_extra_metrics" | uniq)  }}
+{{- if not $scrapeAll }}
 {{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "filter/k8s_extra_metrics" | uniq)  }}
+{{- end }}
 {{- $_ := set $config.service "extensions" (append $config.service.extensions "k8s_observer" | uniq)  }}
 {{- $config | toYaml }}
 {{- end }}
@@ -1155,6 +1164,54 @@ receivers:
           ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
           insecure_skip_verify: true
       {{- else }}
+      - job_name: kubernetes-cadvisor
+        honor_timestamps: true
+        metrics_path: /metrics/cadvisor
+        scheme: https
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: true
+        kubernetes_sd_configs:
+        - role: node
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+      {{- end }}
+{{- $scrapeAll := default false .scrapeAll }}
+{{- if not $scrapeAll }}
+processors:
+  filter/k8s_extra_metrics:
+    metrics:
+      metric:
+        - 'resource.attributes["service.name"] == "kubernetes-cadvisor" and
+          (name != "container_fs_writes_total" and name != "container_fs_reads_total" and
+          name != "container_fs_writes_bytes_total" and name != "container_fs_reads_bytes_total" and
+          name != "container_fs_usage_bytes" and name != "container_cpu_cfs_throttled_periods_total" and
+          name != "container_cpu_cfs_periods_total")'
+{{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyKubernetesApiServerMetrics" -}}
+{{- $scrapeAll := .Values.Values.presets.kubernetesApiServerMetrics.scrapeAll | default false }}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.kubernetesApiServerMetricsConfig" (dict "Values" .Values.Values "scrapeAll" $scrapeAll) | fromYaml) .config }}
+{{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus/k8s_apiserver_metrics" | uniq)  }}
+{{- if not $scrapeAll }}
+{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "filter/k8s_apiserver_metrics" | uniq)  }}
+{{- end }}
+{{- $_ := set $config.service "extensions" (append $config.service.extensions "k8s_observer" | uniq)  }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.kubernetesApiServerMetricsConfig" -}}
+extensions:
+  k8s_observer:
+    auth_type: serviceAccount
+    observe_pods: true
+receivers:
+  prometheus/k8s_apiserver_metrics:
+    config:
+      scrape_configs:
       - job_name: kubernetes-apiserver
         honor_timestamps: true
         scheme: https
@@ -1173,34 +1230,14 @@ receivers:
               ]
             action: keep
             regex: default;kubernetes;https
-      - job_name: kubernetes-cadvisor
-        honor_timestamps: true
-        metrics_path: /metrics/cadvisor
-        scheme: https
-        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-        tls_config:
-          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-          insecure_skip_verify: true
-        kubernetes_sd_configs:
-        - role: node
-        relabel_configs:
-          - action: labelmap
-            regex: __meta_kubernetes_node_label_(.+)
-      {{- end }}
+{{- $scrapeAll := default false .scrapeAll }}
+{{- if not $scrapeAll }}
 processors:
-  filter/k8s_extra_metrics:
+  filter/k8s_apiserver_metrics:
     metrics:
       metric:
-        {{- if .Values.presets.kubernetesExtraMetrics.scrapeAll }}
         - 'resource.attributes["service.name"] == "kubernetes-apiserver" and name != "kubernetes_build_info"'
-        {{- else }}
-        - 'resource.attributes["service.name"] == "kubernetes-apiserver" and name != "kubernetes_build_info"'
-        - 'resource.attributes["service.name"] == "kubernetes-cadvisor" and
-          (name != "container_fs_writes_total" and name != "container_fs_reads_total" and
-          name != "container_fs_writes_bytes_total" and name != "container_fs_reads_bytes_total" and
-          name != "container_fs_usage_bytes" and name != "container_cpu_cfs_throttled_periods_total" and
-          name != "container_cpu_cfs_periods_total")'
-        {{- end }}
+{{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyMysqlConfig" -}}

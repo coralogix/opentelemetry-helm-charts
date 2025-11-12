@@ -6,10 +6,10 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.125.6
+    helm.sh/chart: opentelemetry-collector-0.124.6
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "0.140.1"
+    app.kubernetes.io/version: "0.137.0"
     app.kubernetes.io/managed-by: Helm
     
 spec:
@@ -26,7 +26,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: ff71e8a1b429d2cb1a031e6ba21878e6463ce08cf0fb95a1d46535bac04ee4b2
+        checksum/config: e90f2ec2fc6df1bac196382a8ccea2602d58e197d8493f791220ee06c5b42287
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -57,7 +57,7 @@ spec:
             - --config=/conf/relay.yaml
           securityContext:
             {}
-          image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.140.1"
+          image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.137.0"
           imagePullPolicy: IfNotPresent
           ports:
             - name: metrics
@@ -82,7 +82,7 @@ spec:
             - name: GOMEMLIMIT
               value: "1638MiB"
             - name: OTEL_RESOURCE_ATTRIBUTES
-              value: "k8s.node.name=$(K8S_NODE_NAME),deployment.environment.name=my-eks-fargate-cluster"
+              value: "k8s.node.name=$(K8S_NODE_NAME)"
             - name: KUBE_NODE_NAME
               valueFrom:
                 fieldRef:
