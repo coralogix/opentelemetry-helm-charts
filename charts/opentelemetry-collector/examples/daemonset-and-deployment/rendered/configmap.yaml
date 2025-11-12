@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.121.16
+    helm.sh/chart: opentelemetry-collector-0.121.17
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.137.0"
@@ -22,17 +22,23 @@ data:
       k8s_observer:
         auth_type: serviceAccount
         observe_pods: true
+      opamp:
+        agent_description:
+          include_resource_attributes: true
+          non_identifying_attributes:
+            helm.chart.opentelemetry-collector.version: 0.121.17
+        server:
+          http:
+            endpoint: https://ingress./opamp/v1
+            headers:
+              Authorization: Bearer ${env:CORALOGIX_PRIVATE_KEY}
+            polling_interval: 2m
     processors:
-      filter/k8s_extra_metrics:
+      filter/k8s_apiserver_metrics:
         metrics:
           metric:
           - resource.attributes["service.name"] == "kubernetes-apiserver" and name !=
             "kubernetes_build_info"
-          - resource.attributes["service.name"] == "kubernetes-cadvisor" and (name !=
-            "container_fs_writes_total" and name != "container_fs_reads_total" and name
-            != "container_fs_writes_bytes_total" and name != "container_fs_reads_bytes_total"
-            and name != "container_fs_usage_bytes" and name != "container_cpu_cfs_throttled_periods_total"
-            and name != "container_cpu_cfs_periods_total")
       memory_limiter:
         check_interval: 5s
         limit_percentage: 80
@@ -123,7 +129,7 @@ data:
             static_configs:
             - targets:
               - ${env:MY_POD_IP}:8888
-      prometheus/k8s_extra_metrics:
+      prometheus/k8s_apiserver_metrics:
         config:
           scrape_configs:
           - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
@@ -142,23 +148,11 @@ data:
             tls_config:
               ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
               insecure_skip_verify: true
-          - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
-            honor_timestamps: true
-            job_name: kubernetes-cadvisor
-            kubernetes_sd_configs:
-            - role: node
-            metrics_path: /metrics/cadvisor
-            relabel_configs:
-            - action: labelmap
-              regex: __meta_kubernetes_node_label_(.+)
-            scheme: https
-            tls_config:
-              ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-              insecure_skip_verify: true
     service:
       extensions:
       - health_check
       - k8s_observer
+      - opamp
       pipelines:
         logs:
           exporters:
@@ -174,10 +168,10 @@ data:
           - memory_limiter
           - resourcedetection/region
           - resourcedetection/env
-          - filter/k8s_extra_metrics
+          - filter/k8s_apiserver_metrics
           - transform/prometheus
           receivers:
-          - prometheus/k8s_extra_metrics
+          - prometheus/k8s_apiserver_metrics
           - prometheus
           - otlp
         traces:

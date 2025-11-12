@@ -295,12 +295,22 @@ presets:
     customMetrics:
       enabled: false
 
-  # Configures the collector to collect extra Kubernetes metrics, such as pod status and Kubernetes API version.
-  # Best used with mode = deployment or statefulset
+  # Configures the collector to collect cAdvisor metrics from Kubernetes nodes.
+  # When perNode is true (agent/daemonset mode), scrapes only the local node's cAdvisor.
+  # When perNode is false (cluster-collector mode), scrapes cAdvisor from all nodes.
+  # Best used with mode = daemonset for perNode: true.
   kubernetesExtraMetrics:
     enabled: false
-    # When false (default), collects only fs and cfs throttling metrics. When true, collect all metrics.
+    # When true, scrapes only the local node (for daemonset/agent mode). When false, scrapes all nodes.
+    perNode: false
+    # When false (default), collects only fs and cfs throttling metrics. When true, collect all cAdvisor metrics.
     scrapeAll: false
+
+  # Configures the collector to collect Kubernetes API server metrics.
+  # Best used with mode = deployment or statefulset (cluster-collector).
+  # This preset only scrapes the API server.
+  kubernetesApiServerMetrics:
+    enabled: false
 
   # Configures the collector to add k8s.cluster.name and cx.otel_integration.name
   # to metrics
@@ -681,7 +691,7 @@ presets:
     enabled: false
   # Configures the collector to communicate with the remote Coralogix fleet management service.
   fleetManagement:
-    enabled: false
+    enabled: true
     # IMPORTANT: The `supervisor` preset is in alpha stage and under heavy development.
     # It's not recommended for use in production environments.
     # Support will be provided only when it reaches a stable release.

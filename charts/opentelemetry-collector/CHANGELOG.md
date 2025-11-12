@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.121.17 / 2025-11-12
+- [Feat] Add `kubernetesApiServerMetrics` preset to scrape Kubernetes API server metrics separately from cAdvisor metrics.
+- [Breaking] Split `kubernetesExtraMetrics` preset: now only handles cAdvisor metrics scraping. API server scraping moved to `kubernetesApiServerMetrics` preset.
+
 ### v0.121.16 / 2025-10-29
 - [Feat] extend opamp extension and resource catalog exporter to support additional endpoints.
 

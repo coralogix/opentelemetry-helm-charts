@@ -4,7 +4,7 @@ global:
   deploymentEnvironmentName: test
 
 presets:
-  kubernetesExtraMetrics:
+  kubernetesApiServerMetrics:
     enabled: true
   collectorMetrics:
     enabled: true
