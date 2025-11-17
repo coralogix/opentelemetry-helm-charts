@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.121.17
+    helm.sh/chart: opentelemetry-collector-0.124.6
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.137.0"
@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: ed9b1bda46c66f6cf08bbba5bbc3a3f8059dc57f71670a158abbb1c514f916f2
+        checksum/config: 615a2de394bc7776ba877b5f18667c4175754deaaa213c64435a7ff534baa7d3
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -59,11 +59,6 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: status.podIP
-            - name: KUBE_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: spec.nodeName
           livenessProbe:
             httpGet:
               path: /

@@ -1122,7 +1122,9 @@ processors:
 {{- define "opentelemetry-collector.applyKubernetesApiServerMetrics" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.kubernetesApiServerMetricsConfig" .Values | fromYaml) .config }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus/k8s_apiserver_metrics" | uniq)  }}
+{{- if not .Values.presets.kubernetesApiServerMetrics.scrapeAll }}
 {{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "filter/k8s_apiserver_metrics" | uniq)  }}
+{{- end }}
 {{- $_ := set $config.service "extensions" (append $config.service.extensions "k8s_observer" | uniq)  }}
 {{- $config | toYaml }}
 {{- end }}
@@ -1154,11 +1156,13 @@ receivers:
               ]
             action: keep
             regex: default;kubernetes;https
+{{- if not .Values.presets.kubernetesApiServerMetrics.scrapeAll }}
 processors:
   filter/k8s_apiserver_metrics:
     metrics:
       metric:
         - 'resource.attributes["service.name"] == "kubernetes-apiserver" and name != "kubernetes_build_info"'
+{{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyMysqlConfig" -}}

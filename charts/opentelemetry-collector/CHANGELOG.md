@@ -6,7 +6,6 @@
 - [Feat] Add `kubernetesApiServerMetrics` preset to scrape Kubernetes API server metrics separately from cAdvisor metrics.
 - [Breaking] Split `kubernetesExtraMetrics` preset: now only handles cAdvisor metrics scraping. API server scraping moved to `kubernetesApiServerMetrics` preset.
 
-
 ### v0.124.5 / 2025-11-16
 
 - [Fix] Remove pipelines that have no exporters after presets are applied so limiting `presets.coralogixExporter.pipelines` to a subset no longer leaves invalid empty pipelines.

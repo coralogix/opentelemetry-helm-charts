@@ -786,6 +786,10 @@
             "enabled": {
               "description": "Specifies whether the collector should collect Kubernetes API server metrics. (e.g., kubernetes_build_info).",
               "type": "boolean"
+            },
+            "scrapeAll": {
+              "description": "When false (default), collects only kubernetes_build_info metric. When true, collect all API server metrics.",
+              "type": "boolean"
             }
           }
         },

@@ -311,6 +311,8 @@ presets:
   # This preset only scrapes the API server.
   kubernetesApiServerMetrics:
     enabled: false
+    # When false (default), collects only kubernetes_build_info metric. When true, collect all API server metrics.
+    scrapeAll: false
 
   # Configures the collector to add k8s.cluster.name and cx.otel_integration.name
   # to metrics
