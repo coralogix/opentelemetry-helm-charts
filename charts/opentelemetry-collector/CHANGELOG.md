@@ -2,9 +2,39 @@
 
 ## OpenTelemetry Collector
 
-### v0.121.17 / 2025-11-12
+### v0.124.6 / 2025-11-17
 - [Feat] Add `kubernetesApiServerMetrics` preset to scrape Kubernetes API server metrics separately from cAdvisor metrics.
 - [Breaking] Split `kubernetesExtraMetrics` preset: now only handles cAdvisor metrics scraping. API server scraping moved to `kubernetesApiServerMetrics` preset.
+
+
+### v0.124.5 / 2025-11-16
+
+- [Fix] Remove pipelines that have no exporters after presets are applied so limiting `presets.coralogixExporter.pipelines` to a subset no longer leaves invalid empty pipelines.
+
+### v0.124.4 / 2025-11-13
+
+- [Fix] Use new container image in the Supervisor preset hosted in Coralogix' JFrog instance.
+
+### v0.124.3 / 2025-11-12
+- [Fix] Default `deployment.environment.name` to `global.clusterName` when the resource detection preset's `deploymentEnvironmentName` stays empty and preserve it when span metrics' compact pipelines drop resource keys so the cluster identity remains set.
+
+### v0.124.2 / 2025-11-11
+- [Fix] Keep compact spanmetrics and database histograms by default by setting `dropHistogram` to `false`.
+
+### v0.124.1 / 2025-11-07
+- [Feat] Make the `fleetManagement.supervisor` preset ship a minimal collector config that only wires the OpAMP extension so the supervisor can connect to the Coralogix OpAMP backend.
+
+### v0.4.0 / 2025-11-07
+- [Feat] Allow setting custom non-identifying attributes for both supervisor and OpAMP extensions via `fleetManagement.customAttributes` preset.
+
+### v0.123.0 / 2025-11-05
+- [CHORE] Revert Collector to 0.137.0
+
+### v0.122.0 / 2025-11-05
+- [CHORE] Bump Collector to 0.139.0
+
+### v0.121.17 / 2025-11-03
+- [Feat] Allow `filelogMulti` preset receivers to configure multiline log parsing.
 
 ### v0.121.16 / 2025-10-29
 - [Feat] extend opamp extension and resource catalog exporter to support additional endpoints.
@@ -40,7 +70,7 @@
 
 ### v0.121.6 / 2025-10-15
 - [FIX] compact metrics unit name change. compact_duration_count -> compact_duration_ms_count, compact_duration_sum -> compact_duration_ms_sum, db_compact_duration_count -> db_compact_duration_ms_count, compact_duration_sum -> compact_duration_ms_sum
-git 
+
 ### v0.121.5 / 2025-10-15
 - [Feat] Allow configuring resource detection detectors for environment and cloud metadata.
 
