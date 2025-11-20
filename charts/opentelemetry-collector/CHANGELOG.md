@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.124.7 / 2025-11-20
+
+- [Feature] Add `k8s.container.name` to profile attributes when `profilesCollection` preset is enabled.
+
 ### v0.124.6 / 2025-11-19
 
 - [Fix] Add the `health_check` extension to the Supervisor minimal Collector configuration.
