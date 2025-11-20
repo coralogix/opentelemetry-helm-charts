@@ -45,7 +45,7 @@ rules:
   {{- end}}
   {{- if or (.Values.presets.kubeletMetrics.enabled) (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesApiServerMetrics.enabled)}}
   - apiGroups: [""]
-    {{- if and (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesExtraMetrics.perNode) }}
+    {{- if and (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesExtraMetrics.perNode) (not .Values.presets.kubernetesApiServerMetrics.enabled) }}
     resources: ["nodes", "nodes/stats", "nodes/metrics"]
     {{- else }}
     resources: ["pods", "endpoints", "nodes/stats", "nodes/metrics", "nodes", "services"]

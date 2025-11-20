@@ -1064,9 +1064,13 @@ service:
 {{- end }}
 
 {{- define "opentelemetry-collector.applyKubernetesExtraMetrics" -}}
-{{- $config := mustMergeOverwrite (include "opentelemetry-collector.kubernetesExtraMetricsConfig" .Values | fromYaml) .config }}
+{{- $preset := get (default (dict) .Values.Values.presets) "kubernetesExtraMetrics" | default (dict) }}
+{{- $scrapeAll := default false $preset.scrapeAll }}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.kubernetesExtraMetricsConfig" (dict "Values" .Values.Values "scrapeAll" $scrapeAll) | fromYaml) .config }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus/k8s_extra_metrics" | uniq)  }}
+{{- if not $scrapeAll }}
 {{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "filter/k8s_extra_metrics" | uniq)  }}
+{{- end }}
 {{- $_ := set $config.service "extensions" (append $config.service.extensions "k8s_observer" | uniq)  }}
 {{- $config | toYaml }}
 {{- end }}
@@ -1106,23 +1110,26 @@ receivers:
           - action: labelmap
             regex: __meta_kubernetes_node_label_(.+)
       {{- end }}
+{{- $scrapeAll := default false .scrapeAll }}
+{{- if not $scrapeAll }}
 processors:
   filter/k8s_extra_metrics:
     metrics:
       metric:
-        {{- if not .Values.presets.kubernetesExtraMetrics.scrapeAll }}
         - 'resource.attributes["service.name"] == "kubernetes-cadvisor" and
           (name != "container_fs_writes_total" and name != "container_fs_reads_total" and
           name != "container_fs_writes_bytes_total" and name != "container_fs_reads_bytes_total" and
           name != "container_fs_usage_bytes" and name != "container_cpu_cfs_throttled_periods_total" and
           name != "container_cpu_cfs_periods_total")'
-        {{- end }}
+{{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyKubernetesApiServerMetrics" -}}
-{{- $config := mustMergeOverwrite (include "opentelemetry-collector.kubernetesApiServerMetricsConfig" .Values | fromYaml) .config }}
+{{- $preset := get (default (dict) .Values.Values.presets) "kubernetesApiServerMetrics" | default (dict) }}
+{{- $scrapeAll := default false $preset.scrapeAll }}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.kubernetesApiServerMetricsConfig" (dict "Values" .Values.Values "scrapeAll" $scrapeAll) | fromYaml) .config }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus/k8s_apiserver_metrics" | uniq)  }}
-{{- if not .Values.presets.kubernetesApiServerMetrics.scrapeAll }}
+{{- if not $scrapeAll }}
 {{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "filter/k8s_apiserver_metrics" | uniq)  }}
 {{- end }}
 {{- $_ := set $config.service "extensions" (append $config.service.extensions "k8s_observer" | uniq)  }}
@@ -1138,6 +1145,7 @@ receivers:
   prometheus/k8s_apiserver_metrics:
     config:
       scrape_configs:
+      # DEBUG: kubernetesApiServerMetrics v0.124.6-no-safe-pattern#3
       - job_name: kubernetes-apiserver
         honor_timestamps: true
         scheme: https
@@ -1156,7 +1164,8 @@ receivers:
               ]
             action: keep
             regex: default;kubernetes;https
-{{- if not .Values.presets.kubernetesApiServerMetrics.scrapeAll }}
+{{- $scrapeAll := default false .scrapeAll }}
+{{- if not $scrapeAll }}
 processors:
   filter/k8s_apiserver_metrics:
     metrics:
