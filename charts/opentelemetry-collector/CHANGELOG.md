@@ -2,9 +2,13 @@
 
 ## OpenTelemetry Collector
 
-### v0.125.1 / 2025-11-25
+### v0.125.2 / 2025-11-25
 
 - [Feature] Add `k8s.container.name` to profile attributes when `profilesCollection` preset is enabled.
+
+### v0.125.1 / 2025-11-25
+
+- [Fix] Fix cluster name rendering in Supervisor configuration.
 
 ### v0.125.0 / 2025-11-21
 
