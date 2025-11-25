@@ -2,9 +2,13 @@
 
 ## OpenTelemetry Collector
 
-### v0.124.7 / 2025-11-20
+### v0.125.1 / 2025-11-25
 
 - [Feature] Add `k8s.container.name` to profile attributes when `profilesCollection` preset is enabled.
+
+### v0.125.0 / 2025-11-21
+
+- [CHORE] Bump Collector to 0.140.1
 
 ### v0.124.6 / 2025-11-19
 
