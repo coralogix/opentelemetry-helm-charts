@@ -2,6 +2,9 @@
 
 ## OpenTelemetry Collector
 
+### v0.125.3 / 2025-11-26
+- [Feat] Add `nodeSelector` option to `targetAllocator` preset.
+
 ### v0.125.2 / 2025-11-25
 
 - [Feature] Add `k8s.container.name` to profile attributes when `profilesCollection` preset is enabled.
