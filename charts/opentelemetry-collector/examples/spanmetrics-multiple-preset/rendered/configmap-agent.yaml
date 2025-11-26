@@ -96,25 +96,10 @@ data:
       redaction/spanname:
         allow_all_keys: true
         db_sanitizer:
-          es:
-            attributes:
-            - db.statement
-            - elasticsearch.body
-            enabled: true
           memcached:
             attributes:
             - db.statement
             - memcached.command
-            enabled: true
-          mongo:
-            attributes:
-            - db.statement
-            - mongodb.query
-            enabled: true
-          opensearch:
-            attributes:
-            - db.statement
-            - opensearch.body
             enabled: true
           redis:
             attributes:

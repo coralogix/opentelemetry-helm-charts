@@ -3,9 +3,11 @@
 ## OpenTelemetry Collector
 
 ### v0.125.4 / 2025-11-26
-- [Feat] Add `nodeSelector` option to `targetAllocator` preset.
+
+- [Change] Narrow default span metrics database sanitization to SQL, Redis, and Memcached statements.
 
 ### v0.125.3 / 2025-11-25
+
 - [Fix] Grant EndpointSlice RBAC permissions when enabling the Kubernetes resolver for the loadbalancing exporter.
 
 ### v0.125.2 / 2025-11-25
