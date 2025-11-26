@@ -2,6 +2,11 @@
 
 ## OpenTelemetry Collector
 
+### v0.125.7 / 2025-11-27
+
+- [Feat] Add `kubernetesApiServerMetrics` preset to scrape Kubernetes API server metrics separately from cAdvisor metrics.
+- [Breaking] Split `kubernetesExtraMetrics` preset: now only handles cAdvisor metrics scraping. API server scraping moved to `kubernetesApiServerMetrics` preset.
+
 ### v0.125.6 / 2025-11-26
 
 - [Change] Disable database statement sanitization in the span metrics sanitization preset by default.

@@ -300,11 +300,23 @@ presets:
     customMetrics:
       enabled: false
 
-  # Configures the collector to collect extra Kubernetes metrics, such as pod status and Kubernetes API version.
-  # Best used with mode = deployment or statefulset
+  # Configures the collector to collect cAdvisor metrics from Kubernetes nodes.
+  # When perNode is true (agent/daemonset mode), scrapes only the local node's cAdvisor.
+  # When perNode is false (cluster-collector mode), scrapes cAdvisor from all nodes.
+  # Best used with mode = daemonset for perNode: true.
   kubernetesExtraMetrics:
     enabled: false
-    # When false (default), collects only fs and cfs throttling metrics. When true, collect all metrics.
+    # When true, scrapes only the local node (for daemonset/agent mode). When false, scrapes all nodes.
+    perNode: false
+    # When false (default), collects only fs and cfs throttling metrics. When true, collect all cAdvisor metrics.
+    scrapeAll: false
+
+  # Configures the collector to collect Kubernetes API server metrics.
+  # Best used with mode = deployment or statefulset (cluster-collector).
+  # This preset only scrapes the API server.
+  kubernetesApiServerMetrics:
+    enabled: false
+    # When false (default), collects only kubernetes_build_info metric. When true, collect all API server metrics.
     scrapeAll: false
 
   # Configures the collector to add k8s.cluster.name and cx.otel_integration.name
