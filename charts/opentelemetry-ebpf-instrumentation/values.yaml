@@ -206,16 +206,21 @@ config:
     #     cloud_zone: prod-eu-west-0
     #     cloud_instance_id: 123456
     #     cloud_api_key:
-    buffer_sizes:
-      http: 2048
-      mysql: 4096
-      postgres: 4096
-    payload_extraction:
-      http:
-        graphql:
-          enabled: true
-    redis_db_cache:
-      enabled: true
+    ebpf:
+      buffer_sizes:
+        http: 2048
+        mysql: 4096
+        postgres: 4096
+      payload_extraction:
+        http:
+          graphql:
+            enabled: true
+          elasticsearch:
+            enabled: true
+          aws:
+            enabled: true
+      redis_db_cache:
+        enabled: true
     otel_traces_export:
       endpoint: "http://${HOST_IP}:4317"
     otel_metrics_export:
