@@ -14,7 +14,7 @@ image:
   repository: open-telemetry/opentelemetry-ebpf-instrumentation/ebpf-instrument
   # -- (string) Opentelemetry eBPF Instrumentation image tag. When empty, the Chart's appVersion is
   # used.
-  tag: v0.1.0
+  tag: v0.2.0
   # -- Opentelemetry eBPF Instrumentation image's SHA256 digest (either in format "sha256:XYZ" or "XYZ"). When set, will override `image.tag`.
   digest: null
   # -- Opentelemetry eBPF Instrumentation image pull policy.
