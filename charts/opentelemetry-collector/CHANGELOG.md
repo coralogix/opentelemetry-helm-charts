@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.125.8 / 2025-12-02
+
+- [Feat] Set `host.name` to pod name for daemonset agents in Fleet Manager UI when `k8sResourceAttributes` preset is enabled. This ensures daemonset agents display the pod name (e.g., `coralogix-opentelemetry-agent-whs52`) instead of the node name in the Fleet Manager UI.
+
 ### v0.125.7 / 2025-12-01
 
 - [Fix] Increase the Supervisor config apply timeout to 30 seconds (previously 5 seconds). This should match the default heartbeat interval.

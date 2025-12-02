@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-supervisor
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.125.7
+    helm.sh/chart: opentelemetry-collector-0.125.8
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.140.1"
@@ -48,6 +48,7 @@ data:
           k8s.namespace.name: "default"
           k8s.node.name: ${env:KUBE_NODE_NAME}
           k8s.pod.name: ${env:KUBE_POD_NAME}
+          host.name: ${env:KUBE_POD_NAME}
           
           cx.agent.type: "agent"
           environment: "production"

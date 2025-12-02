@@ -1441,6 +1441,12 @@ extensions:
       agent_description:
         include_resource_attributes: true
         non_identifying_attributes:
+        {{- if .Values.presets.k8sResourceAttributes.enabled }}
+        {{- include "opentelemetry-collector.k8sResourceAttributes" . | nindent 10 -}}
+        {{- if eq .Values.mode "daemonset" }}
+          host.name: ${env:KUBE_POD_NAME}
+        {{- end }}
+        {{- end }}
         {{- include "opentelemetry-collector.fleetAttributes" . | nindent 10 -}}
         {{- include "opentelemetry-collector.chartMetadataAttributes" . | nindent 10 -}}
 {{- if .Values.global.additionalEndpoints }}
@@ -1457,6 +1463,12 @@ extensions:
       agent_description:
         include_resource_attributes: true
         non_identifying_attributes:
+        {{- if $.Values.presets.k8sResourceAttributes.enabled }}
+        {{- include "opentelemetry-collector.k8sResourceAttributes" $ | nindent 10 -}}
+        {{- if eq $.Values.mode "daemonset" }}
+          host.name: ${env:KUBE_POD_NAME}
+        {{- end }}
+        {{- end }}
         {{- include "opentelemetry-collector.fleetAttributes" $ | nindent 10 -}}
         {{- include "opentelemetry-collector.chartMetadataAttributes" $ | nindent 10 -}}
   {{- end }}

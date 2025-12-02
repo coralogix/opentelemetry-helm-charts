@@ -47,6 +47,9 @@ agent:
     non_identifying_attributes:
     {{- if .Values.presets.k8sResourceAttributes.enabled }}
       {{- include "opentelemetry-collector.k8sResourceAttributes" . | nindent 6 }}
+      {{- if eq .Values.mode "daemonset" }}
+      host.name: ${env:KUBE_POD_NAME}
+      {{- end }}
     {{- end }}
     {{- include "opentelemetry-collector.fleetAttributes" . | nindent 6 }}
 
