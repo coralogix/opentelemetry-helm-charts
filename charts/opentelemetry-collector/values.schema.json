@@ -17,7 +17,7 @@
   "additionalProperties": false,
   "properties": {
     "distribution": {
-      "description": "Specifies the distribution of the collector.",
+      "description": "Specifies the distribution of the collector. Supported values include \"standalone\", \"macos\", \"ecs\", \"gke/autopilot\", and \"eks/fargate\".",
       "type": "string"
     },
     "enabled": {
@@ -396,6 +396,23 @@
                     "type": "string"
                   }
                 }
+              }
+            }
+          }
+        },
+        "macosSystemLogs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether the collector should collect macOS system logs.",
+              "type": "boolean"
+            },
+            "includePaths": {
+              "description": "List of macOS system log files to tail (defaults to /var/log/system.log).",
+              "type": "array",
+              "items": {
+                "type": "string"
               }
             }
           }

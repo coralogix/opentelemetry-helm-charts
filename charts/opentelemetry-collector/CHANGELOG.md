@@ -2,10 +2,22 @@
 
 ## OpenTelemetry Collector
 
-### v0.125.7 / 2025-11-27
+### v0.125.10 / 2025-12-04
 
 - [Feat] Add `kubernetesApiServerMetrics` preset to scrape Kubernetes API server metrics separately from cAdvisor metrics.
 - [Breaking] Split `kubernetesExtraMetrics` preset: now only handles cAdvisor metrics scraping. API server scraping moved to `kubernetesApiServerMetrics` preset.
+
+### v0.125.9 / 2025-12-04
+
+- [Feature] Add a `macosSystemLogs` preset to collect `/var/log/system.log` with a preconfigured filelog receiver.
+
+### v0.125.8 / 2025-12-04
+
+- [Fix] Ensure the new `macos` distribution uses a dedicated Coralogix distribution header while preserving ECS-like networking defaults and Linux-only host metrics safeguards.
+
+### v0.125.7 / 2025-12-01
+
+- [Fix] Increase the Supervisor config apply timeout to 30 seconds (previously 5 seconds). This should match the default heartbeat interval.
 
 ### v0.125.6 / 2025-11-26
 

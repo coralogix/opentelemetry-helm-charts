@@ -93,6 +93,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- $config = (include "opentelemetry-collector.applyLogsCollectionReduceAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- end }}
+{{- if .Values.presets.macosSystemLogs.enabled }}
+{{- $config = (include "opentelemetry-collector.applyMacosSystemLogsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.filelogMulti.enabled }}
 {{- $config = (include "opentelemetry-collector.applyFilelogMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -243,6 +246,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.logsCollection.reduceLogAttributes.enabled }}
 {{- $config = (include "opentelemetry-collector.applyLogsCollectionReduceAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- end }}
+{{- if .Values.presets.macosSystemLogs.enabled }}
+{{- $config = (include "opentelemetry-collector.applyMacosSystemLogsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.filelogMulti.enabled }}
 {{- $config = (include "opentelemetry-collector.applyFilelogMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -512,7 +518,7 @@ connectors:
 {{- define "opentelemetry-collector.hostMetricsConfig" -}}
 receivers:
   hostmetrics:
-    {{- if not .Values.isWindows }}
+    {{- if and (not .Values.isWindows) (ne .Values.distribution "macos") }}
     {{- if or (eq .Values.distribution "ecs") (eq .Values.distribution "standalone") }}
     root_path: /
     {{- else }}
@@ -717,6 +723,14 @@ processors:
 {{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers "filelog" | uniq)  }}
 {{- if .Values.Values.presets.logsCollection.storeCheckpoints}}
 {{- $_ := set $config.service "extensions" (append $config.service.extensions "file_storage" | uniq)  }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyMacosSystemLogsConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.macosSystemLogsConfig" .Values | fromYaml) .config }}
+{{- if and ($config.service.pipelines.logs) (not (has "filelog/macos-system-log" $config.service.pipelines.logs.receivers)) }}
+{{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers "filelog/macos-system-log" | uniq)  }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
@@ -937,6 +951,22 @@ receivers:
       {{- if .Values.presets.logsCollection.extraFilelogOperators }}
       {{- .Values.presets.logsCollection.extraFilelogOperators | toYaml | nindent 6 }}
       {{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.macosSystemLogsConfig" -}}
+receivers:
+  filelog/macos-system-log:
+    include:
+{{- range .Values.presets.macosSystemLogs.includePaths }}
+      - {{ . | quote }}
+{{- end }}
+    start_at: beginning
+    operators:
+      - type: regex_parser
+        regex: '^(?P<timestamp>[A-Z][a-z]{2}\\s+\\d{1,2}\\s+\\d{2}:\\d{2}:\\d{2})\\s+(?P<host>[^\\s]+)\\s+(?P<app>[A-Za-z0-9._-]+)(?:\\[(?P<pid>\\d+)\\])?:\\s+(?P<msg>.*)$'
+      - type: move
+        from: attributes.msg
+        to: body
 {{- end }}
 
 {{- define "opentelemetry-collector.filelogMultiConfig" -}}
@@ -2063,7 +2093,7 @@ exporters:
     subsystem_name: "catalog"
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq .Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq .Values.distribution "standalone" }}helm-otel-standalone{{ else }}helm-otel-integration{{ end }}/{{ .Values.global.version }}"
+        X-Coralogix-Distribution: "{{ if eq .Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq .Values.distribution "standalone" }}helm-otel-standalone{{ else if eq .Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ .Values.global.version }}"
         x-coralogix-ingress: "metadata-as-otlp-logs/v1"
 {{- if .Values.global.additionalEndpoints }}
 {{- range $endpoint := .Values.global.additionalEndpoints }}
@@ -2078,7 +2108,7 @@ exporters:
     subsystem_name: "{{ $endpoint.subsystemName | default "catalog" }}"
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else }}helm-otel-integration{{ end }}/{{ $.Values.global.version }}"
+        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $.Values.global.version }}"
         x-coralogix-ingress: "{{ $endpoint.ingress | default "metadata-as-otlp-logs/v1" }}"
   {{- end }}
 {{- end }}
@@ -2263,7 +2293,7 @@ exporters:
     subsystem_name: "catalog"
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq .Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq .Values.distribution "standalone" }}helm-otel-standalone{{ else }}helm-otel-integration{{ end }}/{{ .Values.global.version }}"
+        X-Coralogix-Distribution: "{{ if eq .Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq .Values.distribution "standalone" }}helm-otel-standalone{{ else if eq .Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ .Values.global.version }}"
         x-coralogix-ingress: "metadata-as-otlp-logs/v1"
 {{- if .Values.global.additionalEndpoints }}
 {{- range $endpoint := .Values.global.additionalEndpoints }}
@@ -2278,7 +2308,7 @@ exporters:
     subsystem_name: "catalog"
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else }}helm-otel-integration{{ end }}/{{ $.Values.global.version }}"
+        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $.Values.global.version }}"
         x-coralogix-ingress: "metadata-as-otlp-logs/v1"
   {{- end }}
 {{- end }}
@@ -2495,16 +2525,16 @@ exporters:
     domain: "{{ $endpoint.domain }}"
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
+        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
     metrics:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
+        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
     traces:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
+        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
     profiles:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
+        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
     application_name: "{{ $endpoint.defaultApplicationName }}"
     subsystem_name: "{{ $endpoint.defaultSubsystemName }}"
     application_name_attributes:
@@ -2705,7 +2735,7 @@ processors:
   {{- $envDetectors := .Values.presets.resourceDetection.detectors.env | default (list "system" "env") }}
   {{- $cloudDetectors := .Values.presets.resourceDetection.detectors.cloud }}
   {{- if not $cloudDetectors }}
-    {{- if eq .Values.distribution "ecs" }}
+    {{- if or (eq .Values.distribution "ecs") (eq .Values.distribution "macos") }}
       {{- $cloudDetectors = (list "gcp" "ec2" "azure") }}
     {{- else }}
       {{- $cloudDetectors = (list "gcp" "ec2" "azure" "eks") }}
