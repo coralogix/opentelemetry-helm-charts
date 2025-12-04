@@ -473,6 +473,22 @@ Here is an example `values.yaml`:
 distribution: "standalone"
 ```
 
+### Configuration for macOS distribution
+
+Set the `distribution` value to `"macos"` when running the collector directly on macOS.
+This mode mirrors the non-Kubernetes networking behaviour of the ECS distribution and
+avoids Linux-only host metrics configuration:
+
+- Collector endpoints bind to `0.0.0.0` so you do not need to provide a pod IP.
+- Host metrics avoid setting a `root_path`, preventing the Linux-only validation error
+  from the `hostmetrics` receiver.
+
+Here is an example `values.yaml`:
+
+```yaml
+distribution: "macos"
+```
+
 ### Configuration for GKE autopilot distribution
 
 GKE Autopilot has limited access to host filesystems and host ports, due to this some features of OpenTelemetry Collector doesn't work.

@@ -88,6 +88,7 @@ targetAllocator:
 # to use collector image built for windows.
 isWindows: false
 # When using standalone Linux hosts (no Kubernetes control plane) set this to "standalone".
+# When running the collector directly on macOS set this to "macos".
 # When using GKE Autopilot set this to "gke/autopilot"
 # When using EKS Fargate set this to "eks/fargate"
 distribution: ""
