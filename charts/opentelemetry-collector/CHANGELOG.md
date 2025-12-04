@@ -2,6 +2,11 @@
 
 ## OpenTelemetry Collector
 
+### v0.126.0 / 2025-12-04
+
+- [Feat] Add `kubernetesApiServerMetrics` preset to scrape Kubernetes API server metrics separately from cAdvisor metrics.
+- [Breaking] Split `kubernetesExtraMetrics` preset: now only handles cAdvisor metrics scraping. API server scraping moved to `kubernetesApiServerMetrics` preset.
+
 ### v0.125.9 / 2025-12-04
 
 - [Feature] Add a `macosSystemLogs` preset to collect `/var/log/system.log` with a preconfigured filelog receiver.

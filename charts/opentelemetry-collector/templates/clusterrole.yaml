@@ -1,4 +1,4 @@
-{{- if or (.Values.clusterRole.create) (.Values.presets.kubernetesAttributes.enabled) (.Values.presets.clusterMetrics.enabled) (.Values.presets.kubeletMetrics.enabled) (.Values.presets.kubernetesEvents.enabled) (.Values.presets.mysql.metrics.enabled) (.Values.presets.kubernetesResources.enabled) (.Values.presets.profilesCollection.enabled) (.Values.presets.loadBalancing.k8s.enabled) (eq .Values.distribution "eks/fargate") -}}
+{{- if or (.Values.clusterRole.create) (.Values.presets.kubernetesAttributes.enabled) (.Values.presets.clusterMetrics.enabled) (.Values.presets.kubeletMetrics.enabled) (.Values.presets.kubernetesEvents.enabled) (.Values.presets.mysql.metrics.enabled) (.Values.presets.kubernetesResources.enabled) (.Values.presets.profilesCollection.enabled) (.Values.presets.loadBalancing.k8s.enabled) (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesApiServerMetrics.enabled) (eq .Values.distribution "eks/fargate") -}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -43,9 +43,9 @@ rules:
     resources: ["horizontalpodautoscalers"]
     verbs: ["get", "list", "watch"]
   {{- end}}
-  {{- if or (.Values.presets.kubeletMetrics.enabled) (.Values.presets.kubernetesExtraMetrics.enabled)}}
+  {{- if or (.Values.presets.kubeletMetrics.enabled) (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesApiServerMetrics.enabled)}}
   - apiGroups: [""]
-    {{- if .Values.presets.kubernetesExtraMetrics.perNode  }}
+    {{- if and (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesExtraMetrics.perNode) (not .Values.presets.kubernetesApiServerMetrics.enabled) }}
     resources: ["nodes", "nodes/stats", "nodes/metrics"]
     {{- else }}
     resources: ["pods", "endpoints", "nodes/stats", "nodes/metrics", "nodes", "services"]

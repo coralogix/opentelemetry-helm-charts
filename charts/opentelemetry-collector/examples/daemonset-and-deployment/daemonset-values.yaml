@@ -10,6 +10,10 @@ presets:
   spanMetrics:
     enabled: false
 
+  kubernetesExtraMetrics:
+    enabled: true
+    perNode: true
+
 config:
   exporters:
     otlp:
