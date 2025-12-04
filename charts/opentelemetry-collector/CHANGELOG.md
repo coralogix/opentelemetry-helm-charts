@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.125.8 / 2025-12-04
+
+- [Fix] Ensure the new `macos` distribution uses a dedicated Coralogix distribution header while preserving ECS-like networking defaults and Linux-only host metrics safeguards.
+
 ### v0.125.7 / 2025-12-01
 
 - [Fix] Increase the Supervisor config apply timeout to 30 seconds (previously 5 seconds). This should match the default heartbeat interval.
