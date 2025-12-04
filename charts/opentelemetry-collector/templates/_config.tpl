@@ -2552,7 +2552,7 @@ exporters:
       - "aws.ecs.container.name"
       - "aws.ecs.docker.name"
       - "docker.name"
-      {{- else if eq $.Values.distribution "standalone" }}
+      {{- else if or (eq $.Values.distribution "standalone") (eq $.Values.distribution "macos") }}
       - "service.name"
       {{- else }}
       - "k8s.deployment.name"
