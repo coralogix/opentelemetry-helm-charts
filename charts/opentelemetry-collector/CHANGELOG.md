@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.125.9 / 2025-12-04
+
+- [Feature] Add a `macosSystemLogs` preset to collect `/var/log/system.log` with a preconfigured filelog receiver.
+
 ### v0.125.8 / 2025-12-04
 
 - [Fix] Ensure the new `macos` distribution uses a dedicated Coralogix distribution header while preserving ECS-like networking defaults and Linux-only host metrics safeguards.

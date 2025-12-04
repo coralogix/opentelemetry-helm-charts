@@ -200,6 +200,30 @@ presets:
         _UID: "1000"
 ```
 
+### Configuration for macOS System Logs
+
+The collector can tail the macOS system log file by enabling the
+`macosSystemLogs` preset. When enabled, the chart adds a dedicated
+`filelog/macos-system-log` receiver to the logs pipeline. The receiver reads
+from `/var/log/system.log` by default and normalizes each entry into the log
+body using a regex parser.
+
+This preset is disabled by default and is intended for standalone macOS nodes
+where the collector already has local access to `/var/log/system.log`. The
+chart does not add hostPath mounts for Kubernetes workloads; clusters that need
+this data should mount the log file themselves and expose it through
+`extraVolumes` and `extraVolumeMounts` or a custom preset.
+
+Here is an example `values.yaml`:
+
+```yaml
+presets:
+  macosSystemLogs:
+    enabled: true
+    includePaths:
+      - /var/log/system.log
+```
+
 ### Configuration for Kubernetes Attributes Processor
 
 The collector can be configured to add Kubernetes metadata, such as pod name and namespace name, as resource attributes to incoming logs, metrics and traces.
