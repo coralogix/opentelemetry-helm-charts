@@ -93,6 +93,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- $config = (include "opentelemetry-collector.applyLogsCollectionReduceAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- end }}
+{{- if .Values.presets.macosSystemLogs.enabled }}
+{{- $config = (include "opentelemetry-collector.applyMacosSystemLogsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.filelogMulti.enabled }}
 {{- $config = (include "opentelemetry-collector.applyFilelogMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -240,6 +243,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.logsCollection.reduceLogAttributes.enabled }}
 {{- $config = (include "opentelemetry-collector.applyLogsCollectionReduceAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- end }}
+{{- if .Values.presets.macosSystemLogs.enabled }}
+{{- $config = (include "opentelemetry-collector.applyMacosSystemLogsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.filelogMulti.enabled }}
 {{- $config = (include "opentelemetry-collector.applyFilelogMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -715,6 +721,14 @@ processors:
 {{- $config | toYaml }}
 {{- end }}
 
+{{- define "opentelemetry-collector.applyMacosSystemLogsConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.macosSystemLogsConfig" .Values | fromYaml) .config }}
+{{- if and ($config.service.pipelines.logs) (not (has "filelog/macos-system-log" $config.service.pipelines.logs.receivers)) }}
+{{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers "filelog/macos-system-log" | uniq)  }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
 {{- define "opentelemetry-collector.applyFilelogMultiConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.filelogMultiConfig" .Values | fromYaml) .config }}
 {{- if and ($config.service.pipelines.logs) (.Values.Values.presets.filelogMulti.receivers) }}
@@ -931,6 +945,22 @@ receivers:
       {{- if .Values.presets.logsCollection.extraFilelogOperators }}
       {{- .Values.presets.logsCollection.extraFilelogOperators | toYaml | nindent 6 }}
       {{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.macosSystemLogsConfig" -}}
+receivers:
+  filelog/macos-system-log:
+    include:
+{{- range .Values.presets.macosSystemLogs.includePaths }}
+      - {{ . | quote }}
+{{- end }}
+    start_at: beginning
+    operators:
+      - type: regex_parser
+        regex: '^(?P<timestamp>[A-Z][a-z]{2}\\s+\\d{1,2}\\s+\\d{2}:\\d{2}:\\d{2})\\s+(?P<host>[^\\s]+)\\s+(?P<app>[A-Za-z0-9._-]+)(?:\\[(?P<pid>\\d+)\\])?:\\s+(?P<msg>.*)$'
+      - type: move
+        from: attributes.msg
+        to: body
 {{- end }}
 
 {{- define "opentelemetry-collector.filelogMultiConfig" -}}
