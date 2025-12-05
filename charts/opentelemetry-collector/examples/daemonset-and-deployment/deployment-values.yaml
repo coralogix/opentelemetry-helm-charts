@@ -11,6 +11,8 @@ presets:
   resourceDetection:
     enabled: true
     pipeline: metrics
+    region:
+      enabled: false
 
 resources:
   limits:
