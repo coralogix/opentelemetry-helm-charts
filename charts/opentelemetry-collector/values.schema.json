@@ -740,6 +740,16 @@
                 }
               }
             },
+            "region": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Specifies whether to configure the resourcedetection/region processor.",
+                  "type": "boolean"
+                }
+              }
+            },
             "k8sNodeName": {
               "type": "object",
               "additionalProperties": false,
