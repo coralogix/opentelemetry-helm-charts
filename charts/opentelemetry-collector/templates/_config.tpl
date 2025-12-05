@@ -2699,6 +2699,10 @@ processors:
 {{- with .Values.Values.presets.resourceDetection.pipeline }}
 {{- $pipeline = . }}
 {{- end }}
+{{- $regionEnabled := true }}
+{{- with .Values.Values.presets.resourceDetection.region.enabled }}
+{{- $regionEnabled = . }}
+{{- end }}
 {{- $includeLogs := eq $pipeline "all" }}
 {{- $includeMetrics := or (eq $pipeline "all") (eq $pipeline "metrics") }}
 {{- $includeTraces := or (eq $pipeline "all") (eq $pipeline "traces") }}
@@ -2706,25 +2710,25 @@ processors:
 {{- if and $includeLogs ($config.service.pipelines.logs) (not (has "resourcedetection/env" $config.service.pipelines.logs.processors)) }}
 {{- $_ := set $config.service.pipelines.logs "processors" (prepend $config.service.pipelines.logs.processors "resourcedetection/env" | uniq)  }}
 {{- end }}
-{{- if and $includeLogs ($config.service.pipelines.logs) (not (has "resourcedetection/region" $config.service.pipelines.logs.processors)) }}
+{{- if and $regionEnabled $includeLogs ($config.service.pipelines.logs) (not (has "resourcedetection/region" $config.service.pipelines.logs.processors)) }}
 {{- $_ := set $config.service.pipelines.logs "processors" (prepend $config.service.pipelines.logs.processors "resourcedetection/region" | uniq)  }}
 {{- end }}
 {{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "resourcedetection/env" $config.service.pipelines.metrics.processors)) }}
 {{- $_ := set $config.service.pipelines.metrics "processors" (prepend $config.service.pipelines.metrics.processors "resourcedetection/env" | uniq)  }}
 {{- end }}
-{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "resourcedetection/region" $config.service.pipelines.metrics.processors)) }}
+{{- if and $regionEnabled $includeMetrics ($config.service.pipelines.metrics) (not (has "resourcedetection/region" $config.service.pipelines.metrics.processors)) }}
 {{- $_ := set $config.service.pipelines.metrics "processors" (prepend $config.service.pipelines.metrics.processors "resourcedetection/region" | uniq)  }}
 {{- end }}
 {{- if and $includeTraces ($config.service.pipelines.traces) (not (has "resourcedetection/env" $config.service.pipelines.traces.processors)) }}
 {{- $_ := set $config.service.pipelines.traces "processors" (prepend $config.service.pipelines.traces.processors "resourcedetection/env" | uniq)  }}
 {{- end }}
-{{- if and $includeTraces ($config.service.pipelines.traces) (not (has "resourcedetection/region" $config.service.pipelines.traces.processors)) }}
+{{- if and $regionEnabled $includeTraces ($config.service.pipelines.traces) (not (has "resourcedetection/region" $config.service.pipelines.traces.processors)) }}
 {{- $_ := set $config.service.pipelines.traces "processors" (prepend $config.service.pipelines.traces.processors "resourcedetection/region" | uniq)  }}
 {{- end }}
 {{- if and $includeProfiles ($config.service.pipelines.profiles) (not (has "resourcedetection/env" $config.service.pipelines.profiles.processors)) }}
 {{- $_ := set $config.service.pipelines.profiles "processors" (prepend $config.service.pipelines.profiles.processors "resourcedetection/env" | uniq)  }}
 {{- end }}
-{{- if and $includeProfiles ($config.service.pipelines.profiles) (not (has "resourcedetection/region" $config.service.pipelines.profiles.processors)) }}
+{{- if and $regionEnabled $includeProfiles ($config.service.pipelines.profiles) (not (has "resourcedetection/region" $config.service.pipelines.profiles.processors)) }}
 {{- $_ := set $config.service.pipelines.profiles "processors" (prepend $config.service.pipelines.profiles.processors "resourcedetection/region" | uniq)  }}
 {{- end }}
 {{- $config | toYaml }}
@@ -2734,6 +2738,7 @@ processors:
 processors:
   {{- $envDetectors := .Values.presets.resourceDetection.detectors.env | default (list "system" "env") }}
   {{- $cloudDetectors := .Values.presets.resourceDetection.detectors.cloud }}
+  {{- $regionEnabled := .Values.presets.resourceDetection.region.enabled | default true }}
   {{- if not $cloudDetectors }}
     {{- if or (eq .Values.distribution "ecs") (eq .Values.distribution "macos") }}
       {{- $cloudDetectors = (list "gcp" "ec2" "azure") }}
@@ -2749,6 +2754,7 @@ processors:
       resource_attributes:
         host.id:
           enabled: true
+  {{- if $regionEnabled }}
   resourcedetection/region:
     detectors: {{ $cloudDetectors | toJson }}
     timeout: 2s
@@ -2757,6 +2763,7 @@ processors:
     eks:
       node_from_env_var: K8S_NODE_NAME
     {{- end }}
+  {{- end }}
 {{- end }}
 
 {{/* Build the list of port for service */}}
