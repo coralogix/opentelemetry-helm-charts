@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.126.1 / 2025-12-05
+
+- [Fix] Align macOS subsystem naming attributes with the standalone distribution by using only `service.name`.
+
 ### v0.126.0 / 2025-12-04
 
 - [Feat] Add `kubernetesApiServerMetrics` preset to scrape Kubernetes API server metrics separately from cAdvisor metrics.
