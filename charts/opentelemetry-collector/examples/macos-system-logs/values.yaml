@@ -1,0 +1,8 @@
+mode: daemonset
+distribution: macos
+
+presets:
+  macosSystemLogs:
+    enabled: true
+    dynamicSubsystemName: true
+

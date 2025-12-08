@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.126.5 / 2025-12-08
+
+- [Feat] Add `dynamicSubsystemName` option to `macosSystemLogs` preset to control copying unit name to subsystem name.
+
 ### v0.126.4 / 2025-12-08
 
 - [Fix] Ensure `logs/resource_catalog` pipeline respects presets for `metadata`, `kubernetesAttributes`, and `resourceDetection`.
