@@ -2541,7 +2541,7 @@ exporters:
       {{- if eq $.Values.distribution "ecs" }}
       - "aws.ecs.cluster"
       - "aws.ecs.task.definition.family"
-      {{- else if eq $.Values.distribution "standalone" }}
+      {{- else if or (eq $.Values.distribution "standalone") (eq $.Values.distribution "macos") }}
       - "service.namespace"
       {{- else }}
       - "k8s.namespace.name"
@@ -2699,10 +2699,7 @@ processors:
 {{- with .Values.Values.presets.resourceDetection.pipeline }}
 {{- $pipeline = . }}
 {{- end }}
-{{- $regionEnabled := true }}
-{{- with .Values.Values.presets.resourceDetection.region.enabled }}
-{{- $regionEnabled = . }}
-{{- end }}
+{{- $regionEnabled := .Values.Values.presets.resourceDetection.region.enabled }}
 {{- $includeLogs := eq $pipeline "all" }}
 {{- $includeMetrics := or (eq $pipeline "all") (eq $pipeline "metrics") }}
 {{- $includeTraces := or (eq $pipeline "all") (eq $pipeline "traces") }}
@@ -2738,7 +2735,6 @@ processors:
 processors:
   {{- $envDetectors := .Values.presets.resourceDetection.detectors.env | default (list "system" "env") }}
   {{- $cloudDetectors := .Values.presets.resourceDetection.detectors.cloud }}
-  {{- $regionEnabled := .Values.presets.resourceDetection.region.enabled | default true }}
   {{- if not $cloudDetectors }}
     {{- if or (eq .Values.distribution "ecs") (eq .Values.distribution "macos") }}
       {{- $cloudDetectors = (list "gcp" "ec2" "azure") }}
@@ -2754,7 +2750,7 @@ processors:
       resource_attributes:
         host.id:
           enabled: true
-  {{- if $regionEnabled }}
+  {{- if .Values.presets.resourceDetection.region.enabled }}
   resourcedetection/region:
     detectors: {{ $cloudDetectors | toJson }}
     timeout: 2s

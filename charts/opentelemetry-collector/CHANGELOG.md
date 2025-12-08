@@ -2,6 +2,11 @@
 
 ## OpenTelemetry Collector
 
+### v0.126.3 / 2025-12-05
+
+- [Fix] Fix logic to correctly respect `region.enabled: false` in `resourceDetection` preset.
+- [Fix] Align macOS application naming attributes with the standalone distribution by using only `service.name`.
+
 ### v0.126.2 / 2025-12-05
 
 - [Feat] Allow disabling the `resourcedetection/region` processor in the `resourceDetection` preset.
