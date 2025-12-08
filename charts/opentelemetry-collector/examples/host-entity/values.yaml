@@ -12,6 +12,10 @@ presets:
     enabled: true
   hostEntityEvents:
     enabled: true
+  kubernetesAttributes:
+    enabled: true
+  resourceDetection:
+    enabled: true
   fleetManagement:
     enabled: true
     agentType: "agent"

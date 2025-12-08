@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.126.3
+    helm.sh/chart: opentelemetry-collector-0.126.4
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.140.1"
@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: f6d5fb48701b656598b248a51d0338ac863492e50bd62afabeed8e5d6adb2739
+        checksum/config: 29063576ec4434b59b27574e96f9d00a462cddcc79a8118163416eaf9e529176
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -59,8 +59,14 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: status.podIP
+            - name: K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
             - name: GOMEMLIMIT
               value: "3276MiB"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "k8s.node.name=$(K8S_NODE_NAME)"
             - name: KUBE_NODE_NAME
               valueFrom:
                 fieldRef:
@@ -85,6 +91,14 @@ spec:
               mountPath: /hostfs
               readOnly: true
               mountPropagation: HostToContainer
+            - mountPath: /etc/machine-id
+              mountPropagation: HostToContainer
+              name: etcmachineid
+              readOnly: true
+            - mountPath: /var/lib/dbus/machine-id
+              mountPropagation: HostToContainer
+              name: varlibdbusmachineid
+              readOnly: true
       volumes:
         - name: opentelemetry-collector-configmap
           configMap:
@@ -95,6 +109,12 @@ spec:
         - name: hostfs
           hostPath:
             path: /
+        - name: etcmachineid
+          hostPath:
+            path: /etc/machine-id
+        - name: varlibdbusmachineid
+          hostPath:
+            path: /var/lib/dbus/machine-id
       nodeSelector:
         kubernetes.io/os: linux
       hostNetwork: false

@@ -2366,10 +2366,16 @@ service:
         {{- end }}
       processors:
         - memory_limiter
+        {{- if .Values.presets.metadata.enabled }}
         - resource/metadata
+        {{- end }}
+        {{- if .Values.presets.kubernetesAttributes.enabled }}
         - k8sattributes
+        {{- end}}
         - resourcedetection/entity
+        {{- if and .Values.presets.resourceDetection.enabled .Values.presets.resourceDetection.region.enabled }}
         - resourcedetection/region
+        {{- end }}
         - transform/entity-event
       receivers:
         - hostmetrics
