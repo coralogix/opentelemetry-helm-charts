@@ -1,0 +1,14 @@
+presets:
+  hostMetrics:
+    enabled: true
+  hostEntityEvents:
+    enabled: true
+  
+  # These flags are disabled to test that processors are removed from logs/resource_catalog
+  metadata:
+    enabled: false
+  kubernetesAttributes:
+    enabled: false
+  resourceDetection:
+    enabled: false
+

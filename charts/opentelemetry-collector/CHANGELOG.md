@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.126.4 / 2025-12-08
+
+- [Fix] Ensure `logs/resource_catalog` pipeline respects presets for `metadata`, `kubernetesAttributes`, and `resourceDetection`.
+
 ### v0.126.3 / 2025-12-05
 
 - [Fix] Fix logic to correctly respect `region.enabled: false` in `resourceDetection` preset.

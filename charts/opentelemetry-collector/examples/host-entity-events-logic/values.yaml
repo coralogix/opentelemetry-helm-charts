@@ -1,0 +1,16 @@
+presets:
+  hostMetrics:
+    enabled: true
+  hostEntityEvents:
+    enabled: true
+  
+  # These are the flags being tested in the logs/resource_catalog pipeline
+  metadata:
+    enabled: true
+  kubernetesAttributes:
+    enabled: true
+  resourceDetection:
+    enabled: true
+    region:
+      enabled: true
+
