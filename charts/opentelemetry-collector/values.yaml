@@ -234,11 +234,20 @@ presets:
     #   subsystemName: ""
     #   applicationNameAttribute: ""
     #   subsystemNameAttribute: ""
+    #   extraOperators:
+    #     - type: regex_parser
+    #       regex: '^(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (?P<sev>[A-Z]*) (?P<msg>.*)$'
+    #       timestamp:
+    #         parse_from: attributes.time
+    #         layout: '%Y-%m-%d %H:%M:%S'
+    #       severity:
+    #         parse_from: attributes.sev
 
   # Configures the collector to collect macOS system logs.
   # Adds a filelog receiver pointed at /var/log/system.log to the logs pipeline.
   macosSystemLogs:
     enabled: false
+    dynamicSubsystemName: true
     includePaths:
       - /var/log/system.log
     #   extraOperators: []

@@ -408,6 +408,10 @@
               "description": "Specifies whether the collector should collect macOS system logs.",
               "type": "boolean"
             },
+            "dynamicSubsystemName": {
+              "description": "Specifies whether to copy app name to subsystem name.",
+              "type": "boolean"
+            },
             "includePaths": {
               "description": "List of macOS system log files to tail (defaults to /var/log/system.log).",
               "type": "array",
