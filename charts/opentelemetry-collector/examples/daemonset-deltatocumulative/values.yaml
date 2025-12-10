@@ -1,0 +1,8 @@
+mode: daemonset
+
+presets:
+  deltaToCumulative:
+    enabled: true
+    maxStale: 2m
+    maxStreams: 1000
+

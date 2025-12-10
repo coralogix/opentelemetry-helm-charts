@@ -126,6 +126,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.clusterMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyClusterMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.deltaToCumulative.enabled }}
+{{- $config = (include "opentelemetry-collector.applyDeltaToCumulativeConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.metadata.enabled }}
 {{- $config = (include "opentelemetry-collector.applyMetadataConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -1366,6 +1369,26 @@ receivers:
 {{- $_ := set $config.service.pipelines.traces "processors" (prepend $config.service.pipelines.traces.processors "k8sattributes" | uniq)  }}
 {{- end }}
 {{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyDeltaToCumulativeConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.deltaToCumulativeConfig" .Values | fromYaml) .config }}
+  {{- $config = mustMergeOverwrite (dict "service" (dict "pipelines" (dict "metrics" (dict "processors" list)))) $config }}
+  {{- if not (has "deltatocumulative" $config.service.pipelines.metrics.processors) }}
+    {{- $_ := set $config.service.pipelines.metrics "processors" (prepend $config.service.pipelines.metrics.processors "deltatocumulative" | uniq)  }}
+  {{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.deltaToCumulativeConfig" -}}
+processors:
+  deltatocumulative:
+    {{- if .Values.presets.deltaToCumulative.maxStale }}
+    max_stale: {{ .Values.presets.deltaToCumulative.maxStale }}
+    {{- end }}
+    {{- if .Values.presets.deltaToCumulative.maxStreams }}
+    max_streams: {{ .Values.presets.deltaToCumulative.maxStreams }}
+    {{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyMetadataConfig" -}}

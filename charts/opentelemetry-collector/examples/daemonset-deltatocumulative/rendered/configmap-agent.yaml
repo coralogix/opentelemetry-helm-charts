@@ -1,9 +1,9 @@
 ---
-# Source: opentelemetry-collector/templates/configmap.yaml
+# Source: opentelemetry-collector/templates/configmap-agent.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: example-opentelemetry-collector
+  name: example-opentelemetry-collector-agent
   namespace: default
   labels:
     helm.sh/chart: opentelemetry-collector-0.126.7
@@ -15,91 +15,18 @@ metadata:
 data:
   relay: |
     exporters:
-      coralogix/resource_catalog:
-        application_name: resource
-        domain: ""
-        logs:
-          headers:
-            X-Coralogix-Distribution: helm-otel-integration/
-            x-coralogix-ingress: metadata-as-otlp-logs/v1
-        private_key: ${CORALOGIX_PRIVATE_KEY}
-        subsystem_name: catalog
-        timeout: 30s
       debug: {}
     extensions:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
     processors:
-      filter/workflow:
-        error_mode: silent
-        logs:
-          log_record:
-          - body["object"]["kind"] == "Pod" and not IsMatch(String(body["object"]["metadata"]["ownerReferences"]),
-            ".*StatefulSet.*|.*ReplicaSet.*|.*Job.*|.*DaemonSet.*")
-          - body["kind"] == "Pod" and not IsMatch(String(body["metadata"]["ownerReferences"]),
-            ".*StatefulSet.*|.*ReplicaSet.*|.*Job.*|.*DaemonSet.*")
-      filter/workflow-custom:
-        error_mode: silent
-        logs:
-          log_record:
-          - body["kind"] == "Service"
+      deltatocumulative:
+        max_stale: 2m
+        max_streams: 1000
       memory_limiter:
         check_interval: 5s
         limit_percentage: 80
         spike_limit_percentage: 25
-      resourcedetection/resource_catalog:
-        azure:
-          resource_attributes:
-            azure.resourcegroup.name:
-              enabled: false
-            azure.vm.name:
-              enabled: false
-            azure.vm.scaleset.name:
-              enabled: false
-            azure.vm.size:
-              enabled: false
-            host.id:
-              enabled: false
-            host.name:
-              enabled: false
-        detectors:
-        - eks
-        - aks
-        - gcp
-        - ec2
-        - azure
-        ec2:
-          resource_attributes:
-            host.id:
-              enabled: false
-            host.image.id:
-              enabled: false
-            host.name:
-              enabled: false
-            host.type:
-              enabled: false
-        gcp:
-          resource_attributes:
-            host.id:
-              enabled: false
-            host.name:
-              enabled: false
-            host.type:
-              enabled: false
-            k8s.cluster.name:
-              enabled: false
-        override: true
-        timeout: 2s
-      transform/entity-event:
-        error_mode: silent
-        log_statements:
-        - context: log
-          statements:
-          - set(attributes["otel.entity.interval"], Milliseconds(Duration("1h")))
-      transform/kubernetes_transform:
-        error_mode: silent
-        log_statements:
-        - replace_all_patterns(log.attributes, "value", "^(?s).{257,}$", "REDACTED")
       transform/prometheus:
         error_mode: ignore
         metric_statements:
@@ -150,73 +77,7 @@ data:
             == "opentelemetry-collector"
           - delete_key(attributes, "otel_scope_name") where attributes["service.name"]
             == "opentelemetry-collector"
-      transform/remove_managed_fields:
-        error_mode: silent
-        log_statements:
-        - context: log
-          statements:
-          - delete_key(body["object"]["metadata"], "managedFields")
-          - delete_key(body["metadata"], "managedFields")
     receivers:
-      k8sobjects/resource_catalog:
-        objects:
-        - group: ""
-          mode: watch
-          name: namespaces
-        - group: ""
-          mode: watch
-          name: nodes
-        - group: ""
-          mode: watch
-          name: persistentvolumeclaims
-        - group: ""
-          mode: watch
-          name: persistentvolumes
-        - group: ""
-          mode: watch
-          name: pods
-        - group: apps
-          mode: watch
-          name: daemonsets
-        - group: apps
-          mode: watch
-          name: deployments
-        - group: apps
-          mode: watch
-          name: replicasets
-        - group: apps
-          mode: watch
-          name: statefulsets
-        - group: autoscaling
-          mode: watch
-          name: horizontalpodautoscalers
-        - group: batch
-          mode: watch
-          name: cronjobs
-        - group: batch
-          mode: watch
-          name: jobs
-        - group: extensions
-          mode: watch
-          name: ingresses
-        - group: networking.k8s.io
-          mode: watch
-          name: ingresses
-        - group: policy
-          mode: watch
-          name: poddisruptionbudgets
-        - group: rbac.authorization.k8s.io
-          mode: watch
-          name: clusterrolebindings
-        - group: rbac.authorization.k8s.io
-          mode: watch
-          name: clusterroles
-        - group: rbac.authorization.k8s.io
-          mode: watch
-          name: rolebindings
-        - group: rbac.authorization.k8s.io
-          mode: watch
-          name: roles
       otlp:
         protocols:
           grpc:
@@ -243,26 +104,12 @@ data:
           - memory_limiter
           receivers:
           - otlp
-        logs/resource_catalog:
-          exporters:
-          - coralogix/resource_catalog
-          processors:
-          - memory_limiter
-          - resourcedetection/resource_catalog
-          - transform/entity-event
-          - transform/remove_managed_fields
-          - filter/workflow
-          - filter/workflow-custom
-          - resource/metadata
-          - transform/kubernetes_transform
-          - batch
-          receivers:
-          - k8sobjects/resource_catalog
         metrics:
           exporters:
           - debug
           processors:
           - memory_limiter
+          - deltatocumulative
           - transform/prometheus
           receivers:
           - prometheus

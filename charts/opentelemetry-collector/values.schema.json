@@ -818,6 +818,25 @@
             }
           }
         },
+        "deltaToCumulative": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether the collector should convert metrics from delta temporality to cumulative.",
+              "type": "boolean",
+              "default": false
+            },
+            "maxStale": {
+              "description": "How long until a series not receiving new samples is removed.",
+              "type": "string"
+            },
+            "maxStreams": {
+              "description": "Upper limit of streams to track. New streams exceeding this limit will be dropped.",
+              "type": "integer"
+            }
+          }
+        },
         "kubernetesExtraMetrics": {
           "type": "object",
           "additionalProperties": false,
