@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.126.6 / 2025-12-10
+
+- [Feature] Add `service.version` to profile attributes when `profilesCollection` preset is enabled.
+-
 ### v0.126.5 / 2025-12-08
 
 - [Feat] Add `dynamicSubsystemName` option to `macosSystemLogs` preset to control copying unit name to subsystem name.

@@ -1141,6 +1141,7 @@ processors:
         - k8s.node.name
         - container.id
         - k8s.container.name
+        - service.version
       labels:
         - tag_name: k8s.label.name
           key: app.kubernetes.io/name
