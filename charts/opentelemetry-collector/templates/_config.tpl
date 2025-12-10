@@ -1373,10 +1373,7 @@ receivers:
 
 {{- define "opentelemetry-collector.applyDeltaToCumulativeConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.deltaToCumulativeConfig" .Values | fromYaml) .config }}
-  {{- $config = mustMergeOverwrite (dict "service" (dict "pipelines" (dict "metrics" (dict "processors" list)))) $config }}
-  {{- if not (has "deltatocumulative" $config.service.pipelines.metrics.processors) }}
-    {{- $_ := set $config.service.pipelines.metrics "processors" (prepend $config.service.pipelines.metrics.processors "deltatocumulative" | uniq)  }}
-  {{- end }}
+  {{- $_ := set $config.service.pipelines.metrics "processors" (prepend $config.service.pipelines.metrics.processors "deltatocumulative" | uniq)  }}
 {{- $config | toYaml }}
 {{- end }}
 
