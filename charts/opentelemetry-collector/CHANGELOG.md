@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.126.7 / 2025-12-10
+
+- [Feat] Add `deltaToCumulative` preset (disabled by default) to convert metrics from delta temporality to cumulative.
+
 ### v0.126.6 / 2025-12-10
 
 - [Feature] Add `service.version` to profile attributes when `profilesCollection` preset is enabled.

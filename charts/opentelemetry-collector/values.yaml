@@ -317,6 +317,16 @@ presets:
     customMetrics:
       enabled: false
 
+  # Configures the Delta to Cumulative processor to convert metrics from delta temporality to cumulative.
+  # Adds the deltatocumulative processor to the metrics pipeline.
+  # See https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/deltatocumulativeprocessor for details on the processor.
+  deltaToCumulative:
+    enabled: false
+    # How long until a series not receiving new samples is removed
+    # maxStale: 5m
+    # Upper limit of streams to track. New streams exceeding this limit will be dropped
+    # maxStreams: 9223372036854775807
+
   # Configures the collector to collect cAdvisor metrics from Kubernetes nodes.
   # When perNode is true (agent/daemonset mode), scrapes only the local node's cAdvisor.
   # When perNode is false (cluster-collector mode), scrapes cAdvisor from all nodes.
