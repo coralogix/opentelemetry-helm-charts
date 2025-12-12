@@ -6,10 +6,10 @@ metadata:
   name: cx-otel-collector-monitor
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.126.7
+    helm.sh/chart: opentelemetry-collector-0.127.0
     app.kubernetes.io/name: cx-otel-collector-monitor
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "0.140.1"
+    app.kubernetes.io/version: "0.141.0"
     app.kubernetes.io/managed-by: Helm
     
 spec:
@@ -25,7 +25,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 12dae222fb7fd3dc6bcf1c99b31e9f28baede14cecb18a3bfb432403c7db8f98
+        checksum/config: d32ab7c04c93c7e611f2615505957f07994e7bd56463b1aae7c7b34154e4d180
         
       labels:
         app.kubernetes.io/name: cx-otel-collector-monitor
@@ -44,7 +44,7 @@ spec:
             - --config=/conf/relay.yaml
           securityContext:
             {}
-          image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.140.1"
+          image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.141.0"
           imagePullPolicy: IfNotPresent
           ports:
             - name: metrics

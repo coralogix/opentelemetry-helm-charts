@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.127.0 / 2025-12-12
+
+- [CHORE] Bump Collector to 0.141.0
+
 ### v0.126.7 / 2025-12-10
 
 - [Feat] Add `deltaToCumulative` preset (disabled by default) to convert metrics from delta temporality to cumulative.
