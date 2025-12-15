@@ -109,7 +109,7 @@ spec:
           {{- end }}
           {{- if .Values.contextPropagation.enabled }}
             - name: OTEL_EBPF_BPF_CONTEXT_PROPAGATION
-              value: all
+              value: {{ .Values.contextPropagation.mode | default "all" | quote }}
           {{- end }}
           {{- range $key, $value := .Values.envValueFrom }}
             - name: {{ $key | quote }}
