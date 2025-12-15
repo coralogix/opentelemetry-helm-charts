@@ -1,6 +1,9 @@
 # Changelog
 
-## OpenTelemetry eBPF Instrumentation
+## OpenTelemetry eBPF Instrumentatihon
+
+### v0.1.9 / 2025-12-15
+- [Feature] Add Context Propagation Mode option to OBI config, defaults to "http,tcp"
 
 ### v0.1.8 / 2025-12-04
 - [Change] Bump OBI image to v0.3.0

@@ -64,6 +64,8 @@ privileged: true
 # -- Enables context propagation support.
 contextPropagation:
   enabled: true
+  # -- Mode of context propagation: either "all" or a list containing the following values: "http", "headers", "tcp", "ip
+  mode: "http,tcp"
 
 # -- Extra capabilities for unprivileged / less privileged setup.
 extraCapabilities: []
