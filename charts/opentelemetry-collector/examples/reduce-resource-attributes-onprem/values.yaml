@@ -1,0 +1,19 @@
+mode: daemonset
+
+distribution: "standalone"
+
+presets:
+  reduceResourceAttributes:
+    enabled: true
+    provider: "on-prem"
+  resourceDetection:
+    enabled: true
+    provider: "on-prem"
+  hostMetrics:
+    enabled: true
+
+config:
+  exporters:
+    debug:
+      verbosity: basic
+

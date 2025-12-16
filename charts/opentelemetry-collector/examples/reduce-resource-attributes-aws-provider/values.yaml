@@ -1,0 +1,21 @@
+mode: daemonset
+
+distribution: "eks"
+
+presets:
+  reduceResourceAttributes:
+    enabled: true
+    provider: "aws"
+  resourceDetection:
+    enabled: true
+    provider: "aws"
+  logsCollection:
+    enabled: true
+  kubernetesAttributes:
+    enabled: true
+
+config:
+  exporters:
+    debug:
+      verbosity: basic
+

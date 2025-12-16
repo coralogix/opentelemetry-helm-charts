@@ -1449,6 +1449,84 @@ processors:
 
 {{- define "opentelemetry-collector.reduceResourceAttributesConfig" -}}
 {{- $pipelines := .Values.presets.reduceResourceAttributes.pipelines }}
+{{- $distribution := .Values.distribution | default "" }}
+
+{{/* Infer provider from distribution if not explicitly set */}}
+{{- $inferredProvider := "" }}
+{{- if or (hasPrefix "eks" $distribution) (eq $distribution "ecs") }}
+  {{- $inferredProvider = "aws" }}
+{{- else if hasPrefix "gke" $distribution }}
+  {{- $inferredProvider = "gcp" }}
+{{- else if hasPrefix "aks" $distribution }}
+  {{- $inferredProvider = "azure" }}
+{{- end }}
+{{- $explicitProvider := .Values.presets.reduceResourceAttributes.provider }}
+{{- $provider := $inferredProvider }}
+{{- if and $explicitProvider (ne $explicitProvider "") }}
+  {{- $provider = $explicitProvider }}
+{{- end }}
+
+{{/* Determine context based on distribution */}}
+{{- $isK8s := and (ne $distribution "standalone") (ne $distribution "ecs") (ne $distribution "macos") }}
+{{- $isEcs := eq $distribution "ecs" }}
+
+{{/* Define attribute lists per provider */}}
+{{- $awsCloudAttrs := list "cloud.account.id" "cloud.availability_zone" "cloud.platform" "cloud.provider" "cloud.region" }}
+{{- $azureCloudAttrs := list "azure.resourcegroup.name" "azure.vm.name" "azure.vm.scaleset.name" "azure.vm.size" "cloud.account.id" "cloud.availability_zone" "cloud.platform" "cloud.provider" "cloud.region" }}
+{{- $gcpCloudAttrs := list "gcp.cloud_run.job.execution" "gcp.cloud_run.job.task_index" "gcp.gce.instance_group_manager.name" "gcp.gce.instance_group_manager.region" "gcp.gce.instance_group_manager.zone" "cloud.account.id" "cloud.availability_zone" "cloud.platform" "cloud.provider" "cloud.region" }}
+
+{{/* Context-specific attributes */}}
+{{- $k8sAttrs := list "k8s.cronjob.uid" "k8s.container.restart_count" "k8s.daemonset.uid" "k8s.deployment.uid" "k8s.hpa.uid" "k8s.job.uid" "k8s.namespace.uid" "k8s.node.uid" "k8s.pod.start_time" "k8s.pod.uid" "k8s.replicaset.uid" "k8s.statefulset.uid" }}
+{{- $ecsAttrs := list "aws.ecs.task.definition.version" "aws.ecs.task.known.status" }}
+
+{{/* Cloud-specific attributes - only deleted for cloud providers */}}
+{{- $hostCloudAttrs := list "host.image.id" "host.type" }}
+{{- $faasAttrs := list "faas.id" "faas.instance" "faas.name" "faas.version" }}
+
+{{/* Common attributes - always deleted regardless of provider/distribution */}}
+{{- $osAttrs := list "os.type" "os.version" }}
+{{- $containerAttrs := list "container.id" }}
+{{- $networkAttrs := list "net.host.name" "net.host.port" }}
+{{- $telemetryAttrs := list "telemetry.distro.name" "telemetry.distro.version" "telemetry.sdk.language" "telemetry.sdk.name" "telemetry.sdk.version" "cx.otel_integration.name" }}
+{{- $processAttrs := list "process.command" "process.command_line" "process.command_args" "process.executable.name" "process.executable.path" "process.owner" "process.pid" "process.parent_pid" "process.runtime.description" "process.runtime.name" "process.runtime.version" }}
+
+{{/* Determine if this is a cloud provider */}}
+{{- $isCloud := or (eq $provider "aws") (eq $provider "azure") (eq $provider "gcp") }}
+
+{{/* Build the combined list based on provider */}}
+{{- $cloudAttrs := list }}
+{{- if eq $provider "aws" }}
+  {{- $cloudAttrs = $awsCloudAttrs }}
+{{- else if eq $provider "azure" }}
+  {{- $cloudAttrs = $azureCloudAttrs }}
+{{- else if eq $provider "gcp" }}
+  {{- $cloudAttrs = $gcpCloudAttrs }}
+{{- else if eq $provider "on-prem" }}
+  {{- $cloudAttrs = list }}
+{{- else }}
+  {{/* Backward compatibility: no provider set = use denylist from values */}}
+{{- end }}
+
+{{/* Build base attributes list */}}
+{{- $baseAttrs := list }}
+{{- if $provider }}
+  {{/* Start with common attrs for all providers */}}
+  {{- $baseAttrs = concat $osAttrs $containerAttrs $telemetryAttrs }}
+  {{/* Add cloud-specific attrs only for cloud providers */}}
+  {{- if $isCloud }}
+    {{- $baseAttrs = concat $baseAttrs $cloudAttrs $hostCloudAttrs $faasAttrs }}
+  {{- end }}
+  {{- if $isK8s }}
+    {{- $baseAttrs = concat $baseAttrs $k8sAttrs }}
+  {{- end }}
+  {{- if $isEcs }}
+    {{- $baseAttrs = concat $baseAttrs $ecsAttrs }}
+  {{- end }}
+{{- end }}
+
+{{/* Get custom denylist for additional attrs */}}
+{{- $customDenylist := .Values.presets.reduceResourceAttributes.denylist | default dict }}
+
 processors:
   transform/reduce:
     error_mode: silent
@@ -1456,7 +1534,22 @@ processors:
     metric_statements:
       - context: metric
         statements:
-        {{- range $index, $pattern := .Values.presets.reduceResourceAttributes.denylist.metrics }}
+        {{- if $provider }}
+        {{/* Provider-based mode: use computed attribute lists */}}
+        {{- range $attr := $baseAttrs | uniq }}
+        - delete_key(resource.attributes, "{{ $attr }}")
+        {{- end }}
+        {{/* Add process attrs with condition for metrics */}}
+        {{- range $attr := $processAttrs }}
+        - delete_key(resource.attributes, "{{ $attr }}") where not IsMatch(metric.name, "^process\\.")
+        {{- end }}
+        {{/* Add network attrs for metrics */}}
+        {{- range $attr := $networkAttrs }}
+        - delete_key(resource.attributes, "{{ $attr }}")
+        {{- end }}
+        {{- else }}
+        {{/* Backward compatibility: use denylist from values */}}
+        {{- range $index, $pattern := (index $customDenylist "metrics" | default list) }}
         {{- if kindIs "string" $pattern }}
         - delete_key(resource.attributes, "{{ $pattern }}")
         {{- else if kindIs "map" $pattern }}
@@ -1466,12 +1559,24 @@ processors:
         {{- fail (printf "Reduce resource attributes metrics denylist entries must be either strings or objects with `key` and optional `condition`, got %s" (kindOf $pattern)) }}
         {{- end }}
         {{- end }}
+        {{- end }}
 {{- end }}
 {{- if or (has "traces" $pipelines) (has "all" $pipelines) }}
     trace_statements:
       - context: span
         statements:
-        {{- range $index, $pattern := .Values.presets.reduceResourceAttributes.denylist.traces }}
+        {{- if $provider }}
+        {{/* Provider-based mode: use computed attribute lists */}}
+        {{- range $attr := $baseAttrs | uniq }}
+        - delete_key(resource.attributes, "{{ $attr }}")
+        {{- end }}
+        {{/* Add process attrs without condition for traces */}}
+        {{- range $attr := $processAttrs }}
+        - delete_key(resource.attributes, "{{ $attr }}")
+        {{- end }}
+        {{- else }}
+        {{/* Backward compatibility: use denylist from values */}}
+        {{- range $index, $pattern := (index $customDenylist "traces" | default list) }}
         {{- if kindIs "string" $pattern }}
         - delete_key(resource.attributes, "{{ $pattern }}")
         {{- else if kindIs "map" $pattern }}
@@ -1481,12 +1586,24 @@ processors:
         {{- fail (printf "Reduce resource attributes traces denylist entries must be either strings or objects with `key` and optional `condition`, got %s" (kindOf $pattern)) }}
         {{- end }}
         {{- end }}
+        {{- end }}
 {{- end }}
 {{- if or (has "logs" $pipelines) (has "all" $pipelines) }}
     log_statements:
       - context: log
         statements:
-        {{- range $index, $pattern := .Values.presets.reduceResourceAttributes.denylist.logs }}
+        {{- if $provider }}
+        {{/* Provider-based mode: use computed attribute lists */}}
+        {{- range $attr := $baseAttrs | uniq }}
+        - delete_key(resource.attributes, "{{ $attr }}")
+        {{- end }}
+        {{/* Add process attrs without condition for logs */}}
+        {{- range $attr := $processAttrs }}
+        - delete_key(resource.attributes, "{{ $attr }}")
+        {{- end }}
+        {{- else }}
+        {{/* Backward compatibility: use denylist from values */}}
+        {{- range $index, $pattern := (index $customDenylist "logs" | default list) }}
         {{- if kindIs "string" $pattern }}
         - delete_key(resource.attributes, "{{ $pattern }}")
         {{- else if kindIs "map" $pattern }}
@@ -1494,6 +1611,7 @@ processors:
         - delete_key(resource.attributes, "{{ $key }}"){{- with index $pattern "condition" }} where {{ . }}{{- end }}
         {{- else }}
         {{- fail (printf "Reduce resource attributes logs denylist entries must be either strings or objects with `key` and optional `condition`, got %s" (kindOf $pattern)) }}
+        {{- end }}
         {{- end }}
         {{- end }}
 {{- end }}
@@ -2747,6 +2865,21 @@ processors:
 {{- $pipeline = . }}
 {{- end }}
 {{- $regionEnabled := .Values.Values.presets.resourceDetection.region.enabled }}
+{{- /* Infer provider to match processor creation logic */ -}}
+{{- $distribution := .Values.Values.distribution | default "" }}
+{{- $inferredProvider := "" }}
+{{- if or (hasPrefix "eks" $distribution) (eq $distribution "ecs") }}
+  {{- $inferredProvider = "aws" }}
+{{- else if hasPrefix "gke" $distribution }}
+  {{- $inferredProvider = "gcp" }}
+{{- else if hasPrefix "aks" $distribution }}
+  {{- $inferredProvider = "azure" }}
+{{- end }}
+{{- $explicitProvider := .Values.Values.presets.resourceDetection.provider }}
+{{- $provider := $inferredProvider }}
+{{- if and $explicitProvider (ne $explicitProvider "") }}
+  {{- $provider = $explicitProvider }}
+{{- end }}
 {{- $includeLogs := eq $pipeline "all" }}
 {{- $includeMetrics := or (eq $pipeline "all") (eq $pipeline "metrics") }}
 {{- $includeTraces := or (eq $pipeline "all") (eq $pipeline "traces") }}
@@ -2754,39 +2887,87 @@ processors:
 {{- if and $includeLogs ($config.service.pipelines.logs) (not (has "resourcedetection/env" $config.service.pipelines.logs.processors)) }}
 {{- $_ := set $config.service.pipelines.logs "processors" (prepend $config.service.pipelines.logs.processors "resourcedetection/env" | uniq)  }}
 {{- end }}
-{{- if and $regionEnabled $includeLogs ($config.service.pipelines.logs) (not (has "resourcedetection/region" $config.service.pipelines.logs.processors)) }}
+{{- if and $regionEnabled (ne $provider "on-prem") $includeLogs ($config.service.pipelines.logs) (not (has "resourcedetection/region" $config.service.pipelines.logs.processors)) }}
 {{- $_ := set $config.service.pipelines.logs "processors" (prepend $config.service.pipelines.logs.processors "resourcedetection/region" | uniq)  }}
 {{- end }}
 {{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "resourcedetection/env" $config.service.pipelines.metrics.processors)) }}
 {{- $_ := set $config.service.pipelines.metrics "processors" (prepend $config.service.pipelines.metrics.processors "resourcedetection/env" | uniq)  }}
 {{- end }}
-{{- if and $regionEnabled $includeMetrics ($config.service.pipelines.metrics) (not (has "resourcedetection/region" $config.service.pipelines.metrics.processors)) }}
+{{- if and $regionEnabled (ne $provider "on-prem") $includeMetrics ($config.service.pipelines.metrics) (not (has "resourcedetection/region" $config.service.pipelines.metrics.processors)) }}
 {{- $_ := set $config.service.pipelines.metrics "processors" (prepend $config.service.pipelines.metrics.processors "resourcedetection/region" | uniq)  }}
 {{- end }}
 {{- if and $includeTraces ($config.service.pipelines.traces) (not (has "resourcedetection/env" $config.service.pipelines.traces.processors)) }}
 {{- $_ := set $config.service.pipelines.traces "processors" (prepend $config.service.pipelines.traces.processors "resourcedetection/env" | uniq)  }}
 {{- end }}
-{{- if and $regionEnabled $includeTraces ($config.service.pipelines.traces) (not (has "resourcedetection/region" $config.service.pipelines.traces.processors)) }}
+{{- if and $regionEnabled (ne $provider "on-prem") $includeTraces ($config.service.pipelines.traces) (not (has "resourcedetection/region" $config.service.pipelines.traces.processors)) }}
 {{- $_ := set $config.service.pipelines.traces "processors" (prepend $config.service.pipelines.traces.processors "resourcedetection/region" | uniq)  }}
 {{- end }}
 {{- if and $includeProfiles ($config.service.pipelines.profiles) (not (has "resourcedetection/env" $config.service.pipelines.profiles.processors)) }}
 {{- $_ := set $config.service.pipelines.profiles "processors" (prepend $config.service.pipelines.profiles.processors "resourcedetection/env" | uniq)  }}
 {{- end }}
-{{- if and $regionEnabled $includeProfiles ($config.service.pipelines.profiles) (not (has "resourcedetection/region" $config.service.pipelines.profiles.processors)) }}
+{{- if and $regionEnabled (ne $provider "on-prem") $includeProfiles ($config.service.pipelines.profiles) (not (has "resourcedetection/region" $config.service.pipelines.profiles.processors)) }}
 {{- $_ := set $config.service.pipelines.profiles "processors" (prepend $config.service.pipelines.profiles.processors "resourcedetection/region" | uniq)  }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
 {{- define "opentelemetry-collector.resourceDetectionConfig" -}}
+{{- $distribution := .Values.distribution | default "" }}
+
+{{/* Infer provider from distribution if not explicitly set */}}
+{{- $inferredProvider := "" }}
+{{- if or (hasPrefix "eks" $distribution) (eq $distribution "ecs") }}
+  {{- $inferredProvider = "aws" }}
+{{- else if hasPrefix "gke" $distribution }}
+  {{- $inferredProvider = "gcp" }}
+{{- else if hasPrefix "aks" $distribution }}
+  {{- $inferredProvider = "azure" }}
+{{- end }}
+{{- $explicitProvider := .Values.presets.resourceDetection.provider }}
+{{- $provider := $inferredProvider }}
+{{- if and $explicitProvider (ne $explicitProvider "") }}
+  {{- $provider = $explicitProvider }}
+{{- end }}
+
+{{/* Determine context based on distribution */}}
+{{- $isK8s := and (ne $distribution "standalone") (ne $distribution "ecs") (ne $distribution "macos") }}
+
 processors:
   {{- $envDetectors := .Values.presets.resourceDetection.detectors.env | default (list "system" "env") }}
+  {{/* Determine cloud detectors based on provider */}}
   {{- $cloudDetectors := .Values.presets.resourceDetection.detectors.cloud }}
   {{- if not $cloudDetectors }}
-    {{- if or (eq .Values.distribution "ecs") (eq .Values.distribution "macos") }}
-      {{- $cloudDetectors = (list "gcp" "ec2" "azure") }}
+    {{- if eq $provider "aws" }}
+      {{/* AWS provider: use ec2, add eks for K8s contexts */}}
+      {{- if $isK8s }}
+        {{- $cloudDetectors = (list "ec2" "eks") }}
+      {{- else }}
+        {{- $cloudDetectors = (list "ec2") }}
+      {{- end }}
+    {{- else if eq $provider "azure" }}
+      {{/* Azure provider: use azure, add aks for K8s contexts */}}
+      {{- if $isK8s }}
+        {{- $cloudDetectors = (list "azure" "aks") }}
+      {{- else }}
+        {{- $cloudDetectors = (list "azure") }}
+      {{- end }}
+    {{- else if eq $provider "gcp" }}
+      {{/* GCP provider: use gcp, add gke for K8s contexts */}}
+      {{- if $isK8s }}
+        {{- $cloudDetectors = (list "gcp" "gke") }}
+      {{- else }}
+        {{- $cloudDetectors = (list "gcp") }}
+      {{- end }}
+    {{- else if eq $provider "on-prem" }}
+      {{/* On-prem: no cloud detectors */}}
+      {{- $cloudDetectors = (list) }}
     {{- else }}
-      {{- $cloudDetectors = (list "gcp" "ec2" "azure" "eks") }}
+      {{/* Backward compatibility: no provider set = try all cloud providers */}}
+      {{- if or (eq $distribution "ecs") (eq $distribution "macos") (eq $distribution "standalone") }}
+        {{- $cloudDetectors = (list "gcp" "ec2" "azure") }}
+      {{- else }}
+        {{- $cloudDetectors = (list "gcp" "ec2" "azure" "eks") }}
+      {{- end }}
     {{- end }}
   {{- end }}
   resourcedetection/env:
@@ -2797,15 +2978,26 @@ processors:
       resource_attributes:
         host.id:
           enabled: true
-  {{- if .Values.presets.resourceDetection.region.enabled }}
+  {{- /* Skip region detection for on-prem deployments */ -}}
+  {{- if and .Values.presets.resourceDetection.region.enabled (ne $provider "on-prem") }}
+  {{- if gt (len $cloudDetectors) 0 }}
   resourcedetection/region:
     detectors: {{ $cloudDetectors | toJson }}
     timeout: 2s
     override: true
-    {{- if and (ne .Values.distribution "ecs") (has "eks" $cloudDetectors) }}
+    {{- if and (ne $distribution "ecs") (ne $distribution "standalone") (has "eks" $cloudDetectors) }}
     eks:
       node_from_env_var: K8S_NODE_NAME
     {{- end }}
+    {{- if has "aks" $cloudDetectors }}
+    aks:
+      resource_attributes:
+        cloud.provider:
+          enabled: true
+        cloud.platform:
+          enabled: true
+    {{- end }}
+  {{- end }}
   {{- end }}
 {{- end }}
 
