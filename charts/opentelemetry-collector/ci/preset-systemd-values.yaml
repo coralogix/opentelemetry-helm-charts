@@ -1,0 +1,15 @@
+mode: daemonset
+
+presets:
+  systemdReceiver:
+    enabled: true
+  hostMetrics:
+    enabled: true
+  batch:
+    enabled: true
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 200M
+

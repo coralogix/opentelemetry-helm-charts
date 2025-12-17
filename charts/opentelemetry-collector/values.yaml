@@ -843,6 +843,13 @@ presets:
   journaldReceiver:
     enabled: false
 
+  # Adds the systemd receiver to the metrics pipeline.
+  # Collects metrics about systemd unit states (active, failed, inactive, etc.) on Linux systems.
+  systemdReceiver:
+    enabled: false
+    # scope: system           # Optional: system or user (default: system)
+    # units: ["*.service"]    # Optional: list of systemd units to monitor (supports patterns)
+
   # Configures the collector to receive OTLP data.
   # Adds the OTLP receiver to the traces, metrics, and logs pipelines.
   otlpReceiver:

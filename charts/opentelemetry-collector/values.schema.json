@@ -1716,6 +1716,28 @@
             }
           }
         },
+        "systemdReceiver": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Enables the systemd receiver to collect metrics about systemd unit states. WARNING: Alpha status, may not be available in all collector builds.",
+              "type": "boolean"
+            },
+            "scope": {
+              "description": "The systemd scope to monitor (system or user). Default: system.",
+              "type": "string",
+              "enum": ["system", "user"]
+            },
+            "units": {
+              "description": "List of systemd units to monitor. Supports patterns like '*.service'. Default: ['*.service']",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
         "statsdReceiver": {
           "type": "object",
           "additionalProperties": false,
