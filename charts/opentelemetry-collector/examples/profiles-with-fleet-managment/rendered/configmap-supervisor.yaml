@@ -15,7 +15,7 @@ metadata:
 data:
   supervisor.yaml: |
     server:
-      endpoint: "https://ingress.eu2.coralogix.com/opamp/v1"
+      endpoint: "https://ingress./opamp/v1"
       headers:
         Authorization: "Bearer ${env:CORALOGIX_PRIVATE_KEY}"
     
@@ -38,6 +38,7 @@ data:
     
       # This adds CLI arguments to the Collector.
       args: [
+          "--feature-gates=+service.profilesSupport",
       ]
     
       # This adds env vars to the Collector process.
@@ -45,14 +46,8 @@ data:
     
       description:
         non_identifying_attributes:
-          k8s.daemonset.name: "example-opentelemetry-collector"
-          k8s.namespace.name: "default"
-          k8s.node.name: ${env:KUBE_NODE_NAME}
-          k8s.pod.name: ${env:KUBE_POD_NAME}
           
           cx.agent.type: "agent"
-          environment: "production"
-          team: "platform"
     
     # The storage can be used for many things:
     # - It stores configuration sent by the OpAMP server so that new collector

@@ -38,7 +38,11 @@ agent:
   {{- end }}
 
   # This adds CLI arguments to the Collector.
-  args: []
+  args: [
+    {{- if .Values.presets.profilesCollection.enabled }}
+      "--feature-gates=+service.profilesSupport",
+    {{- end }}
+  ]
 
   # This adds env vars to the Collector process.
   env: {}

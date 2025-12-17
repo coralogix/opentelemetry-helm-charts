@@ -63,6 +63,12 @@ service:
     logs:
       receivers: [nop]
       exporters: [nop]
+{{- if .Values.presets.profilesCollection.enabled }}
+    profiles:
+      receivers: [nop]
+      exporters: [nop]
+{{- end }}
+
 {{- end }}
 
 {{/*
