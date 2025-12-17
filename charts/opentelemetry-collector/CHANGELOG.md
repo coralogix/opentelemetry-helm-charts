@@ -2,7 +2,7 @@
 
 ## OpenTelemetry Collector
 
-### v0.128.0 / 2025-12-14
+### v0.127.1 / 2025-12-17
 
 - [Feat] Add `provider` field to `reduceResourceAttributes` and `resourceDetection` presets for targeted cloud provider configuration. When set, only attributes/detectors relevant to the specified provider (aws, azure, gcp, on-prem) and deployment context (`distribution`) are used, reducing config size and avoiding unnecessary statements.
 - [Feat] Automatically infer `provider` from `distribution` when not explicitly set (e.g., `eks/fargate` → `aws`, `gke/autopilot` → `gcp`, `aks` → `azure`, `ecs` → `aws`).
