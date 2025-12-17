@@ -90,7 +90,7 @@ Determine the command to use based on platform and configuration.
 {{- if $configArg }}
 - {{ $configArg }}
 {{- end }}
-{{- if .Values.presets.profilesCollection.enabled }}
+{{- if (and (.Values.presets.profilesCollection.enabled) (not .Values.presets.fleetManagement.enabled)) }}
 - "--feature-gates=+service.profilesSupport"
 {{- end }}
 {{- range .Values.command.extraArgs }}

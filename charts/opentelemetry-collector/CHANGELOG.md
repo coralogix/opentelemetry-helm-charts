@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.127.1 / 2025-12-17
+
+- [Fix] Add support for combining `profilesCollection` preset with `fleetManagement` preset.
+
 ### v0.127.0 / 2025-12-12
 
 - [CHORE] Bump Collector to 0.141.0

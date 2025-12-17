@@ -1,0 +1,21 @@
+presets:
+  profilesCollection:
+    enabled: true
+  fleetManagement:
+   enabled: true
+   agentType: "agent"
+   supervisor:
+     enabled: true
+  metadata:
+    enabled: true
+    clusterName: "production"
+    integrationName: "coralogix-integration-helm"
+  coralogixExporter:
+    enabled: true
+    pipeline: all
+    privateKey: ${env:CORALOGIX_PRIVATE_KEY}
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 200M

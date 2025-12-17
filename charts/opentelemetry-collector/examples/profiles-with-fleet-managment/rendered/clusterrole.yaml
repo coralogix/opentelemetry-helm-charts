@@ -13,8 +13,11 @@ metadata:
     
 rules:
   - apiGroups: [""]
-    resources: ["pods", "endpoints", "nodes/stats", "nodes/metrics", "nodes", "services"]
+    resources: ["pods", "namespaces"]
     verbs: ["get", "watch", "list"]
-  - nonResourceURLs:
-    - "/metrics"
-    verbs: ["get"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["extensions"]
+    resources: ["replicasets"]
+    verbs: ["get", "list", "watch"]
