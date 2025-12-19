@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.127.2 / 2025-12-19
+
+- [Bug] Add missing `node` to `k8s_observer` for `kubernetesApiServerMetrics` preset.
+
 ### v0.127.1 / 2025-12-17
 
 - [Fix] Add support for combining `profilesCollection` preset with `fleetManagement` preset.

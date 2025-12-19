@@ -1,0 +1,22 @@
+mode: daemonset
+
+presets:
+  kubernetesApiServerMetrics:
+    enabled: true
+    scrapeAll: false
+
+config:
+  exporters:
+    debug:
+      verbosity: detailed
+
+  service:
+    pipelines:
+      metrics:
+        exporters:
+          - debug
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 200M
