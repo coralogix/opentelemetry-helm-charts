@@ -1510,6 +1510,7 @@ processors:
 {{/* Build base attributes list */}}
 {{- $baseAttrs := list }}
 {{- if $provider }}
+  {{/* Provider-based mode: build smart attribute list based on environment */}}
   {{/* Start with common attrs for all providers */}}
   {{- $baseAttrs = concat $osAttrs $containerAttrs $telemetryAttrs }}
   {{/* Add cloud-specific attrs only for cloud providers */}}
@@ -1522,6 +1523,7 @@ processors:
   {{- if $isEcs }}
     {{- $baseAttrs = concat $baseAttrs $ecsAttrs }}
   {{- end }}
+  {{/* Note: Custom denylist from values is ALWAYS applied in addition to provider-based attrs */}}
 {{- end }}
 
 {{/* Get custom denylist for additional attrs */}}
@@ -1547,8 +1549,8 @@ processors:
         {{- range $attr := $networkAttrs }}
         - delete_key(resource.attributes, "{{ $attr }}")
         {{- end }}
-        {{- else }}
-        {{/* Backward compatibility: use denylist from values */}}
+        {{- end }}
+        {{/* Always apply custom denylist if provided */}}
         {{- range $index, $pattern := (index $customDenylist "metrics" | default list) }}
         {{- if kindIs "string" $pattern }}
         - delete_key(resource.attributes, "{{ $pattern }}")
@@ -1557,7 +1559,6 @@ processors:
         - delete_key(resource.attributes, "{{ $key }}"){{- with index $pattern "condition" }} where {{ . }}{{- end }}
         {{- else }}
         {{- fail (printf "Reduce resource attributes metrics denylist entries must be either strings or objects with `key` and optional `condition`, got %s" (kindOf $pattern)) }}
-        {{- end }}
         {{- end }}
         {{- end }}
 {{- end }}
@@ -1574,8 +1575,8 @@ processors:
         {{- range $attr := $processAttrs }}
         - delete_key(resource.attributes, "{{ $attr }}")
         {{- end }}
-        {{- else }}
-        {{/* Backward compatibility: use denylist from values */}}
+        {{- end }}
+        {{/* Always apply custom denylist if provided */}}
         {{- range $index, $pattern := (index $customDenylist "traces" | default list) }}
         {{- if kindIs "string" $pattern }}
         - delete_key(resource.attributes, "{{ $pattern }}")
@@ -1584,7 +1585,6 @@ processors:
         - delete_key(resource.attributes, "{{ $key }}"){{- with index $pattern "condition" }} where {{ . }}{{- end }}
         {{- else }}
         {{- fail (printf "Reduce resource attributes traces denylist entries must be either strings or objects with `key` and optional `condition`, got %s" (kindOf $pattern)) }}
-        {{- end }}
         {{- end }}
         {{- end }}
 {{- end }}
@@ -1601,8 +1601,8 @@ processors:
         {{- range $attr := $processAttrs }}
         - delete_key(resource.attributes, "{{ $attr }}")
         {{- end }}
-        {{- else }}
-        {{/* Backward compatibility: use denylist from values */}}
+        {{- end }}
+        {{/* Always apply custom denylist if provided */}}
         {{- range $index, $pattern := (index $customDenylist "logs" | default list) }}
         {{- if kindIs "string" $pattern }}
         - delete_key(resource.attributes, "{{ $pattern }}")
@@ -1611,7 +1611,6 @@ processors:
         - delete_key(resource.attributes, "{{ $key }}"){{- with index $pattern "condition" }} where {{ . }}{{- end }}
         {{- else }}
         {{- fail (printf "Reduce resource attributes logs denylist entries must be either strings or objects with `key` and optional `condition`, got %s" (kindOf $pattern)) }}
-        {{- end }}
         {{- end }}
         {{- end }}
 {{- end }}
