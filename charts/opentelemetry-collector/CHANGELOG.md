@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.127.3 / 2025-12-22
+
+- [Feature] Add support for custom pod labels on TargetAllocator pods via `targetAllocator.podLabels`.
+
 ### v0.127.2 / 2025-12-19
 
 - [Bug] Add missing `node` to `k8s_observer` for `kubernetesApiServerMetrics` preset.
