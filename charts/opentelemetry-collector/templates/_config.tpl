@@ -2453,6 +2453,9 @@ service:
 {{- end }}
 
 {{- define "opentelemetry-collector.hostEntityEventsConfig" -}}
+{{- /* Infer provider to determine if region detection should be included */ -}}
+{{- $distribution := .Values.distribution | default "" }}
+{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "explicitProvider" .Values.presets.resourceDetection.provider) }}
 exporters:
   coralogix/resource_catalog:
     timeout: "30s"
@@ -2542,7 +2545,7 @@ service:
         - k8sattributes
         {{- end}}
         - resourcedetection/entity
-        {{- if and .Values.presets.resourceDetection.enabled .Values.presets.resourceDetection.region.enabled }}
+        {{- if and .Values.presets.resourceDetection.enabled .Values.presets.resourceDetection.region.enabled (ne $provider "on-prem") }}
         - resourcedetection/region
         {{- end }}
         - transform/entity-event
