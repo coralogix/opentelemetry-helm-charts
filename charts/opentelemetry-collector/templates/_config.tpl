@@ -78,6 +78,29 @@ Returns the endpoint name if provided, otherwise sanitizes the domain.
 {{- end }}
 
 {{/*
+Infer cloud provider from distribution.
+Returns: "aws", "azure", "gcp", or "" (empty string if no match)
+Usage: {{ include "opentelemetry-collector.inferProvider" (dict "distribution" .Values.distribution "explicitProvider" .Values.presets.resourceDetection.provider) }}
+*/}}
+{{- define "opentelemetry-collector.inferProvider" -}}
+{{- $distribution := .distribution | default "" }}
+{{- $inferredProvider := "" }}
+{{- if or (hasPrefix "eks" $distribution) (eq $distribution "ecs") }}
+  {{- $inferredProvider = "aws" }}
+{{- else if hasPrefix "gke" $distribution }}
+  {{- $inferredProvider = "gcp" }}
+{{- else if hasPrefix "aks" $distribution }}
+  {{- $inferredProvider = "azure" }}
+{{- end }}
+{{- $explicitProvider := .explicitProvider | default "" }}
+{{- if ne $explicitProvider "" }}
+  {{- $explicitProvider }}
+{{- else }}
+  {{- $inferredProvider }}
+{{- end }}
+{{- end }}
+
+{{/*
 Build config file for daemonset OpenTelemetry Collector
 */}}
 {{- define "opentelemetry-collector.daemonsetConfig" -}}
@@ -1452,19 +1475,7 @@ processors:
 {{- $distribution := .Values.distribution | default "" }}
 
 {{/* Infer provider from distribution if not explicitly set */}}
-{{- $inferredProvider := "" }}
-{{- if or (hasPrefix "eks" $distribution) (eq $distribution "ecs") }}
-  {{- $inferredProvider = "aws" }}
-{{- else if hasPrefix "gke" $distribution }}
-  {{- $inferredProvider = "gcp" }}
-{{- else if hasPrefix "aks" $distribution }}
-  {{- $inferredProvider = "azure" }}
-{{- end }}
-{{- $explicitProvider := .Values.presets.reduceResourceAttributes.provider }}
-{{- $provider := $inferredProvider }}
-{{- if and $explicitProvider (ne $explicitProvider "") }}
-  {{- $provider = $explicitProvider }}
-{{- end }}
+{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "explicitProvider" .Values.presets.reduceResourceAttributes.provider) }}
 
 {{/* Determine context based on distribution */}}
 {{- $isK8s := and (ne $distribution "standalone") (ne $distribution "ecs") (ne $distribution "macos") }}
@@ -2866,19 +2877,7 @@ processors:
 {{- $regionEnabled := .Values.Values.presets.resourceDetection.region.enabled }}
 {{- /* Infer provider to match processor creation logic */ -}}
 {{- $distribution := .Values.Values.distribution | default "" }}
-{{- $inferredProvider := "" }}
-{{- if or (hasPrefix "eks" $distribution) (eq $distribution "ecs") }}
-  {{- $inferredProvider = "aws" }}
-{{- else if hasPrefix "gke" $distribution }}
-  {{- $inferredProvider = "gcp" }}
-{{- else if hasPrefix "aks" $distribution }}
-  {{- $inferredProvider = "azure" }}
-{{- end }}
-{{- $explicitProvider := .Values.Values.presets.resourceDetection.provider }}
-{{- $provider := $inferredProvider }}
-{{- if and $explicitProvider (ne $explicitProvider "") }}
-  {{- $provider = $explicitProvider }}
-{{- end }}
+{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "explicitProvider" .Values.Values.presets.resourceDetection.provider) }}
 {{- $includeLogs := eq $pipeline "all" }}
 {{- $includeMetrics := or (eq $pipeline "all") (eq $pipeline "metrics") }}
 {{- $includeTraces := or (eq $pipeline "all") (eq $pipeline "traces") }}
@@ -2914,19 +2913,7 @@ processors:
 {{- $distribution := .Values.distribution | default "" }}
 
 {{/* Infer provider from distribution if not explicitly set */}}
-{{- $inferredProvider := "" }}
-{{- if or (hasPrefix "eks" $distribution) (eq $distribution "ecs") }}
-  {{- $inferredProvider = "aws" }}
-{{- else if hasPrefix "gke" $distribution }}
-  {{- $inferredProvider = "gcp" }}
-{{- else if hasPrefix "aks" $distribution }}
-  {{- $inferredProvider = "azure" }}
-{{- end }}
-{{- $explicitProvider := .Values.presets.resourceDetection.provider }}
-{{- $provider := $inferredProvider }}
-{{- if and $explicitProvider (ne $explicitProvider "") }}
-  {{- $provider = $explicitProvider }}
-{{- end }}
+{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "explicitProvider" .Values.presets.resourceDetection.provider) }}
 
 {{/* Determine context based on distribution */}}
 {{- $isK8s := and (ne $distribution "standalone") (ne $distribution "ecs") (ne $distribution "macos") }}
