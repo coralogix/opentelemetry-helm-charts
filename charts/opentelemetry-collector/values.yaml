@@ -62,6 +62,9 @@ targetAllocator:
   volumeMounts: []
   volumes: []
 
+  # Labels to add to Target Allocator pods.
+  podLabels: {}
+
   serviceMonitor:
     enabled: false
     extraLabels: {}

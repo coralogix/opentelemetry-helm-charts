@@ -1,0 +1,50 @@
+---
+# Source: opentelemetry-collector/templates/configmap-agent.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-opentelemetry-collector-agent
+  namespace: default
+  labels:
+    helm.sh/chart: opentelemetry-collector-0.127.4
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.141.0"
+    app.kubernetes.io/managed-by: Helm
+    
+data:
+  relay: |
+    exporters:
+      nop: null
+    extensions:
+      health_check:
+        endpoint: ${env:MY_POD_IP}:13133
+    receivers:
+      nop: null
+    service:
+      extensions:
+      - health_check
+      pipelines:
+        logs:
+          exporters:
+          - nop
+          receivers:
+          - nop
+        metrics:
+          exporters:
+          - nop
+          receivers:
+          - nop
+        profiles:
+          exporters:
+          - nop
+          receivers:
+          - nop
+        traces:
+          exporters:
+          - nop
+          receivers:
+          - nop
+      telemetry:
+        logs:
+          encoding: json

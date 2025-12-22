@@ -63,6 +63,12 @@ service:
     logs:
       receivers: [nop]
       exporters: [nop]
+{{- if .Values.presets.profilesCollection.enabled }}
+    profiles:
+      receivers: [nop]
+      exporters: [nop]
+{{- end }}
+
 {{- end }}
 
 {{/*
@@ -1284,6 +1290,9 @@ processors:
 extensions:
   k8s_observer:
     auth_type: serviceAccount
+{{- if eq .Values.mode "daemonset" }}
+    node: ${env:K8S_NODE_NAME}
+{{- end }}
     observe_pods: true
 receivers:
   prometheus/k8s_apiserver_metrics:
