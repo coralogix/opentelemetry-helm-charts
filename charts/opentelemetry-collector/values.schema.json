@@ -78,6 +78,10 @@
             "type": "object"
           }
         },
+        "podLabels": {
+          "type": "object",
+          "description": "Custom labels to add to Target Allocator pods"
+        },
         "serviceMonitor": {
           "type": "object",
           "additionalProperties": false,
