@@ -1,0 +1,21 @@
+mode: daemonset
+
+distribution: "gke/autopilot"
+
+presets:
+  reduceResourceAttributes:
+    enabled: true
+    # provider: Should infer "gcp" from distribution
+  resourceDetection:
+    enabled: true
+    #provider: Should infer "gcp" from distribution
+  logsCollection:
+    enabled: true
+  kubernetesAttributes:
+    enabled: true
+
+config:
+  exporters:
+    debug:
+      verbosity: basic
+

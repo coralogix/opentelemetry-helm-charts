@@ -533,6 +533,10 @@ presets:
   reduceResourceAttributes:
     enabled: false
     pipelines: ["all"]
+    # Cloud provider for targeted attribute removal.
+    # When set, only attributes relevant to this provider and deployment context are removed.
+    # Options: aws, azure, gcp, on-prem, "" (empty = use denylist for backward compatibility)
+    provider: ""
     denylist:
       metrics:
         # Entries may be strings or objects with additional matching logic.
@@ -886,6 +890,10 @@ presets:
     # Pipeline to add the resource detection processors to. Possible values are
     # "all", "metrics", "traces" and "none".
     pipeline: all
+    # Cloud provider for targeted detector selection.
+    # When set, only detectors relevant to this provider are enabled.
+    # Options: aws, azure, gcp, on-prem, "" (empty = try all cloud providers for backward compatibility)
+    provider: ""
     detectors:
       # List of detectors used by the resourcedetection/env processor.
       env:

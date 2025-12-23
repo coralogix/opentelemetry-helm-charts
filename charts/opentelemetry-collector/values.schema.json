@@ -728,6 +728,11 @@
               "type": "string",
               "enum": ["all", "metrics", "traces", "profiles", "none"]
             },
+            "provider": {
+              "description": "Cloud provider for targeted detector selection. When set, only detectors relevant to this provider are enabled. Empty string tries all cloud providers for backward compatibility.",
+              "type": "string",
+              "enum": ["", "aws", "azure", "gcp", "on-prem"]
+            },
             "detectors": {
               "type": "object",
               "additionalProperties": false,
@@ -1298,6 +1303,11 @@
                 "type": "string",
                 "enum": ["metrics", "traces", "logs", "profiles", "all"]
               }
+            },
+            "provider": {
+              "description": "Cloud provider for targeted attribute removal. When set, only attributes relevant to this provider are removed. Empty string uses denylist for backward compatibility.",
+              "type": "string",
+              "enum": ["", "aws", "azure", "gcp", "on-prem"]
             },
             "denylist": {
               "description": "Specifies the denylist for the reduce resource attributes processor.",
