@@ -2,6 +2,14 @@
 
 ## OpenTelemetry Collector
 
+### v0.127.6 / 2025-12-24
+
+- [Feat] Add `discovery` preset for automatic service discovery in standalone/macos distributions.
+- [Feat] Discovery preset supports 11 services: PostgreSQL, MySQL, Redis, MongoDB, NGINX, Apache, RabbitMQ, Memcached, Elasticsearch, Kafka, and Cassandra.
+- [Feat] Discovery uses `host_observer` extension with `receiver_creator` for dynamic service detection based on process names and ports.
+- [Feat] Credential management via environment variables with sensible defaults.
+
+
 ### v0.127.5 / 2025-12-23
 
 - [Bug] Apply `resourceDetection` preset to `profiles`.
