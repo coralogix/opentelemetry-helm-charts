@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.127.5 / 2025-12-23
+
+- [Bug] Apply `resourceDetection` preset to `profiles`.
+
 ### v0.127.4 / 2025-12-22
 
 - [Feat] Add `provider` field to `reduceResourceAttributes` and `resourceDetection` presets for targeted cloud provider configuration. When set, only attributes/detectors relevant to the specified provider (aws, azure, gcp, on-prem) and deployment context (`distribution`) are used, reducing config size and avoiding unnecessary statements.
