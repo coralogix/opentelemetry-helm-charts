@@ -14,16 +14,8 @@ Supported distributions:
 {{- if $isStandalone }}
   {{- $discoveryConfig := include "opentelemetry-collector.discoveryStandaloneConfig" .Values | fromYaml }}
   {{- $config = mustMergeOverwrite $discoveryConfig $config }}
-
-  {{- /* Add host_observer extension */ -}}
   {{- $_ := set $config.service "extensions" (append ($config.service.extensions | default list) "host_observer" | uniq) }}
-
-  {{- /* Add discovery metrics pipeline */ -}}
-  {{- $_ := set $config.service.pipelines "metrics/discovery" (dict
-      "receivers" (list "receiver_creator/discovery")
-      "processors" (list "memory_limiter" "batch" "resourcedetection")
-      "exporters" (list "coralogix")
-  ) }}
+  {{- $_ := set $config.service.pipelines.metrics "receivers" (append ($config.service.pipelines.metrics.receivers | default list) "receiver_creator/discovery" | uniq) }}
 {{- end }}
 
 {{- $config | toYaml }}
