@@ -849,7 +849,7 @@ presets:
   # journal directory into the collector.
   journaldReceiver:
     enabled: false
-
+    dynamicSubsystemName: false
   # Configures the collector to receive OTLP data.
   # Adds the OTLP receiver to the traces, metrics, and logs pipelines.
   otlpReceiver:
