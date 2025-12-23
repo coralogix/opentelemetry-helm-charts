@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.127.2 / 2025-12-19
+
+- [Bug] Apply `resourceDetection` preset to `profiles`.
+
 ### v0.127.3 / 2025-12-22
 
 - [Feature] Add support for custom pod labels on TargetAllocator pods via `targetAllocator.podLabels`.

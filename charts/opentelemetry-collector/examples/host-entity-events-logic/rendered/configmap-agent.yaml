@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.127.3
+    helm.sh/chart: opentelemetry-collector-0.127.4
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.141.0"
@@ -272,9 +272,9 @@ data:
           - debug
           processors:
           - memory_limiter
-          - resource/metadata
           - resourcedetection/region
           - resourcedetection/env
+          - resource/metadata
           - k8sattributes
           - transform/k8s_attributes
           receivers:
@@ -296,9 +296,9 @@ data:
           - debug
           processors:
           - memory_limiter
-          - resource/metadata
           - resourcedetection/region
           - resourcedetection/env
+          - resource/metadata
           - k8sattributes
           - transform/k8s_attributes
           - transform/prometheus
@@ -311,9 +311,9 @@ data:
           - debug
           processors:
           - memory_limiter
-          - resource/metadata
           - resourcedetection/region
           - resourcedetection/env
+          - resource/metadata
           - k8sattributes
           - transform/k8s_attributes
           receivers:
