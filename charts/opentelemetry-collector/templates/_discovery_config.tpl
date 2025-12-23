@@ -1,6 +1,57 @@
-{{- define "opentelemetry-collector.discoveryStandaloneConfig" -}}
-{{- if and .Values.presets.discovery.enabled (eq .Values.distribution "standalone") }}
+{{/*
+Service Discovery Configuration
+Automatically discovers and monitors common databases and services
 
+Supported distributions:
+- standalone: Uses host_observer to scan local processes (ACTIVE)
+- macos: Uses host_observer to scan local processes (ACTIVE)
+- K8s: Uses k8s_observer to scan pods (PLACEHOLDER - Future use)
+*/}}
+
+{{- define "opentelemetry-collector.applyDiscoveryConfig" -}}
+{{- $config := .config }}
+{{- $isStandalone := or (eq .Values.Values.distribution "standalone") (eq .Values.Values.distribution "macos") }}
+
+{{- if $isStandalone }}
+  {{- /* ACTIVE: Standalone discovery using host_observer */ -}}
+  {{- $discoveryConfig := include "opentelemetry-collector.discoveryStandaloneConfig" .Values | fromYaml }}
+  {{- $config = mustMergeOverwrite $discoveryConfig $config }}
+
+  {{- /* Add host_observer extension */ -}}
+  {{- $_ := set $config.service "extensions" (append ($config.service.extensions | default list) "host_observer" | uniq) }}
+
+  {{- /* Add discovery metrics pipeline */ -}}
+  {{- $_ := set $config.service.pipelines "metrics/discovery" (dict
+      "receivers" (list "receiver_creator/discovery")
+      "processors" (list "memory_limiter" "batch" "resourcedetection")
+      "exporters" (list "coralogix")
+  ) }}
+{{- else }}
+  {{- /* PLACEHOLDER: K8s discovery will be enabled in a future release */ -}}
+  {{- /* For now, discovery only works in standalone/macos mode */ -}}
+  {{- /* Uncomment below when ready to enable K8s discovery: */ -}}
+
+  {{- /* $discoveryConfig := include "opentelemetry-collector.discoveryK8sConfig" .Values | fromYaml */ -}}
+  {{- /* $config = mustMergeOverwrite $discoveryConfig $config */ -}}
+  {{- /* Note: k8s_observer is already defined by other presets, no need to add it */ -}}
+  {{- /* $_ := set $config.service "extensions" (append ($config.service.extensions | default list) "k8s_observer" | uniq) */ -}}
+  {{- /* Add discovery metrics pipeline */ -}}
+  {{- /* $_ := set $config.service.pipelines "metrics/discovery" (dict
+      "receivers" (list "receiver_creator/discovery")
+      "processors" (list "memory_limiter" "batch" "resourcedetection")
+      "exporters" (list "coralogix")
+  ) */ -}}
+{{- end }}
+
+{{- $config | toYaml }}
+{{- end }}
+
+{{/*
+Standalone Discovery Config - ACTIVE
+Uses host_observer to discover services running on local host
+Matches services by process command name and/or port number
+*/}}
+{{- define "opentelemetry-collector.discoveryStandaloneConfig" -}}
 extensions:
   host_observer:
     refresh_interval: {{ .Values.presets.discovery.observer.refresh_interval | default "10s" }}
@@ -14,8 +65,8 @@ receivers:
       # PostgreSQL Discovery
       postgresql:
         rule: |
-          type == "hostport" and 
-          ((command != "" and command matches "(?i)postgres") or port == {{ .Values.presets.discovery.services.postgresql.port | default 5432 }}) and 
+          type == "hostport" and
+          ((command != "" and command matches "(?i)postgres") or port == {{ .Values.presets.discovery.services.postgresql.port | default 5432 }}) and
           not (command matches "coralogix|otel")
         config:
           endpoint: "`endpoint`"
@@ -30,8 +81,8 @@ receivers:
       # MySQL Discovery
       mysql:
         rule: |
-          type == "hostport" and port != 33060 and 
-          ((command != "" and command matches "(?i)mysqld") or port == {{ .Values.presets.discovery.services.mysql.port | default 3306 }}) and 
+          type == "hostport" and port != 33060 and
+          ((command != "" and command matches "(?i)mysqld") or port == {{ .Values.presets.discovery.services.mysql.port | default 3306 }}) and
           not (command matches "coralogix|otel")
         config:
           endpoint: "`endpoint`"
@@ -44,8 +95,8 @@ receivers:
       # Redis Discovery
       redis:
         rule: |
-          type == "hostport" and 
-          ((command != "" and command matches "(?i)redis-server") or port == {{ .Values.presets.discovery.services.redis.port | default 6379 }}) and 
+          type == "hostport" and
+          ((command != "" and command matches "(?i)redis-server") or port == {{ .Values.presets.discovery.services.redis.port | default 6379 }}) and
           not (command matches "coralogix|otel")
         config:
           endpoint: "`endpoint`"
@@ -57,8 +108,8 @@ receivers:
       # MongoDB Discovery
       mongodb:
         rule: |
-          type == "hostport" and 
-          ((command != "" and command matches "(?i)mongod") or port == {{ .Values.presets.discovery.services.mongodb.port | default 27017 }}) and 
+          type == "hostport" and
+          ((command != "" and command matches "(?i)mongod") or port == {{ .Values.presets.discovery.services.mongodb.port | default 27017 }}) and
           not (command matches "coralogix|otel")
         config:
           hosts:
@@ -77,8 +128,8 @@ receivers:
       # NGINX Discovery
       nginx:
         rule: |
-          type == "hostport" and 
-          ((command != "" and command matches "(?i)nginx") or port == 80 or port == 443) and 
+          type == "hostport" and
+          ((command != "" and command matches "(?i)nginx") or port == 80 or port == 443) and
           not (command matches "coralogix|otel")
         config:
           endpoint: "http://`endpoint`{{ .Values.presets.discovery.services.nginx.status_endpoint | default "/nginx_status" }}"
@@ -89,8 +140,8 @@ receivers:
       # Apache Discovery
       apache:
         rule: |
-          type == "hostport" and 
-          ((command != "" and command matches "(?i)(httpd|apache2)") or port == 80 or port == 443) and 
+          type == "hostport" and
+          ((command != "" and command matches "(?i)(httpd|apache2)") or port == 80 or port == 443) and
           not (command matches "coralogix|otel|nginx")
         config:
           endpoint: "http://`endpoint`{{ .Values.presets.discovery.services.apache.status_endpoint | default "/server-status?auto" }}"
@@ -101,8 +152,8 @@ receivers:
       # RabbitMQ Discovery
       rabbitmq:
         rule: |
-          type == "hostport" and 
-          ((command != "" and command matches "(?i)rabbitmq") or port == {{ .Values.presets.discovery.services.rabbitmq.management_port | default 15672 }}) and 
+          type == "hostport" and
+          ((command != "" and command matches "(?i)rabbitmq") or port == {{ .Values.presets.discovery.services.rabbitmq.management_port | default 15672 }}) and
           not (command matches "coralogix|otel")
         config:
           endpoint: "`endpoint`"
@@ -115,8 +166,8 @@ receivers:
       # Memcached Discovery
       memcached:
         rule: |
-          type == "hostport" and 
-          ((command != "" and command matches "(?i)memcached") or port == {{ .Values.presets.discovery.services.memcached.port | default 11211 }}) and 
+          type == "hostport" and
+          ((command != "" and command matches "(?i)memcached") or port == {{ .Values.presets.discovery.services.memcached.port | default 11211 }}) and
           not (command matches "coralogix|otel")
         config:
           endpoint: "`endpoint`"
@@ -127,8 +178,8 @@ receivers:
       # Elasticsearch Discovery
       elasticsearch:
         rule: |
-          type == "hostport" and 
-          ((command != "" and command matches "(?i)elasticsearch") or port == {{ .Values.presets.discovery.services.elasticsearch.port | default 9200 }}) and 
+          type == "hostport" and
+          ((command != "" and command matches "(?i)elasticsearch") or port == {{ .Values.presets.discovery.services.elasticsearch.port | default 9200 }}) and
           not (command matches "coralogix|otel")
         config:
           endpoint: "http://`endpoint`"
@@ -141,8 +192,8 @@ receivers:
       # Kafka Discovery
       kafkametrics:
         rule: |
-          type == "hostport" and 
-          ((command != "" and command matches "(?i)kafka") or port == {{ .Values.presets.discovery.services.kafka.port | default 9092 }}) and 
+          type == "hostport" and
+          ((command != "" and command matches "(?i)kafka") or port == {{ .Values.presets.discovery.services.kafka.port | default 9092 }}) and
           not (command matches "coralogix|otel")
         config:
           brokers:
@@ -154,8 +205,8 @@ receivers:
       # Cassandra Discovery (JMX)
       jmx/cassandra:
         rule: |
-          type == "hostport" and 
-          ((command != "" and command matches "(?i)cassandra") or port == {{ .Values.presets.discovery.services.cassandra.jmx_port | default 7199 }}) and 
+          type == "hostport" and
+          ((command != "" and command matches "(?i)cassandra") or port == {{ .Values.presets.discovery.services.cassandra.jmx_port | default 7199 }}) and
           not (command matches "coralogix|otel")
         config:
           jar_path: /opt/opentelemetry-java-contrib-jmx-metrics.jar
@@ -163,32 +214,193 @@ receivers:
           target_system: cassandra
           collection_interval: 60s
 {{- end }}
-
-
-service:
-  extensions:
-    - host_observer
-  
-  pipelines:
-    metrics/discovery:
-      receivers:
-        - receiver_creator/discovery
-      processors:
-        - memory_limiter
-        - batch
-        - resourcedetection
-      exporters:
-        - coralogix
-
-{{- end }}
 {{- end }}
 
-{{- define "opentelemetry-collector.applyDiscoveryConfig" -}}
-{{- $config := mustMergeOverwrite (include "opentelemetry-collector.discoveryStandaloneConfig" .Values | fromYaml) .config }}
-{{- if and .Values.Values.presets.discovery.enabled (eq .Values.Values.distribution "standalone") }}
-{{- $_ := set $config.service "extensions" (append ($config.service.extensions | default list) "host_observer" | uniq) }}
-{{- $_ := set $config.service.pipelines "metrics/discovery" (dict "receivers" (list "receiver_creator/discovery") "processors" (list "memory_limiter" "batch" "resourcedetection") "exporters" (list "coralogix")) }}
-{{- end }}
-{{- $config | toYaml }}
+{{/*
+K8s Discovery Config - PLACEHOLDER (Future Use)
+Uses k8s_observer to discover services running in Kubernetes pods
+Matches services by pod labels and port numbers
+
+NOTE: This will be enabled in a future release after standalone is proven stable.
+      When enabled, this will automatically discover services across the K8s cluster.
+
+Supported distributions: "" (default K8s), "eks/fargate", "gke/autopilot"
+*/}}
+{{- define "opentelemetry-collector.discoveryK8sConfig" -}}
+{{- /* Note: We don't define k8s_observer here - it's already defined by other presets
+       (kubernetesAttributes, mysql.metrics, kubernetesExtraMetrics, etc.)
+       We just reference it in receiver_creator */ -}}
+receivers:
+  receiver_creator/discovery:
+    watch_observers: [k8s_observer]
+    receivers:
+{{- if .Values.presets.discovery.services.postgresql.enabled }}
+      # PostgreSQL Discovery - REQUIRES: POSTGRES_PASSWORD
+      postgresql:
+        rule: |
+          type == "port" and
+          port == {{ .Values.presets.discovery.services.postgresql.port | default 5432 }} and
+          (pod.labels["app.kubernetes.io/name"] == "postgresql" or
+           pod.labels["app"] == "postgresql")
+        config:
+          endpoint: "`endpoint`"
+          username: ${env:POSTGRES_USER:-{{ .Values.presets.discovery.services.postgresql.default_user | default "postgres" }}}
+          password: ${env:POSTGRES_PASSWORD}
+          databases:
+            - ${env:POSTGRES_DB:-{{ .Values.presets.discovery.services.postgresql.default_db | default "postgres" }}}
+          collection_interval: 60s
 {{- end }}
 
+{{- /* Skip MySQL if the dedicated mysql.metrics preset is enabled (backward compatibility) */ -}}
+{{- if and .Values.presets.discovery.services.mysql.enabled (not .Values.presets.mysql.metrics.enabled) }}
+      # MySQL Discovery - REQUIRES: MYSQL_PASSWORD
+      # NOTE: Skipped if mysql.metrics preset is enabled
+      mysql:
+        rule: |
+          type == "port" and
+          port == {{ .Values.presets.discovery.services.mysql.port | default 3306 }} and
+          (pod.labels["app.kubernetes.io/name"] == "mysql" or
+           pod.labels["app"] == "mysql")
+        config:
+          endpoint: "`endpoint`"
+          username: ${env:MYSQL_USER:-{{ .Values.presets.discovery.services.mysql.default_user | default "root" }}}
+          password: ${env:MYSQL_PASSWORD}
+          collection_interval: 60s
+{{- end }}
+
+{{- if .Values.presets.discovery.services.redis.enabled }}
+      # Redis Discovery - OPTIONAL: REDIS_PASSWORD (only if auth enabled)
+      redis:
+        rule: |
+          type == "port" and
+          port == {{ .Values.presets.discovery.services.redis.port | default 6379 }} and
+          (pod.labels["app.kubernetes.io/name"] == "redis" or
+           pod.labels["app"] == "redis")
+        config:
+          endpoint: "`endpoint`"
+          password: ${env:REDIS_PASSWORD}
+          collection_interval: 60s
+{{- end }}
+
+{{- if .Values.presets.discovery.services.mongodb.enabled }}
+      # MongoDB Discovery - REQUIRES: MONGODB_PASSWORD
+      mongodb:
+        rule: |
+          type == "port" and
+          port == {{ .Values.presets.discovery.services.mongodb.port | default 27017 }} and
+          (pod.labels["app.kubernetes.io/name"] == "mongodb" or
+           pod.labels["app"] == "mongodb")
+        config:
+          hosts:
+            - endpoint: "`endpoint`"
+          username: ${env:MONGODB_USER:-{{ .Values.presets.discovery.services.mongodb.default_user | default "admin" }}}
+          password: ${env:MONGODB_PASSWORD}
+          direct_connection: true
+          tls:
+            insecure_skip_verify: true
+            insecure: false
+          timeout: 5s
+          collection_interval: 60s
+{{- end }}
+
+{{- if .Values.presets.discovery.services.nginx.enabled }}
+      # NGINX Discovery - NO CREDENTIALS REQUIRED
+      # Expects /nginx_status endpoint to be enabled
+      nginx:
+        rule: |
+          type == "port" and
+          port == {{ .Values.presets.discovery.services.nginx.port | default 80 }} and
+          (pod.labels["app.kubernetes.io/name"] == "nginx" or
+           pod.labels["app"] == "nginx")
+        config:
+          endpoint: "http://`endpoint`{{ .Values.presets.discovery.services.nginx.status_endpoint | default "/nginx_status" }}"
+          collection_interval: 60s
+{{- end }}
+
+{{- if .Values.presets.discovery.services.apache.enabled }}
+      # Apache Discovery - NO CREDENTIALS REQUIRED
+      # Expects /server-status endpoint to be enabled
+      apache:
+        rule: |
+          type == "port" and
+          port == {{ .Values.presets.discovery.services.apache.port | default 80 }} and
+          (pod.labels["app.kubernetes.io/name"] == "apache" or
+           pod.labels["app"] == "httpd")
+        config:
+          endpoint: "http://`endpoint`{{ .Values.presets.discovery.services.apache.status_endpoint | default "/server-status?auto" }}"
+          collection_interval: 60s
+{{- end }}
+
+{{- if .Values.presets.discovery.services.rabbitmq.enabled }}
+      # RabbitMQ Discovery - OPTIONAL: RABBITMQ_USER, RABBITMQ_PASSWORD
+      rabbitmq:
+        rule: |
+          type == "port" and
+          port == {{ .Values.presets.discovery.services.rabbitmq.management_port | default 15672 }} and
+          (pod.labels["app.kubernetes.io/name"] == "rabbitmq" or
+           pod.labels["app"] == "rabbitmq")
+        config:
+          endpoint: "`endpoint`"
+          username: ${env:RABBITMQ_USER:-{{ .Values.presets.discovery.services.rabbitmq.default_user | default "guest" }}}
+          password: ${env:RABBITMQ_PASSWORD:-guest}
+          collection_interval: 60s
+{{- end }}
+
+{{- if .Values.presets.discovery.services.memcached.enabled }}
+      # Memcached Discovery - NO CREDENTIALS REQUIRED
+      memcached:
+        rule: |
+          type == "port" and
+          port == {{ .Values.presets.discovery.services.memcached.port | default 11211 }} and
+          (pod.labels["app.kubernetes.io/name"] == "memcached" or
+           pod.labels["app"] == "memcached")
+        config:
+          endpoint: "`endpoint`"
+          collection_interval: 60s
+{{- end }}
+
+{{- if .Values.presets.discovery.services.elasticsearch.enabled }}
+      # Elasticsearch Discovery - OPTIONAL: ELASTICSEARCH_USER, ELASTICSEARCH_PASSWORD (only if security enabled)
+      elasticsearch:
+        rule: |
+          type == "port" and
+          port == {{ .Values.presets.discovery.services.elasticsearch.port | default 9200 }} and
+          (pod.labels["app.kubernetes.io/name"] == "elasticsearch" or
+           pod.labels["app"] == "elasticsearch")
+        config:
+          endpoint: "http://`endpoint`"
+          username: ${env:ELASTICSEARCH_USER}
+          password: ${env:ELASTICSEARCH_PASSWORD}
+          collection_interval: 60s
+{{- end }}
+
+{{- if .Values.presets.discovery.services.kafka.enabled }}
+      # Kafka Discovery - NO CREDENTIALS REQUIRED (basic metrics)
+      kafkametrics:
+        rule: |
+          type == "port" and
+          port == {{ .Values.presets.discovery.services.kafka.port | default 9092 }} and
+          (pod.labels["app.kubernetes.io/name"] == "kafka" or
+           pod.labels["app"] == "kafka")
+        config:
+          brokers:
+            - "`endpoint`"
+          collection_interval: 60s
+{{- end }}
+
+{{- if .Values.presets.discovery.services.cassandra.enabled }}
+      # Cassandra Discovery (JMX) - NO CREDENTIALS REQUIRED
+      # Requires opentelemetry-java-contrib-jmx-metrics.jar in collector image
+      jmx/cassandra:
+        rule: |
+          type == "port" and
+          port == {{ .Values.presets.discovery.services.cassandra.jmx_port | default 7199 }} and
+          (pod.labels["app.kubernetes.io/name"] == "cassandra" or
+           pod.labels["app"] == "cassandra")
+        config:
+          jar_path: /opt/opentelemetry-java-contrib-jmx-metrics.jar
+          endpoint: "service:jmx:rmi:///jndi/rmi://`endpoint`/jmxrmi"
+          target_system: cassandra
+          collection_interval: 60s
+{{- end }}
+{{- end }}

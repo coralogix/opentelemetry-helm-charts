@@ -649,6 +649,129 @@
             }
           }
         },
+        "discovery": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Automatic service discovery for common databases and services. Currently active for standalone/macos distributions.",
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether automatic service discovery should be enabled.",
+              "type": "boolean"
+            },
+            "observer": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "refresh_interval": {
+                  "description": "How often to refresh the list of discovered endpoints.",
+                  "type": "string"
+                }
+              }
+            },
+            "services": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "postgresql": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "port": {"type": "integer"},
+                    "default_user": {"type": "string"},
+                    "default_db": {"type": "string"}
+                  }
+                },
+                "mysql": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "port": {"type": "integer"},
+                    "default_user": {"type": "string"}
+                  }
+                },
+                "redis": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "port": {"type": "integer"}
+                  }
+                },
+                "mongodb": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "port": {"type": "integer"},
+                    "default_user": {"type": "string"}
+                  }
+                },
+                "nginx": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "port": {"type": "integer"},
+                    "status_endpoint": {"type": "string"}
+                  }
+                },
+                "apache": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "port": {"type": "integer"},
+                    "status_endpoint": {"type": "string"}
+                  }
+                },
+                "rabbitmq": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "port": {"type": "integer"},
+                    "management_port": {"type": "integer"},
+                    "default_user": {"type": "string"}
+                  }
+                },
+                "memcached": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "port": {"type": "integer"}
+                  }
+                },
+                "elasticsearch": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "port": {"type": "integer"}
+                  }
+                },
+                "kafka": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "port": {"type": "integer"}
+                  }
+                },
+                "cassandra": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "jmx_port": {"type": "integer"}
+                  }
+                }
+              }
+            }
+          }
+        },
         "kubeletMetrics": {
           "type": "object",
           "additionalProperties": false,
