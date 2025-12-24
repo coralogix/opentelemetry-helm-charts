@@ -2,6 +2,13 @@
 
 ## OpenTelemetry Collector
 
+### v0.127.8 / 2025-12-24
+
+- [Feature] Ensure new behaviors from span metrics connector, defined behind `+connector.spanmetrics.useSecondAsDefaultMetricsUnit`, `+connector.spanmetrics.excludeResourceMetrics`, `+spanmetrics.statusCodeConvention.useOtelPrefix` feature gates don't break backward compatibility.
+  - Added `add_resource_attributes: true` to maintain resource attributes in span metrics
+  - Added `histogram.unit: ms` to maintain millisecond units for duration metrics
+  - Added OTTL transformations to convert new `otel.status_code` back to old `status.code` format with `STATUS_CODE_*` values
+
 ### v0.127.7 / 2025-12-24
 
 - [Fix] Remove `nop` exporter and receiver from `profiles` pipeline when the `supervisor` and `profilesCollection` presets are enabled. This exporter/receiver does not support profiles yet.
