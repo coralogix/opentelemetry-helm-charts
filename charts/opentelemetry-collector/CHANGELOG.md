@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.127.7 / 2025-12-24
+
+- [Fix] Remove `nop` exporter and receiver from `profiles` pipeline when the `supervisor` and `profilesCollection` presets are enabled. This exporter/receiver does not support profiles yet.
+
 ### v0.127.6 / 2025-12-23
 
 - [Feat] Add `dynamicSubsystemName` option to `journaldReceiver` preset to extract subsystem name from systemd unit name or syslog identifier.
