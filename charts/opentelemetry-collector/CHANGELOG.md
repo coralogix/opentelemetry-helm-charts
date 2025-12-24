@@ -2,6 +2,12 @@
 
 ## OpenTelemetry Collector
 
+### v0.127.6 / 2025-12-23
+
+- [Feat] Add `dynamicSubsystemName` option to `journaldReceiver` preset to extract subsystem name from systemd unit name or syslog identifier.
+- [Fix] Fix `macosSystemLogs` regex pattern to correctly parse multiline log entries.
+- [Fix] Fix `macosSystemLogs` dynamic subsystem naming to use `service.name` instead of `cx.subsystem.name` for proper Coralogix exporter compatibility.
+
 ### v0.127.5 / 2025-12-23
 
 - [Bug] Apply `resourceDetection` preset to `profiles`.

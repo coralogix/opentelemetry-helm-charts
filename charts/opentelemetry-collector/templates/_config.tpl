@@ -993,9 +993,11 @@ receivers:
       - {{ . | quote }}
 {{- end }}
     start_at: beginning
+    multiline:
+      line_start_pattern: '^[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}'
     operators:
       - type: regex_parser
-        regex: '^(?P<timestamp>[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(?P<host>[^\s]+)\s+(?P<app>[A-Za-z0-9._-]+)(?:\[(?P<pid>\d+)\])?:\s+(?P<msg>.*)$'
+        regex: '^(?P<timestamp>[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(?P<host>[^\s]+)\s+(?P<app>[A-Za-z0-9._-]+)(?:\[(?P<pid>\d+)\])?:\s+(?P<msg>[\s\S]*)$'
       - type: time_parser
         parse_from: attributes.timestamp
         layout_type: gotime
@@ -1009,7 +1011,7 @@ receivers:
       {{- if .Values.presets.macosSystemLogs.dynamicSubsystemName }}
       - type: copy
         from: resource["app"]
-        to: resource["cx.subsystem.name"]
+        to: resource["service.name"]
       {{- end }}
       - type: move
         from: attributes.pid
@@ -3277,6 +3279,11 @@ receivers:
 {{- if and ($config.service.pipelines.logs) (not (has "journald" $config.service.pipelines.logs.receivers)) }}
 {{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers "journald" | uniq)  }}
 {{- end }}
+{{- if .Values.Values.presets.journaldReceiver.dynamicSubsystemName }}
+{{- if and ($config.service.pipelines.logs) (not (has "transform/journald" $config.service.pipelines.logs.processors)) }}
+{{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "transform/journald" | uniq)  }}
+{{- end }}
+{{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
@@ -3300,6 +3307,18 @@ receivers:
   journald:{{- if $receiver }}
 {{ toYaml $receiver | indent 4 }}
 {{- else }} {}
+{{- end }}
+{{- if .Values.presets.journaldReceiver.dynamicSubsystemName }}
+processors:
+  transform/journald:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          # Extract systemd unit name from _SYSTEMD_UNIT or SYSLOG_IDENTIFIER (e.g., "ssh.service" -> "ssh")
+          - set(resource.attributes["service.name"], body["_SYSTEMD_UNIT"]) where body["_SYSTEMD_UNIT"] != nil and body["_SYSTEMD_UNIT"] != ""
+          - set(resource.attributes["service.name"], body["SYSLOG_IDENTIFIER"]) where body["_SYSTEMD_UNIT"] == nil and body["SYSLOG_IDENTIFIER"] != nil and body["SYSLOG_IDENTIFIER"] != ""
+          - replace_pattern(resource.attributes["service.name"], "\\.service$", "") where resource.attributes["service.name"] != nil and resource.attributes["service.name"] != ""
 {{- end }}
 {{- end }}
 

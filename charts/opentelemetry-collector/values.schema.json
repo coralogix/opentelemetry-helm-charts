@@ -1727,6 +1727,10 @@
                   "type": "string"
                 }
               }
+            },
+            "dynamicSubsystemName": {
+              "description": "When enabled, dynamically sets the Coralogix subsystem name based on the systemd unit name (e.g., 'ssh.service' becomes 'ssh').",
+              "type": "boolean"
             }
           }
         },
