@@ -24,7 +24,7 @@ Supported distributions:
 {{/*
 Standalone Discovery Config
 Uses host_observer to discover services running on local host
-Matches services by process command name and/or port number
+Matches services by process command name
 */}}
 {{- define "opentelemetry-collector.discoveryStandaloneConfig" -}}
 extensions:
@@ -41,7 +41,7 @@ receivers:
       postgresql:
         rule: |
           type == "hostport" and
-          ((command != "" and command matches "(?i)postgres") or port == {{ .Values.presets.discovery.services.postgresql.port | default 5432 }}) and
+          command matches "(?i)postgres" and
           not (command matches "coralogix|otel")
         config:
           endpoint: "`endpoint`"
@@ -56,8 +56,9 @@ receivers:
       # MySQL Discovery
       mysql:
         rule: |
-          type == "hostport" and port != 33060 and
-          ((command != "" and command matches "(?i)mysqld") or port == {{ .Values.presets.discovery.services.mysql.port | default 3306 }}) and
+          type == "hostport" and
+          port != 33060 and
+          command matches "(?i)mysqld" and
           not (command matches "coralogix|otel")
         config:
           endpoint: "`endpoint`"
@@ -71,7 +72,7 @@ receivers:
       redis:
         rule: |
           type == "hostport" and
-          ((command != "" and command matches "(?i)redis-server") or port == {{ .Values.presets.discovery.services.redis.port | default 6379 }}) and
+          command matches "(?i)redis" and
           not (command matches "coralogix|otel")
         config:
           endpoint: "`endpoint`"
@@ -84,7 +85,7 @@ receivers:
       mongodb:
         rule: |
           type == "hostport" and
-          ((command != "" and command matches "(?i)mongod") or port == {{ .Values.presets.discovery.services.mongodb.port | default 27017 }}) and
+          command matches "(?i)mongo" and
           not (command matches "coralogix|otel")
         config:
           hosts:
@@ -104,10 +105,10 @@ receivers:
       nginx:
         rule: |
           type == "hostport" and
-          ((command != "" and command matches "(?i)nginx") or port == 80 or port == 443) and
+          command matches "(?i)nginx" and
           not (command matches "coralogix|otel")
         config:
-          endpoint: "http://`endpoint`{{ .Values.presets.discovery.services.nginx.status_endpoint | default "/nginx_status" }}"
+          endpoint: '`(port in [443] ? "https://" : "http://")``endpoint`{{ .Values.presets.discovery.services.nginx.status_endpoint | default "/nginx_status" }}'
           collection_interval: 60s
 {{- end }}
 
@@ -116,8 +117,8 @@ receivers:
       apache:
         rule: |
           type == "hostport" and
-          ((command != "" and command matches "(?i)(httpd|apache2)") or port == 80 or port == 443) and
-          not (command matches "coralogix|otel|nginx")
+          command matches "(?i)(httpd|apache2).*" and
+          not (command matches "coralogix|otel")
         config:
           endpoint: "http://`endpoint`{{ .Values.presets.discovery.services.apache.status_endpoint | default "/server-status?auto" }}"
           collection_interval: 60s
@@ -128,7 +129,7 @@ receivers:
       rabbitmq:
         rule: |
           type == "hostport" and
-          ((command != "" and command matches "(?i)rabbitmq") or port == {{ .Values.presets.discovery.services.rabbitmq.management_port | default 15672 }}) and
+          command matches "(?i)rabbitmq.*" and
           not (command matches "coralogix|otel")
         config:
           endpoint: "`endpoint`"
@@ -142,7 +143,7 @@ receivers:
       memcached:
         rule: |
           type == "hostport" and
-          ((command != "" and command matches "(?i)memcached") or port == {{ .Values.presets.discovery.services.memcached.port | default 11211 }}) and
+          command matches "(?i)memcached" and
           not (command matches "coralogix|otel")
         config:
           endpoint: "`endpoint`"
@@ -154,7 +155,7 @@ receivers:
       elasticsearch:
         rule: |
           type == "hostport" and
-          ((command != "" and command matches "(?i)elasticsearch") or port == {{ .Values.presets.discovery.services.elasticsearch.port | default 9200 }}) and
+          command matches "(?i)elasticsearch" and
           not (command matches "coralogix|otel")
         config:
           endpoint: "http://`endpoint`"
@@ -168,7 +169,7 @@ receivers:
       kafkametrics:
         rule: |
           type == "hostport" and
-          ((command != "" and command matches "(?i)kafka") or port == {{ .Values.presets.discovery.services.kafka.port | default 9092 }}) and
+          command matches "(?i)kafka.*" and
           not (command matches "coralogix|otel")
         config:
           brokers:
@@ -181,7 +182,7 @@ receivers:
       jmx/cassandra:
         rule: |
           type == "hostport" and
-          ((command != "" and command matches "(?i)cassandra") or port == {{ .Values.presets.discovery.services.cassandra.jmx_port | default 7199 }}) and
+          command matches "(?i)cassandra.*" and
           not (command matches "coralogix|otel")
         config:
           jar_path: /opt/opentelemetry-java-contrib-jmx-metrics.jar

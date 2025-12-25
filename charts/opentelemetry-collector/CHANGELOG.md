@@ -6,7 +6,7 @@
 
 - [Feat] Add `discovery` preset for automatic service discovery in standalone/macos distributions.
 - [Feat] Discovery preset supports 11 services: PostgreSQL, MySQL, Redis, MongoDB, NGINX, Apache, RabbitMQ, Memcached, Elasticsearch, Kafka, and Cassandra.
-- [Feat] Discovery uses `host_observer` extension with `receiver_creator` for dynamic service detection based on process names and ports.
+- [Feat] Discovery uses `host_observer` extension with `receiver_creator` for dynamic service detection based on process command names.
 - [Feat] Credential management via environment variables with sensible defaults.
 
 

@@ -681,7 +681,6 @@
                   "additionalProperties": false,
                   "properties": {
                     "enabled": {"type": "boolean"},
-                    "port": {"type": "integer"},
                     "default_user": {"type": "string"},
                     "default_db": {"type": "string"}
                   }
@@ -691,7 +690,6 @@
                   "additionalProperties": false,
                   "properties": {
                     "enabled": {"type": "boolean"},
-                    "port": {"type": "integer"},
                     "default_user": {"type": "string"}
                   }
                 },
@@ -699,8 +697,7 @@
                   "type": "object",
                   "additionalProperties": false,
                   "properties": {
-                    "enabled": {"type": "boolean"},
-                    "port": {"type": "integer"}
+                    "enabled": {"type": "boolean"}
                   }
                 },
                 "mongodb": {
@@ -708,7 +705,6 @@
                   "additionalProperties": false,
                   "properties": {
                     "enabled": {"type": "boolean"},
-                    "port": {"type": "integer"},
                     "default_user": {"type": "string"}
                   }
                 },
@@ -717,7 +713,6 @@
                   "additionalProperties": false,
                   "properties": {
                     "enabled": {"type": "boolean"},
-                    "port": {"type": "integer"},
                     "status_endpoint": {"type": "string"}
                   }
                 },
@@ -726,7 +721,6 @@
                   "additionalProperties": false,
                   "properties": {
                     "enabled": {"type": "boolean"},
-                    "port": {"type": "integer"},
                     "status_endpoint": {"type": "string"}
                   }
                 },
@@ -735,8 +729,6 @@
                   "additionalProperties": false,
                   "properties": {
                     "enabled": {"type": "boolean"},
-                    "port": {"type": "integer"},
-                    "management_port": {"type": "integer"},
                     "default_user": {"type": "string"}
                   }
                 },
@@ -744,32 +736,28 @@
                   "type": "object",
                   "additionalProperties": false,
                   "properties": {
-                    "enabled": {"type": "boolean"},
-                    "port": {"type": "integer"}
+                    "enabled": {"type": "boolean"}
                   }
                 },
                 "elasticsearch": {
                   "type": "object",
                   "additionalProperties": false,
                   "properties": {
-                    "enabled": {"type": "boolean"},
-                    "port": {"type": "integer"}
+                    "enabled": {"type": "boolean"}
                   }
                 },
                 "kafka": {
                   "type": "object",
                   "additionalProperties": false,
                   "properties": {
-                    "enabled": {"type": "boolean"},
-                    "port": {"type": "integer"}
+                    "enabled": {"type": "boolean"}
                   }
                 },
                 "cassandra": {
                   "type": "object",
                   "additionalProperties": false,
                   "properties": {
-                    "enabled": {"type": "boolean"},
-                    "jmx_port": {"type": "integer"}
+                    "enabled": {"type": "boolean"}
                   }
                 }
               }

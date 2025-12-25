@@ -280,45 +280,33 @@ presets:
     services:
       postgresql:
         enabled: true
-        port: 5432
         default_user: "postgres"
         default_db: "postgres"
       mysql:
         enabled: true
-        port: 3306
         default_user: "root"
       redis:
         enabled: true
-        port: 6379
       mongodb:
         enabled: true
-        port: 27017
         default_user: "admin"
       nginx:
         enabled: true
-        port: 80
         status_endpoint: "/nginx_status"
       apache:
         enabled: true
-        port: 80
         status_endpoint: "/server-status?auto"
       rabbitmq:
         enabled: true
-        port: 5672
-        management_port: 15672
         default_user: "guest"
       memcached:
         enabled: true
-        port: 11211
       elasticsearch:
         enabled: true
-        port: 9200
       kafka:
         enabled: true
-        port: 9092
       cassandra:
         enabled: true
-        jmx_port: 7199
   # Configures the Kubernetes Processor to add Kubernetes metadata.
   # Adds the k8sattributes processor to all the pipelines
   # and adds the necessary rules to ClusteRole.
