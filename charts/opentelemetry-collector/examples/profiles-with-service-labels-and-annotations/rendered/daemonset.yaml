@@ -40,7 +40,6 @@ spec:
           command:
             - /otelcol-contrib
             - --config=/conf/relay.yaml
-            - "--feature-gates=+service.profilesSupport"
             - --feature-gates=+service.profilesSupport
           securityContext:
             {}

@@ -94,14 +94,6 @@ Determine the command to use based on platform and configuration.
 {{- if (and (.Values.presets.profilesCollection.enabled) (not .Values.presets.fleetManagement.enabled)) }}
 {{- $featureGates = append $featureGates "+service.profilesSupport" }}
 {{- end }}
-{{- if or .Values.presets.spanMetrics.enabled .Values.presets.spanMetricsMulti.enabled }}
-{{- $featureGates = append $featureGates "+connector.spanmetrics.useSecondAsDefaultMetricsUnit" }}
-{{- $featureGates = append $featureGates "+connector.spanmetrics.excludeResourceMetrics" }}
-{{- $featureGates = append $featureGates "+spanmetrics.statusCodeConvention.useOtelPrefix" }}
-{{- end }}
-{{- if $featureGates }}
-- "--feature-gates={{ $featureGates | join "," }}"
-{{- end }}
 {{- range .Values.command.extraArgs }}
 - {{ . }}
 {{- end }}
@@ -147,10 +139,9 @@ This helper provides the status code transformation statements that are used
 by both the spanMetrics and spanMetricsMulti presets.
 */}}
 {{- define "opentelemetry-collector.spanMetricsStatusCodeStatements" -}}
-- set(attributes["status.code"], "STATUS_CODE_ERROR") where attributes["otel.status_code"] == "ERROR"
-- set(attributes["status.code"], "STATUS_CODE_OK") where attributes["otel.status_code"] == "OK"
-- set(attributes["status.code"], "STATUS_CODE_UNSET") where attributes["otel.status_code"] == "UNSET"
-- set(attributes["status.code"], "STATUS_CODE_UNSET") where attributes["otel.status_code"] == nil
+- set(attributes["status.code"], "STATUS_CODE_ERROR") where attributes["status.code"] == nil and attributes["otel.status_code"] == "ERROR"
+- set(attributes["status.code"], "STATUS_CODE_OK") where attributes["status.code"] == nil and attributes["otel.status_code"] == "OK"
+- set(attributes["status.code"], "STATUS_CODE_UNSET") where attributes["status.code"] == nil and (attributes["otel.status_code"] == "UNSET" or attributes["otel.status_code"] == nil)
 {{- end -}}
 
 {{/*

@@ -40,7 +40,6 @@ spec:
           command:
             - /otelcol-contrib
             - --config=/conf/relay.yaml
-            - "--feature-gates=+service.profilesSupport"
           securityContext:
             {}
           image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.141.0"

@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 34c34be9e05b2b315e223af73754feb40aad79fd63cd7c2be5d0b66fc56511f3
+        checksum/config: 9858cb7a495dea4ed4a4f4152e5ac21761e2fbd8a8cda7484df882b9f3af0a33
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -40,7 +40,6 @@ spec:
           command:
             - /otelcol-contrib
             - --config=/conf/relay.yaml
-            - "--feature-gates=+connector.spanmetrics.useSecondAsDefaultMetricsUnit,+connector.spanmetrics.excludeResourceMetrics,+spanmetrics.statusCodeConvention.useOtelPrefix"
           securityContext:
             {}
           image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.141.0"
