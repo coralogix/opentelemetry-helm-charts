@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.0 / 2025-12-30
+
+- [CHORE] Bump Collector to 0.142.0
+
 ### v0.127.7 / 2025-12-24
 
 - [Fix] Remove `nop` exporter and receiver from `profiles` pipeline when the `supervisor` and `profilesCollection` presets are enabled. This exporter/receiver does not support profiles yet.
