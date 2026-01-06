@@ -78,6 +78,10 @@
             "type": "object"
           }
         },
+        "podLabels": {
+          "type": "object",
+          "description": "Custom labels to add to Target Allocator pods"
+        },
         "serviceMonitor": {
           "type": "object",
           "additionalProperties": false,
@@ -724,6 +728,11 @@
               "type": "string",
               "enum": ["all", "metrics", "traces", "profiles", "none"]
             },
+            "provider": {
+              "description": "Cloud provider for targeted detector selection. When set, only detectors relevant to this provider are enabled. Empty string tries all cloud providers for backward compatibility.",
+              "type": "string",
+              "enum": ["", "aws", "azure", "gcp", "on-prem"]
+            },
             "detectors": {
               "type": "object",
               "additionalProperties": false,
@@ -1295,6 +1304,11 @@
                 "enum": ["metrics", "traces", "logs", "profiles", "all"]
               }
             },
+            "provider": {
+              "description": "Cloud provider for targeted attribute removal. When set, only attributes relevant to this provider are removed. Empty string uses denylist for backward compatibility.",
+              "type": "string",
+              "enum": ["", "aws", "azure", "gcp", "on-prem"]
+            },
             "denylist": {
               "description": "Specifies the denylist for the reduce resource attributes processor.",
               "type": "object",
@@ -1713,6 +1727,10 @@
                   "type": "string"
                 }
               }
+            },
+            "dynamicSubsystemName": {
+              "description": "When enabled, dynamically sets the Coralogix subsystem name based on the systemd unit name (e.g., 'ssh.service' becomes 'ssh').",
+              "type": "boolean"
             }
           }
         },
@@ -1723,6 +1741,10 @@
             "enabled": {
               "description": "Enables the systemd receiver to collect metrics about systemd unit states. WARNING: Alpha status, may not be available in all collector builds.",
               "type": "boolean"
+            },
+            "collectionInterval": {
+              "description": "The interval at which to collect systemd metrics. Examples: '10s', '30s', '1m'. Default: receiver's built-in default.",
+              "type": "string"
             },
             "scope": {
               "description": "The systemd scope to monitor (system or user). Default: system.",

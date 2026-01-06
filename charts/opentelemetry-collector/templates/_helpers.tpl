@@ -135,6 +135,12 @@ Create the name of the priorityClass to use
 {{- end }}
 {{- end }}
 
+{{- define "opentelemetry-target-allocator.podLabels" -}}
+{{- if .Values.targetAllocator.podLabels }}
+{{- tpl (.Values.targetAllocator.podLabels | toYaml) . }}
+{{- end }}
+{{- end }}
+
 {{- define "opentelemetry-target-allocator.podMonitorSelector" -}}
 {{- if .Values.targetAllocator.prometheusCR.podMonitorSelector }}
 {{- tpl (.Values.targetAllocator.prometheusCR.podMonitorSelector | toYaml) . }}

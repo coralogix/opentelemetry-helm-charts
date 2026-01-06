@@ -62,6 +62,9 @@ targetAllocator:
   volumeMounts: []
   volumes: []
 
+  # Labels to add to Target Allocator pods.
+  podLabels: {}
+
   serviceMonitor:
     enabled: false
     extraLabels: {}
@@ -530,6 +533,10 @@ presets:
   reduceResourceAttributes:
     enabled: false
     pipelines: ["all"]
+    # Cloud provider for targeted attribute removal.
+    # When set, only attributes relevant to this provider and deployment context are removed.
+    # Options: aws, azure, gcp, on-prem, "" (empty = use denylist for backward compatibility)
+    provider: ""
     denylist:
       metrics:
         # Entries may be strings or objects with additional matching logic.
@@ -842,11 +849,13 @@ presets:
   # journal directory into the collector.
   journaldReceiver:
     enabled: false
+    dynamicSubsystemName: false
 
   # Adds the systemd receiver to the metrics pipeline.
   # Collects metrics about systemd unit states (active, failed, inactive, etc.) on Linux systems.
   systemdReceiver:
     enabled: false
+    # collectionInterval: 10s  # Optional: override default collection interval
     # scope: system           # Optional: system or user (default: system)
     # units: ["*.service"]    # Optional: list of systemd units to monitor (supports patterns)
 
@@ -890,6 +899,10 @@ presets:
     # Pipeline to add the resource detection processors to. Possible values are
     # "all", "metrics", "traces" and "none".
     pipeline: all
+    # Cloud provider for targeted detector selection.
+    # When set, only detectors relevant to this provider are enabled.
+    # Options: aws, azure, gcp, on-prem, "" (empty = try all cloud providers for backward compatibility)
+    provider: ""
     detectors:
       # List of detectors used by the resourcedetection/env processor.
       env:

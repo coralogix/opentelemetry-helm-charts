@@ -2,9 +2,44 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.1 / 2026-01-05
+
+- [Feat] Add `systemdReceiver` preset which gathers metrics for locally running systemd units on standalone linux deployments with optional scope and units configuration.
+
+### v0.128.0 / 2025-12-30
+
+- [CHORE] Bump Collector to 0.142.0
+
+### v0.127.7 / 2025-12-24
+
+- [Fix] Remove `nop` exporter and receiver from `profiles` pipeline when the `supervisor` and `profilesCollection` presets are enabled. This exporter/receiver does not support profiles yet.
+
+### v0.127.6 / 2025-12-23
+
+- [Feat] Add `dynamicSubsystemName` option to `journaldReceiver` preset to extract subsystem name from systemd unit name or syslog identifier.
+- [Fix] Fix `macosSystemLogs` regex pattern to correctly parse multiline log entries.
+- [Fix] Fix `macosSystemLogs` dynamic subsystem naming to use `service.name` instead of `cx.subsystem.name` for proper Coralogix exporter compatibility.
+
+### v0.127.5 / 2025-12-23
+
+- [Bug] Apply `resourceDetection` preset to `profiles`.
+
+### v0.127.4 / 2025-12-22
+
+- [Feat] Add `provider` field to `reduceResourceAttributes` and `resourceDetection` presets for targeted cloud provider configuration. When set, only attributes/detectors relevant to the specified provider (aws, azure, gcp, on-prem) and deployment context (`distribution`) are used, reducing config size and avoiding unnecessary statements.
+- [Feat] Automatically infer `provider` from `distribution` when not explicitly set (e.g., `eks/fargate` → `aws`, `gke/autopilot` → `gcp`, `aks` → `azure`, `ecs` → `aws`).
+
+### v0.127.3 / 2025-12-22
+
+- [Feature] Add support for custom pod labels on TargetAllocator pods via `targetAllocator.podLabels`.
+
+### v0.127.2 / 2025-12-19
+
+- [Bug] Add missing `node` to `k8s_observer` for `kubernetesApiServerMetrics` preset.
+
 ### v0.127.1 / 2025-12-17
 
-- [Feat] Add `systemdReceiver` which gathers metrics for locally running systemd units on standalone linux deploy with optional scope and units.
+- [Fix] Add support for combining `profilesCollection` preset with `fleetManagement` preset.
 
 ### v0.127.0 / 2025-12-12
 

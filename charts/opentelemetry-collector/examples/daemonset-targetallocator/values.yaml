@@ -5,6 +5,9 @@ presets:
     enabled: true
 targetAllocator:
   enabled: true
+  podLabels:
+    team: platform-engineering
+    environment: production
   prometheusCR:
     enabled: true
     scrapeInterval: 60s
