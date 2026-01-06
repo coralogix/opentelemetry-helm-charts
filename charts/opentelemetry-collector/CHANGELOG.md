@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.1 / 2026-01-06
+
+- [Fix] Remove unused `k8s_observer` extension from `kubernetesExtraMetrics` preset to avoid unnecessary API server load.
+
 ### v0.128.0 / 2025-12-30
 
 - [CHORE] Bump Collector to 0.142.0
