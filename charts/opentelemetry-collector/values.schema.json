@@ -1739,7 +1739,7 @@
           "additionalProperties": false,
           "properties": {
             "enabled": {
-              "description": "Enables the systemd receiver to collect metrics about systemd unit states. WARNING: Alpha status, may not be available in all collector builds.",
+              "description": "Enables the systemd receiver to collect metrics about systemd unit states. WARNING: Only for non-containerized deployments. Requires direct access to host D-Bus socket. Requires v0.142.0+.",
               "type": "boolean"
             },
             "collectionInterval": {

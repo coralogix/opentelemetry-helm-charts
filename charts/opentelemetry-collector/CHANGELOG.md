@@ -2,9 +2,13 @@
 
 ## OpenTelemetry Collector
 
-### v0.128.1 / 2026-01-05
+### v0.128.2 / 2026-01-06
 
 - [Feat] Add `systemdReceiver` preset which gathers metrics for locally running systemd units on standalone linux deployments with optional scope and units configuration.
+
+### v0.128.1 / 2026-01-06
+
+- [Fix] Remove unused `k8s_observer` extension from `kubernetesExtraMetrics` preset to avoid unnecessary API server load.
 
 ### v0.128.0 / 2025-12-30
 
