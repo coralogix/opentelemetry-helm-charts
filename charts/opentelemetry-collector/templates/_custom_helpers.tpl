@@ -133,6 +133,17 @@ Return pod or node IP environment variable wrapped for IPv6 when required.*/}}
 {{- end -}}
 
 {{/*
+Status code OTTL statements for span metrics.
+This helper provides the status code transformation statements that are used
+by both the spanMetrics and spanMetricsMulti presets.
+*/}}
+{{- define "opentelemetry-collector.spanMetricsStatusCodeStatements" -}}
+- set(attributes["status.code"], "STATUS_CODE_ERROR") where attributes["status.code"] == nil and attributes["otel.status_code"] == "ERROR"
+- set(attributes["status.code"], "STATUS_CODE_OK") where attributes["status.code"] == nil and attributes["otel.status_code"] == "OK"
+- set(attributes["status.code"], "STATUS_CODE_UNSET") where attributes["status.code"] == nil and (attributes["otel.status_code"] == "UNSET" or attributes["otel.status_code"] == nil)
+{{- end -}}
+
+{{/*
 Compose endpoint from IP environment variable and port taking networkMode into account.*/}}
 {{- define "opentelemetry-collector.envEndpoint" -}}
 {{- $host := include "opentelemetry-collector.envHost" (dict "env" .env "context" .context) -}}

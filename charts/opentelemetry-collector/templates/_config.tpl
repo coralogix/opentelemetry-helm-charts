@@ -1765,9 +1765,14 @@ cx.integrationID: "{{ .Values.presets.fleetManagement.integrationID }}"
 {{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters "forward/db_compact" | uniq)  }}
 {{- end }}
 {{- end }}
-{{- if .Values.Values.presets.spanMetrics.transformStatements}}
+{{- if or (.Values.Values.presets.spanMetrics.enabled) (.Values.Values.presets.spanMetrics.transformStatements) }}
 {{- if and ($config.service.pipelines.traces) (not (has "transform/spanmetrics" $config.service.pipelines.traces.processors)) }}
 {{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/spanmetrics" | uniq)  }}
+{{- end }}
+{{- end }}
+{{- if .Values.Values.presets.spanMetrics.enabled }}
+{{- if and ($config.service.pipelines.metrics) (not (has "transform/spanmetrics" $config.service.pipelines.metrics.processors)) }}
+{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/spanmetrics" | uniq)  }}
 {{- end }}
 {{- end }}
 {{- if .Values.Values.presets.spanMetrics.spanNameReplacePattern}}
@@ -1806,8 +1811,10 @@ connectors:
     namespace: ""
 {{- end }}
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
+    add_resource_attributes: true
 {{- if .Values.presets.spanMetrics.histogramBuckets }}
     histogram:
+      unit: ms
       explicit:
         buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
 {{- end }}
@@ -1830,7 +1837,9 @@ connectors:
   spanmetrics/db:
     namespace: "db"
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
+    add_resource_attributes: true
     histogram:
+      unit: ms
       explicit:
         buckets: [100us, 1ms, 2ms, 2.5ms, 4ms, 6ms, 10ms, 100ms, 250ms]
     dimensions:
@@ -1860,10 +1869,12 @@ connectors:
   forward/compact: {}
   spanmetrics/compact:
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
+    add_resource_attributes: true
     exclude_dimensions:
     - span.name
 {{- if .Values.presets.spanMetrics.histogramBuckets }}
     histogram:
+      unit: ms
       explicit:
         buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
 {{- end }}
@@ -1883,6 +1894,7 @@ connectors:
   forward/db_compact: {}
   spanmetrics/db_compact:
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
+    add_resource_attributes: true
     dimensions:
       - name: db.namespace
       - name: db.system
@@ -1891,6 +1903,7 @@ connectors:
     - span.kind
 {{- if .Values.presets.spanMetrics.histogramBuckets }}
     histogram:
+      unit: ms
       explicit:
         buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
 {{- end }}
@@ -1906,7 +1919,7 @@ connectors:
 {{- end }}
     namespace: db_compact
 {{- end }}
-{{- if or (.Values.presets.spanMetrics.spanNameReplacePattern) (.Values.presets.spanMetrics.dbMetrics.enabled) (.Values.presets.spanMetrics.transformStatements) (.Values.presets.spanMetrics.compactMetrics.enabled) (.Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled) }}
+{{- if or (.Values.presets.spanMetrics.enabled) (.Values.presets.spanMetrics.spanNameReplacePattern) (.Values.presets.spanMetrics.dbMetrics.enabled) (.Values.presets.spanMetrics.transformStatements) (.Values.presets.spanMetrics.compactMetrics.enabled) (.Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled) (.Values.presets.spanMetricsMulti.enabled) }}
 processors:
 {{- end}}
 {{- if .Values.presets.spanMetrics.spanNameReplacePattern }}
@@ -1930,15 +1943,21 @@ processors:
       span:
         - 'kind != SPAN_KIND_CLIENT or attributes["db.namespace"] == nil or attributes["db.system"] == nil'
 {{- end }}
-{{- if .Values.presets.spanMetrics.transformStatements }}
+{{- if .Values.presets.spanMetrics.enabled }}
   transform/spanmetrics:
     error_mode: silent
+    metric_statements:
+      - context: datapoint
+        statements:
+        {{- include "opentelemetry-collector.spanMetricsStatusCodeStatements" . | nindent 8 }}
+    {{- if .Values.presets.spanMetrics.transformStatements }}
     trace_statements:
       - context: span
         statements:
         {{- range $index, $pattern := .Values.presets.spanMetrics.transformStatements }}
         - {{ $pattern }}
         {{- end}}
+    {{- end }}
 {{- end }}
 {{- if .Values.presets.spanMetrics.dbMetrics.transformStatements }}
   transform/db:
@@ -2029,6 +2048,7 @@ service:
       - spanmetrics/compact
       processors:
       - memory_limiter
+      - transform/spanmetrics
       {{- if .Values.presets.spanMetrics.compactMetrics.dropHistogram }}
       - transform/compact_histogram
       - filter/drop_histogram
@@ -2052,6 +2072,7 @@ service:
       - spanmetrics/db_compact
       processors:
       - memory_limiter
+      - transform/spanmetrics
       {{- if .Values.presets.spanMetrics.dbMetrics.compactMetrics.dropHistogram }}
       - transform/db_compact_histogram
       - filter/drop_db_compact_histogram
@@ -2095,6 +2116,9 @@ service:
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers (printf "spanmetrics/%d" $index))  }}
 {{- end }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "spanmetrics/default")  }}
+{{- if and ($config.service.pipelines.metrics) (not (has "transform/spanmetricsmulti" $config.service.pipelines.metrics.processors)) }}
+{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/spanmetricsmulti" | uniq)  }}
+{{- end }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
@@ -2161,6 +2185,14 @@ connectors:
     {{- $root.Values.presets.spanMetricsMulti.extraDimensions | toYaml | nindent 10 }}
     {{- end }}
   {{- end }}
+
+processors:
+  transform/spanmetricsmulti:
+    error_mode: silent
+    metric_statements:
+      - context: datapoint
+        statements:
+        {{- include "opentelemetry-collector.spanMetricsStatusCodeStatements" . | nindent 8 }}
 
 {{- end }}
 
