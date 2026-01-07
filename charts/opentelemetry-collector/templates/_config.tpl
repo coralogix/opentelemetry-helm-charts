@@ -1219,15 +1219,10 @@ service:
 {{- if not $scrapeAll }}
 {{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "filter/k8s_extra_metrics" | uniq)  }}
 {{- end }}
-{{- $_ := set $config.service "extensions" (append $config.service.extensions "k8s_observer" | uniq)  }}
 {{- $config | toYaml }}
 {{- end }}
 
 {{- define "opentelemetry-collector.kubernetesExtraMetricsConfig" -}}
-extensions:
-  k8s_observer:
-    auth_type: serviceAccount
-    observe_pods: true
 receivers:
   prometheus/k8s_extra_metrics:
     config:

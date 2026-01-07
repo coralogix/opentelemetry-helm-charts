@@ -2,12 +2,16 @@
 
 ## OpenTelemetry Collector
 
-### v0.128.1 / 2026-01-05
+### v0.128.2 / 2026-01-07
 
 - [Feature] Ensure new behaviors from span metrics connector, defined behind `+connector.spanmetrics.useSecondAsDefaultMetricsUnit`, `+connector.spanmetrics.excludeResourceMetrics`, `+spanmetrics.statusCodeConvention.useOtelPrefix` feature gates don't break backward compatibility.
   - Added `add_resource_attributes: true` to maintain resource attributes in span metrics
   - Added `histogram.unit: ms` to maintain millisecond units for duration metrics
   - Added OTTL transformations to convert new `otel.status_code` back to old `status.code` format with `STATUS_CODE_*` values
+
+### v0.128.1 / 2026-01-06
+
+- [Fix] Remove unused `k8s_observer` extension from `kubernetesExtraMetrics` preset to avoid unnecessary API server load.
 
 ### v0.128.0 / 2025-12-30
 
