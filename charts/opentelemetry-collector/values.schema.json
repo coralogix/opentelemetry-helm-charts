@@ -2353,6 +2353,9 @@
             "type": "string"
           }
         },
+        "loadBalancerClass": {
+          "type": "string"
+        },
         "annotations": {
           "type": "object"
         },

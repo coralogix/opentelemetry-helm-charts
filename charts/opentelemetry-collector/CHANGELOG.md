@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.3 / 2026-01-08
+
+– [Fix] Add missing field `service.loadBalancerClass` to support setups with AWS ALB Controller
+
 ### v0.128.2 / 2026-01-07
 
 - [Feature] Ensure new behaviors from span metrics connector, defined behind `+connector.spanmetrics.useSecondAsDefaultMetricsUnit`, `+connector.spanmetrics.excludeResourceMetrics`, `+spanmetrics.statusCodeConvention.useOtelPrefix` feature gates don't break backward compatibility.
