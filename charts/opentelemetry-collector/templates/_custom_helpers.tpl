@@ -45,6 +45,9 @@ Determine the container image to use based on presets and user overrides.
 {{- if (and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) (not .Values.collectorCRD.generate)) }}
 {{- $imageRepository = "cgx.jfrog.io/coralogix-docker-images/otel-supervised-collector" }}
 {{- end }}
+{{- if .Values.presets.ebpfProfiler.enabled }}
+{{- $imageRepository = "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-ebpf-profiler" }}
+{{- end }}
 {{- if .Values.image.repository }}
 {{- $imageRepository = .Values.image.repository }}
 {{- end }}
@@ -69,6 +72,9 @@ Determine the command to use based on platform and configuration.
 {{- if .Values.isWindows -}}
 {{- $executable = "C:\\otelcol-contrib.exe" | quote -}}
 {{- end -}}
+{{- if and .Values.presets.ebpfProfiler.enabled (not .Values.isWindows) -}}
+{{- $executable = "/otelcol-ebpf-profiler" -}}
+{{- end -}}
 {{- if (and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled)) -}}
 {{- $executable = "/opampsupervisor" }}
 {{- end -}}
@@ -90,7 +96,7 @@ Determine the command to use based on platform and configuration.
 {{- if $configArg }}
 - {{ $configArg }}
 {{- end }}
-{{- if (and (.Values.presets.profilesCollection.enabled) (not .Values.presets.fleetManagement.enabled)) }}
+{{- if (and (or (.Values.presets.profilesCollection.enabled) (.Values.presets.ebpfProfiler.enabled)) (not .Values.presets.fleetManagement.enabled)) }}
 - "--feature-gates=+service.profilesSupport"
 {{- end }}
 {{- range .Values.command.extraArgs }}
