@@ -54,7 +54,7 @@ spec:
   podAnnotations:
     {{- include "opentelemetry-collector.podAnnotations" . | nindent 8 }}
   {{- end }}
-  {{- if and (not (.Values.podSecurityContext)) (not (.Values.isWindows)) (or (.Values.presets.logsCollection.storeCheckpoints) (.Values.presets.hostMetrics.process.enabled)) }}
+  {{- if and (not (.Values.podSecurityContext)) (not (.Values.isWindows)) (or (.Values.presets.logsCollection.storeCheckpoints) (.Values.presets.hostMetrics.process.enabled) (.Values.presets.ebpfProfiler.enabled)) }}
   podSecurityContext:
     runAsUser: 0
     runAsGroup: 0
@@ -63,7 +63,7 @@ spec:
     {{- toYaml .Values.podSecurityContext | nindent 6 }}
     {{- end }}
   {{- end }}
-  {{- if and (not (.Values.securityContext)) (not (.Values.isWindows)) (or (.Values.presets.logsCollection.storeCheckpoints) (.Values.presets.hostMetrics.process.enabled)) }}
+  {{- if and (not (.Values.securityContext)) (not (.Values.isWindows)) (or (.Values.presets.logsCollection.storeCheckpoints) (.Values.presets.hostMetrics.process.enabled) (.Values.presets.ebpfProfiler.enabled)) }}
   securityContext:
     privileged: true
   {{- else -}}
@@ -164,6 +164,29 @@ spec:
       readOnly: true
       mountPropagation: HostToContainer
     {{- end }}
+    {{- if and .Values.presets.ebpfProfiler.enabled (not .Values.isWindows) }}
+    - name: lsb-release
+      mountPath: /etc/lsb-release.host
+      readOnly: false
+    - name: os-release
+      mountPath: /etc/os-release.host
+      readOnly: false
+    - name: modules-dir
+      mountPath: /lib/modules
+      readOnly: false
+    - name: modules-host
+      mountPath: /lib/modules.host
+      readOnly: false
+    - name: linux-headers-generated
+      mountPath: /usr/src/
+      readOnly: false
+    - name: boot-host
+      mountPath: /boot.host
+      readOnly: false
+    - name: debug
+      mountPath: /sys/kernel/debug
+      readOnly: false
+    {{- end }}
     {{- if .Values.extraVolumeMounts }}
     {{- toYaml .Values.extraVolumeMounts | nindent 4 }}
     {{- end }}
@@ -202,6 +225,29 @@ spec:
       hostPath:
         path: /
     {{- end }}
+    {{- if and .Values.presets.ebpfProfiler.enabled (not .Values.isWindows) }}
+    - name: lsb-release
+      hostPath:
+        path: /etc/lsb-release
+    - name: os-release
+      hostPath:
+        path: /etc/os-release
+    - name: modules-dir
+      hostPath:
+        path: /var/cache/linux-headers/modules_dir
+    - name: linux-headers-generated
+      hostPath:
+        path: /var/cache/linux-headers/generated
+    - name: boot-host
+      hostPath:
+        path: /
+    - name: modules-host
+      hostPath:
+        path: /lib/modules
+    - name: debug
+      hostPath:
+        path: /sys/kernel/debug
+    {{- end }}
     {{- if .Values.extraVolumes }}
     {{- toYaml .Values.extraVolumes | nindent 4 }}
     {{- end }}
@@ -219,6 +265,9 @@ spec:
   {{- end }}
   serviceAccount: {{ include "opentelemetry-collector.serviceAccountName" . }}
   hostNetwork: {{ .Values.hostNetwork }}
+  {{- if and .Values.presets.ebpfProfiler.enabled (not .Values.isWindows) }}
+  hostPID: true
+  {{- end }}
   config:
   {{- if or (eq .Values.mode "deployment") (eq .Values.mode "statefulset")  -}}
   {{- include "opentelemetry-collector.deploymentConfig" . | nindent 4 -}}

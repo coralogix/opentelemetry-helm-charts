@@ -2,9 +2,15 @@
 
 ## OpenTelemetry Collector
 
-### v0.128.3 / 2026-01-08
+### v0.128.4 / 2026-01-08
 
 – [Fix] Add missing field `service.loadBalancerClass` to support setups with AWS ALB Controller
+
+### v0.128.3 / 2026-01-07
+
+- [Feat] Add an `ebpfProfiler` preset that switches to the otelcol-ebpf-profiler distribution, creates a profiles-only pipeline, and wires the profiling receiver. Allows to configure intervals, thresholds, off-CPU, verbosity, tracers.
+- [Feat] Add a `profilesK8sAttributes` preset to enrich profiles with Kubernetes attributes and map service.name from labels/metadata.
+- [Feat] Add an `otlpExporter` preset to configure an OTLP endpoint with optional headers, plus pipeline selection.
 
 ### v0.128.2 / 2026-01-07
 

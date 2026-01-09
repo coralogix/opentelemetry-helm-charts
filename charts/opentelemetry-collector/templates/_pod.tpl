@@ -25,10 +25,10 @@ containers:
     command:
       {{- include "opentelemetry-collector.command" . | nindent 6 }}
     securityContext:
-      {{- if and (not (.Values.securityContext)) (not (.Values.isWindows)) (or (.Values.presets.logsCollection.storeCheckpoints) (.Values.presets.hostMetrics.process.enabled)) }}
+      {{- if and (not (.Values.securityContext)) (not (.Values.isWindows)) (or (.Values.presets.logsCollection.storeCheckpoints) (.Values.presets.hostMetrics.process.enabled) (.Values.presets.ebpfProfiler.enabled)) }}
       runAsUser: 0
       runAsGroup: 0
-      {{- if .Values.presets.hostMetrics.process.enabled }}
+      {{- if or .Values.presets.hostMetrics.process.enabled .Values.presets.ebpfProfiler.enabled }}
       privileged: true
       {{- end }}
       {{- else -}}
@@ -53,7 +53,7 @@ containers:
           fieldRef:
             fieldPath: metadata.name
       {{- end }}
-      {{- if or .Values.presets.k8sResourceAttributes.enabled (and .Values.presets.kubernetesAttributes.enabled (or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled)) (and .Values.presets.kubernetesApiServerMetrics.enabled (eq .Values.mode "daemonset")) (eq .Values.distribution "eks/fargate") }}
+      {{- if or .Values.presets.k8sResourceAttributes.enabled (and .Values.presets.kubernetesAttributes.enabled (or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled)) (and .Values.presets.kubernetesApiServerMetrics.enabled (eq .Values.mode "daemonset")) (eq .Values.distribution "eks/fargate") .Values.presets.profilesK8sAttributes.enabled }}
       - name: K8S_NODE_NAME
         valueFrom:
           fieldRef:
@@ -258,6 +258,29 @@ containers:
         mountPropagation: HostToContainer
       {{- end }}
       {{- end }}
+      {{- if and .Values.presets.ebpfProfiler.enabled (not .Values.isWindows) }}
+      - name: lsb-release
+        mountPath: /etc/lsb-release.host
+        readOnly: false
+      - name: os-release
+        mountPath: /etc/os-release.host
+        readOnly: false
+      - name: modules-dir
+        mountPath: /lib/modules
+        readOnly: false
+      - name: modules-host
+        mountPath: /lib/modules.host
+        readOnly: false
+      - name: linux-headers-generated
+        mountPath: /usr/src/
+        readOnly: false
+      - name: boot-host
+        mountPath: /boot.host
+        readOnly: false
+      - name: debug
+        mountPath: /sys/kernel/debug
+        readOnly: false
+      {{- end }}
       {{- if .Values.presets.resourceDetection.enabled }}
       {{- if and (not .Values.isWindows) (not (eq .Values.distribution "eks/fargate")) }}
       {{- $machineIdMountExists := false }}
@@ -374,6 +397,29 @@ volumes:
     hostPath:
       path: /
   {{- end }}
+  {{- end }}
+  {{- if and .Values.presets.ebpfProfiler.enabled (not .Values.isWindows) }}
+  - name: lsb-release
+    hostPath:
+      path: /etc/lsb-release
+  - name: os-release
+    hostPath:
+      path: /etc/os-release
+  - name: modules-dir
+    hostPath:
+      path: /var/cache/linux-headers/modules_dir
+  - name: linux-headers-generated
+    hostPath:
+      path: /var/cache/linux-headers/generated
+  - name: boot-host
+    hostPath:
+      path: /
+  - name: modules-host
+    hostPath:
+      path: /lib/modules
+  - name: debug
+    hostPath:
+      path: /sys/kernel/debug
   {{- end }}
   {{- if .Values.presets.resourceDetection.enabled }}
   {{- if and (not .Values.isWindows) (not (eq .Values.distribution "eks/fargate")) }}
