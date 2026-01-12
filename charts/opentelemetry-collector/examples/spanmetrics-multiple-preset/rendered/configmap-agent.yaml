@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.128.4
+    helm.sh/chart: opentelemetry-collector-0.128.5
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.142.0"
@@ -148,18 +148,6 @@ data:
             == "opentelemetry-collector"
           - delete_key(attributes, "otel_scope_name") where attributes["service.name"]
             == "opentelemetry-collector"
-      transform/spanmetricsmulti:
-        error_mode: silent
-        metric_statements:
-        - context: datapoint
-          statements:
-          - set(attributes["status.code"], "STATUS_CODE_ERROR") where attributes["status.code"]
-            == nil and attributes["otel.status_code"] == "ERROR"
-          - set(attributes["status.code"], "STATUS_CODE_OK") where attributes["status.code"]
-            == nil and attributes["otel.status_code"] == "OK"
-          - set(attributes["status.code"], "STATUS_CODE_UNSET") where attributes["status.code"]
-            == nil and (attributes["otel.status_code"] == "UNSET" or attributes["otel.status_code"]
-            == nil)
     receivers:
       otlp:
         protocols:
@@ -193,7 +181,6 @@ data:
           - debug
           processors:
           - memory_limiter
-          - transform/spanmetricsmulti
           - transform/prometheus
           - batch
           receivers:

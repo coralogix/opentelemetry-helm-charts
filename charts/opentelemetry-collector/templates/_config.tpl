@@ -205,6 +205,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.journaldReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyJournaldReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.systemdReceiver.enabled }}
+{{- $config = (include "opentelemetry-collector.applySystemdReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.profilesCollection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyProfilesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -235,6 +238,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.journaldReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyJournaldReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.systemdReceiver.enabled }}
+{{- $config = (include "opentelemetry-collector.applySystemdReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.statsdReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyStatsdReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -385,6 +391,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.journaldReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyJournaldReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.systemdReceiver.enabled }}
+{{- $config = (include "opentelemetry-collector.applySystemdReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.otlpReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyOtlpReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -3545,6 +3554,35 @@ processors:
           - set(resource.attributes["service.name"], body["_SYSTEMD_UNIT"]) where body["_SYSTEMD_UNIT"] != nil and body["_SYSTEMD_UNIT"] != ""
           - set(resource.attributes["service.name"], body["SYSLOG_IDENTIFIER"]) where body["_SYSTEMD_UNIT"] == nil and body["SYSLOG_IDENTIFIER"] != nil and body["SYSLOG_IDENTIFIER"] != ""
           - replace_pattern(resource.attributes["service.name"], "\\.service$", "") where resource.attributes["service.name"] != nil and resource.attributes["service.name"] != ""
+{{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applySystemdReceiverConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.systemdReceiverConfig" .Values | fromYaml) .config }}
+{{- if and ($config.service.pipelines.metrics) (not (has "systemd" $config.service.pipelines.metrics.receivers)) }}
+{{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "systemd" | uniq)  }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.systemdReceiverConfig" -}}
+receivers:
+  systemd:
+    {{- if .Values.presets.systemdReceiver.collectionInterval }}
+    collection_interval: "{{ .Values.presets.systemdReceiver.collectionInterval }}"
+    {{- else }}
+    collection_interval: 1m
+    {{- end }}
+    {{- if .Values.presets.systemdReceiver.scope }}
+    scope: "{{ .Values.presets.systemdReceiver.scope }}"
+    {{- else }}
+    scope: system
+    {{- end }}
+{{- with .Values.presets.systemdReceiver.units }}
+{{- if . }}
+    units:
+{{ toYaml . | indent 6 }}
+{{- end }}
 {{- end }}
 {{- end }}
 

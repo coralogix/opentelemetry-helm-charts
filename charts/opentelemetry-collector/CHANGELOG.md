@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.5 / 2026-01-12
+
+- [Feat] Add `systemdReceiver` preset which gathers metrics for locally running systemd units on standalone linux deployments with optional scope and units configuration.
+
 ### v0.128.4 / 2026-01-08
 
 – [Fix] Add missing field `service.loadBalancerClass` to support setups with AWS ALB Controller

@@ -1843,6 +1843,32 @@
             }
           }
         },
+        "systemdReceiver": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Enables the systemd receiver to collect metrics about systemd unit states. WARNING: Only for non-containerized deployments. Requires direct access to host D-Bus socket. Requires v0.142.0+.",
+              "type": "boolean"
+            },
+            "collectionInterval": {
+              "description": "The interval at which to collect systemd metrics. Examples: '10s', '30s', '1m'. Default: 60s.",
+              "type": "string"
+            },
+            "scope": {
+              "description": "The systemd scope to monitor: 'system' or 'user'. Default: system.",
+              "type": "string",
+              "enum": ["system", "user"]
+            },
+            "units": {
+              "description": "List of systemd units to monitor. Supports patterns like '*.service'. Default: ['*.service']",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
         "statsdReceiver": {
           "type": "object",
           "additionalProperties": false,
