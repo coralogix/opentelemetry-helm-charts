@@ -1,5 +1,5 @@
 TMP_DIRECTORY = ./tmp
-CHARTS ?= opentelemetry-collector opentelemetry-operator opentelemetry-demo opentelemetry-ebpf
+CHARTS ?= opentelemetry-collector opentelemetry-operator opentelemetry-demo opentelemetry-ebpf opentelemetry-ebpf-instrumentation
 MAX_PARALLEL_EXAMPLES ?= $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 
 # Reusable parallel execution with ordered logging utility
