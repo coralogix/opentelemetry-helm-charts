@@ -1,0 +1,125 @@
+---
+# Source: opentelemetry-collector/templates/configmap-agent.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-opentelemetry-collector-agent
+  namespace: default
+  labels:
+    helm.sh/chart: opentelemetry-collector-0.128.4
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.142.0"
+    app.kubernetes.io/managed-by: Helm
+    
+data:
+  relay: |
+    exporters:
+      debug: {}
+    extensions:
+      health_check:
+        endpoint: ${env:MY_POD_IP}:13133
+    processors:
+      k8sattributes/profiles:
+        extract:
+          labels:
+          - from: pod
+            key: app.kubernetes.io/name
+            tag_name: k8s.label.name
+          - from: pod
+            key: app.kubernetes.io/instance
+            tag_name: k8s.label.instance
+          metadata:
+          - k8s.namespace.name
+          - k8s.replicaset.name
+          - k8s.statefulset.name
+          - k8s.daemonset.name
+          - k8s.deployment.name
+          - k8s.cronjob.name
+          - k8s.job.name
+          - k8s.pod.name
+          - k8s.node.name
+          - container.id
+          - k8s.container.name
+          - service.version
+          otel_annotations: true
+        filter:
+          node_from_env_var: K8S_NODE_NAME
+        passthrough: false
+        pod_association:
+        - sources:
+          - from: resource_attribute
+            name: container.id
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      resource/metadata:
+        attributes:
+        - action: upsert
+          key: k8s.cluster.name
+          value: test-cluster
+        - action: upsert
+          key: cx.otel_integration.name
+          value: coralogix-integration-helm
+      transform/profiles:
+        profile_statements:
+        - set(resource.attributes["service.name"], resource.attributes["k8s.label.instance"])
+          where resource.attributes["service.name"] == nil and resource.attributes["k8s.label.instance"]
+          != nil
+        - set(resource.attributes["service.name"], resource.attributes["k8s.label.name"])
+          where resource.attributes["service.name"] == nil and resource.attributes["k8s.label.name"]
+          != nil
+        - set(resource.attributes["service.name"], resource.attributes["k8s.deployment.name"])
+          where resource.attributes["service.name"] == nil and resource.attributes["k8s.deployment.name"]
+          != nil
+        - set(resource.attributes["service.name"], resource.attributes["k8s.replicaset.name"])
+          where resource.attributes["service.name"] == nil and resource.attributes["k8s.replicaset.name"]
+          != nil
+        - set(resource.attributes["service.name"], resource.attributes["k8s.statefulset.name"])
+          where resource.attributes["service.name"] == nil and resource.attributes["k8s.statefulset.name"]
+          != nil
+        - set(resource.attributes["service.name"], resource.attributes["k8s.daemonset.name"])
+          where resource.attributes["service.name"] == nil and resource.attributes["k8s.daemonset.name"]
+          != nil
+        - set(resource.attributes["service.name"], resource.attributes["k8s.cronjob.name"])
+          where resource.attributes["service.name"] == nil and resource.attributes["k8s.cronjob.name"]
+          != nil
+        - set(resource.attributes["service.name"], resource.attributes["k8s.job.name"])
+          where resource.attributes["service.name"] == nil and resource.attributes["k8s.job.name"]
+          != nil
+        - set(resource.attributes["service.name"], resource.attributes["k8s.pod.name"])
+          where resource.attributes["service.name"] == nil and resource.attributes["k8s.pod.name"]
+          != nil
+        - set(resource.attributes["service.name"], resource.attributes["k8s.container.name"])
+          where resource.attributes["service.name"] == nil and resource.attributes["k8s.container.name"]
+          != nil
+    receivers:
+      profiling:
+        off_cpu_threshold: 0
+        probabilistic_interval: 1m
+        probabilistic_threshold: 100
+        reporter_interval: 5s
+        tracers: all
+        verbose_mode: false
+    service:
+      extensions:
+      - health_check
+      pipelines:
+        profiles:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          - resource/metadata
+          - k8sattributes/profiles
+          - transform/profiles
+          receivers:
+          - profiling
+      telemetry:
+        logs:
+          encoding: json
+          level: debug
+        resource:
+          cx.agent.type: ebpf-profiler
+          service.name: opentelemetry-collector

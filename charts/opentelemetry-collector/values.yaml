@@ -258,6 +258,29 @@ presets:
   # Configures the collector to collect profiles.
   profilesCollection:
     enabled: false
+  # Configures Kubernetes attributes and service.name mapping for profiles.
+  profilesK8sAttributes:
+    enabled: false
+    serviceLabels: []
+    serviceAnnotations: []
+  # Configures the collector to run the eBPF profiler distribution.
+  # Switches the image to otelcol-ebpf-profiler and wires a profiles pipeline
+  # with the profiling receiver. Logs/metrics/traces pipelines are removed and
+  # the otlpReceiver/collectorMetrics presets are ignored for compatibility.
+  ebpfProfiler:
+    enabled: false
+    # Interval for sending profiling data.
+    reporterInterval: 5s
+    # Interval for probabilistic profiling scheduling (must be 1-5m).
+    probabilisticInterval: 1m
+    # Threshold for probabilistic profiling.
+    probabilisticThreshold: 100
+    # Enable verbose tracer logging.
+    verboseMode: false
+    # Enable off-CPU profiling (0 disables, range 0..1).
+    offCpuThreshold: 0
+    # Comma-delimited list of tracers to enable (or "all").
+    tracers: "all"
   # Configures the collector to collect host metrics.
   # Adds the hostmetrics receiver to the metrics pipeline
   # and adds the necessary volumes and volume mounts.
@@ -518,6 +541,24 @@ presets:
     #   blockOnOverflow: false
     #   sizer: requests        # requests | items | bytes
     #   queueSize: 1000
+
+  # Configures the collector to export data with the OTLP exporter.
+  otlpExporter:
+    enabled: false
+    # Use pipelines (plural) for multiple pipeline selection.
+    # Possible values: "all", "metrics", "traces", "logs", "profiles" and "none".
+    # Examples:
+    #   pipelines: ["metrics", "traces"]
+    #   pipelines: ["profiles"]
+    #   pipelines: ["none"]
+    pipelines: ["all"]
+    # OTLP exporter endpoint (required when enabled).
+    endpoint: ""
+    # Optional OTLP exporter headers.
+    # Example:
+    #   headers:
+    #     Authorization: "Bearer ${env:CORALOGIX_PRIVATE_KEY}"
+    headers: {}
 
   # Configures grouping spans into transactions and enabling Coralogix transaction processor.
   transactions:
@@ -1230,6 +1271,7 @@ service:
   # type: LoadBalancer
   # loadBalancerIP: 1.2.3.4
   # loadBalancerSourceRanges: []
+  # loadBalancerClass: service.k8s.aws/nlb
 
   # By default, Service of type 'LoadBalancer' will be created setting 'externalTrafficPolicy: Cluster'
   # unless other value is explicitly set.

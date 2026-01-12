@@ -1274,6 +1274,35 @@
             }
           }
         },
+        "otlpExporter": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether the collector should configure an OTLP exporter.",
+              "type": "boolean"
+            },
+            "pipelines": {
+              "description": "Specifies which pipelines to add the OTLP exporter to.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["all", "logs", "metrics", "traces", "profiles", "none"]
+              }
+            },
+            "endpoint": {
+              "description": "Specifies the OTLP exporter endpoint.",
+              "type": "string"
+            },
+            "headers": {
+              "description": "Optional OTLP exporter headers.",
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        },
         "transactions": {
           "type": "object",
           "additionalProperties": false,
@@ -1686,6 +1715,86 @@
                   }
                 }
               }
+            }
+          }
+        },
+        "profilesK8sAttributes": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether to enable Kubernetes attributes for profiles.",
+              "type": "boolean"
+            },
+            "serviceLabels": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "tag_name": {
+                    "type": "string"
+                  },
+                  "key": {
+                    "type": "string"
+                  },
+                  "from": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "serviceAnnotations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "tag_name": {
+                    "type": "string"
+                  },
+                  "key": {
+                    "type": "string"
+                  },
+                  "from": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "ebpfProfiler": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether to enable the eBPF profiler preset.",
+              "type": "boolean"
+            },
+            "reporterInterval": {
+              "description": "Interval for sending profiling data.",
+              "type": "string"
+            },
+            "probabilisticInterval": {
+              "description": "Interval for probabilistic profiling scheduling.",
+              "type": "string"
+            },
+            "probabilisticThreshold": {
+              "description": "Threshold for probabilistic profiling.",
+              "type": "integer"
+            },
+            "verboseMode": {
+              "description": "Enable verbose tracer logging.",
+              "type": "boolean"
+            },
+            "offCpuThreshold": {
+              "description": "Enable off-CPU profiling (0 disables).",
+              "type": "number"
+            },
+            "tracers": {
+              "description": "Comma-delimited list of tracers to enable (or \"all\").",
+              "type": "string"
             }
           }
         },
@@ -2378,6 +2487,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "loadBalancerClass": {
+          "type": "string"
         },
         "annotations": {
           "type": "object"

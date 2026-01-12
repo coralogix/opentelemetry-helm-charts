@@ -211,6 +211,12 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.profilesCollection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyProfilesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.ebpfProfiler.enabled }}
+{{- $config = (include "opentelemetry-collector.applyEbpfProfilerConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.profilesK8sAttributes.enabled }}
+{{- $config = (include "opentelemetry-collector.applyProfilesK8sAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.resourceDetection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyResourceDetectionConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -220,6 +226,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.coralogixExporter.enabled }}
 {{- $config = (include "opentelemetry-collector.applyCoralogixExporterConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.otlpExporter.enabled }}
+{{- $config = (include "opentelemetry-collector.applyOtlpExporterConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.otlpReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyOtlpReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -298,6 +307,12 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.kubernetesAttributes.enabled }}
 {{- $config = (include "opentelemetry-collector.applyKubernetesAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.ebpfProfiler.enabled }}
+{{- $config = (include "opentelemetry-collector.applyEbpfProfilerConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.profilesK8sAttributes.enabled }}
+{{- $config = (include "opentelemetry-collector.applyProfilesK8sAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.resourceDetection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyResourceDetectionConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -324,6 +339,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.coralogixExporter.enabled }}
 {{- $config = (include "opentelemetry-collector.applyCoralogixExporterConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.otlpExporter.enabled }}
+{{- $config = (include "opentelemetry-collector.applyOtlpExporterConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.targetAllocator.enabled }}
 {{- $config = (include "opentelemetry-collector.applyTargetAllocatorConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -787,6 +805,40 @@ processors:
 {{- $config | toYaml }}
 {{- end }}
 
+{{- define "opentelemetry-collector.applyProfilesK8sAttributesConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.profilesK8sAttributesConfig" .Values | fromYaml) .config }}
+{{- if $config.service.pipelines.profiles }}
+{{- $profilesProcessors := $config.service.pipelines.profiles.processors | default (list) }}
+{{- if not (has "k8sattributes/profiles" $profilesProcessors) }}
+{{- $profilesProcessors = append $profilesProcessors "k8sattributes/profiles" }}
+{{- end }}
+{{- if not (has "transform/profiles" $profilesProcessors) }}
+{{- $profilesProcessors = append $profilesProcessors "transform/profiles" }}
+{{- end }}
+{{- $_ := set $config.service.pipelines.profiles "processors" ($profilesProcessors | uniq) }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyEbpfProfilerConfig" -}}
+{{- $config := .config }}
+{{- $config = mustMergeOverwrite (include "opentelemetry-collector.ebpfProfilerConfig" .Values | fromYaml) $config }}
+{{- if $config.service.pipelines.profiles }}
+{{- $profilesReceivers := $config.service.pipelines.profiles.receivers | default (list) }}
+{{- if not (has "profiling" $profilesReceivers) }}
+{{- $_ := set $config.service.pipelines.profiles "receivers" (append $profilesReceivers "profiling" | uniq)  }}
+{{- end }}
+{{- end }}
+{{- if $config.service.pipelines }}
+{{- $profilesPipeline := dict }}
+{{- if $config.service.pipelines.profiles }}
+{{- $_ := set $profilesPipeline "profiles" $config.service.pipelines.profiles }}
+{{- end }}
+{{- $_ := set $config.service "pipelines" $profilesPipeline }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
 {{- define "opentelemetry-collector.logsCollectionConfig" -}}
 {{- if .Values.presets.logsCollection.storeCheckpoints }}
 extensions:
@@ -1221,6 +1273,118 @@ service:
       exporters: []
 {{- end }}
 
+{{- define "opentelemetry-collector.profilesK8sAttributesConfig" -}}
+processors:
+  transform/profiles:
+    profile_statements:
+    # prioritized by
+    # https://opentelemetry.io/docs/specs/semconv/non-normative/k8s-attributes/#how-servicename-should-be-calculated
+     {{- range $index, $serviceAnnotation := .Values.presets.profilesK8sAttributes.serviceAnnotations }}
+      - set(resource.attributes["service.name"], resource.attributes[{{ $serviceAnnotation.tag_name | quote }}])
+        where resource.attributes["service.name"] == nil and resource.attributes[{{ $serviceAnnotation.tag_name | quote }}] != nil
+
+    {{- end }}
+    {{- range $index, $serviceLabel := .Values.presets.profilesK8sAttributes.serviceLabels }}
+      - set(resource.attributes["service.name"], resource.attributes[{{ $serviceLabel.tag_name  | quote }}])
+        where resource.attributes["service.name"] == nil and resource.attributes[{{ $serviceLabel.tag_name | quote }}] != nil
+
+    {{- end }}
+      - set(resource.attributes["service.name"], resource.attributes["k8s.label.instance"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.label.instance"] != nil
+
+      - set(resource.attributes["service.name"], resource.attributes["k8s.label.name"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.label.name"] != nil
+
+      - set(resource.attributes["service.name"], resource.attributes["k8s.deployment.name"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.deployment.name"] != nil
+
+      - set(resource.attributes["service.name"], resource.attributes["k8s.replicaset.name"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.replicaset.name"] != nil
+
+      - set(resource.attributes["service.name"], resource.attributes["k8s.statefulset.name"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.statefulset.name"] != nil
+
+      - set(resource.attributes["service.name"], resource.attributes["k8s.daemonset.name"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.daemonset.name"] != nil
+
+      - set(resource.attributes["service.name"], resource.attributes["k8s.cronjob.name"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.cronjob.name"] != nil
+
+      - set(resource.attributes["service.name"], resource.attributes["k8s.job.name"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.job.name"] != nil
+
+      - set(resource.attributes["service.name"], resource.attributes["k8s.pod.name"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.pod.name"] != nil
+
+      - set(resource.attributes["service.name"], resource.attributes["k8s.container.name"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.container.name"] != nil
+
+  k8sattributes/profiles:
+    {{- if or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled }}
+    filter:
+      node_from_env_var: K8S_NODE_NAME
+    {{- end }}
+    extract:
+      metadata:
+        - k8s.namespace.name
+        - k8s.replicaset.name
+        - k8s.statefulset.name
+        - k8s.daemonset.name
+        - k8s.deployment.name
+        - k8s.cronjob.name
+        - k8s.job.name
+        - k8s.pod.name
+        - k8s.node.name
+        - container.id
+        - k8s.container.name
+        - service.version
+      labels:
+        - tag_name: k8s.label.name
+          key: app.kubernetes.io/name
+          from: pod
+        - tag_name: k8s.label.instance
+          key: app.kubernetes.io/instance
+          from: pod
+      {{- range $index, $serviceLabel := .Values.presets.profilesK8sAttributes.serviceLabels }}
+        - tag_name: {{ $serviceLabel.tag_name | quote }}
+          key: {{ $serviceLabel.key | quote }}
+          from: {{ $serviceLabel.from | default "pod" | quote }}
+      {{- end }}
+
+      {{- if .Values.presets.profilesK8sAttributes.serviceAnnotations }}
+      annotations:
+          {{- range $index, $serviceAnnotation := .Values.presets.profilesK8sAttributes.serviceAnnotations }}
+        - tag_name: {{ $serviceAnnotation.tag_name | quote }}
+          key: {{ $serviceAnnotation.key | quote }}
+          from:  {{ $serviceAnnotation.key | default "pod" | quote }}
+          {{- end }}
+      {{- end }}
+      otel_annotations: true
+
+    passthrough: false
+    pod_association:
+      - sources:
+          - from: resource_attribute
+            name: container.id
+{{- end }}
+
+{{- define "opentelemetry-collector.ebpfProfilerConfig" -}}
+receivers:
+  profiling:
+    reporter_interval: {{ .Values.presets.ebpfProfiler.reporterInterval | quote }}
+    probabilistic_interval: {{ .Values.presets.ebpfProfiler.probabilisticInterval | quote }}
+    probabilistic_threshold: {{ .Values.presets.ebpfProfiler.probabilisticThreshold }}
+    verbose_mode: {{ .Values.presets.ebpfProfiler.verboseMode }}
+    off_cpu_threshold: {{ .Values.presets.ebpfProfiler.offCpuThreshold }}
+    tracers: {{ .Values.presets.ebpfProfiler.tracers | quote }}
+service:
+  pipelines:
+    profiles:
+      receivers: []
+      processors: []
+      exporters: []
+{{- end }}
+
 {{- define "opentelemetry-collector.applyKubernetesExtraMetrics" -}}
 {{- $scrapeAll := .Values.Values.presets.kubernetesExtraMetrics.scrapeAll | default false }}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.kubernetesExtraMetricsConfig" (dict "Values" .Values.Values "scrapeAll" $scrapeAll) | fromYaml) .config }}
@@ -1432,8 +1596,11 @@ processors:
 {{- if and ($config.service.pipelines.traces) (not (has "resource/metadata" $config.service.pipelines.traces.processors)) }}
 {{- $_ := set $config.service.pipelines.traces "processors" (prepend $config.service.pipelines.traces.processors "resource/metadata" | uniq)  }}
 {{- end }}
-{{- if and ($config.service.pipelines.profiles) (not (has "resource/metadata" $config.service.pipelines.profiles.processors)) }}
-{{- $_ := set $config.service.pipelines.profiles "processors" (prepend $config.service.pipelines.profiles.processors "resource/metadata" | uniq)  }}
+{{- if $config.service.pipelines.profiles }}
+{{- $profilesProcessors := $config.service.pipelines.profiles.processors | default (list) }}
+{{- if not (has "resource/metadata" $profilesProcessors) }}
+{{- $_ := set $config.service.pipelines.profiles "processors" (prepend $profilesProcessors "resource/metadata" | uniq)  }}
+{{- end }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
@@ -1774,9 +1941,14 @@ cx.integrationID: "{{ .Values.presets.fleetManagement.integrationID }}"
 {{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters "forward/db_compact" | uniq)  }}
 {{- end }}
 {{- end }}
-{{- if .Values.Values.presets.spanMetrics.transformStatements}}
+{{- if or (.Values.Values.presets.spanMetrics.enabled) (.Values.Values.presets.spanMetrics.transformStatements) }}
 {{- if and ($config.service.pipelines.traces) (not (has "transform/spanmetrics" $config.service.pipelines.traces.processors)) }}
 {{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/spanmetrics" | uniq)  }}
+{{- end }}
+{{- end }}
+{{- if .Values.Values.presets.spanMetrics.enabled }}
+{{- if and ($config.service.pipelines.metrics) (not (has "transform/spanmetrics" $config.service.pipelines.metrics.processors)) }}
+{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/spanmetrics" | uniq)  }}
 {{- end }}
 {{- end }}
 {{- if .Values.Values.presets.spanMetrics.spanNameReplacePattern}}
@@ -1815,8 +1987,10 @@ connectors:
     namespace: ""
 {{- end }}
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
+    add_resource_attributes: true
 {{- if .Values.presets.spanMetrics.histogramBuckets }}
     histogram:
+      unit: ms
       explicit:
         buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
 {{- end }}
@@ -1839,7 +2013,9 @@ connectors:
   spanmetrics/db:
     namespace: "db"
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
+    add_resource_attributes: true
     histogram:
+      unit: ms
       explicit:
         buckets: [100us, 1ms, 2ms, 2.5ms, 4ms, 6ms, 10ms, 100ms, 250ms]
     dimensions:
@@ -1869,10 +2045,12 @@ connectors:
   forward/compact: {}
   spanmetrics/compact:
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
+    add_resource_attributes: true
     exclude_dimensions:
     - span.name
 {{- if .Values.presets.spanMetrics.histogramBuckets }}
     histogram:
+      unit: ms
       explicit:
         buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
 {{- end }}
@@ -1892,6 +2070,7 @@ connectors:
   forward/db_compact: {}
   spanmetrics/db_compact:
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
+    add_resource_attributes: true
     dimensions:
       - name: db.namespace
       - name: db.system
@@ -1900,6 +2079,7 @@ connectors:
     - span.kind
 {{- if .Values.presets.spanMetrics.histogramBuckets }}
     histogram:
+      unit: ms
       explicit:
         buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
 {{- end }}
@@ -1915,7 +2095,7 @@ connectors:
 {{- end }}
     namespace: db_compact
 {{- end }}
-{{- if or (.Values.presets.spanMetrics.spanNameReplacePattern) (.Values.presets.spanMetrics.dbMetrics.enabled) (.Values.presets.spanMetrics.transformStatements) (.Values.presets.spanMetrics.compactMetrics.enabled) (.Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled) }}
+{{- if or (.Values.presets.spanMetrics.enabled) (.Values.presets.spanMetrics.spanNameReplacePattern) (.Values.presets.spanMetrics.dbMetrics.enabled) (.Values.presets.spanMetrics.transformStatements) (.Values.presets.spanMetrics.compactMetrics.enabled) (.Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled) (.Values.presets.spanMetricsMulti.enabled) }}
 processors:
 {{- end}}
 {{- if .Values.presets.spanMetrics.spanNameReplacePattern }}
@@ -1939,15 +2119,21 @@ processors:
       span:
         - 'kind != SPAN_KIND_CLIENT or attributes["db.namespace"] == nil or attributes["db.system"] == nil'
 {{- end }}
-{{- if .Values.presets.spanMetrics.transformStatements }}
+{{- if .Values.presets.spanMetrics.enabled }}
   transform/spanmetrics:
     error_mode: silent
+    metric_statements:
+      - context: datapoint
+        statements:
+        {{- include "opentelemetry-collector.spanMetricsStatusCodeStatements" . | nindent 8 }}
+    {{- if .Values.presets.spanMetrics.transformStatements }}
     trace_statements:
       - context: span
         statements:
         {{- range $index, $pattern := .Values.presets.spanMetrics.transformStatements }}
         - {{ $pattern }}
         {{- end}}
+    {{- end }}
 {{- end }}
 {{- if .Values.presets.spanMetrics.dbMetrics.transformStatements }}
   transform/db:
@@ -2038,6 +2224,7 @@ service:
       - spanmetrics/compact
       processors:
       - memory_limiter
+      - transform/spanmetrics
       {{- if .Values.presets.spanMetrics.compactMetrics.dropHistogram }}
       - transform/compact_histogram
       - filter/drop_histogram
@@ -2061,6 +2248,7 @@ service:
       - spanmetrics/db_compact
       processors:
       - memory_limiter
+      - transform/spanmetrics
       {{- if .Values.presets.spanMetrics.dbMetrics.compactMetrics.dropHistogram }}
       - transform/db_compact_histogram
       - filter/drop_db_compact_histogram
@@ -2104,6 +2292,9 @@ service:
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers (printf "spanmetrics/%d" $index))  }}
 {{- end }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "spanmetrics/default")  }}
+{{- if and ($config.service.pipelines.metrics) (not (has "transform/spanmetricsmulti" $config.service.pipelines.metrics.processors)) }}
+{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/spanmetricsmulti" | uniq)  }}
+{{- end }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
@@ -2170,6 +2361,14 @@ connectors:
     {{- $root.Values.presets.spanMetricsMulti.extraDimensions | toYaml | nindent 10 }}
     {{- end }}
   {{- end }}
+
+processors:
+  transform/spanmetricsmulti:
+    error_mode: silent
+    metric_statements:
+      - context: datapoint
+        statements:
+        {{- include "opentelemetry-collector.spanMetricsStatusCodeStatements" . | nindent 8 }}
 
 {{- end }}
 
@@ -2633,6 +2832,43 @@ exporters:
         timeout: "{{ .Values.presets.loadBalancing.dnsResolverTimeout }}"
         {{- end }}
       {{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyOtlpExporterConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.otlpExporterConfig" .Values | fromYaml) .config }}
+{{- $pipelines := list "all" }}
+{{- if .Values.Values.presets.otlpExporter.pipelines }}
+  {{- $pipelines = .Values.Values.presets.otlpExporter.pipelines }}
+{{- end }}
+{{- $includeLogs := or (has "all" $pipelines) (has "logs" $pipelines) }}
+{{- $includeMetrics := or (has "all" $pipelines) (has "metrics" $pipelines) }}
+{{- $includeTraces := or (has "all" $pipelines) (has "traces" $pipelines) }}
+{{- $includeProfiles := or (has "all" $pipelines) (has "profiles" $pipelines) }}
+
+{{- if and $includeLogs ($config.service.pipelines.logs) (not (has "otlp" $config.service.pipelines.logs.exporters)) }}
+{{- $_ := set $config.service.pipelines.logs "exporters" (append $config.service.pipelines.logs.exporters "otlp" | uniq)  }}
+{{- end }}
+{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "otlp" $config.service.pipelines.metrics.exporters)) }}
+{{- $_ := set $config.service.pipelines.metrics "exporters" (append $config.service.pipelines.metrics.exporters "otlp" | uniq)  }}
+{{- end }}
+{{- if and $includeTraces ($config.service.pipelines.traces) (not (has "otlp" $config.service.pipelines.traces.exporters)) }}
+{{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters "otlp" | uniq)  }}
+{{- end }}
+{{- if and $includeProfiles ($config.service.pipelines.profiles) (not (has "otlp" $config.service.pipelines.profiles.exporters)) }}
+{{- $_ := set $config.service.pipelines.profiles "exporters" (append $config.service.pipelines.profiles.exporters "otlp" | uniq)  }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.otlpExporterConfig" -}}
+{{- $endpoint := required "presets.otlpExporter.endpoint must be set when the otlpExporter preset is enabled." .Values.presets.otlpExporter.endpoint }}
+exporters:
+  otlp:
+    endpoint: {{ $endpoint | quote }}
+    {{- with .Values.presets.otlpExporter.headers }}
+    headers:
+{{ toYaml . | nindent 6 }}
+    {{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyCoralogixExporterConfig" -}}
