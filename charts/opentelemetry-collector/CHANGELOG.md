@@ -2,7 +2,7 @@
 
 ## OpenTelemetry Collector
 
-### v0.128.2 / 2026-01-06
+### v0.128.5 / 2026-01-12
 
 - [Feat] Add `systemdReceiver` preset which gathers metrics for locally running systemd units on standalone linux deployments with optional scope and units configuration.
 

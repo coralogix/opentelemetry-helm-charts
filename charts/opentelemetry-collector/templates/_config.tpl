@@ -3330,22 +3330,23 @@ processors:
 {{- end }}
 
 {{- define "opentelemetry-collector.systemdReceiverConfig" -}}
-{{- $receiver := dict }}
-{{- with .Values.presets.systemdReceiver.collectionInterval }}
-{{- $_ := set $receiver "collection_interval" . }}
-{{- end }}
-{{- with .Values.presets.systemdReceiver.scope }}
-{{- $_ := set $receiver "scope" . }}
-{{- end }}
+receivers:
+  systemd:
+    {{- if .Values.presets.systemdReceiver.collectionInterval }}
+    collection_interval: "{{ .Values.presets.systemdReceiver.collectionInterval }}"
+    {{- else }}
+    collection_interval: 1m
+    {{- end }}
+    {{- if .Values.presets.systemdReceiver.scope }}
+    scope: "{{ .Values.presets.systemdReceiver.scope }}"
+    {{- else }}
+    scope: system
+    {{- end }}
 {{- with .Values.presets.systemdReceiver.units }}
 {{- if . }}
-{{- $_ := set $receiver "units" . }}
+    units:
+{{ toYaml . | indent 6 }}
 {{- end }}
-{{- end }}
-receivers:
-  systemd:{{- if $receiver }}
-{{ toYaml $receiver | indent 4 }}
-{{- else }} {}
 {{- end }}
 {{- end }}
 

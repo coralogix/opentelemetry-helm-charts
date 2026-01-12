@@ -857,8 +857,8 @@ presets:
   # Requires OpenTelemetry Collector v0.142.0 or later.
   systemdReceiver:
     enabled: false
-    # collectionInterval: 10s  # Optional: override default collection interval
-    # scope: system           # Optional: system or user (default: system)
+    # collectionInterval: "30s"  #override the default 60s collection interval
+    # scope: system           # Optional: Systemd scope to monitor (system or user), template default: system
     # units: ["*.service"]    # Optional: list of systemd units to monitor (supports patterns)
 
   # Configures the collector to receive OTLP data.

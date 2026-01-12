@@ -1743,11 +1743,11 @@
               "type": "boolean"
             },
             "collectionInterval": {
-              "description": "The interval at which to collect systemd metrics. Examples: '10s', '30s', '1m'. Default: receiver's built-in default.",
+              "description": "The interval at which to collect systemd metrics. Examples: '10s', '30s', '1m'. Default: 60s.",
               "type": "string"
             },
             "scope": {
-              "description": "The systemd scope to monitor (system or user). Default: system.",
+              "description": "The systemd scope to monitor: 'system' or 'user'. Default: system.",
               "type": "string",
               "enum": ["system", "user"]
             },
