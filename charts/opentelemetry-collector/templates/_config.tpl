@@ -2014,12 +2014,10 @@ connectors:
     namespace: "db"
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
     add_resource_attributes: true
-{{- if .Values.presets.spanMetrics.histogramBuckets }}
     histogram:
       unit: ms
       explicit:
         buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
-{{- end }}
     dimensions:
       - name: db.namespace
       - name: db.operation.name
