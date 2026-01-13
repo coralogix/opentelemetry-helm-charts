@@ -2017,7 +2017,7 @@ connectors:
     histogram:
       unit: ms
       explicit:
-        buckets: [100us, 1ms, 2ms, 2.5ms, 4ms, 6ms, 10ms, 100ms, 250ms]
+        buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
     dimensions:
       - name: db.namespace
       - name: db.operation.name
