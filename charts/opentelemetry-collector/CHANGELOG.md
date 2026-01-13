@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.6 / 2026-01-13
+
+- [Fix] Apply `presets.spanMetrics.histogramBuckets` value to `dbMetrics`.
+
 ### v0.128.5 / 2026-01-12
 
 - [Feat] Add `systemdReceiver` preset which gathers metrics for locally running systemd units on standalone linux deployments with optional scope and units configuration.
