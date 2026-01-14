@@ -2732,6 +2732,14 @@ processors:
       - context: resource
         statements:
           - keep_keys(attributes, [""])
+{{- if eq $provider "azure" }}
+  transform/host-type:
+    error_mode: silent
+    log_statements:
+      - context: log
+        statements:
+          - set(resource.attributes["host.type"], resource.attributes["azure.vm.size"]) where resource.attributes["azure.vm.size"] != nil and resource.attributes["host.type"] == nil
+{{- end }}
 service:
   pipelines:
     logs/resource_catalog:
@@ -2756,6 +2764,9 @@ service:
         - resourcedetection/entity
         {{- if and .Values.presets.resourceDetection.enabled .Values.presets.resourceDetection.region.enabled (ne $provider "on-prem") }}
         - resourcedetection/region
+        {{- end }}
+        {{- if eq $provider "azure" }}
+        - transform/host-type
         {{- end }}
         - transform/entity-event
       receivers:
