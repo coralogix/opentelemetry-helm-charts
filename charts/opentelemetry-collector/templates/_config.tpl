@@ -2665,6 +2665,9 @@ service:
 {{- /* Infer provider to determine if region detection should be included */ -}}
 {{- $distribution := .Values.distribution | default "" }}
 {{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "explicitProvider" .Values.presets.resourceDetection.provider) }}
+{{- /* Determine if cloud tags should be collected for infra explorer */ -}}
+{{- $useEc2 := and (eq $provider "aws") (ne $distribution "eks/fargate") }}
+{{- $useAzure := eq $provider "azure" }}
 exporters:
   coralogix/resource_catalog:
     timeout: "30s"
@@ -2697,7 +2700,15 @@ exporters:
 
 processors:
   resourcedetection/entity:
-    detectors: ["system", "env"]
+    detectors:
+      - system
+      - env
+{{- if $useEc2 }}
+      - ec2
+{{- end }}
+{{- if $useAzure }}
+      - azure
+{{- end }}
     timeout: 2s
     override: false
     system:
@@ -2722,6 +2733,16 @@ processors:
           enabled: true
         os.description:
           enabled: true
+{{- if $useEc2 }}
+    ec2:
+      tags:
+        - ".*"
+{{- end }}
+{{- if $useAzure }}
+    azure:
+      tags:
+        - ".*"
+{{- end }}
   transform/entity-event:
     error_mode: silent
     log_statements:
