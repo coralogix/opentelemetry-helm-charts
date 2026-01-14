@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.7 / 2026-01-14
+
+- [Feat] Add Azure cloud support for Infra Explore by mapping `azure.vm.size` to `host.type` in the host entity events pipeline when provider is Azure.
+
 ### v0.128.6 / 2026-01-13
 
 - [Fix] Apply `presets.spanMetrics.histogramBuckets` value to `dbMetrics`.
