@@ -1869,6 +1869,57 @@
             }
           }
         },
+        "windowsEventLog": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Collects Windows Event Logs. WARNING: Only for Windows deployments (isWindows: true).",
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether the collector should collect Windows Event Logs.",
+              "type": "boolean"
+            },
+            "channels": {
+              "description": "List of Windows Event Log channels to collect. Defaults to System, Application, Security.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "iisReceiver": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Collects IIS metrics using Windows Performance Counters. WARNING: Only for Windows deployments (isWindows: true).",
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether the collector should collect IIS metrics.",
+              "type": "boolean"
+            },
+            "collectionInterval": {
+              "description": "The interval at which to collect IIS metrics. Default: 10s.",
+              "type": "string"
+            }
+          }
+        },
+        "iisLogs": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Collects IIS access logs (W3C format). WARNING: Only for Windows deployments (isWindows: true). Requires feature gate: --feature-gates=filelog.allowHeaderMetadataParsing",
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether the collector should collect IIS access logs.",
+              "type": "boolean"
+            },
+            "include": {
+              "description": "List of IIS log file paths to collect. Default: C:\\inetpub\\logs\\LogFiles\\W3SVC*\\*.log",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
         "statsdReceiver": {
           "type": "object",
           "additionalProperties": false,

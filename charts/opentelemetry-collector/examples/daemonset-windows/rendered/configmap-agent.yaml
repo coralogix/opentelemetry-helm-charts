@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.128.5
+    helm.sh/chart: opentelemetry-collector-0.128.6
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.142.0"
@@ -184,13 +184,17 @@ data:
               system.cpu.utilization:
                 enabled: true
           disk: null
-          filesystem: null
-          load: null
+          filesystem:
+            exclude_mount_points:
+              match_type: strict
+              mount_points:
+              - ""
           memory:
             metrics:
               system.memory.utilization:
                 enabled: true
           network: null
+          paging: null
       otlp:
         protocols:
           grpc:

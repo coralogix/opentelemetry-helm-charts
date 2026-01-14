@@ -205,6 +205,15 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.journaldReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyJournaldReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.windowsEventLog.enabled }}
+{{- $config = (include "opentelemetry-collector.applyWindowsEventLogReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.iisReceiver.enabled }}
+{{- $config = (include "opentelemetry-collector.applyIisReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.iisLogs.enabled }}
+{{- $config = (include "opentelemetry-collector.applyIisLogsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.systemdReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applySystemdReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -238,6 +247,15 @@ Build config file for daemonset OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.journaldReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyJournaldReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.windowsEventLog.enabled }}
+{{- $config = (include "opentelemetry-collector.applyWindowsEventLogReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.iisReceiver.enabled }}
+{{- $config = (include "opentelemetry-collector.applyIisReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.iisLogs.enabled }}
+{{- $config = (include "opentelemetry-collector.applyIisLogsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.systemdReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applySystemdReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -391,6 +409,15 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.journaldReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyJournaldReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.windowsEventLog.enabled }}
+{{- $config = (include "opentelemetry-collector.applyWindowsEventLogReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.iisReceiver.enabled }}
+{{- $config = (include "opentelemetry-collector.applyIisReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.iisLogs.enabled }}
+{{- $config = (include "opentelemetry-collector.applyIisLogsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.systemdReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applySystemdReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -589,14 +616,21 @@ receivers:
           metrics:
             system.cpu.utilization:
               enabled: true
+        {{- if not .Values.isWindows }}
         load:
+        {{- end }}
         memory:
           metrics:
             system.memory.utilization:
               enabled: true
         disk:
         filesystem:
-          {{- if not .Values.isWindows }}
+          {{- if .Values.isWindows }}
+          exclude_mount_points:
+            mount_points:
+              - ""
+            match_type: strict
+          {{- else }}
           exclude_mount_points:
             mount_points:
               - /dev/*
@@ -636,13 +670,21 @@ receivers:
             match_type: strict
           {{- end }}
         network:
-        {{- if and (.Values.presets.hostMetrics.process.enabled) (not (.Values.isWindows)) }}
+        {{- if .Values.isWindows }}
+        paging:
+        {{- end }}
+        {{- if .Values.presets.hostMetrics.process.enabled }}
         process:
+          {{- if .Values.isWindows }}
+          # On Windows, mute all errors from system processes (PID 0, 4, etc.) that can't be read
+          mute_process_all_errors: true
+          {{- else }}
           # mutes "error reading username for process \"pause\" /etc/passwd", errors
           mute_process_user_error: true
           mute_process_exe_error: true
           # fleeting processes cause these errors
           mute_process_name_error: true
+          {{- end }}
           metrics:
             process.cpu.utilization:
               enabled: true
@@ -3555,6 +3597,107 @@ processors:
           - set(resource.attributes["service.name"], body["SYSLOG_IDENTIFIER"]) where body["_SYSTEMD_UNIT"] == nil and body["SYSLOG_IDENTIFIER"] != nil and body["SYSLOG_IDENTIFIER"] != ""
           - replace_pattern(resource.attributes["service.name"], "\\.service$", "") where resource.attributes["service.name"] != nil and resource.attributes["service.name"] != ""
 {{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyWindowsEventLogReceiverConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.windowsEventLogReceiverConfig" .Values | fromYaml) .config }}
+{{- $channels := .Values.Values.presets.windowsEventLog.channels | default (list "System" "Application" "Security") }}
+{{- range $channel := $channels }}
+{{- $receiverName := printf "windowseventlog/%s" (lower $channel) }}
+{{- if and ($config.service.pipelines.logs) (not (has $receiverName $config.service.pipelines.logs.receivers)) }}
+{{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers $receiverName | uniq)  }}
+{{- end }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.windowsEventLogReceiverConfig" -}}
+{{- $channels := .Values.presets.windowsEventLog.channels | default (list "System" "Application" "Security") }}
+receivers:
+{{- range $channel := $channels }}
+  windowseventlog/{{ lower $channel }}:
+    channel: {{ $channel }}
+{{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyIisReceiverConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.iisReceiverConfig" .Values | fromYaml) .config }}
+{{- if and ($config.service.pipelines.metrics) (not (has "iis" $config.service.pipelines.metrics.receivers)) }}
+{{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "iis" | uniq)  }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.iisReceiverConfig" -}}
+receivers:
+  iis:
+    collection_interval: {{ .Values.presets.iisReceiver.collectionInterval | default "10s" }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyIisLogsConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.iisLogsConfig" .Values | fromYaml) .config }}
+{{- if and ($config.service.pipelines.logs) (not (has "filelog/iis" $config.service.pipelines.logs.receivers)) }}
+{{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers "filelog/iis" | uniq)  }}
+{{- end }}
+{{- if and ($config.service.pipelines.logs) (not (has "transform/iis" $config.service.pipelines.logs.processors)) }}
+{{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "transform/iis" | uniq)  }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.iisLogsConfig" -}}
+{{- /* NOTE: This preset requires the feature gate: --feature-gates=filelog.allowHeaderMetadataParsing */ -}}
+receivers:
+  filelog/iis:
+    include:
+      {{- range .Values.presets.iisLogs.include }}
+      - {{ . | quote }}
+      {{- end }}
+    include_file_name: true
+    include_file_path: false
+    # start_at must be "beginning" for header metadata parsing
+    start_at: beginning
+    storage: file_storage
+    header:
+      pattern: '^#.*$'
+      metadata_operators:
+        - type: regex_parser
+          if: 'body matches "^#Fields:"'
+          parse_from: body
+          regex: '^#Fields:\s+(?P<csv_header>.+)$'
+    operators:
+      - type: csv_parser
+        id: iis_csv_parser
+        if: 'body != nil and body not matches "^#"'
+        header_attribute: csv_header
+        delimiter: " "
+        trim_space: true
+processors:
+  transform/iis:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          # Map IIS fields to OTel semantic conventions
+          - set(attributes["http.client_ip"], attributes["c-ip"]) where attributes["c-ip"] != nil
+          - set(attributes["http.method"], attributes["cs-method"]) where attributes["cs-method"] != nil
+          - set(attributes["http.status_code"], attributes["sc-status"]) where attributes["sc-status"] != nil
+          - set(attributes["user_agent.original"], attributes["cs(User-Agent)"]) where attributes["cs(User-Agent)"] != nil
+          - set(attributes["url.path"], attributes["cs-uri-stem"]) where attributes["cs-uri-stem"] != nil
+          - set(attributes["url.query"], attributes["cs-uri-query"]) where attributes["cs-uri-query"] != nil
+          - set(attributes["http.request.referrer"], attributes["cs(Referer)"]) where attributes["cs(Referer)"] != nil
+          - set(attributes["http.server.request.duration_ms"], Int(attributes["time-taken"])) where attributes["time-taken"] != nil
+          # Cleanup raw IIS attributes
+          - delete_key(attributes, "c-ip")
+          - delete_key(attributes, "cs-method")
+          - delete_key(attributes, "sc-status")
+          - delete_key(attributes, "cs(User-Agent)")
+          - delete_key(attributes, "cs-uri-stem")
+          - delete_key(attributes, "cs-uri-query")
+          - delete_key(attributes, "cs(Referer)")
+          - delete_key(attributes, "time-taken")
+          - delete_key(attributes, "sc-win32-status")
+          - delete_key(attributes, "s-port")
 {{- end }}
 
 {{- define "opentelemetry-collector.applySystemdReceiverConfig" -}}
