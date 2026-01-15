@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.9 / 2026-01-15
+
+- [Fix] Gate span metrics status code transforms on `span.name` presence while allowing UNSET mapping when `otel.status_code` is UNSET or unset.
+
 ### v0.128.8 / 2026-01-14
 
 - [Feat] Add cloud tags collection for Infra Explore by enabling `ec2.tags` and `azure.tags` in the `resourcedetection/entity` processor.
