@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.8 / 2026-01-14
+
+- [Feat] Add cloud tags collection for Infra Explore by enabling `ec2.tags` and `azure.tags` in the `resourcedetection/entity` processor.
+
 ### v0.128.7 / 2026-01-14
 
 - [Feat] Add Azure cloud support for Infra Explore by mapping `azure.vm.size` to `host.type` in the host entity events pipeline when provider is Azure.
