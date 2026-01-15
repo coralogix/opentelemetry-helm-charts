@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.10 / 2026-01-15
+
+- [Fix] Gate span metrics status code transforms on `span.name` presence while allowing UNSET mapping when `otel.status_code` is UNSET or unset.
+
 ### v0.128.9 / 2026-01-15
 
 - [Fix] Update span metrics OTTL transform to only map explicit `otel.status_code` UNSET values to `STATUS_CODE_UNSET`.
