@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.128.8
+    helm.sh/chart: opentelemetry-collector-0.128.9
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.142.0"
@@ -158,8 +158,7 @@ data:
           - set(attributes["status.code"], "STATUS_CODE_OK") where attributes["status.code"]
             == nil and attributes["otel.status_code"] == "OK"
           - set(attributes["status.code"], "STATUS_CODE_UNSET") where attributes["status.code"]
-            == nil and (attributes["otel.status_code"] == "UNSET" or attributes["otel.status_code"]
-            == nil)
+            == nil and attributes["otel.status_code"] == "UNSET"
     receivers:
       otlp:
         protocols:

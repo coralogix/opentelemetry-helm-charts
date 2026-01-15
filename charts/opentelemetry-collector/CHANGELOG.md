@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.9 / 2026-01-15
+
+- [Fix] Update span metrics OTTL transform to only map explicit `otel.status_code` UNSET values to `STATUS_CODE_UNSET`.
+
 ### v0.128.8 / 2026-01-14
 
 - [Feat] Add cloud tags collection for Infra Explore by enabling `ec2.tags` and `azure.tags` in the `resourcedetection/entity` processor.

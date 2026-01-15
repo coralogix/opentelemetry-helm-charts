@@ -146,7 +146,7 @@ by both the spanMetrics and spanMetricsMulti presets.
 {{- define "opentelemetry-collector.spanMetricsStatusCodeStatements" -}}
 - set(attributes["status.code"], "STATUS_CODE_ERROR") where attributes["status.code"] == nil and attributes["otel.status_code"] == "ERROR"
 - set(attributes["status.code"], "STATUS_CODE_OK") where attributes["status.code"] == nil and attributes["otel.status_code"] == "OK"
-- set(attributes["status.code"], "STATUS_CODE_UNSET") where attributes["status.code"] == nil and (attributes["otel.status_code"] == "UNSET" or attributes["otel.status_code"] == nil)
+- set(attributes["status.code"], "STATUS_CODE_UNSET") where attributes["status.code"] == nil and attributes["otel.status_code"] == "UNSET"
 {{- end -}}
 
 {{/*
