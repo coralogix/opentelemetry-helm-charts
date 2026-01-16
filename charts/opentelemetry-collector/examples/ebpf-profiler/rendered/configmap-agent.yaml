@@ -20,6 +20,11 @@ data:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
     processors:
+      ecsattributes/container-logs:
+        container_id:
+          sources:
+          - log.file.path
+          - container.id
       k8sattributes/profiles:
         extract:
           labels:
@@ -111,6 +116,7 @@ data:
           - debug
           processors:
           - memory_limiter
+          - ecsattributes/container-logs
           - resource/metadata
           - k8sattributes/profiles
           - transform/profiles
