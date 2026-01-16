@@ -3138,6 +3138,12 @@ processors:
 {{- if and ($config.service.pipelines.logs) (not (has "ecsattributes/container-logs" $config.service.pipelines.logs.processors)) }}
 {{- $_ := set $config.service.pipelines.logs "processors" (prepend $config.service.pipelines.logs.processors "ecsattributes/container-logs" | uniq)  }}
 {{- end }}
+{{- if and ($config.service.pipelines.traces) (not (has "ecsattributes/container-logs" $config.service.pipelines.traces.processors)) }}
+{{- $_ := set $config.service.pipelines.traces "processors" (prepend $config.service.pipelines.traces.processors "ecsattributes/container-logs" | uniq)  }}
+{{- end }}
+{{- if and ($config.service.pipelines.profiles) (not (has "ecsattributes/container-logs" $config.service.pipelines.profiles.processors)) }}
+{{- $_ := set $config.service.pipelines.profiles "processors" (prepend $config.service.pipelines.profiles.processors "ecsattributes/container-logs" | uniq)  }}
+{{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
@@ -3147,6 +3153,7 @@ processors:
     container_id:
       sources:
         - "log.file.path"
+        - "container.id"
 {{- end }}
 
 {{- define "opentelemetry-collector.applyResourceDetectionConfig" -}}
