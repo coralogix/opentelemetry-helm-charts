@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.10 / 2026-01-16
+
+- [Feat] Extend `ecsAttributesContainerLogs` to enrich traces and profiles pipelines when present, and include `container.id` as a supported source for container ID extraction.
+
 ### v0.128.9 / 2026-01-15
 
 - [Fix] Gate span metrics status code transforms on `span.name` presence while allowing UNSET mapping when `otel.status_code` is UNSET or unset.
