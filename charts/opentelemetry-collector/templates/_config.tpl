@@ -123,9 +123,6 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.filelogMulti.enabled }}
 {{- $config = (include "opentelemetry-collector.applyFilelogMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if .Values.presets.ecsAttributesContainerLogs.enabled }}
-{{- $config = (include "opentelemetry-collector.applyEcsAttributesContainerLogsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
-{{- end }}
 {{- if .Values.presets.mysql.metrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyMysqlConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -213,6 +210,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.ebpfProfiler.enabled }}
 {{- $config = (include "opentelemetry-collector.applyEbpfProfilerConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.ecsAttributesContainerLogs.enabled }}
+{{- $config = (include "opentelemetry-collector.applyEcsAttributesContainerLogsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.profilesK8sAttributes.enabled }}
 {{- $config = (include "opentelemetry-collector.applyProfilesK8sAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}

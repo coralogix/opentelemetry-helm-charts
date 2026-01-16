@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.11 / 2026-01-16
+
+- [Fix] Ensure the `ecsAttributesContainerLogs` preset adds the ECS attributes processor to the profiles pipeline created by the `ebpfProfiler` preset.
+
 ### v0.128.10 / 2026-01-16
 
 - [Feat] Extend `ecsAttributesContainerLogs` to enrich traces and profiles pipelines when present, and include `container.id` as a supported source for container ID extraction.
