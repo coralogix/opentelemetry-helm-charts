@@ -5,6 +5,8 @@ presets:
     enabled: true
   profilesK8sAttributes:
     enabled: true
+  ecsAttributesContainerLogs:
+    enabled: true
   metadata:
     enabled: true
     clusterName: "test-cluster"
