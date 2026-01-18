@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.128.6
+    helm.sh/chart: opentelemetry-collector-0.128.12
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.142.0"
@@ -20,6 +20,11 @@ data:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
     processors:
+      ecsattributes/container-logs:
+        container_id:
+          sources:
+          - log.file.path
+          - container.id
       k8sattributes/profiles:
         extract:
           labels:
@@ -111,6 +116,7 @@ data:
           - debug
           processors:
           - memory_limiter
+          - ecsattributes/container-logs
           - resource/metadata
           - k8sattributes/profiles
           - transform/profiles

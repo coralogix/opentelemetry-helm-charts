@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.128.6
+    helm.sh/chart: opentelemetry-collector-0.128.12
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.142.0"
@@ -60,7 +60,7 @@ data:
           non_identifying_attributes:
             cx.agent.type: agent
             cx.cluster.name: 'ecs'
-            helm.chart.opentelemetry-collector.version: 0.128.6
+            helm.chart.opentelemetry-collector.version: 0.128.12
         server:
           http:
             endpoint: https://ingress./opamp/v1
@@ -80,6 +80,7 @@ data:
         container_id:
           sources:
           - log.file.path
+          - container.id
       memory_limiter:
         check_interval: 5s
         limit_percentage: 80
@@ -96,6 +97,10 @@ data:
         detectors:
         - system
         - env
+        - ec2
+        ec2:
+          tags:
+          - .*
         override: false
         system:
           resource_attributes:
@@ -348,8 +353,8 @@ data:
           - memory_limiter
           - resourcedetection/region
           - resourcedetection/env
-          - resource/metadata
           - ecsattributes/container-logs
+          - resource/metadata
           - batch
           receivers:
           - filelog
@@ -388,6 +393,7 @@ data:
           - memory_limiter
           - resourcedetection/region
           - resourcedetection/env
+          - ecsattributes/container-logs
           - resource/metadata
           - transform/semconv
           - batch

@@ -123,9 +123,6 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.filelogMulti.enabled }}
 {{- $config = (include "opentelemetry-collector.applyFilelogMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if .Values.presets.ecsAttributesContainerLogs.enabled }}
-{{- $config = (include "opentelemetry-collector.applyEcsAttributesContainerLogsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
-{{- end }}
 {{- if .Values.presets.mysql.metrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyMysqlConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -222,6 +219,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.ebpfProfiler.enabled }}
 {{- $config = (include "opentelemetry-collector.applyEbpfProfilerConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.ecsAttributesContainerLogs.enabled }}
+{{- $config = (include "opentelemetry-collector.applyEcsAttributesContainerLogsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.profilesK8sAttributes.enabled }}
 {{- $config = (include "opentelemetry-collector.applyProfilesK8sAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -2059,7 +2059,7 @@ connectors:
     histogram:
       unit: ms
       explicit:
-        buckets: [100us, 1ms, 2ms, 2.5ms, 4ms, 6ms, 10ms, 100ms, 250ms]
+        buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
     dimensions:
       - name: db.namespace
       - name: db.operation.name
@@ -2707,6 +2707,9 @@ service:
 {{- /* Infer provider to determine if region detection should be included */ -}}
 {{- $distribution := .Values.distribution | default "" }}
 {{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "explicitProvider" .Values.presets.resourceDetection.provider) }}
+{{- /* Determine if cloud tags should be collected for infra explorer */ -}}
+{{- $useEc2 := and (eq $provider "aws") (ne $distribution "eks/fargate") }}
+{{- $useAzure := eq $provider "azure" }}
 exporters:
   coralogix/resource_catalog:
     timeout: "30s"
@@ -2739,7 +2742,15 @@ exporters:
 
 processors:
   resourcedetection/entity:
-    detectors: ["system", "env"]
+    detectors:
+      - system
+      - env
+{{- if $useEc2 }}
+      - ec2
+{{- end }}
+{{- if $useAzure }}
+      - azure
+{{- end }}
     timeout: 2s
     override: false
     system:
@@ -2764,6 +2775,16 @@ processors:
           enabled: true
         os.description:
           enabled: true
+{{- if $useEc2 }}
+    ec2:
+      tags:
+        - ".*"
+{{- end }}
+{{- if $useAzure }}
+    azure:
+      tags:
+        - ".*"
+{{- end }}
   transform/entity-event:
     error_mode: silent
     log_statements:
@@ -2774,6 +2795,14 @@ processors:
       - context: resource
         statements:
           - keep_keys(attributes, [""])
+{{- if eq $provider "azure" }}
+  transform/host-type:
+    error_mode: silent
+    log_statements:
+      - context: log
+        statements:
+          - set(resource.attributes["host.type"], resource.attributes["azure.vm.size"]) where resource.attributes["azure.vm.size"] != nil and resource.attributes["host.type"] == nil
+{{- end }}
 service:
   pipelines:
     logs/resource_catalog:
@@ -2798,6 +2827,9 @@ service:
         - resourcedetection/entity
         {{- if and .Values.presets.resourceDetection.enabled .Values.presets.resourceDetection.region.enabled (ne $provider "on-prem") }}
         - resourcedetection/region
+        {{- end }}
+        {{- if eq $provider "azure" }}
+        - transform/host-type
         {{- end }}
         - transform/entity-event
       receivers:
@@ -3148,6 +3180,12 @@ processors:
 {{- if and ($config.service.pipelines.logs) (not (has "ecsattributes/container-logs" $config.service.pipelines.logs.processors)) }}
 {{- $_ := set $config.service.pipelines.logs "processors" (prepend $config.service.pipelines.logs.processors "ecsattributes/container-logs" | uniq)  }}
 {{- end }}
+{{- if and ($config.service.pipelines.traces) (not (has "ecsattributes/container-logs" $config.service.pipelines.traces.processors)) }}
+{{- $_ := set $config.service.pipelines.traces "processors" (prepend $config.service.pipelines.traces.processors "ecsattributes/container-logs" | uniq)  }}
+{{- end }}
+{{- if and ($config.service.pipelines.profiles) (not (has "ecsattributes/container-logs" $config.service.pipelines.profiles.processors)) }}
+{{- $_ := set $config.service.pipelines.profiles "processors" (prepend $config.service.pipelines.profiles.processors "ecsattributes/container-logs" | uniq)  }}
+{{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
@@ -3157,6 +3195,7 @@ processors:
     container_id:
       sources:
         - "log.file.path"
+        - "container.id"
 {{- end }}
 
 {{- define "opentelemetry-collector.applyResourceDetectionConfig" -}}
@@ -3642,22 +3681,40 @@ receivers:
 {{- if and ($config.service.pipelines.logs) (not (has "transform/iis" $config.service.pipelines.logs.processors)) }}
 {{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "transform/iis" | uniq)  }}
 {{- end }}
+{{- /* Add file_storage extension to service.extensions when storeCheckpoints is enabled */ -}}
+{{- if .Values.Values.presets.iisLogs.storeCheckpoints }}
+{{- $extensions := $config.service.extensions | default (list) }}
+{{- if not (has "file_storage" $extensions) }}
+{{- $_ := set $config.service "extensions" (append $extensions "file_storage" | uniq) }}
+{{- end }}
+{{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
 {{- define "opentelemetry-collector.iisLogsConfig" -}}
 {{- /* NOTE: This preset requires the feature gate: --feature-gates=filelog.allowHeaderMetadataParsing */ -}}
+{{- if .Values.presets.iisLogs.storeCheckpoints }}
+extensions:
+  file_storage:
+    directory: {{ .Values.presets.iisLogs.storagePath | default "C:\\ProgramData\\otelcol-contrib\\file_storage" | quote }}
+{{- end }}
 receivers:
   filelog/iis:
+    {{- if .Values.presets.iisLogs.include }}
     include:
       {{- range .Values.presets.iisLogs.include }}
       - {{ . | quote }}
       {{- end }}
+    {{- else }}
+    include: ["C:\\inetpub\\logs\\LogFiles\\W3SVC*\\*.log"]
+    {{- end }}
     include_file_name: true
     include_file_path: false
     # start_at must be "beginning" for header metadata parsing
     start_at: beginning
+    {{- if .Values.presets.iisLogs.storeCheckpoints }}
     storage: file_storage
+    {{- end }}
     header:
       pattern: '^#.*$'
       metadata_operators:

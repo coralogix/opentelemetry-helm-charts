@@ -2,6 +2,37 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.12 / 2026-01-19
+
+- [Feat] Add Windows-specific presets: `windowsEventLog` (collects Windows Event Logs), `iisReceiver` (collects IIS metrics), and `iisLogs` (collects IIS access logs with W3C format parsing).
+- [Feat] Update `hostMetrics` preset with Windows-specific configuration: exclude `load` scraper, add `paging` scraper, configure `filesystem` to exclude empty mount points, and use `mute_process_all_errors` for process scraper.
+- [Feat] Add `standalone-windows` example demonstrating Windows presets for standalone deployments.
+
+### v0.128.11 / 2026-01-16
+
+- [Fix] Ensure the `ecsAttributesContainerLogs` preset adds the ECS attributes processor to the profiles pipeline created by the `ebpfProfiler` preset.
+- [Fix] Enable the `ecsAttributesContainerLogs` preset in the `ebpf-profiler` example values.
+
+### v0.128.10 / 2026-01-16
+
+- [Feat] Extend `ecsAttributesContainerLogs` to enrich traces and profiles pipelines when present, and include `container.id` as a supported source for container ID extraction.
+
+### v0.128.9 / 2026-01-15
+
+- [Fix] Gate span metrics status code transforms on `span.name` presence while allowing UNSET mapping when `otel.status_code` is UNSET or unset.
+
+### v0.128.8 / 2026-01-14
+
+- [Feat] Add cloud tags collection for Infra Explore by enabling `ec2.tags` and `azure.tags` in the `resourcedetection/entity` processor.
+
+### v0.128.7 / 2026-01-14
+
+- [Feat] Add Azure cloud support for Infra Explore by mapping `azure.vm.size` to `host.type` in the host entity events pipeline when provider is Azure.
+
+### v0.128.6 / 2026-01-13
+
+- [Fix] Apply `presets.spanMetrics.histogramBuckets` value to `dbMetrics`.
+
 ### v0.128.5 / 2026-01-12
 
 - [Feat] Add `systemdReceiver` preset which gathers metrics for locally running systemd units on standalone linux deployments with optional scope and units configuration.

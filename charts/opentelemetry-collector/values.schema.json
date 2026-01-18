@@ -1917,6 +1917,14 @@
               "items": {
                 "type": "string"
               }
+            },
+            "storeCheckpoints": {
+              "description": "Store checkpoints to resume reading after collector restart. When enabled, the collector will track file positions.",
+              "type": "boolean"
+            },
+            "storagePath": {
+              "description": "Directory to store checkpoint files. Only used when storeCheckpoints is true. Default: C:\\ProgramData\\otelcol-contrib\\file_storage",
+              "type": "string"
             }
           }
         },
