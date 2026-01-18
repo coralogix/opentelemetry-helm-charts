@@ -2,6 +2,12 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.12 / 2026-01-19
+
+- [Feat] Add Windows-specific presets: `windowsEventLog` (collects Windows Event Logs), `iisReceiver` (collects IIS metrics), and `iisLogs` (collects IIS access logs with W3C format parsing).
+- [Feat] Update `hostMetrics` preset with Windows-specific configuration: exclude `load` scraper, add `paging` scraper, configure `filesystem` to exclude empty mount points, and use `mute_process_all_errors` for process scraper.
+- [Feat] Add `standalone-windows` example demonstrating Windows presets for standalone deployments.
+
 ### v0.128.11 / 2026-01-16
 
 - [Fix] Ensure the `ecsAttributesContainerLogs` preset adds the ECS attributes processor to the profiles pipeline created by the `ebpfProfiler` preset.
