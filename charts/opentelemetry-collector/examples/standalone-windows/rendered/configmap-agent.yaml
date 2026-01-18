@@ -17,8 +17,6 @@ data:
     exporters:
       debug: {}
     extensions:
-      file_storage:
-        directory: C:\ProgramData\otelcol-contrib\file_storage
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
     processors:
@@ -128,7 +126,6 @@ data:
           trim_space: true
           type: csv_parser
         start_at: beginning
-        storage: file_storage
       hostmetrics:
         collection_interval: 10s
         scrapers:
@@ -183,7 +180,6 @@ data:
     service:
       extensions:
       - health_check
-      - file_storage
       pipelines:
         logs:
           exporters:

@@ -13,7 +13,6 @@ presets:
     enabled: true
   iisLogs:
     enabled: true
-    storeCheckpoints: true
   collectorMetrics:
     enabled: true
     scrapeInterval: "30s"
