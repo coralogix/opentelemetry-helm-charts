@@ -144,7 +144,7 @@ should_ignore_errors() {
         "unknown type: \"profiling\""
         # Windows-only receivers when validating on Linux
         "windows perf counters receiver is only supported on Windows"
-        "windowseventlogreceiver is only supported on Windows"
+        "windows eventlog receiver is only supported on Windows"
     )
 
     # Check if the entire error output should be ignored first (for multiline patterns)
