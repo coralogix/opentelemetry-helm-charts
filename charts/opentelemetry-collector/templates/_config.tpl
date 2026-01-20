@@ -3305,6 +3305,10 @@ processors:
       - context: resource
         statements:
           - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
+    profile_statements:
+      - context: resource
+        statements:
+          - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
   {{- end }}
 {{- end }}
 
