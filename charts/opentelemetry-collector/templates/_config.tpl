@@ -2754,12 +2754,13 @@ processors:
         statements:
           - keep_keys(attributes, [""])
 {{- if eq $provider "azure" }}
-  transform/host-type:
+  transform/azure-host-attributes:
     error_mode: silent
     log_statements:
       - context: log
         statements:
           - set(resource.attributes["host.type"], resource.attributes["azure.vm.size"]) where resource.attributes["azure.vm.size"] != nil and resource.attributes["host.type"] == nil
+          - set(resource.attributes["host.name"], resource.attributes["azure.vm.name"]) where resource.attributes["azure.vm.name"] != nil and (resource.attributes["host.name"] == nil or resource.attributes["host.name"] == "")
 {{- end }}
 service:
   pipelines:
@@ -2787,7 +2788,7 @@ service:
         - resourcedetection/region
         {{- end }}
         {{- if eq $provider "azure" }}
-        - transform/host-type
+        - transform/azure-host-attributes
         {{- end }}
         - transform/entity-event
       receivers:
@@ -3194,6 +3195,21 @@ processors:
 {{- if and $regionEnabled (ne $provider "on-prem") $includeProfiles ($config.service.pipelines.profiles) (not (has "resourcedetection/region" $config.service.pipelines.profiles.processors)) }}
 {{- $_ := set $config.service.pipelines.profiles "processors" (prepend $config.service.pipelines.profiles.processors "resourcedetection/region" | uniq)  }}
 {{- end }}
+{{- /* Azure-specific: add transform/azure-host-name after resourcedetection processors */ -}}
+{{- if eq $provider "azure" }}
+{{- if and $includeLogs ($config.service.pipelines.logs) (not (has "transform/azure-host-name" $config.service.pipelines.logs.processors)) }}
+{{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "transform/azure-host-name" | uniq)  }}
+{{- end }}
+{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "transform/azure-host-name" $config.service.pipelines.metrics.processors)) }}
+{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/azure-host-name" | uniq)  }}
+{{- end }}
+{{- if and $includeTraces ($config.service.pipelines.traces) (not (has "transform/azure-host-name" $config.service.pipelines.traces.processors)) }}
+{{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/azure-host-name" | uniq)  }}
+{{- end }}
+{{- if and $includeProfiles ($config.service.pipelines.profiles) (not (has "transform/azure-host-name" $config.service.pipelines.profiles.processors)) }}
+{{- $_ := set $config.service.pipelines.profiles "processors" (append $config.service.pipelines.profiles.processors "transform/azure-host-name" | uniq)  }}
+{{- end }}
+{{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
@@ -3272,6 +3288,27 @@ processors:
           enabled: true
     {{- end }}
   {{- end }}
+  {{- end }}
+  {{- /* Azure-specific transform: set host.name from azure.vm.name if empty */ -}}
+  {{- if eq $provider "azure" }}
+  transform/azure-host-name:
+    error_mode: silent
+    metric_statements:
+      - context: resource
+        statements:
+          - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
+    trace_statements:
+      - context: resource
+        statements:
+          - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
+    log_statements:
+      - context: resource
+        statements:
+          - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
+    profile_statements:
+      - context: resource
+        statements:
+          - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
   {{- end }}
 {{- end }}
 
