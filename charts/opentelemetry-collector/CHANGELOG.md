@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.12 / 2026-01-20
+
+- [Feat] Add Azure-specific transform to set `host.name` from `azure.vm.name` when `host.name` is empty, applied to all pipelines including `logs/resource_catalog` when provider is Azure.
+
 ### v0.128.11 / 2026-01-16
 
 - [Fix] Ensure the `ecsAttributesContainerLogs` preset adds the ECS attributes processor to the profiles pipeline created by the `ebpfProfiler` preset.
