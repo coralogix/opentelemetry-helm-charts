@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.13 / 2026-01-20
+
+- [Fix] Use `instrumentation_scope.name` to detect spanmetrics connector metrics when mapping `otel.status_code` back to `status.code`.
+
 ### v0.128.12 / 2026-01-20
 
 - [Feat] Add Azure-specific transform to set `host.name` from `azure.vm.name` when `host.name` is empty, applied to all pipelines including `logs/resource_catalog` when provider is Azure.
