@@ -2,11 +2,19 @@
 
 ## OpenTelemetry Collector
 
-### v0.128.12 / 2026-01-19
+### v0.128.14 / 2026-01-21
 
 - [Feat] Add Windows-specific presets: `windowsEventLog` (collects Windows Event Logs), `iisReceiver` (collects IIS metrics), and `iisLogs` (collects IIS access logs with W3C format parsing).
 - [Feat] Update `hostMetrics` preset with Windows-specific configuration: exclude `load` scraper, add `paging` scraper, configure `filesystem` to exclude empty mount points, and use `mute_process_all_errors` for process scraper.
 - [Feat] Add `standalone-windows` example demonstrating Windows presets for standalone deployments.
+
+### v0.128.13 / 2026-01-20
+
+- [Fix] Use `instrumentation_scope.name` to detect spanmetrics connector metrics when mapping `otel.status_code` back to `status.code`.
+
+### v0.128.12 / 2026-01-20
+
+- [Feat] Add Azure-specific transform to set `host.name` from `azure.vm.name` when `host.name` is empty, applied to all pipelines including `logs/resource_catalog` when provider is Azure.
 
 ### v0.128.11 / 2026-01-16
 
