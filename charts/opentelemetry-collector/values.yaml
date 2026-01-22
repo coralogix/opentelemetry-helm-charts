@@ -577,7 +577,7 @@ presets:
     pipelines: ["all"]
     # Cloud provider for targeted attribute removal.
     # When set, only attributes relevant to this provider and deployment context are removed.
-    # Options: aws, azure, gcp, on-prem, "" (empty = use denylist for backward compatibility)
+    # Options: aws, azure, gcp, on-prem, "" (infer from distribution), "none" (force denylist/backward compatibility)
     provider: ""
     denylist:
       metrics:
