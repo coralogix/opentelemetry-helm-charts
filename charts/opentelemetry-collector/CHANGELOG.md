@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.15 / 2026-01-22
+
+- [Fix] Use the configured `from` field for profiles k8sattributes service annotations.
+
 ### v0.128.14 / 2026-01-22
 
 - [Fix] Fix `deltaToCumulative` preset producing `null` config when no options are set.
