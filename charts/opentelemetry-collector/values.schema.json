@@ -17,7 +17,7 @@
   "additionalProperties": false,
   "properties": {
     "distribution": {
-      "description": "Specifies the distribution of the collector. Supported values include \"standalone\", \"macos\", \"ecs\", \"gke/autopilot\", and \"eks/fargate\".",
+      "description": "Specifies the distribution of the collector. Supported values include \"standalone\", \"macos\", \"ecs\", \"eks\", \"aks\", \"gke\", \"gke/autopilot\", and \"eks/fargate\".",
       "type": "string"
     },
     "enabled": {

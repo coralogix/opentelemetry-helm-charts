@@ -2,6 +2,11 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.14 / 2026-01-22
+
+- [Fix] Fix `deltaToCumulative` preset producing `null` config when no options are set.
+- [Fix] Fix `reduceResourceAttributes` preset to only apply custom denylist when no provider is set (backward compatibility mode).
+
 ### v0.128.13 / 2026-01-20
 
 - [Fix] Use `instrumentation_scope.name` to detect spanmetrics connector metrics when mapping `otel.status_code` back to `status.code`.
