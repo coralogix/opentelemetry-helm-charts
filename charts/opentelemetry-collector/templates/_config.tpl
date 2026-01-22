@@ -1577,12 +1577,15 @@ receivers:
 {{- define "opentelemetry-collector.deltaToCumulativeConfig" -}}
 processors:
   deltatocumulative:
+{{- if or .Values.presets.deltaToCumulative.maxStale .Values.presets.deltaToCumulative.maxStreams }}
     {{- if .Values.presets.deltaToCumulative.maxStale }}
     max_stale: {{ .Values.presets.deltaToCumulative.maxStale }}
     {{- end }}
     {{- if .Values.presets.deltaToCumulative.maxStreams }}
     max_streams: {{ .Values.presets.deltaToCumulative.maxStreams }}
     {{- end }}
+{{- else }} {}
+{{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyMetadataConfig" -}}

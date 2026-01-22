@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.14 / 2026-01-22
+
+- [Fix] Set deltaToCumulative defalt to {}.
+
 ### v0.128.13 / 2026-01-20
 
 - [Fix] Use `instrumentation_scope.name` to detect spanmetrics connector metrics when mapping `otel.status_code` back to `status.code`.
