@@ -4,7 +4,7 @@
 
 ### v0.128.14 / 2026-01-22
 
-- [Fix] Set deltaToCumulative defalt to {}.
+- [Fix] Set deltaToCumulative default to {}.
 
 ### v0.128.13 / 2026-01-20
 
