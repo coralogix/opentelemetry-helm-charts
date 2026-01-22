@@ -1,0 +1,6 @@
+mode: daemonset
+
+presets:
+  deltaToCumulative:
+    enabled: true
+
