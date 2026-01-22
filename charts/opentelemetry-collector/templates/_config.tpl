@@ -1250,7 +1250,7 @@ processors:
           {{- range $index, $serviceAnnotation := .Values.presets.profilesCollection.serviceAnnotations }}
         - tag_name: {{ $serviceAnnotation.tag_name | quote }}
           key: {{ $serviceAnnotation.key | quote }}
-          from:  {{ $serviceAnnotation.from | default "pod" | quote }}
+          from: {{ $serviceAnnotation.from | default "pod" | quote }}
           {{- end }}
       {{- end }}
       otel_annotations: true
@@ -1356,7 +1356,7 @@ processors:
           {{- range $index, $serviceAnnotation := .Values.presets.profilesK8sAttributes.serviceAnnotations }}
         - tag_name: {{ $serviceAnnotation.tag_name | quote }}
           key: {{ $serviceAnnotation.key | quote }}
-          from:  {{ $serviceAnnotation.from | default "pod" | quote }}
+          from: {{ $serviceAnnotation.from | default "pod" | quote }}
           {{- end }}
       {{- end }}
       otel_annotations: true
