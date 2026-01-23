@@ -3489,10 +3489,11 @@ service:
 {{- end }}
 {{- $includeMetrics := eq $pipeline "metrics" }}
 {{- $monitorsEnabled := or .Values.Values.podMonitor.enabled .Values.Values.serviceMonitor.enabled }}
-{{- if and $includeMetrics (not $monitorsEnabled) ($config.service.pipelines.metrics) (not (has "prometheus" $config.service.pipelines.metrics.receivers)) }}
+{{- $disablePrometheusReceiver := .Values.Values.presets.collectorMetrics.disablePrometheusReceiver }}
+{{- if and $includeMetrics (not $disablePrometheusReceiver) (not $monitorsEnabled) ($config.service.pipelines.metrics) (not (has "prometheus" $config.service.pipelines.metrics.receivers)) }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus" | uniq)  }}
 {{- end }}
-{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "transform/prometheus" $config.service.pipelines.metrics.processors)) }}
+{{- if and $includeMetrics (not $disablePrometheusReceiver) ($config.service.pipelines.metrics) (not (has "transform/prometheus" $config.service.pipelines.metrics.processors)) }}
 {{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/prometheus" | uniq)  }}
 {{- end }}
 {{- $config | toYaml }}
@@ -3500,7 +3501,8 @@ service:
 
 {{- define "opentelemetry-collector.collectorMetricsConfig" -}}
 {{- $monitorsEnabled := or .Values.podMonitor.enabled .Values.serviceMonitor.enabled }}
-{{- if not $monitorsEnabled }}
+{{- $disablePrometheusReceiver := .Values.presets.collectorMetrics.disablePrometheusReceiver }}
+{{- if and (not $monitorsEnabled) (not $disablePrometheusReceiver) }}
 receivers:
   prometheus:
     config:
@@ -3516,6 +3518,7 @@ receivers:
                 - {{ include "opentelemetry-collector.envEndpoint" (dict "env" "MY_POD_IP" "port" "8888" "context" $) | quote }}
 {{- end }}
 
+{{- if not $disablePrometheusReceiver }}
 processors:
   transform/prometheus:
     error_mode: ignore
@@ -3544,6 +3547,7 @@ processors:
         statements:
           - delete_key(attributes, "service_name") where resource.attributes["service.name"] == "opentelemetry-collector"
           - delete_key(attributes, "otel_scope_name") where attributes["service.name"] == "opentelemetry-collector"
+{{- end }}
 
 service:
   telemetry:
