@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.128.15
+    helm.sh/chart: opentelemetry-collector-0.128.16
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.142.0"
@@ -19,6 +19,10 @@ data:
     extensions:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
+      k8s_observer:
+        auth_type: serviceAccount
+        observe_pods: true
+        observe_services: true
     processors:
       memory_limiter:
         check_interval: 5s
@@ -90,9 +94,30 @@ data:
             static_configs:
             - targets:
               - ${env:MY_POD_IP}:8888
+      receiver_creator:
+        receivers:
+          prometheus_simple/pod_annotations:
+            config:
+              endpoint: '`endpoint`:`"prometheus.io/port" in annotations ? annotations["prometheus.io/port"]
+                : 9090`'
+              metrics_path: '`"prometheus.io/path" in annotations ? annotations["prometheus.io/path"]
+                : "/metrics"`'
+              scrape_interval: 30s
+            rule: type == "pod" && annotations["prometheus.io/scrape"] == "true"
+          prometheus_simple/service_annotations:
+            config:
+              endpoint: '`endpoint`:`"prometheus.io/port" in annotations ? annotations["prometheus.io/port"]
+                : 9090`'
+              metrics_path: '`"prometheus.io/path" in annotations ? annotations["prometheus.io/path"]
+                : "/metrics"`'
+              scrape_interval: 30s
+            rule: type == "k8s.service" && annotations["prometheus.io/scrape"] == "true"
+        watch_observers:
+        - k8s_observer
     service:
       extensions:
       - health_check
+      - k8s_observer
       pipelines:
         logs:
           exporters:
@@ -109,6 +134,7 @@ data:
           - transform/prometheus
           receivers:
           - prometheus
+          - receiver_creator
           - otlp
         traces:
           exporters:

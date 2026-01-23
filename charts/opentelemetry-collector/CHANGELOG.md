@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.16 / 2026-01-23
+
+- [Feat] Add prometheus annotation discovery preset for cluster-collector with receiver_creator support for pod and service rules.
+
 ### v0.128.15 / 2026-01-22
 
 - [Fix] Use the configured `from` field for profiles k8sattributes service annotations.
