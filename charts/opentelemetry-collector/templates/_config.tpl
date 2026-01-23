@@ -386,6 +386,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.prometheusMulti.enabled }}
 {{- $config = (include "opentelemetry-collector.applyPrometheusMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.prometheusAnnotationDiscovery.enabled }}
+{{- $config = (include "opentelemetry-collector.applyPrometheusAnnotationDiscoveryConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.jaegerReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyJaegerReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
