@@ -1,0 +1,19 @@
+mode: daemonset
+hostNetwork: true
+distribution: standalone
+isWindows: true
+presets:
+  hostMetrics:
+    enabled: true
+    process:
+      enabled: true
+  windowsEventLog:
+    enabled: true
+  iisReceiver:
+    enabled: true
+  iisLogs:
+    enabled: true
+  collectorMetrics:
+    enabled: true
+    scrapeInterval: "30s"
+
