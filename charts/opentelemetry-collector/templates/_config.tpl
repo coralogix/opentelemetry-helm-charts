@@ -190,6 +190,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.prometheusMulti.enabled }}
 {{- $config = (include "opentelemetry-collector.applyPrometheusMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.prometheusAnnotationDiscovery.enabled }}
+{{- $config = (include "opentelemetry-collector.applyPrometheusAnnotationDiscoveryConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.jaegerReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyJaegerReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -400,6 +403,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.prometheusMulti.enabled }}
 {{- $config = (include "opentelemetry-collector.applyPrometheusMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.prometheusAnnotationDiscovery.enabled }}
+{{- $config = (include "opentelemetry-collector.applyPrometheusAnnotationDiscoveryConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.jaegerReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyJaegerReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -1292,7 +1298,7 @@ processors:
           {{- range $index, $serviceAnnotation := .Values.presets.profilesCollection.serviceAnnotations }}
         - tag_name: {{ $serviceAnnotation.tag_name | quote }}
           key: {{ $serviceAnnotation.key | quote }}
-          from:  {{ $serviceAnnotation.key | default "pod" | quote }}
+          from:  {{ $serviceAnnotation.from | default "pod" | quote }}
           {{- end }}
       {{- end }}
       otel_annotations: true
@@ -1398,7 +1404,7 @@ processors:
           {{- range $index, $serviceAnnotation := .Values.presets.profilesK8sAttributes.serviceAnnotations }}
         - tag_name: {{ $serviceAnnotation.tag_name | quote }}
           key: {{ $serviceAnnotation.key | quote }}
-          from:  {{ $serviceAnnotation.key | default "pod" | quote }}
+          from:  {{ $serviceAnnotation.from | default "pod" | quote }}
           {{- end }}
       {{- end }}
       otel_annotations: true
@@ -1619,12 +1625,15 @@ receivers:
 {{- define "opentelemetry-collector.deltaToCumulativeConfig" -}}
 processors:
   deltatocumulative:
+{{- if or .Values.presets.deltaToCumulative.maxStale .Values.presets.deltaToCumulative.maxStreams }}
     {{- if .Values.presets.deltaToCumulative.maxStale }}
     max_stale: {{ .Values.presets.deltaToCumulative.maxStale }}
     {{- end }}
     {{- if .Values.presets.deltaToCumulative.maxStreams }}
     max_streams: {{ .Values.presets.deltaToCumulative.maxStreams }}
     {{- end }}
+{{- else }} {}
+{{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyMetadataConfig" -}}
@@ -3831,9 +3840,18 @@ receivers:
 
 {{- define "opentelemetry-collector.applyPrometheusMultiConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.prometheusMultiConfig" .Values | fromYaml) .config }}
-{{- if and ($config.service.pipelines.metrics) }}
+{{- if $config.service.pipelines.metrics }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus/multi" | uniq)  }}
 {{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyPrometheusAnnotationDiscoveryConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.prometheusAnnotationDiscoveryConfig" .Values | fromYaml) .config }}
+{{- if $config.service.pipelines.metrics }}
+{{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "receiver_creator" | uniq)  }}
+{{- end }}
+{{- $_ := set $config.service "extensions" (append $config.service.extensions "k8s_observer" | uniq)  }}
 {{- $config | toYaml }}
 {{- end }}
 
@@ -3869,6 +3887,32 @@ receivers:
 {{- end }}
 {{- end }}
 {{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.prometheusAnnotationDiscoveryConfig" -}}
+extensions:
+  k8s_observer:
+    auth_type: serviceAccount
+    observe_pods: {{ .Values.presets.prometheusAnnotationDiscovery.observePods }}
+    observe_services: {{ .Values.presets.prometheusAnnotationDiscovery.observeServices }}
+receivers:
+  receiver_creator:
+    watch_observers: [k8s_observer]
+    receivers:
+      prometheus_simple/pod_annotations:
+        rule: type == "pod" && annotations["prometheus.io/scrape"] == "true"
+        config:
+          metrics_path: '`"prometheus.io/path" in annotations ? annotations["prometheus.io/path"] : "/metrics"`'
+          endpoint: '`endpoint`:`"prometheus.io/port" in annotations ? annotations["prometheus.io/port"] : 9090`'
+          scrape_interval: "{{ .Values.presets.prometheusAnnotationDiscovery.scrapeInterval | default "30s" }}"
+      {{ if .Values.presets.prometheusAnnotationDiscovery.enableServiceRule }}
+      prometheus_simple/service_annotations:
+        rule: type == "k8s.service" && annotations["prometheus.io/scrape"] == "true"
+        config:
+          metrics_path: '`"prometheus.io/path" in annotations ? annotations["prometheus.io/path"] : "/metrics"`'
+          endpoint: '`endpoint`:`"prometheus.io/port" in annotations ? annotations["prometheus.io/port"] : 9090`'
+          scrape_interval: "{{ .Values.presets.prometheusAnnotationDiscovery.scrapeInterval | default "30s" }}"
+      {{ end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.statsdReceiverConfig" -}}

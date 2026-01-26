@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.128.14
+    helm.sh/chart: opentelemetry-collector-0.128.17
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.142.0"
@@ -50,7 +50,7 @@ data:
       k8sattributes/profiles:
         extract:
           annotations:
-          - from: annotation_key
+          - from: pod
             key: annotation_key
             tag_name: k8s.annotations.annotation_key
           labels:

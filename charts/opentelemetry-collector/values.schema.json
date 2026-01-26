@@ -17,7 +17,7 @@
   "additionalProperties": false,
   "properties": {
     "distribution": {
-      "description": "Specifies the distribution of the collector. Supported values include \"standalone\", \"macos\", \"ecs\", \"gke/autopilot\", and \"eks/fargate\".",
+      "description": "Specifies the distribution of the collector. Supported values include \"standalone\", \"macos\", \"ecs\", \"eks\", \"aks\", \"gke\", \"gke/autopilot\", and \"eks/fargate\".",
       "type": "string"
     },
     "enabled": {
@@ -1659,6 +1659,32 @@
                   }
                 }
               }
+            }
+          }
+        },
+        "prometheusAnnotationDiscovery": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Specifies whether the collector should discover Prometheus targets based on Kubernetes annotations."
+            },
+            "scrapeInterval": {
+              "type": "string",
+              "description": "Scrape interval for Prometheus annotation discovery."
+            },
+            "observePods": {
+              "type": "boolean",
+              "description": "Specifies whether the k8s observer should watch pods."
+            },
+            "observeServices": {
+              "type": "boolean",
+              "description": "Specifies whether the k8s observer should watch services."
+            },
+            "enableServiceRule": {
+              "type": "boolean",
+              "description": "Specifies whether to enable service annotation discovery rule."
             }
           }
         },

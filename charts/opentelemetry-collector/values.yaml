@@ -577,7 +577,7 @@ presets:
     pipelines: ["all"]
     # Cloud provider for targeted attribute removal.
     # When set, only attributes relevant to this provider and deployment context are removed.
-    # Options: aws, azure, gcp, on-prem, "" (empty = use denylist for backward compatibility)
+    # Options: aws, azure, gcp, on-prem, "" (infer from distribution), "none" (force denylist/backward compatibility)
     provider: ""
     denylist:
       metrics:
@@ -875,6 +875,15 @@ presets:
     #   ip: "127.0.0.1"
     #   port: 9104
     #   extraLabels: {}
+
+  # Configures the cluster-collector to dynamically discover Prometheus targets
+  # based on Kubernetes annotations.
+  prometheusAnnotationDiscovery:
+    enabled: false
+    scrapeInterval: "30s"
+    observePods: true
+    observeServices: false
+    enableServiceRule: false
 
   # Configures the collector to receive Jaeger data in all supported protocols.
   # Adds the jaeger receiver to the traces pipeline with all protocols configured.
