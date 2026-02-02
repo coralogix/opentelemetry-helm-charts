@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.17 / 2026-01-23
+
+- [Feat] Add an option to disable the collector metrics Prometheus receiver and transform while keeping telemetry readers enabled.
+
 ### v0.128.16 / 2026-01-23
 
 - [Feat] Add prometheus annotation discovery preset for cluster-collector with receiver_creator support for pod and service rules.

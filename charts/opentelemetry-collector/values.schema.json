@@ -1608,6 +1608,10 @@
             "scrapeInterval": {
               "type": "string",
               "description": "Scrape interval for collector metrics"
+            },
+            "disablePrometheusReceiver": {
+              "type": "boolean",
+              "description": "Disable the self-scrape Prometheus receiver and transform processor while keeping telemetry readers enabled."
             }
           }
         },
