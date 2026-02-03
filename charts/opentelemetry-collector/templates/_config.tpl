@@ -3743,14 +3743,14 @@ receivers:
         config:
           metrics_path: '`"prometheus.io/path" in annotations ? annotations["prometheus.io/path"] : "/metrics"`'
           endpoint: '`endpoint`:`"prometheus.io/port" in annotations ? annotations["prometheus.io/port"] : 9090`'
-          scrape_interval: "{{ .Values.presets.prometheusAnnotationDiscovery.scrapeInterval | default "30s" }}"
+          collection_interval: "{{ .Values.presets.prometheusAnnotationDiscovery.scrapeInterval | default "30s" }}"
       {{ if .Values.presets.prometheusAnnotationDiscovery.enableServiceRule }}
       prometheus_simple/service_annotations:
         rule: type == "k8s.service" && annotations["prometheus.io/scrape"] == "true"
         config:
           metrics_path: '`"prometheus.io/path" in annotations ? annotations["prometheus.io/path"] : "/metrics"`'
           endpoint: '`endpoint`:`"prometheus.io/port" in annotations ? annotations["prometheus.io/port"] : 9090`'
-          scrape_interval: "{{ .Values.presets.prometheusAnnotationDiscovery.scrapeInterval | default "30s" }}"
+          collection_interval: "{{ .Values.presets.prometheusAnnotationDiscovery.scrapeInterval | default "30s" }}"
       {{ end }}
 {{- end }}
 

@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.19 / 2026-02-03
+
+- [Fix] Use `collection_interval` for prometheus annotation discovery preset receivers.
+
 ### v0.128.18 / 2026-02-03
 
 - [Fix] Remove invalid "gke" detector from resourcedetection/region processor for GCP provider.
