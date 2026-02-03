@@ -3257,12 +3257,8 @@ processors:
         {{- $cloudDetectors = (list "azure") }}
       {{- end }}
     {{- else if eq $provider "gcp" }}
-      {{/* GCP provider: use gcp, add gke for K8s contexts */}}
-      {{- if $isK8s }}
-        {{- $cloudDetectors = (list "gcp" "gke") }}
-      {{- else }}
-        {{- $cloudDetectors = (list "gcp") }}
-      {{- end }}
+      {{/* GCP provider: use gcp detector (works for both GCP and GKE) */}}
+      {{- $cloudDetectors = (list "gcp") }}
     {{- else if eq $provider "on-prem" }}
       {{/* On-prem: no cloud detectors */}}
       {{- $cloudDetectors = (list) }}
