@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.128.19 / 2026-02-03
+
+- [Fix] Remove invalid "gke" detector from resourcedetection/region processor for GCP provider.
+
 ### v0.128.17 / 2026-01-23
 
 - [Feat] Add an option to disable the collector metrics Prometheus receiver and transform while keeping telemetry readers enabled.
