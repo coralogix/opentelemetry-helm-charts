@@ -2,7 +2,7 @@
 
 ## OpenTelemetry Collector
 
-### v0.128.19 / 2026-02-03
+### v0.128.18 / 2026-02-03
 
 - [Fix] Remove invalid "gke" detector from resourcedetection/region processor for GCP provider.
 
