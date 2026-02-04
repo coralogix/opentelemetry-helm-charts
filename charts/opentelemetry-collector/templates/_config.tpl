@@ -63,11 +63,6 @@ service:
     logs:
       receivers: [nop]
       exporters: [nop]
-{{- if .Values.presets.profilesCollection.enabled }}
-    profiles:
-      receivers: [nop]
-      exporters: [nop]
-{{- end }}
 
 {{- end }}
 
@@ -127,9 +122,6 @@ Build config file for daemonset OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.filelogMulti.enabled }}
 {{- $config = (include "opentelemetry-collector.applyFilelogMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
-{{- end }}
-{{- if .Values.presets.ecsAttributesContainerLogs.enabled }}
-{{- $config = (include "opentelemetry-collector.applyEcsAttributesContainerLogsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.mysql.metrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyMysqlConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -201,6 +193,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.prometheusMulti.enabled }}
 {{- $config = (include "opentelemetry-collector.applyPrometheusMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.prometheusAnnotationDiscovery.enabled }}
+{{- $config = (include "opentelemetry-collector.applyPrometheusAnnotationDiscoveryConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.jaegerReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyJaegerReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -213,8 +208,20 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.journaldReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyJournaldReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.systemdReceiver.enabled }}
+{{- $config = (include "opentelemetry-collector.applySystemdReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.profilesCollection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyProfilesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.ebpfProfiler.enabled }}
+{{- $config = (include "opentelemetry-collector.applyEbpfProfilerConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.ecsAttributesContainerLogs.enabled }}
+{{- $config = (include "opentelemetry-collector.applyEcsAttributesContainerLogsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.profilesK8sAttributes.enabled }}
+{{- $config = (include "opentelemetry-collector.applyProfilesK8sAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.resourceDetection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyResourceDetectionConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -226,6 +233,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.coralogixExporter.enabled }}
 {{- $config = (include "opentelemetry-collector.applyCoralogixExporterConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.otlpExporter.enabled }}
+{{- $config = (include "opentelemetry-collector.applyOtlpExporterConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.otlpReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyOtlpReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -234,6 +244,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.journaldReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyJournaldReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.systemdReceiver.enabled }}
+{{- $config = (include "opentelemetry-collector.applySystemdReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.statsdReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyStatsdReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -303,6 +316,12 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.kubernetesAttributes.enabled }}
 {{- $config = (include "opentelemetry-collector.applyKubernetesAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.ebpfProfiler.enabled }}
+{{- $config = (include "opentelemetry-collector.applyEbpfProfilerConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.profilesK8sAttributes.enabled }}
+{{- $config = (include "opentelemetry-collector.applyProfilesK8sAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.resourceDetection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyResourceDetectionConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -329,6 +348,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.coralogixExporter.enabled }}
 {{- $config = (include "opentelemetry-collector.applyCoralogixExporterConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.otlpExporter.enabled }}
+{{- $config = (include "opentelemetry-collector.applyOtlpExporterConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.targetAllocator.enabled }}
 {{- $config = (include "opentelemetry-collector.applyTargetAllocatorConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -370,6 +392,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.prometheusMulti.enabled }}
 {{- $config = (include "opentelemetry-collector.applyPrometheusMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.prometheusAnnotationDiscovery.enabled }}
+{{- $config = (include "opentelemetry-collector.applyPrometheusAnnotationDiscoveryConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.jaegerReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyJaegerReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -378,6 +403,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.journaldReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyJournaldReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.systemdReceiver.enabled }}
+{{- $config = (include "opentelemetry-collector.applySystemdReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.otlpReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyOtlpReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -789,6 +817,40 @@ processors:
 {{- $config | toYaml }}
 {{- end }}
 
+{{- define "opentelemetry-collector.applyProfilesK8sAttributesConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.profilesK8sAttributesConfig" .Values | fromYaml) .config }}
+{{- if $config.service.pipelines.profiles }}
+{{- $profilesProcessors := $config.service.pipelines.profiles.processors | default (list) }}
+{{- if not (has "k8sattributes/profiles" $profilesProcessors) }}
+{{- $profilesProcessors = append $profilesProcessors "k8sattributes/profiles" }}
+{{- end }}
+{{- if not (has "transform/profiles" $profilesProcessors) }}
+{{- $profilesProcessors = append $profilesProcessors "transform/profiles" }}
+{{- end }}
+{{- $_ := set $config.service.pipelines.profiles "processors" ($profilesProcessors | uniq) }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyEbpfProfilerConfig" -}}
+{{- $config := .config }}
+{{- $config = mustMergeOverwrite (include "opentelemetry-collector.ebpfProfilerConfig" .Values | fromYaml) $config }}
+{{- if $config.service.pipelines.profiles }}
+{{- $profilesReceivers := $config.service.pipelines.profiles.receivers | default (list) }}
+{{- if not (has "profiling" $profilesReceivers) }}
+{{- $_ := set $config.service.pipelines.profiles "receivers" (append $profilesReceivers "profiling" | uniq)  }}
+{{- end }}
+{{- end }}
+{{- if $config.service.pipelines }}
+{{- $profilesPipeline := dict }}
+{{- if $config.service.pipelines.profiles }}
+{{- $_ := set $profilesPipeline "profiles" $config.service.pipelines.profiles }}
+{{- end }}
+{{- $_ := set $config.service "pipelines" $profilesPipeline }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
 {{- define "opentelemetry-collector.logsCollectionConfig" -}}
 {{- if .Values.presets.logsCollection.storeCheckpoints }}
 extensions:
@@ -999,9 +1061,11 @@ receivers:
       - {{ . | quote }}
 {{- end }}
     start_at: beginning
+    multiline:
+      line_start_pattern: '^[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}'
     operators:
       - type: regex_parser
-        regex: '^(?P<timestamp>[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(?P<host>[^\s]+)\s+(?P<app>[A-Za-z0-9._-]+)(?:\[(?P<pid>\d+)\])?:\s+(?P<msg>.*)$'
+        regex: '^(?P<timestamp>[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(?P<host>[^\s]+)\s+(?P<app>[A-Za-z0-9._-]+)(?:\[(?P<pid>\d+)\])?:\s+(?P<msg>[\s\S]*)$'
       - type: time_parser
         parse_from: attributes.timestamp
         layout_type: gotime
@@ -1015,7 +1079,7 @@ receivers:
       {{- if .Values.presets.macosSystemLogs.dynamicSubsystemName }}
       - type: copy
         from: resource["app"]
-        to: resource["cx.subsystem.name"]
+        to: resource["service.name"]
       {{- end }}
       - type: move
         from: attributes.pid
@@ -1198,7 +1262,7 @@ processors:
           {{- range $index, $serviceAnnotation := .Values.presets.profilesCollection.serviceAnnotations }}
         - tag_name: {{ $serviceAnnotation.tag_name | quote }}
           key: {{ $serviceAnnotation.key | quote }}
-          from:  {{ $serviceAnnotation.key | default "pod" | quote }}
+          from:  {{ $serviceAnnotation.from | default "pod" | quote }}
           {{- end }}
       {{- end }}
       otel_annotations: true
@@ -1221,6 +1285,118 @@ service:
       exporters: []
 {{- end }}
 
+{{- define "opentelemetry-collector.profilesK8sAttributesConfig" -}}
+processors:
+  transform/profiles:
+    profile_statements:
+    # prioritized by
+    # https://opentelemetry.io/docs/specs/semconv/non-normative/k8s-attributes/#how-servicename-should-be-calculated
+     {{- range $index, $serviceAnnotation := .Values.presets.profilesK8sAttributes.serviceAnnotations }}
+      - set(resource.attributes["service.name"], resource.attributes[{{ $serviceAnnotation.tag_name | quote }}])
+        where resource.attributes["service.name"] == nil and resource.attributes[{{ $serviceAnnotation.tag_name | quote }}] != nil
+
+    {{- end }}
+    {{- range $index, $serviceLabel := .Values.presets.profilesK8sAttributes.serviceLabels }}
+      - set(resource.attributes["service.name"], resource.attributes[{{ $serviceLabel.tag_name  | quote }}])
+        where resource.attributes["service.name"] == nil and resource.attributes[{{ $serviceLabel.tag_name | quote }}] != nil
+
+    {{- end }}
+      - set(resource.attributes["service.name"], resource.attributes["k8s.label.instance"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.label.instance"] != nil
+
+      - set(resource.attributes["service.name"], resource.attributes["k8s.label.name"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.label.name"] != nil
+
+      - set(resource.attributes["service.name"], resource.attributes["k8s.deployment.name"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.deployment.name"] != nil
+
+      - set(resource.attributes["service.name"], resource.attributes["k8s.replicaset.name"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.replicaset.name"] != nil
+
+      - set(resource.attributes["service.name"], resource.attributes["k8s.statefulset.name"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.statefulset.name"] != nil
+
+      - set(resource.attributes["service.name"], resource.attributes["k8s.daemonset.name"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.daemonset.name"] != nil
+
+      - set(resource.attributes["service.name"], resource.attributes["k8s.cronjob.name"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.cronjob.name"] != nil
+
+      - set(resource.attributes["service.name"], resource.attributes["k8s.job.name"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.job.name"] != nil
+
+      - set(resource.attributes["service.name"], resource.attributes["k8s.pod.name"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.pod.name"] != nil
+
+      - set(resource.attributes["service.name"], resource.attributes["k8s.container.name"])
+        where resource.attributes["service.name"] == nil and resource.attributes["k8s.container.name"] != nil
+
+  k8sattributes/profiles:
+    {{- if or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled }}
+    filter:
+      node_from_env_var: K8S_NODE_NAME
+    {{- end }}
+    extract:
+      metadata:
+        - k8s.namespace.name
+        - k8s.replicaset.name
+        - k8s.statefulset.name
+        - k8s.daemonset.name
+        - k8s.deployment.name
+        - k8s.cronjob.name
+        - k8s.job.name
+        - k8s.pod.name
+        - k8s.node.name
+        - container.id
+        - k8s.container.name
+        - service.version
+      labels:
+        - tag_name: k8s.label.name
+          key: app.kubernetes.io/name
+          from: pod
+        - tag_name: k8s.label.instance
+          key: app.kubernetes.io/instance
+          from: pod
+      {{- range $index, $serviceLabel := .Values.presets.profilesK8sAttributes.serviceLabels }}
+        - tag_name: {{ $serviceLabel.tag_name | quote }}
+          key: {{ $serviceLabel.key | quote }}
+          from: {{ $serviceLabel.from | default "pod" | quote }}
+      {{- end }}
+
+      {{- if .Values.presets.profilesK8sAttributes.serviceAnnotations }}
+      annotations:
+          {{- range $index, $serviceAnnotation := .Values.presets.profilesK8sAttributes.serviceAnnotations }}
+        - tag_name: {{ $serviceAnnotation.tag_name | quote }}
+          key: {{ $serviceAnnotation.key | quote }}
+          from:  {{ $serviceAnnotation.from | default "pod" | quote }}
+          {{- end }}
+      {{- end }}
+      otel_annotations: true
+
+    passthrough: false
+    pod_association:
+      - sources:
+          - from: resource_attribute
+            name: container.id
+{{- end }}
+
+{{- define "opentelemetry-collector.ebpfProfilerConfig" -}}
+receivers:
+  profiling:
+    reporter_interval: {{ .Values.presets.ebpfProfiler.reporterInterval | quote }}
+    probabilistic_interval: {{ .Values.presets.ebpfProfiler.probabilisticInterval | quote }}
+    probabilistic_threshold: {{ .Values.presets.ebpfProfiler.probabilisticThreshold }}
+    verbose_mode: {{ .Values.presets.ebpfProfiler.verboseMode }}
+    off_cpu_threshold: {{ .Values.presets.ebpfProfiler.offCpuThreshold }}
+    tracers: {{ .Values.presets.ebpfProfiler.tracers | quote }}
+service:
+  pipelines:
+    profiles:
+      receivers: []
+      processors: []
+      exporters: []
+{{- end }}
+
 {{- define "opentelemetry-collector.applyKubernetesExtraMetrics" -}}
 {{- $scrapeAll := .Values.Values.presets.kubernetesExtraMetrics.scrapeAll | default false }}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.kubernetesExtraMetricsConfig" (dict "Values" .Values.Values "scrapeAll" $scrapeAll) | fromYaml) .config }}
@@ -1228,15 +1404,10 @@ service:
 {{- if not $scrapeAll }}
 {{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "filter/k8s_extra_metrics" | uniq)  }}
 {{- end }}
-{{- $_ := set $config.service "extensions" (append $config.service.extensions "k8s_observer" | uniq)  }}
 {{- $config | toYaml }}
 {{- end }}
 
 {{- define "opentelemetry-collector.kubernetesExtraMetricsConfig" -}}
-extensions:
-  k8s_observer:
-    auth_type: serviceAccount
-    observe_pods: true
 receivers:
   prometheus/k8s_extra_metrics:
     config:
@@ -1418,12 +1589,15 @@ receivers:
 {{- define "opentelemetry-collector.deltaToCumulativeConfig" -}}
 processors:
   deltatocumulative:
+{{- if or .Values.presets.deltaToCumulative.maxStale .Values.presets.deltaToCumulative.maxStreams }}
     {{- if .Values.presets.deltaToCumulative.maxStale }}
     max_stale: {{ .Values.presets.deltaToCumulative.maxStale }}
     {{- end }}
     {{- if .Values.presets.deltaToCumulative.maxStreams }}
     max_streams: {{ .Values.presets.deltaToCumulative.maxStreams }}
     {{- end }}
+{{- else }} {}
+{{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyMetadataConfig" -}}
@@ -1437,8 +1611,11 @@ processors:
 {{- if and ($config.service.pipelines.traces) (not (has "resource/metadata" $config.service.pipelines.traces.processors)) }}
 {{- $_ := set $config.service.pipelines.traces "processors" (prepend $config.service.pipelines.traces.processors "resource/metadata" | uniq)  }}
 {{- end }}
-{{- if and ($config.service.pipelines.profiles) (not (has "resource/metadata" $config.service.pipelines.profiles.processors)) }}
-{{- $_ := set $config.service.pipelines.profiles "processors" (prepend $config.service.pipelines.profiles.processors "resource/metadata" | uniq)  }}
+{{- if $config.service.pipelines.profiles }}
+{{- $profilesProcessors := $config.service.pipelines.profiles.processors | default (list) }}
+{{- if not (has "resource/metadata" $profilesProcessors) }}
+{{- $_ := set $config.service.pipelines.profiles "processors" (prepend $profilesProcessors "resource/metadata" | uniq)  }}
+{{- end }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
@@ -1576,7 +1753,8 @@ processors:
         - delete_key(resource.attributes, "{{ $attr }}")
         {{- end }}
         {{- end }}
-        {{/* Always apply custom denylist if provided */}}
+        {{- if not $provider }}
+        {{/* Denylist-only mode (backward compatibility) */}}
         {{- range $index, $pattern := (index $customDenylist "metrics" | default list) }}
         {{- if kindIs "string" $pattern }}
         - delete_key(resource.attributes, "{{ $pattern }}")
@@ -1585,6 +1763,7 @@ processors:
         - delete_key(resource.attributes, "{{ $key }}"){{- with index $pattern "condition" }} where {{ . }}{{- end }}
         {{- else }}
         {{- fail (printf "Reduce resource attributes metrics denylist entries must be either strings or objects with `key` and optional `condition`, got %s" (kindOf $pattern)) }}
+        {{- end }}
         {{- end }}
         {{- end }}
 {{- end }}
@@ -1602,7 +1781,8 @@ processors:
         - delete_key(resource.attributes, "{{ $attr }}")
         {{- end }}
         {{- end }}
-        {{/* Always apply custom denylist if provided */}}
+        {{- if not $provider }}
+        {{/* Denylist-only mode (backward compatibility) */}}
         {{- range $index, $pattern := (index $customDenylist "traces" | default list) }}
         {{- if kindIs "string" $pattern }}
         - delete_key(resource.attributes, "{{ $pattern }}")
@@ -1611,6 +1791,7 @@ processors:
         - delete_key(resource.attributes, "{{ $key }}"){{- with index $pattern "condition" }} where {{ . }}{{- end }}
         {{- else }}
         {{- fail (printf "Reduce resource attributes traces denylist entries must be either strings or objects with `key` and optional `condition`, got %s" (kindOf $pattern)) }}
+        {{- end }}
         {{- end }}
         {{- end }}
 {{- end }}
@@ -1628,7 +1809,8 @@ processors:
         - delete_key(resource.attributes, "{{ $attr }}")
         {{- end }}
         {{- end }}
-        {{/* Always apply custom denylist if provided */}}
+        {{- if not $provider }}
+        {{/* Denylist-only mode (backward compatibility) */}}
         {{- range $index, $pattern := (index $customDenylist "logs" | default list) }}
         {{- if kindIs "string" $pattern }}
         - delete_key(resource.attributes, "{{ $pattern }}")
@@ -1637,6 +1819,7 @@ processors:
         - delete_key(resource.attributes, "{{ $key }}"){{- with index $pattern "condition" }} where {{ . }}{{- end }}
         {{- else }}
         {{- fail (printf "Reduce resource attributes logs denylist entries must be either strings or objects with `key` and optional `condition`, got %s" (kindOf $pattern)) }}
+        {{- end }}
         {{- end }}
         {{- end }}
 {{- end }}
@@ -1779,9 +1962,14 @@ cx.integrationID: "{{ .Values.presets.fleetManagement.integrationID }}"
 {{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters "forward/db_compact" | uniq)  }}
 {{- end }}
 {{- end }}
-{{- if .Values.Values.presets.spanMetrics.transformStatements}}
+{{- if or (.Values.Values.presets.spanMetrics.enabled) (.Values.Values.presets.spanMetrics.transformStatements) }}
 {{- if and ($config.service.pipelines.traces) (not (has "transform/spanmetrics" $config.service.pipelines.traces.processors)) }}
 {{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/spanmetrics" | uniq)  }}
+{{- end }}
+{{- end }}
+{{- if .Values.Values.presets.spanMetrics.enabled }}
+{{- if and ($config.service.pipelines.metrics) (not (has "transform/spanmetrics" $config.service.pipelines.metrics.processors)) }}
+{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/spanmetrics" | uniq)  }}
 {{- end }}
 {{- end }}
 {{- if .Values.Values.presets.spanMetrics.spanNameReplacePattern}}
@@ -1820,8 +2008,10 @@ connectors:
     namespace: ""
 {{- end }}
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
+    add_resource_attributes: true
 {{- if .Values.presets.spanMetrics.histogramBuckets }}
     histogram:
+      unit: ms
       explicit:
         buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
 {{- end }}
@@ -1844,9 +2034,11 @@ connectors:
   spanmetrics/db:
     namespace: "db"
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
+    add_resource_attributes: true
     histogram:
+      unit: ms
       explicit:
-        buckets: [100us, 1ms, 2ms, 2.5ms, 4ms, 6ms, 10ms, 100ms, 250ms]
+        buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
     dimensions:
       - name: db.namespace
       - name: db.operation.name
@@ -1874,10 +2066,12 @@ connectors:
   forward/compact: {}
   spanmetrics/compact:
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
+    add_resource_attributes: true
     exclude_dimensions:
     - span.name
 {{- if .Values.presets.spanMetrics.histogramBuckets }}
     histogram:
+      unit: ms
       explicit:
         buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
 {{- end }}
@@ -1897,6 +2091,7 @@ connectors:
   forward/db_compact: {}
   spanmetrics/db_compact:
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
+    add_resource_attributes: true
     dimensions:
       - name: db.namespace
       - name: db.system
@@ -1905,6 +2100,7 @@ connectors:
     - span.kind
 {{- if .Values.presets.spanMetrics.histogramBuckets }}
     histogram:
+      unit: ms
       explicit:
         buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
 {{- end }}
@@ -1920,7 +2116,7 @@ connectors:
 {{- end }}
     namespace: db_compact
 {{- end }}
-{{- if or (.Values.presets.spanMetrics.spanNameReplacePattern) (.Values.presets.spanMetrics.dbMetrics.enabled) (.Values.presets.spanMetrics.transformStatements) (.Values.presets.spanMetrics.compactMetrics.enabled) (.Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled) }}
+{{- if or (.Values.presets.spanMetrics.enabled) (.Values.presets.spanMetrics.spanNameReplacePattern) (.Values.presets.spanMetrics.dbMetrics.enabled) (.Values.presets.spanMetrics.transformStatements) (.Values.presets.spanMetrics.compactMetrics.enabled) (.Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled) (.Values.presets.spanMetricsMulti.enabled) }}
 processors:
 {{- end}}
 {{- if .Values.presets.spanMetrics.spanNameReplacePattern }}
@@ -1944,15 +2140,21 @@ processors:
       span:
         - 'kind != SPAN_KIND_CLIENT or attributes["db.namespace"] == nil or attributes["db.system"] == nil'
 {{- end }}
-{{- if .Values.presets.spanMetrics.transformStatements }}
+{{- if .Values.presets.spanMetrics.enabled }}
   transform/spanmetrics:
     error_mode: silent
+    metric_statements:
+      - context: datapoint
+        statements:
+        {{- include "opentelemetry-collector.spanMetricsStatusCodeStatements" . | nindent 8 }}
+    {{- if .Values.presets.spanMetrics.transformStatements }}
     trace_statements:
       - context: span
         statements:
         {{- range $index, $pattern := .Values.presets.spanMetrics.transformStatements }}
         - {{ $pattern }}
         {{- end}}
+    {{- end }}
 {{- end }}
 {{- if .Values.presets.spanMetrics.dbMetrics.transformStatements }}
   transform/db:
@@ -2043,6 +2245,7 @@ service:
       - spanmetrics/compact
       processors:
       - memory_limiter
+      - transform/spanmetrics
       {{- if .Values.presets.spanMetrics.compactMetrics.dropHistogram }}
       - transform/compact_histogram
       - filter/drop_histogram
@@ -2066,6 +2269,7 @@ service:
       - spanmetrics/db_compact
       processors:
       - memory_limiter
+      - transform/spanmetrics
       {{- if .Values.presets.spanMetrics.dbMetrics.compactMetrics.dropHistogram }}
       - transform/db_compact_histogram
       - filter/drop_db_compact_histogram
@@ -2109,6 +2313,9 @@ service:
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers (printf "spanmetrics/%d" $index))  }}
 {{- end }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "spanmetrics/default")  }}
+{{- if and ($config.service.pipelines.metrics) (not (has "transform/spanmetricsmulti" $config.service.pipelines.metrics.processors)) }}
+{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/spanmetricsmulti" | uniq)  }}
+{{- end }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
@@ -2175,6 +2382,14 @@ connectors:
     {{- $root.Values.presets.spanMetricsMulti.extraDimensions | toYaml | nindent 10 }}
     {{- end }}
   {{- end }}
+
+processors:
+  transform/spanmetricsmulti:
+    error_mode: silent
+    metric_statements:
+      - context: datapoint
+        statements:
+        {{- include "opentelemetry-collector.spanMetricsStatusCodeStatements" . | nindent 8 }}
 
 {{- end }}
 
@@ -2471,6 +2686,9 @@ service:
 {{- /* Infer provider to determine if region detection should be included */ -}}
 {{- $distribution := .Values.distribution | default "" }}
 {{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "explicitProvider" .Values.presets.resourceDetection.provider) }}
+{{- /* Determine if cloud tags should be collected for infra explorer */ -}}
+{{- $useEc2 := and (eq $provider "aws") (ne $distribution "eks/fargate") }}
+{{- $useAzure := eq $provider "azure" }}
 exporters:
   coralogix/resource_catalog:
     timeout: "30s"
@@ -2503,7 +2721,15 @@ exporters:
 
 processors:
   resourcedetection/entity:
-    detectors: ["system", "env"]
+    detectors:
+      - system
+      - env
+{{- if $useEc2 }}
+      - ec2
+{{- end }}
+{{- if $useAzure }}
+      - azure
+{{- end }}
     timeout: 2s
     override: false
     system:
@@ -2528,6 +2754,16 @@ processors:
           enabled: true
         os.description:
           enabled: true
+{{- if $useEc2 }}
+    ec2:
+      tags:
+        - ".*"
+{{- end }}
+{{- if $useAzure }}
+    azure:
+      tags:
+        - ".*"
+{{- end }}
   transform/entity-event:
     error_mode: silent
     log_statements:
@@ -2538,6 +2774,15 @@ processors:
       - context: resource
         statements:
           - keep_keys(attributes, [""])
+{{- if eq $provider "azure" }}
+  transform/azure-host-attributes:
+    error_mode: silent
+    log_statements:
+      - context: log
+        statements:
+          - set(resource.attributes["host.type"], resource.attributes["azure.vm.size"]) where resource.attributes["azure.vm.size"] != nil and resource.attributes["host.type"] == nil
+          - set(resource.attributes["host.name"], resource.attributes["azure.vm.name"]) where resource.attributes["azure.vm.name"] != nil and (resource.attributes["host.name"] == nil or resource.attributes["host.name"] == "")
+{{- end }}
 service:
   pipelines:
     logs/resource_catalog:
@@ -2562,6 +2807,9 @@ service:
         - resourcedetection/entity
         {{- if and .Values.presets.resourceDetection.enabled .Values.presets.resourceDetection.region.enabled (ne $provider "on-prem") }}
         - resourcedetection/region
+        {{- end }}
+        {{- if eq $provider "azure" }}
+        - transform/azure-host-attributes
         {{- end }}
         - transform/entity-event
       receivers:
@@ -2638,6 +2886,43 @@ exporters:
         timeout: "{{ .Values.presets.loadBalancing.dnsResolverTimeout }}"
         {{- end }}
       {{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyOtlpExporterConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.otlpExporterConfig" .Values | fromYaml) .config }}
+{{- $pipelines := list "all" }}
+{{- if .Values.Values.presets.otlpExporter.pipelines }}
+  {{- $pipelines = .Values.Values.presets.otlpExporter.pipelines }}
+{{- end }}
+{{- $includeLogs := or (has "all" $pipelines) (has "logs" $pipelines) }}
+{{- $includeMetrics := or (has "all" $pipelines) (has "metrics" $pipelines) }}
+{{- $includeTraces := or (has "all" $pipelines) (has "traces" $pipelines) }}
+{{- $includeProfiles := or (has "all" $pipelines) (has "profiles" $pipelines) }}
+
+{{- if and $includeLogs ($config.service.pipelines.logs) (not (has "otlp" $config.service.pipelines.logs.exporters)) }}
+{{- $_ := set $config.service.pipelines.logs "exporters" (append $config.service.pipelines.logs.exporters "otlp" | uniq)  }}
+{{- end }}
+{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "otlp" $config.service.pipelines.metrics.exporters)) }}
+{{- $_ := set $config.service.pipelines.metrics "exporters" (append $config.service.pipelines.metrics.exporters "otlp" | uniq)  }}
+{{- end }}
+{{- if and $includeTraces ($config.service.pipelines.traces) (not (has "otlp" $config.service.pipelines.traces.exporters)) }}
+{{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters "otlp" | uniq)  }}
+{{- end }}
+{{- if and $includeProfiles ($config.service.pipelines.profiles) (not (has "otlp" $config.service.pipelines.profiles.exporters)) }}
+{{- $_ := set $config.service.pipelines.profiles "exporters" (append $config.service.pipelines.profiles.exporters "otlp" | uniq)  }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.otlpExporterConfig" -}}
+{{- $endpoint := required "presets.otlpExporter.endpoint must be set when the otlpExporter preset is enabled." .Values.presets.otlpExporter.endpoint }}
+exporters:
+  otlp:
+    endpoint: {{ $endpoint | quote }}
+    {{- with .Values.presets.otlpExporter.headers }}
+    headers:
+{{ toYaml . | nindent 6 }}
+    {{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyCoralogixExporterConfig" -}}
@@ -2875,6 +3160,12 @@ processors:
 {{- if and ($config.service.pipelines.logs) (not (has "ecsattributes/container-logs" $config.service.pipelines.logs.processors)) }}
 {{- $_ := set $config.service.pipelines.logs "processors" (prepend $config.service.pipelines.logs.processors "ecsattributes/container-logs" | uniq)  }}
 {{- end }}
+{{- if and ($config.service.pipelines.traces) (not (has "ecsattributes/container-logs" $config.service.pipelines.traces.processors)) }}
+{{- $_ := set $config.service.pipelines.traces "processors" (prepend $config.service.pipelines.traces.processors "ecsattributes/container-logs" | uniq)  }}
+{{- end }}
+{{- if and ($config.service.pipelines.profiles) (not (has "ecsattributes/container-logs" $config.service.pipelines.profiles.processors)) }}
+{{- $_ := set $config.service.pipelines.profiles "processors" (prepend $config.service.pipelines.profiles.processors "ecsattributes/container-logs" | uniq)  }}
+{{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
@@ -2884,6 +3175,7 @@ processors:
     container_id:
       sources:
         - "log.file.path"
+        - "container.id"
 {{- end }}
 
 {{- define "opentelemetry-collector.applyResourceDetectionConfig" -}}
@@ -2924,6 +3216,21 @@ processors:
 {{- if and $regionEnabled (ne $provider "on-prem") $includeProfiles ($config.service.pipelines.profiles) (not (has "resourcedetection/region" $config.service.pipelines.profiles.processors)) }}
 {{- $_ := set $config.service.pipelines.profiles "processors" (prepend $config.service.pipelines.profiles.processors "resourcedetection/region" | uniq)  }}
 {{- end }}
+{{- /* Azure-specific: add transform/azure-host-name after resourcedetection processors */ -}}
+{{- if eq $provider "azure" }}
+{{- if and $includeLogs ($config.service.pipelines.logs) (not (has "transform/azure-host-name" $config.service.pipelines.logs.processors)) }}
+{{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "transform/azure-host-name" | uniq)  }}
+{{- end }}
+{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "transform/azure-host-name" $config.service.pipelines.metrics.processors)) }}
+{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/azure-host-name" | uniq)  }}
+{{- end }}
+{{- if and $includeTraces ($config.service.pipelines.traces) (not (has "transform/azure-host-name" $config.service.pipelines.traces.processors)) }}
+{{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/azure-host-name" | uniq)  }}
+{{- end }}
+{{- if and $includeProfiles ($config.service.pipelines.profiles) (not (has "transform/azure-host-name" $config.service.pipelines.profiles.processors)) }}
+{{- $_ := set $config.service.pipelines.profiles "processors" (append $config.service.pipelines.profiles.processors "transform/azure-host-name" | uniq)  }}
+{{- end }}
+{{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
@@ -2956,12 +3263,8 @@ processors:
         {{- $cloudDetectors = (list "azure") }}
       {{- end }}
     {{- else if eq $provider "gcp" }}
-      {{/* GCP provider: use gcp, add gke for K8s contexts */}}
-      {{- if $isK8s }}
-        {{- $cloudDetectors = (list "gcp" "gke") }}
-      {{- else }}
-        {{- $cloudDetectors = (list "gcp") }}
-      {{- end }}
+      {{/* GCP provider: use gcp detector (works for both GCP and GKE) */}}
+      {{- $cloudDetectors = (list "gcp") }}
     {{- else if eq $provider "on-prem" }}
       {{/* On-prem: no cloud detectors */}}
       {{- $cloudDetectors = (list) }}
@@ -3002,6 +3305,27 @@ processors:
           enabled: true
     {{- end }}
   {{- end }}
+  {{- end }}
+  {{- /* Azure-specific transform: set host.name from azure.vm.name if empty */ -}}
+  {{- if eq $provider "azure" }}
+  transform/azure-host-name:
+    error_mode: silent
+    metric_statements:
+      - context: resource
+        statements:
+          - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
+    trace_statements:
+      - context: resource
+        statements:
+          - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
+    log_statements:
+      - context: resource
+        statements:
+          - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
+    profile_statements:
+      - context: resource
+        statements:
+          - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
   {{- end }}
 {{- end }}
 
@@ -3167,10 +3491,11 @@ service:
 {{- end }}
 {{- $includeMetrics := eq $pipeline "metrics" }}
 {{- $monitorsEnabled := or .Values.Values.podMonitor.enabled .Values.Values.serviceMonitor.enabled }}
-{{- if and $includeMetrics (not $monitorsEnabled) ($config.service.pipelines.metrics) (not (has "prometheus" $config.service.pipelines.metrics.receivers)) }}
+{{- $disablePrometheusReceiver := .Values.Values.presets.collectorMetrics.disablePrometheusReceiver }}
+{{- if and $includeMetrics (not $disablePrometheusReceiver) (not $monitorsEnabled) ($config.service.pipelines.metrics) (not (has "prometheus" $config.service.pipelines.metrics.receivers)) }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus" | uniq)  }}
 {{- end }}
-{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "transform/prometheus" $config.service.pipelines.metrics.processors)) }}
+{{- if and $includeMetrics (not $disablePrometheusReceiver) ($config.service.pipelines.metrics) (not (has "transform/prometheus" $config.service.pipelines.metrics.processors)) }}
 {{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/prometheus" | uniq)  }}
 {{- end }}
 {{- $config | toYaml }}
@@ -3178,7 +3503,8 @@ service:
 
 {{- define "opentelemetry-collector.collectorMetricsConfig" -}}
 {{- $monitorsEnabled := or .Values.podMonitor.enabled .Values.serviceMonitor.enabled }}
-{{- if not $monitorsEnabled }}
+{{- $disablePrometheusReceiver := .Values.presets.collectorMetrics.disablePrometheusReceiver }}
+{{- if and (not $monitorsEnabled) (not $disablePrometheusReceiver) }}
 receivers:
   prometheus:
     config:
@@ -3194,6 +3520,7 @@ receivers:
                 - {{ include "opentelemetry-collector.envEndpoint" (dict "env" "MY_POD_IP" "port" "8888" "context" $) | quote }}
 {{- end }}
 
+{{- if not $disablePrometheusReceiver }}
 processors:
   transform/prometheus:
     error_mode: ignore
@@ -3222,6 +3549,7 @@ processors:
         statements:
           - delete_key(attributes, "service_name") where resource.attributes["service.name"] == "opentelemetry-collector"
           - delete_key(attributes, "otel_scope_name") where attributes["service.name"] == "opentelemetry-collector"
+{{- end }}
 
 service:
   telemetry:
@@ -3283,6 +3611,11 @@ receivers:
 {{- if and ($config.service.pipelines.logs) (not (has "journald" $config.service.pipelines.logs.receivers)) }}
 {{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers "journald" | uniq)  }}
 {{- end }}
+{{- if .Values.Values.presets.journaldReceiver.dynamicSubsystemName }}
+{{- if and ($config.service.pipelines.logs) (not (has "transform/journald" $config.service.pipelines.logs.processors)) }}
+{{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "transform/journald" | uniq)  }}
+{{- end }}
+{{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
@@ -3307,13 +3640,63 @@ receivers:
 {{ toYaml $receiver | indent 4 }}
 {{- else }} {}
 {{- end }}
+{{- if .Values.presets.journaldReceiver.dynamicSubsystemName }}
+processors:
+  transform/journald:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          # Extract systemd unit name from _SYSTEMD_UNIT or SYSLOG_IDENTIFIER (e.g., "ssh.service" -> "ssh")
+          - set(resource.attributes["service.name"], body["_SYSTEMD_UNIT"]) where body["_SYSTEMD_UNIT"] != nil and body["_SYSTEMD_UNIT"] != ""
+          - set(resource.attributes["service.name"], body["SYSLOG_IDENTIFIER"]) where body["_SYSTEMD_UNIT"] == nil and body["SYSLOG_IDENTIFIER"] != nil and body["SYSLOG_IDENTIFIER"] != ""
+          - replace_pattern(resource.attributes["service.name"], "\\.service$", "") where resource.attributes["service.name"] != nil and resource.attributes["service.name"] != ""
+{{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applySystemdReceiverConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.systemdReceiverConfig" .Values | fromYaml) .config }}
+{{- if and ($config.service.pipelines.metrics) (not (has "systemd" $config.service.pipelines.metrics.receivers)) }}
+{{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "systemd" | uniq)  }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.systemdReceiverConfig" -}}
+receivers:
+  systemd:
+    {{- if .Values.presets.systemdReceiver.collectionInterval }}
+    collection_interval: "{{ .Values.presets.systemdReceiver.collectionInterval }}"
+    {{- else }}
+    collection_interval: 1m
+    {{- end }}
+    {{- if .Values.presets.systemdReceiver.scope }}
+    scope: "{{ .Values.presets.systemdReceiver.scope }}"
+    {{- else }}
+    scope: system
+    {{- end }}
+{{- with .Values.presets.systemdReceiver.units }}
+{{- if . }}
+    units:
+{{ toYaml . | indent 6 }}
+{{- end }}
+{{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyPrometheusMultiConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.prometheusMultiConfig" .Values | fromYaml) .config }}
-{{- if and ($config.service.pipelines.metrics) }}
+{{- if $config.service.pipelines.metrics }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus/multi" | uniq)  }}
 {{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyPrometheusAnnotationDiscoveryConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.prometheusAnnotationDiscoveryConfig" .Values | fromYaml) .config }}
+{{- if $config.service.pipelines.metrics }}
+{{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "receiver_creator" | uniq)  }}
+{{- end }}
+{{- $_ := set $config.service "extensions" (append $config.service.extensions "k8s_observer" | uniq)  }}
 {{- $config | toYaml }}
 {{- end }}
 
@@ -3349,6 +3732,32 @@ receivers:
 {{- end }}
 {{- end }}
 {{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.prometheusAnnotationDiscoveryConfig" -}}
+extensions:
+  k8s_observer:
+    auth_type: serviceAccount
+    observe_pods: {{ .Values.presets.prometheusAnnotationDiscovery.observePods }}
+    observe_services: {{ .Values.presets.prometheusAnnotationDiscovery.observeServices }}
+receivers:
+  receiver_creator:
+    watch_observers: [k8s_observer]
+    receivers:
+      prometheus_simple/pod_annotations:
+        rule: type == "pod" && annotations["prometheus.io/scrape"] == "true"
+        config:
+          metrics_path: '`"prometheus.io/path" in annotations ? annotations["prometheus.io/path"] : "/metrics"`'
+          endpoint: '`endpoint`:`"prometheus.io/port" in annotations ? annotations["prometheus.io/port"] : 9090`'
+          collection_interval: "{{ .Values.presets.prometheusAnnotationDiscovery.scrapeInterval | default "30s" }}"
+      {{ if .Values.presets.prometheusAnnotationDiscovery.enableServiceRule }}
+      prometheus_simple/service_annotations:
+        rule: type == "k8s.service" && annotations["prometheus.io/scrape"] == "true"
+        config:
+          metrics_path: '`"prometheus.io/path" in annotations ? annotations["prometheus.io/path"] : "/metrics"`'
+          endpoint: '`endpoint`:`"prometheus.io/port" in annotations ? annotations["prometheus.io/port"] : 9090`'
+          collection_interval: "{{ .Values.presets.prometheusAnnotationDiscovery.scrapeInterval | default "30s" }}"
+      {{ end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.statsdReceiverConfig" -}}

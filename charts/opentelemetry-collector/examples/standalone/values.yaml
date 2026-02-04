@@ -9,6 +9,7 @@ presets:
   collectorMetrics:
     enabled: true
     scrapeInterval: "30s"
+    disablePrometheusReceiver: true
   prometheusMulti:
     enabled: true
     scrapeInterval: "30s"

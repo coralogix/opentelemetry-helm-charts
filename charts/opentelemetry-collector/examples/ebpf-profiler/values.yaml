@@ -1,0 +1,35 @@
+mode: daemonset
+
+presets:
+  ebpfProfiler:
+    enabled: true
+  profilesK8sAttributes:
+    enabled: true
+  ecsAttributesContainerLogs:
+    enabled: true
+  metadata:
+    enabled: true
+    clusterName: "test-cluster"
+    integrationName: "coralogix-integration-helm"
+  otlpExporter:
+    enabled: false
+  otlpReceiver:
+    enabled: false
+  # unsupported by ebpf profiler distro
+  collectorMetrics:
+    enabled: false
+
+config:
+  service:
+    telemetry:
+      resource:
+        service.name: "opentelemetry-collector"
+        cx.agent.type: "ebpf-profiler"
+      logs:
+        level: "debug"
+    pipelines:
+      profiles:
+        exporters:
+          - debug
+        processors:
+          - memory_limiter

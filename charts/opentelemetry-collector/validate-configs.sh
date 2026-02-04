@@ -139,6 +139,9 @@ should_ignore_errors() {
         "unknown type.*ecsattributes"
         "receivers.*unknown type.*awsecscontainermetricsd.*for id.*awsecscontainermetricsd"
         "unknown type.*awsecscontainermetricsd"
+        # eBPF profiler receiver is only available in otelcol-ebpf-profiler distribution
+        "receivers.*unknown type.*profiling.*for id.*profiling"
+        "unknown type: \"profiling\""
     )
 
     # Check if the entire error output should be ignored first (for multiline patterns)

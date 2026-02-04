@@ -17,7 +17,7 @@
   "additionalProperties": false,
   "properties": {
     "distribution": {
-      "description": "Specifies the distribution of the collector. Supported values include \"standalone\", \"macos\", \"ecs\", \"gke/autopilot\", and \"eks/fargate\".",
+      "description": "Specifies the distribution of the collector. Supported values include \"standalone\", \"macos\", \"ecs\", \"eks\", \"aks\", \"gke\", \"gke/autopilot\", and \"eks/fargate\".",
       "type": "string"
     },
     "enabled": {
@@ -672,6 +672,10 @@
                 }
               }
             },
+            "collectionInterval": {
+              "description": "Collection interval for all discovery services. Can be overridden per service if needed.",
+              "type": "string"
+            },
             "services": {
               "type": "object",
               "additionalProperties": false,
@@ -682,7 +686,8 @@
                   "properties": {
                     "enabled": {"type": "boolean"},
                     "default_user": {"type": "string"},
-                    "default_db": {"type": "string"}
+                    "default_password": {"type": "string"},
+                    "default_database": {"type": "string"}
                   }
                 },
                 "mysql": {
@@ -690,14 +695,16 @@
                   "additionalProperties": false,
                   "properties": {
                     "enabled": {"type": "boolean"},
-                    "default_user": {"type": "string"}
+                    "default_user": {"type": "string"},
+                    "default_password": {"type": "string"}
                   }
                 },
                 "redis": {
                   "type": "object",
                   "additionalProperties": false,
                   "properties": {
-                    "enabled": {"type": "boolean"}
+                    "enabled": {"type": "boolean"},
+                    "default_password": {"type": "string"}
                   }
                 },
                 "mongodb": {
@@ -705,7 +712,10 @@
                   "additionalProperties": false,
                   "properties": {
                     "enabled": {"type": "boolean"},
-                    "default_user": {"type": "string"}
+                    "tls_insecure": {"type": "boolean"},
+                    "tls_insecure_skip_verify": {"type": "boolean"},
+                    "default_user": {"type": "string"},
+                    "default_password": {"type": "string"}
                   }
                 },
                 "nginx": {
@@ -729,7 +739,8 @@
                   "additionalProperties": false,
                   "properties": {
                     "enabled": {"type": "boolean"},
-                    "default_user": {"type": "string"}
+                    "default_user": {"type": "string"},
+                    "default_password": {"type": "string"}
                   }
                 },
                 "memcached": {
@@ -743,7 +754,9 @@
                   "type": "object",
                   "additionalProperties": false,
                   "properties": {
-                    "enabled": {"type": "boolean"}
+                    "enabled": {"type": "boolean"},
+                    "default_user": {"type": "string"},
+                    "default_password": {"type": "string"}
                   }
                 },
                 "kafka": {
@@ -1385,6 +1398,35 @@
             }
           }
         },
+        "otlpExporter": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether the collector should configure an OTLP exporter.",
+              "type": "boolean"
+            },
+            "pipelines": {
+              "description": "Specifies which pipelines to add the OTLP exporter to.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["all", "logs", "metrics", "traces", "profiles", "none"]
+              }
+            },
+            "endpoint": {
+              "description": "Specifies the OTLP exporter endpoint.",
+              "type": "string"
+            },
+            "headers": {
+              "description": "Optional OTLP exporter headers.",
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        },
         "transactions": {
           "type": "object",
           "additionalProperties": false,
@@ -1690,6 +1732,10 @@
             "scrapeInterval": {
               "type": "string",
               "description": "Scrape interval for collector metrics"
+            },
+            "disablePrometheusReceiver": {
+              "type": "boolean",
+              "description": "Disable the self-scrape Prometheus receiver and transform processor while keeping telemetry readers enabled."
             }
           }
         },
@@ -1741,6 +1787,32 @@
                   }
                 }
               }
+            }
+          }
+        },
+        "prometheusAnnotationDiscovery": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Specifies whether the collector should discover Prometheus targets based on Kubernetes annotations."
+            },
+            "scrapeInterval": {
+              "type": "string",
+              "description": "Scrape interval for Prometheus annotation discovery."
+            },
+            "observePods": {
+              "type": "boolean",
+              "description": "Specifies whether the k8s observer should watch pods."
+            },
+            "observeServices": {
+              "type": "boolean",
+              "description": "Specifies whether the k8s observer should watch services."
+            },
+            "enableServiceRule": {
+              "type": "boolean",
+              "description": "Specifies whether to enable service annotation discovery rule."
             }
           }
         },
@@ -1800,6 +1872,86 @@
             }
           }
         },
+        "profilesK8sAttributes": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether to enable Kubernetes attributes for profiles.",
+              "type": "boolean"
+            },
+            "serviceLabels": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "tag_name": {
+                    "type": "string"
+                  },
+                  "key": {
+                    "type": "string"
+                  },
+                  "from": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "serviceAnnotations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "tag_name": {
+                    "type": "string"
+                  },
+                  "key": {
+                    "type": "string"
+                  },
+                  "from": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "ebpfProfiler": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether to enable the eBPF profiler preset.",
+              "type": "boolean"
+            },
+            "reporterInterval": {
+              "description": "Interval for sending profiling data.",
+              "type": "string"
+            },
+            "probabilisticInterval": {
+              "description": "Interval for probabilistic profiling scheduling.",
+              "type": "string"
+            },
+            "probabilisticThreshold": {
+              "description": "Threshold for probabilistic profiling.",
+              "type": "integer"
+            },
+            "verboseMode": {
+              "description": "Enable verbose tracer logging.",
+              "type": "boolean"
+            },
+            "offCpuThreshold": {
+              "description": "Enable off-CPU profiling (0 disables).",
+              "type": "number"
+            },
+            "tracers": {
+              "description": "Comma-delimited list of tracers to enable (or \"all\").",
+              "type": "string"
+            }
+          }
+        },
         "zipkinReceiver": {
           "type": "object",
           "additionalProperties": false,
@@ -1837,6 +1989,36 @@
                 "additionalProperties": {
                   "type": "string"
                 }
+              }
+            },
+            "dynamicSubsystemName": {
+              "description": "When enabled, dynamically sets the Coralogix subsystem name based on the systemd unit name (e.g., 'ssh.service' becomes 'ssh').",
+              "type": "boolean"
+            }
+          }
+        },
+        "systemdReceiver": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Enables the systemd receiver to collect metrics about systemd unit states. WARNING: Only for non-containerized deployments. Requires direct access to host D-Bus socket. Requires v0.142.0+.",
+              "type": "boolean"
+            },
+            "collectionInterval": {
+              "description": "The interval at which to collect systemd metrics. Examples: '10s', '30s', '1m'. Default: 60s.",
+              "type": "string"
+            },
+            "scope": {
+              "description": "The systemd scope to monitor: 'system' or 'user'. Default: system.",
+              "type": "string",
+              "enum": ["system", "user"]
+            },
+            "units": {
+              "description": "List of systemd units to monitor. Supports patterns like '*.service'. Default: ['*.service']",
+              "type": "array",
+              "items": {
+                "type": "string"
               }
             }
           }
@@ -2459,6 +2641,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "loadBalancerClass": {
+          "type": "string"
         },
         "annotations": {
           "type": "object"

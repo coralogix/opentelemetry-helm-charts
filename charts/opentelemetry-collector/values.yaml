@@ -146,6 +146,7 @@ extraConfig: {}
 # values.yaml to configure k8s as necessary.
 presets:
   # Adds ECS container logs attributes enrichment processor that extracts container_id from log.file.path
+  # NOTE: The preset name is incorrect; it should be ecsContainerAttributes.
   ecsAttributesContainerLogs:
     enabled: false
   # Configures the collector to collect ECS container logs from the host.
@@ -258,6 +259,29 @@ presets:
   # Configures the collector to collect profiles.
   profilesCollection:
     enabled: false
+  # Configures Kubernetes attributes and service.name mapping for profiles.
+  profilesK8sAttributes:
+    enabled: false
+    serviceLabels: []
+    serviceAnnotations: []
+  # Configures the collector to run the eBPF profiler distribution.
+  # Switches the image to otelcol-ebpf-profiler and wires a profiles pipeline
+  # with the profiling receiver. Logs/metrics/traces pipelines are removed and
+  # the otlpReceiver/collectorMetrics presets are ignored for compatibility.
+  ebpfProfiler:
+    enabled: false
+    # Interval for sending profiling data.
+    reporterInterval: 5s
+    # Interval for probabilistic profiling scheduling (must be 1-5m).
+    probabilisticInterval: 1m
+    # Threshold for probabilistic profiling.
+    probabilisticThreshold: 100
+    # Enable verbose tracer logging.
+    verboseMode: false
+    # Enable off-CPU profiling (0 disables, range 0..1).
+    offCpuThreshold: 0
+    # Comma-delimited list of tracers to enable (or "all").
+    tracers: "all"
   # Configures the collector to collect host metrics.
   # Adds the hostmetrics receiver to the metrics pipeline
   # and adds the necessary volumes and volume mounts.
@@ -277,19 +301,32 @@ presets:
     enabled: false
     observer:
       refresh_interval: "10s"
+    # Collection interval for all discovery services
+    # Can be overridden per service if needed
+    collectionInterval: "60s"
     services:
       postgresql:
         enabled: true
+        # Set POSTGRES_USER, POSTGRES_PASSWORD, and POSTGRES_DB environment variables to override.
         default_user: "postgres"
-        default_db: "postgres"
+        default_password: ""
+        default_database: "postgres"
       mysql:
         enabled: true
+        # Set MYSQL_USER and MYSQL_PASSWORD environment variables to override.
         default_user: "root"
+        default_password: ""
       redis:
         enabled: true
+        # Set REDIS_PASSWORD environment variable to override.
+        default_password: ""
       mongodb:
         enabled: true
+        tls_insecure: false
+        tls_insecure_skip_verify: true
+        # Set MONGODB_USER and MONGODB_PASSWORD environment variables to override.
         default_user: "admin"
+        default_password: ""
       nginx:
         enabled: true
         status_endpoint: "/nginx_status"
@@ -298,11 +335,16 @@ presets:
         status_endpoint: "/server-status?auto"
       rabbitmq:
         enabled: true
+        # Set RABBITMQ_USER and RABBITMQ_PASSWORD environment variables to override.
         default_user: "guest"
+        default_password: "guest"
       memcached:
         enabled: true
       elasticsearch:
         enabled: true
+        # Set ELASTICSEARCH_USER and ELASTICSEARCH_PASSWORD environment variables to override.
+        default_user: "elastic"
+        default_password: ""
       kafka:
         enabled: true
       cassandra:
@@ -556,6 +598,24 @@ presets:
     #   sizer: requests        # requests | items | bytes
     #   queueSize: 1000
 
+  # Configures the collector to export data with the OTLP exporter.
+  otlpExporter:
+    enabled: false
+    # Use pipelines (plural) for multiple pipeline selection.
+    # Possible values: "all", "metrics", "traces", "logs", "profiles" and "none".
+    # Examples:
+    #   pipelines: ["metrics", "traces"]
+    #   pipelines: ["profiles"]
+    #   pipelines: ["none"]
+    pipelines: ["all"]
+    # OTLP exporter endpoint (required when enabled).
+    endpoint: ""
+    # Optional OTLP exporter headers.
+    # Example:
+    #   headers:
+    #     Authorization: "Bearer ${env:CORALOGIX_PRIVATE_KEY}"
+    headers: {}
+
   # Configures grouping spans into transactions and enabling Coralogix transaction processor.
   transactions:
     enabled: false
@@ -572,7 +632,7 @@ presets:
     pipelines: ["all"]
     # Cloud provider for targeted attribute removal.
     # When set, only attributes relevant to this provider and deployment context are removed.
-    # Options: aws, azure, gcp, on-prem, "" (empty = use denylist for backward compatibility)
+    # Options: aws, azure, gcp, on-prem, "" (infer from distribution), "none" (force denylist/backward compatibility)
     provider: ""
     denylist:
       metrics:
@@ -871,6 +931,15 @@ presets:
     #   port: 9104
     #   extraLabels: {}
 
+  # Configures the cluster-collector to dynamically discover Prometheus targets
+  # based on Kubernetes annotations.
+  prometheusAnnotationDiscovery:
+    enabled: false
+    scrapeInterval: "30s"
+    observePods: true
+    observeServices: false
+    enableServiceRule: false
+
   # Configures the collector to receive Jaeger data in all supported protocols.
   # Adds the jaeger receiver to the traces pipeline with all protocols configured.
   jaegerReceiver:
@@ -886,6 +955,17 @@ presets:
   # journal directory into the collector.
   journaldReceiver:
     enabled: false
+    dynamicSubsystemName: false
+
+  # Adds the systemd receiver to the metrics pipeline.
+  # Collects metrics about systemd unit states (active, failed, inactive, etc.) on Linux systems.
+  # WARNING: This preset is ONLY for non-containerized deployments (native binary installations).
+  # Requires OpenTelemetry Collector v0.142.0 or later.
+  systemdReceiver:
+    enabled: false
+    # collectionInterval: "30s"  #override the default 60s collection interval
+    # scope: system           # Optional: Systemd scope to monitor (system or user), template default: system
+    # units: ["*.service"]    # Optional: list of systemd units to monitor (supports patterns)
 
   # Configures the collector to receive OTLP data.
   # Adds the OTLP receiver to the traces, metrics, and logs pipelines.
@@ -1256,6 +1336,7 @@ service:
   # type: LoadBalancer
   # loadBalancerIP: 1.2.3.4
   # loadBalancerSourceRanges: []
+  # loadBalancerClass: service.k8s.aws/nlb
 
   # By default, Service of type 'LoadBalancer' will be created setting 'externalTrafficPolicy: Cluster'
   # unless other value is explicitly set.

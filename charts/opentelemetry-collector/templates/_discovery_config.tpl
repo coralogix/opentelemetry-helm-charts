@@ -45,11 +45,15 @@ receivers:
           not (command matches "coralogix|otel")
         config:
           endpoint: "`endpoint`"
-          username: ${env:POSTGRES_USER:-{{ .Values.presets.discovery.services.postgresql.default_user | default "postgres" }}}
-          password: ${env:POSTGRES_PASSWORD}
+          username: ${env:POSTGRES_USER:-{{ .Values.presets.discovery.services.postgresql.default_user }}}
+          password: ${env:POSTGRES_PASSWORD:-{{ .Values.presets.discovery.services.postgresql.default_password }}}
           databases:
-            - ${env:POSTGRES_DB:-{{ .Values.presets.discovery.services.postgresql.default_db | default "postgres" }}}
+            - ${env:POSTGRES_DB:-{{ .Values.presets.discovery.services.postgresql.default_database }}}
+          {{- if .Values.presets.discovery.collectionInterval }}
+          collection_interval: "{{ .Values.presets.discovery.collectionInterval }}"
+          {{- else }}
           collection_interval: 60s
+          {{- end }}
 {{- end }}
 
 {{- if .Values.presets.discovery.services.mysql.enabled }}
@@ -62,9 +66,13 @@ receivers:
           not (command matches "coralogix|otel")
         config:
           endpoint: "`endpoint`"
-          username: ${env:MYSQL_USER:-{{ .Values.presets.discovery.services.mysql.default_user | default "root" }}}
-          password: ${env:MYSQL_PASSWORD}
+          username: ${env:MYSQL_USER:-{{ .Values.presets.discovery.services.mysql.default_user }}}
+          password: ${env:MYSQL_PASSWORD:-{{ .Values.presets.discovery.services.mysql.default_password }}}
+          {{- if .Values.presets.discovery.collectionInterval }}
+          collection_interval: "{{ .Values.presets.discovery.collectionInterval }}"
+          {{- else }}
           collection_interval: 60s
+          {{- end }}
 {{- end }}
 
 {{- if .Values.presets.discovery.services.redis.enabled }}
@@ -76,8 +84,12 @@ receivers:
           not (command matches "coralogix|otel")
         config:
           endpoint: "`endpoint`"
-          password: ${env:REDIS_PASSWORD}
+          password: ${env:REDIS_PASSWORD:-{{ .Values.presets.discovery.services.redis.default_password }}}
+          {{- if .Values.presets.discovery.collectionInterval }}
+          collection_interval: "{{ .Values.presets.discovery.collectionInterval }}"
+          {{- else }}
           collection_interval: 60s
+          {{- end }}
 {{- end }}
 
 {{- if .Values.presets.discovery.services.mongodb.enabled }}
@@ -90,14 +102,17 @@ receivers:
         config:
           hosts:
             - endpoint: "`endpoint`"
-          username: ${env:MONGODB_USER:-{{ .Values.presets.discovery.services.mongodb.default_user | default "admin" }}}
-          password: ${env:MONGODB_PASSWORD}
+          username: ${env:MONGODB_USER:-{{ .Values.presets.discovery.services.mongodb.default_user }}}
+          password: ${env:MONGODB_PASSWORD:-{{ .Values.presets.discovery.services.mongodb.default_password }}}
           direct_connection: true
           tls:
-            insecure_skip_verify: true
-            insecure: false
-          timeout: 5s
+            insecure_skip_verify: {{ .Values.presets.discovery.services.mongodb.tls_insecure_skip_verify | default true }}
+            insecure: {{ .Values.presets.discovery.services.mongodb.tls_insecure | default false }}
+          {{- if .Values.presets.discovery.collectionInterval }}
+          collection_interval: "{{ .Values.presets.discovery.collectionInterval }}"
+          {{- else }}
           collection_interval: 60s
+          {{- end }}
 {{- end }}
 
 {{- if .Values.presets.discovery.services.nginx.enabled }}
@@ -109,7 +124,11 @@ receivers:
           not (command matches "coralogix|otel")
         config:
           endpoint: '`(port in [443] ? "https://" : "http://")``endpoint`{{ .Values.presets.discovery.services.nginx.status_endpoint | default "/nginx_status" }}'
+          {{- if .Values.presets.discovery.collectionInterval }}
+          collection_interval: "{{ .Values.presets.discovery.collectionInterval }}"
+          {{- else }}
           collection_interval: 60s
+          {{- end }}
 {{- end }}
 
 {{- if .Values.presets.discovery.services.apache.enabled }}
@@ -121,7 +140,11 @@ receivers:
           not (command matches "coralogix|otel")
         config:
           endpoint: "http://`endpoint`{{ .Values.presets.discovery.services.apache.status_endpoint | default "/server-status?auto" }}"
+          {{- if .Values.presets.discovery.collectionInterval }}
+          collection_interval: "{{ .Values.presets.discovery.collectionInterval }}"
+          {{- else }}
           collection_interval: 60s
+          {{- end }}
 {{- end }}
 
 {{- if .Values.presets.discovery.services.rabbitmq.enabled }}
@@ -133,9 +156,13 @@ receivers:
           not (command matches "coralogix|otel")
         config:
           endpoint: "`endpoint`"
-          username: ${env:RABBITMQ_USER:-{{ .Values.presets.discovery.services.rabbitmq.default_user | default "guest" }}}
-          password: ${env:RABBITMQ_PASSWORD:-guest}
+          username: ${env:RABBITMQ_USER:-{{ .Values.presets.discovery.services.rabbitmq.default_user }}}
+          password: ${env:RABBITMQ_PASSWORD:-{{ .Values.presets.discovery.services.rabbitmq.default_password }}}
+          {{- if .Values.presets.discovery.collectionInterval }}
+          collection_interval: "{{ .Values.presets.discovery.collectionInterval }}"
+          {{- else }}
           collection_interval: 60s
+          {{- end }}
 {{- end }}
 
 {{- if .Values.presets.discovery.services.memcached.enabled }}
@@ -147,7 +174,11 @@ receivers:
           not (command matches "coralogix|otel")
         config:
           endpoint: "`endpoint`"
+          {{- if .Values.presets.discovery.collectionInterval }}
+          collection_interval: "{{ .Values.presets.discovery.collectionInterval }}"
+          {{- else }}
           collection_interval: 60s
+          {{- end }}
 {{- end }}
 
 {{- if .Values.presets.discovery.services.elasticsearch.enabled }}
@@ -159,9 +190,13 @@ receivers:
           not (command matches "coralogix|otel")
         config:
           endpoint: "http://`endpoint`"
-          username: ${env:ELASTICSEARCH_USER}
-          password: ${env:ELASTICSEARCH_PASSWORD}
+          username: ${env:ELASTICSEARCH_USER:-{{ .Values.presets.discovery.services.elasticsearch.default_user }}}
+          password: ${env:ELASTICSEARCH_PASSWORD:-{{ .Values.presets.discovery.services.elasticsearch.default_password }}}
+          {{- if .Values.presets.discovery.collectionInterval }}
+          collection_interval: "{{ .Values.presets.discovery.collectionInterval }}"
+          {{- else }}
           collection_interval: 60s
+          {{- end }}
 {{- end }}
 
 {{- if .Values.presets.discovery.services.kafka.enabled }}
@@ -174,7 +209,11 @@ receivers:
         config:
           brokers:
             - "`endpoint`"
+          {{- if .Values.presets.discovery.collectionInterval }}
+          collection_interval: "{{ .Values.presets.discovery.collectionInterval }}"
+          {{- else }}
           collection_interval: 60s
+          {{- end }}
 {{- end }}
 
 {{- if .Values.presets.discovery.services.cassandra.enabled }}
@@ -188,6 +227,10 @@ receivers:
           jar_path: /opt/opentelemetry-java-contrib-jmx-metrics.jar
           endpoint: "service:jmx:rmi:///jndi/rmi://`endpoint`/jmxrmi"
           target_system: cassandra
+          {{- if .Values.presets.discovery.collectionInterval }}
+          collection_interval: "{{ .Values.presets.discovery.collectionInterval }}"
+          {{- else }}
           collection_interval: 60s
+          {{- end }}
 {{- end }}
 {{- end }}

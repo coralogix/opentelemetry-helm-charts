@@ -2,13 +2,109 @@
 
 ## OpenTelemetry Collector
 
-### v0.127.6 / 2025-12-24
+### v0.128.20 / 2025-02-05
 
 - [Feat] Add `discovery` preset for automatic service discovery in standalone/macos distributions.
 - [Feat] Discovery preset supports 11 services: PostgreSQL, MySQL, Redis, MongoDB, NGINX, Apache, RabbitMQ, Memcached, Elasticsearch, Kafka, and Cassandra.
 - [Feat] Discovery uses `host_observer` extension with `receiver_creator` for dynamic service detection based on process command names.
 - [Feat] Credential management via environment variables with sensible defaults.
 
+### v0.128.19 / 2026-02-03
+
+- [Fix] Use `collection_interval` for prometheus annotation discovery preset receivers.
+
+### v0.128.18 / 2026-02-03
+
+- [Fix] Remove invalid "gke" detector from resourcedetection/region processor for GCP provider.
+
+### v0.128.17 / 2026-01-23
+
+- [Feat] Add an option to disable the collector metrics Prometheus receiver and transform while keeping telemetry readers enabled.
+
+### v0.128.16 / 2026-01-23
+
+- [Feat] Add prometheus annotation discovery preset for cluster-collector with receiver_creator support for pod and service rules.
+
+### v0.128.15 / 2026-01-22
+
+- [Fix] Use the configured `from` field for profiles k8sattributes service annotations.
+
+### v0.128.14 / 2026-01-22
+
+- [Fix] Fix `deltaToCumulative` preset producing `null` config when no options are set.
+- [Fix] Fix `reduceResourceAttributes` preset to only apply custom denylist when no provider is set (backward compatibility mode).
+
+### v0.128.13 / 2026-01-20
+
+- [Fix] Use `instrumentation_scope.name` to detect spanmetrics connector metrics when mapping `otel.status_code` back to `status.code`.
+
+### v0.128.12 / 2026-01-20
+
+- [Feat] Add Azure-specific transform to set `host.name` from `azure.vm.name` when `host.name` is empty, applied to all pipelines including `logs/resource_catalog` when provider is Azure.
+
+### v0.128.11 / 2026-01-16
+
+- [Fix] Ensure the `ecsAttributesContainerLogs` preset adds the ECS attributes processor to the profiles pipeline created by the `ebpfProfiler` preset.
+- [Fix] Enable the `ecsAttributesContainerLogs` preset in the `ebpf-profiler` example values.
+
+### v0.128.10 / 2026-01-16
+
+- [Feat] Extend `ecsAttributesContainerLogs` to enrich traces and profiles pipelines when present, and include `container.id` as a supported source for container ID extraction.
+
+### v0.128.9 / 2026-01-15
+
+- [Fix] Gate span metrics status code transforms on `span.name` presence while allowing UNSET mapping when `otel.status_code` is UNSET or unset.
+
+### v0.128.8 / 2026-01-14
+
+- [Feat] Add cloud tags collection for Infra Explore by enabling `ec2.tags` and `azure.tags` in the `resourcedetection/entity` processor.
+
+### v0.128.7 / 2026-01-14
+
+- [Feat] Add Azure cloud support for Infra Explore by mapping `azure.vm.size` to `host.type` in the host entity events pipeline when provider is Azure.
+
+### v0.128.6 / 2026-01-13
+
+- [Fix] Apply `presets.spanMetrics.histogramBuckets` value to `dbMetrics`.
+
+### v0.128.5 / 2026-01-12
+
+- [Feat] Add `systemdReceiver` preset which gathers metrics for locally running systemd units on standalone linux deployments with optional scope and units configuration.
+
+### v0.128.4 / 2026-01-08
+
+– [Fix] Add missing field `service.loadBalancerClass` to support setups with AWS ALB Controller
+
+### v0.128.3 / 2026-01-07
+
+- [Feat] Add an `ebpfProfiler` preset that switches to the otelcol-ebpf-profiler distribution, creates a profiles-only pipeline, and wires the profiling receiver. Allows to configure intervals, thresholds, off-CPU, verbosity, tracers.
+- [Feat] Add a `profilesK8sAttributes` preset to enrich profiles with Kubernetes attributes and map service.name from labels/metadata.
+- [Feat] Add an `otlpExporter` preset to configure an OTLP endpoint with optional headers, plus pipeline selection.
+
+### v0.128.2 / 2026-01-07
+
+- [Feature] Ensure new behaviors from span metrics connector, defined behind `+connector.spanmetrics.useSecondAsDefaultMetricsUnit`, `+connector.spanmetrics.excludeResourceMetrics`, `+spanmetrics.statusCodeConvention.useOtelPrefix` feature gates don't break backward compatibility.
+  - Added `add_resource_attributes: true` to maintain resource attributes in span metrics
+  - Added `histogram.unit: ms` to maintain millisecond units for duration metrics
+  - Added OTTL transformations to convert new `otel.status_code` back to old `status.code` format with `STATUS_CODE_*` values
+
+### v0.128.1 / 2026-01-06
+
+- [Fix] Remove unused `k8s_observer` extension from `kubernetesExtraMetrics` preset to avoid unnecessary API server load.
+
+### v0.128.0 / 2025-12-30
+
+- [CHORE] Bump Collector to 0.142.0
+
+### v0.127.7 / 2025-12-24
+
+- [Fix] Remove `nop` exporter and receiver from `profiles` pipeline when the `supervisor` and `profilesCollection` presets are enabled. This exporter/receiver does not support profiles yet.
+
+### v0.127.6 / 2025-12-23
+
+- [Feat] Add `dynamicSubsystemName` option to `journaldReceiver` preset to extract subsystem name from systemd unit name or syslog identifier.
+- [Fix] Fix `macosSystemLogs` regex pattern to correctly parse multiline log entries.
+- [Fix] Fix `macosSystemLogs` dynamic subsystem naming to use `service.name` instead of `cx.subsystem.name` for proper Coralogix exporter compatibility.
 
 ### v0.127.5 / 2025-12-23
 

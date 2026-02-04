@@ -14,3 +14,9 @@ startupProbe:
 
 autoscaling:
   enabled: true
+
+presets:
+  prometheusAnnotationDiscovery:
+    enabled: true
+    observeServices: true
+    enableServiceRule: true
