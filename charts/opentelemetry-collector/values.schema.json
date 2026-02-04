@@ -653,6 +653,130 @@
             }
           }
         },
+        "discovery": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Automatic service discovery for common databases and services. Currently active for standalone/macos distributions.",
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether automatic service discovery should be enabled.",
+              "type": "boolean"
+            },
+            "observer": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "refresh_interval": {
+                  "description": "How often to refresh the list of discovered endpoints.",
+                  "type": "string"
+                }
+              }
+            },
+            "collectionInterval": {
+              "description": "Collection interval for all discovery services. Can be overridden per service if needed.",
+              "type": "string"
+            },
+            "services": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "postgresql": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "default_user": {"type": "string"},
+                    "default_password": {"type": "string"},
+                    "default_database": {"type": "string"}
+                  }
+                },
+                "mysql": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "default_user": {"type": "string"},
+                    "default_password": {"type": "string"}
+                  }
+                },
+                "redis": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "default_password": {"type": "string"}
+                  }
+                },
+                "mongodb": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "tls_insecure": {"type": "boolean"},
+                    "tls_insecure_skip_verify": {"type": "boolean"},
+                    "default_user": {"type": "string"},
+                    "default_password": {"type": "string"}
+                  }
+                },
+                "nginx": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "status_endpoint": {"type": "string"}
+                  }
+                },
+                "apache": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "status_endpoint": {"type": "string"}
+                  }
+                },
+                "rabbitmq": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "default_user": {"type": "string"},
+                    "default_password": {"type": "string"}
+                  }
+                },
+                "memcached": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"}
+                  }
+                },
+                "elasticsearch": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"},
+                    "default_user": {"type": "string"},
+                    "default_password": {"type": "string"}
+                  }
+                },
+                "kafka": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"}
+                  }
+                },
+                "cassandra": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {"type": "boolean"}
+                  }
+                }
+              }
+            }
+          }
+        },
         "kubeletMetrics": {
           "type": "object",
           "additionalProperties": false,

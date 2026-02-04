@@ -1,0 +1,312 @@
+---
+# Source: opentelemetry-collector/templates/configmap-agent.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-opentelemetry-collector-agent
+  namespace: default
+  labels:
+    helm.sh/chart: opentelemetry-collector-0.128.20
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.142.0"
+    app.kubernetes.io/managed-by: Helm
+    
+data:
+  relay: |
+    exporters:
+      debug: {}
+    extensions:
+      health_check:
+        endpoint: ${env:MY_POD_IP}:13133
+      host_observer:
+        refresh_interval: 10s
+    processors:
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      transform/prometheus:
+        error_mode: ignore
+        metric_statements:
+        - context: metric
+          statements:
+          - replace_pattern(metric.name, "_total$", "") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_cpu_seconds_seconds$", "otelcol_process_cpu_seconds")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_memory_rss_bytes$", "otelcol_process_memory_rss_bytes")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_heap_alloc_bytes_bytes$",
+            "otelcol_process_runtime_heap_alloc_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_total_alloc_bytes_bytes$",
+            "otelcol_process_runtime_total_alloc_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_total_sys_memory_bytes_bytes$",
+            "otelcol_process_runtime_total_sys_memory_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_fileconsumer_open_files$", "otelcol_fileconsumer_open_files_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_fileconsumer_reading_files$", "otelcol_fileconsumer_reading_files_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_ip_lookup_miss$", "otelcol_otelsvc_k8s_ip_lookup_miss_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_added$", "otelcol_otelsvc_k8s_pod_added_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_table_size_ratio$",
+            "otelcol_otelsvc_k8s_pod_table_size_ratio") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_updated$", "otelcol_otelsvc_k8s_pod_updated_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_deleted$", "otelcol_otelsvc_k8s_pod_deleted_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_filter_spans\\.filtered$",
+            "otelcol_processor_filter_spans.filtered_ratio") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+        - context: resource
+          statements:
+          - set(attributes["k8s.pod.ip"], attributes["net.host.name"]) where attributes["service.name"]
+            == "opentelemetry-collector"
+          - delete_key(attributes, "service_name") where attributes["service.name"] ==
+            "opentelemetry-collector"
+        - context: datapoint
+          statements:
+          - delete_key(attributes, "service_name") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - delete_key(attributes, "otel_scope_name") where attributes["service.name"]
+            == "opentelemetry-collector"
+    receivers:
+      hostmetrics:
+        collection_interval: 10s
+        root_path: /
+        scrapers:
+          cpu:
+            metrics:
+              system.cpu.utilization:
+                enabled: true
+          disk: null
+          filesystem:
+            exclude_fs_types:
+              fs_types:
+              - autofs
+              - binfmt_misc
+              - bpf
+              - cgroup2
+              - configfs
+              - debugfs
+              - devpts
+              - devtmpfs
+              - fusectl
+              - hugetlbfs
+              - iso9660
+              - mqueue
+              - nsfs
+              - overlay
+              - proc
+              - procfs
+              - pstore
+              - rpc_pipefs
+              - securityfs
+              - selinuxfs
+              - squashfs
+              - sysfs
+              - tracefs
+              match_type: strict
+            exclude_mount_points:
+              match_type: regexp
+              mount_points:
+              - /dev/*
+              - /proc/*
+              - /sys/*
+              - /run/k3s/containerd/*
+              - /run/containerd/runc/*
+              - /var/lib/docker/*
+              - /var/lib/kubelet/*
+              - /snap/*
+          load: null
+          memory:
+            metrics:
+              system.memory.utilization:
+                enabled: true
+          network: null
+          process:
+            metrics:
+              process.cpu.utilization:
+                enabled: true
+              process.memory.utilization:
+                enabled: true
+              process.threads:
+                enabled: true
+            mute_process_exe_error: true
+            mute_process_name_error: true
+            mute_process_user_error: true
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+            max_recv_msg_size_mib: 20
+          http:
+            endpoint: 0.0.0.0:4318
+      prometheus:
+        config:
+          scrape_configs:
+          - job_name: opentelemetry-collector
+            scrape_interval: 30s
+            static_configs:
+            - targets:
+              - 0.0.0.0:8888
+      receiver_creator/discovery:
+        receivers:
+          apache:
+            config:
+              collection_interval: 60s
+              endpoint: http://`endpoint`/server-status?auto
+            rule: |
+              type == "hostport" and
+              command matches "(?i)(httpd|apache2).*" and
+              not (command matches "coralogix|otel")
+          elasticsearch:
+            config:
+              collection_interval: 60s
+              endpoint: http://`endpoint`
+              password: ${env:ELASTICSEARCH_PASSWORD:-}
+              username: ${env:ELASTICSEARCH_USER:-elastic}
+            rule: |
+              type == "hostport" and
+              command matches "(?i)elasticsearch" and
+              not (command matches "coralogix|otel")
+          jmx/cassandra:
+            config:
+              collection_interval: 60s
+              endpoint: service:jmx:rmi:///jndi/rmi://`endpoint`/jmxrmi
+              jar_path: /opt/opentelemetry-java-contrib-jmx-metrics.jar
+              target_system: cassandra
+            rule: |
+              type == "hostport" and
+              command matches "(?i)cassandra.*" and
+              not (command matches "coralogix|otel")
+          kafkametrics:
+            config:
+              brokers:
+              - '`endpoint`'
+              collection_interval: 60s
+            rule: |
+              type == "hostport" and
+              command matches "(?i)kafka.*" and
+              not (command matches "coralogix|otel")
+          memcached:
+            config:
+              collection_interval: 60s
+              endpoint: '`endpoint`'
+            rule: |
+              type == "hostport" and
+              command matches "(?i)memcached" and
+              not (command matches "coralogix|otel")
+          mongodb:
+            config:
+              collection_interval: 60s
+              direct_connection: true
+              hosts:
+              - endpoint: '`endpoint`'
+              password: ${env:MONGODB_PASSWORD:-}
+              tls:
+                insecure: false
+                insecure_skip_verify: true
+              username: ${env:MONGODB_USER:-admin}
+            rule: |
+              type == "hostport" and
+              command matches "(?i)mongo" and
+              not (command matches "coralogix|otel")
+          mysql:
+            config:
+              collection_interval: 60s
+              endpoint: '`endpoint`'
+              password: ${env:MYSQL_PASSWORD:-}
+              username: ${env:MYSQL_USER:-root}
+            rule: |
+              type == "hostport" and
+              port != 33060 and
+              command matches "(?i)mysqld" and
+              not (command matches "coralogix|otel")
+          nginx:
+            config:
+              collection_interval: 60s
+              endpoint: '`(port in [443] ? "https://" : "http://")``endpoint`/nginx_status'
+            rule: |
+              type == "hostport" and
+              command matches "(?i)nginx" and
+              not (command matches "coralogix|otel")
+          postgresql:
+            config:
+              collection_interval: 60s
+              databases:
+              - ${env:POSTGRES_DB:-postgres}
+              endpoint: '`endpoint`'
+              password: ${env:POSTGRES_PASSWORD:-}
+              username: ${env:POSTGRES_USER:-postgres}
+            rule: |
+              type == "hostport" and
+              command matches "(?i)postgres" and
+              not (command matches "coralogix|otel")
+          rabbitmq:
+            config:
+              collection_interval: 60s
+              endpoint: '`endpoint`'
+              password: ${env:RABBITMQ_PASSWORD:-guest}
+              username: ${env:RABBITMQ_USER:-guest}
+            rule: |
+              type == "hostport" and
+              command matches "(?i)rabbitmq.*" and
+              not (command matches "coralogix|otel")
+          redis:
+            config:
+              collection_interval: 60s
+              endpoint: '`endpoint`'
+              password: ${env:REDIS_PASSWORD:-}
+            rule: |
+              type == "hostport" and
+              command matches "(?i)redis" and
+              not (command matches "coralogix|otel")
+        watch_observers:
+        - host_observer
+    service:
+      extensions:
+      - health_check
+      - host_observer
+      pipelines:
+        logs:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          receivers:
+          - otlp
+        metrics:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          - transform/prometheus
+          receivers:
+          - hostmetrics
+          - receiver_creator/discovery
+          - prometheus
+          - otlp
+        traces:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          receivers:
+          - otlp
+      telemetry:
+        logs:
+          encoding: json
+        metrics:
+          readers:
+          - pull:
+              exporter:
+                prometheus:
+                  host: 0.0.0.0
+                  port: 8888

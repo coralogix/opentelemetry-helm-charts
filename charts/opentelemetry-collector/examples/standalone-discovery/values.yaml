@@ -1,0 +1,66 @@
+mode: daemonset
+hostNetwork: true
+distribution: standalone
+presets:
+  hostMetrics:
+    enabled: true
+    process:
+      enabled: true
+  collectorMetrics:
+    enabled: true
+    scrapeInterval: "30s"
+  # Automatic service discovery for common databases and services
+  # Currently supported: standalone (Linux/macOS)
+  discovery:
+    enabled: true
+    observer:
+      refresh_interval: "10s"
+    # Collection interval for all discovery services
+    # Can be overridden per service if needed
+    collectionInterval: "60s"
+    services:
+      postgresql:
+        enabled: true
+        # Set POSTGRES_USER, POSTGRES_PASSWORD, and POSTGRES_DB environment variables to override.
+        default_user: "postgres"
+        default_password: ""
+        default_database: "postgres"
+      mysql:
+        enabled: true
+        # Set MYSQL_USER and MYSQL_PASSWORD environment variables to override.
+        default_user: "root"
+        default_password: ""
+      redis:
+        enabled: true
+        # Set REDIS_PASSWORD environment variable to override.
+        default_password: ""
+      mongodb:
+        enabled: true
+        tls_insecure: false
+        tls_insecure_skip_verify: true
+        # Set MONGODB_USER and MONGODB_PASSWORD environment variables to override.
+        default_user: "admin"
+        default_password: ""
+      nginx:
+        enabled: true
+        status_endpoint: "/nginx_status"
+      apache:
+        enabled: true
+        status_endpoint: "/server-status?auto"
+      rabbitmq:
+        enabled: true
+        # Set RABBITMQ_USER and RABBITMQ_PASSWORD environment variables to override.
+        default_user: "guest"
+        default_password: "guest"
+      memcached:
+        enabled: true
+      elasticsearch:
+        enabled: true
+        # Set ELASTICSEARCH_USER and ELASTICSEARCH_PASSWORD environment variables to override.
+        default_user: "elastic"
+        default_password: ""
+      kafka:
+        enabled: true
+      cassandra:
+        enabled: true
+

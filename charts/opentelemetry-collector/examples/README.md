@@ -8,6 +8,7 @@ Here is a collection of common configurations for the OpenTelemetry collector.  
 - [Log collection, including collector logs](daemonset-collector-logs)
 - [Add component (hostmetrics)](daemonset-hostmetrics)
 - [Standalone Linux with journald receiver](standalone-journald)
+- [Standalone with service discovery](standalone-discovery)
 - [Daemonset Windows](daemonset-windows)
 - [IPv6 network mode](networkmode-ipv6)
 
