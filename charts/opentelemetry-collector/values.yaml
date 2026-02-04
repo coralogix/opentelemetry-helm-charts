@@ -928,7 +928,7 @@ presets:
   # WARNING: This preset is ONLY for Windows deployments (isWindows: true).
   iisReceiver:
     enabled: false
-    collectionInterval: "10s"
+    collectionInterval: "30s"
 
   # Configures the collector to collect IIS access logs (W3C format).
   # IMPORTANT: Requires feature gate: --feature-gates=filelog.allowHeaderMetadataParsing

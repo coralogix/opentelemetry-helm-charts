@@ -3722,7 +3722,7 @@ receivers:
 {{- define "opentelemetry-collector.iisReceiverConfig" -}}
 receivers:
   iis:
-    collection_interval: {{ .Values.presets.iisReceiver.collectionInterval | default "10s" }}
+    collection_interval: {{ .Values.presets.iisReceiver.collectionInterval | default "30s" }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyIisLogsConfig" -}}
@@ -3788,13 +3788,14 @@ processors:
       - context: log
         statements:
           # Map IIS fields to OTel semantic conventions
-          - set(attributes["http.client_ip"], attributes["c-ip"]) where attributes["c-ip"] != nil
-          - set(attributes["http.method"], attributes["cs-method"]) where attributes["cs-method"] != nil
-          - set(attributes["http.status_code"], attributes["sc-status"]) where attributes["sc-status"] != nil
+          - set(attributes["client.address"], attributes["c-ip"]) where attributes["c-ip"] != nil
+          - set(attributes["http.request.method"], attributes["cs-method"]) where attributes["cs-method"] != nil
+          - set(attributes["http.response.status_code"], attributes["sc-status"]) where attributes["sc-status"] != nil
           - set(attributes["user_agent.original"], attributes["cs(User-Agent)"]) where attributes["cs(User-Agent)"] != nil
           - set(attributes["url.path"], attributes["cs-uri-stem"]) where attributes["cs-uri-stem"] != nil
           - set(attributes["url.query"], attributes["cs-uri-query"]) where attributes["cs-uri-query"] != nil
-          - set(attributes["http.request.referrer"], attributes["cs(Referer)"]) where attributes["cs(Referer)"] != nil
+          # Map referrer and duration to descriptive custom attributes (not in official semantic conventions)
+          - set(attributes["http.request.header.referer"], attributes["cs(Referer)"]) where attributes["cs(Referer)"] != nil
           - set(attributes["http.server.request.duration_ms"], Int(attributes["time-taken"])) where attributes["time-taken"] != nil
           # Cleanup raw IIS attributes
           - delete_key(attributes, "c-ip")
