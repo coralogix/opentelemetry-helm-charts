@@ -884,7 +884,6 @@ presets:
   # based on Kubernetes annotations.
   prometheusAnnotationDiscovery:
     enabled: false
-    # Applied as collection_interval for prometheus_simple receivers.
     scrapeInterval: "30s"
     observePods: true
     observeServices: false
