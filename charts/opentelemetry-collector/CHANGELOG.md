@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.129.0 / 2026-02-05
+
+- [Feat] Bump OpenTelemetry Collector image to v0.145.0.
+
 ### v0.128.20 / 2026-02-04
 
 - [Fix] Fix multiline stacktraces parsing for collector logs.
