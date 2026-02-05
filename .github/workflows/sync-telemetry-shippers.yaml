@@ -1,4 +1,4 @@
-name: Notify Telemetry Shippers
+name: Sync Telemetry Shippers
 
 on:
   workflow_run:
@@ -6,12 +6,18 @@ on:
     types: [completed]
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   notify:
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Install yq
         run: |
@@ -43,4 +49,3 @@ jobs:
             -f "client_payload[pr_url]=${{ steps.pr.outputs.url }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-
