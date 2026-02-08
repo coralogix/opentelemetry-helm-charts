@@ -3748,7 +3748,8 @@ receivers:
 {{- if .Values.presets.iisLogs.storeCheckpoints }}
 extensions:
   file_storage:
-    directory: {{ .Values.presets.iisLogs.storagePath | default "C:\\ProgramData\\otelcol-contrib\\file_storage" | quote }}
+    directory: {{ .Values.presets.iisLogs.storagePath | default "C:\\ProgramData\\OpenTelemetry\\Collector\\storage" | quote }}
+    create_directory: true
 {{- end }}
 receivers:
   filelog/iis:

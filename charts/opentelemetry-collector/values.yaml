@@ -943,7 +943,7 @@ presets:
     storeCheckpoints: false
     # Directory to store checkpoint files (must be writable by collector).
     # Only used when storeCheckpoints is true.
-    # storagePath: "C:\\ProgramData\\otelcol-contrib\\file_storage"
+    # Default: "C:\\ProgramData\\OpenTelemetry\\Collector\\storage"
 
   # Configures the collector to receive OTLP data.
   # Adds the OTLP receiver to the traces, metrics, and logs pipelines.

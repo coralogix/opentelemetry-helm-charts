@@ -1949,7 +1949,7 @@
               "type": "boolean"
             },
             "storagePath": {
-              "description": "Directory to store checkpoint files. Only used when storeCheckpoints is true. Default: C:\\ProgramData\\otelcol-contrib\\file_storage",
+              "description": "Directory to store checkpoint files. Only used when storeCheckpoints is true. Default: C:\\ProgramData\\OpenTelemetry\\Collector\\storage",
               "type": "string"
             }
           }
