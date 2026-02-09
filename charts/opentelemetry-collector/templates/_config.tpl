@@ -3796,7 +3796,7 @@ processors:
           - set(attributes["url.path"], attributes["cs-uri-stem"]) where attributes["cs-uri-stem"] != nil
           - set(attributes["url.query"], attributes["cs-uri-query"]) where attributes["cs-uri-query"] != nil
           # Map referrer and duration to descriptive custom attributes (not in official semantic conventions)
-          - set(attributes["http.request.header.referer"], attributes["cs(Referer)"]) where attributes["cs(Referer)"] != nil
+          - set(attributes["http.request.header.referer"], [attributes["cs(Referer)"]]) where attributes["cs(Referer)"] != nil
           - set(attributes["http.server.request.duration_ms"], Int(attributes["time-taken"])) where attributes["time-taken"] != nil
           # Cleanup raw IIS attributes
           - delete_key(attributes, "c-ip")
