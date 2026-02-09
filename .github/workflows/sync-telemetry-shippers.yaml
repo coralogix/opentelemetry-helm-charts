@@ -1,0 +1,51 @@
+name: Sync Telemetry Shippers
+
+on:
+  workflow_run:
+    workflows: ["Coralogix-OpenTelemetry-Collector-Helm-Chart"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  notify:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(yq '.version' charts/opentelemetry-collector/Chart.yaml)
+          echo "value=$VERSION" >> $GITHUB_OUTPUT
+          echo "Chart version: $VERSION"
+
+      - name: Get source PR
+        id: pr
+        run: |
+          # Get the PR that was merged in the workflow run commit
+          PR_URL=$(gh pr list --state merged --search "${{ github.event.workflow_run.head_sha }}" --json url --jq '.[0].url' 2>/dev/null || echo "")
+          echo "url=$PR_URL" >> $GITHUB_OUTPUT
+          echo "Source PR: $PR_URL"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Dispatch to telemetry-shippers
+        run: |
+          gh api repos/coralogix/telemetry-shippers/dispatches \
+            -f event_type=otel-collector-release \
+            -f "client_payload[version]=${{ steps.version.outputs.value }}" \
+            -f "client_payload[pr_url]=${{ steps.pr.outputs.url }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
