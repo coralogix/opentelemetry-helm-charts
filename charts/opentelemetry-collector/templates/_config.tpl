@@ -33,6 +33,12 @@ Merge user supplied config into memory limiter config.
     {{- end }}
   {{- end }}
 
+  {{- /* Override health_check endpoint based on distribution */ -}}
+  {{- $healthCheckConfig := get .Values.config.extensions "health_check" }}
+  {{- if $healthCheckConfig }}
+  {{-   $_ := set $healthCheckConfig "endpoint" (include "opentelemetry-collector.healthCheckEndpoint" .) }}
+  {{- end }}
+
   {{- .Values.config | toYaml }}
 {{- end }}
 
@@ -46,7 +52,7 @@ exporters:
   nop:
 extensions:
   health_check:
-    endpoint: ${env:MY_POD_IP}:13133
+    endpoint: {{ include "opentelemetry-collector.envEndpoint" (dict "env" "MY_POD_IP" "port" "13133" "context" .) | quote }}
 service:
   extensions:
     - health_check
