@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.129.1
+    helm.sh/chart: opentelemetry-collector-0.129.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.145.0"
@@ -25,7 +25,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: e2d506c1d37784d77048b0e242bb33cb83873155c02e08fd0a2a6fa0e3066e6c
+        checksum/config: 9439b39dfa97c4ff77e9d2b96a12b8ec25a0d7c6efec9fa0cc1865355dc42b1b
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -59,6 +59,10 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: status.podIP
+            - name: K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
             - name: GOMEMLIMIT
               value: "152MiB"
             - name: OTEL_RESOURCE_ATTRIBUTES

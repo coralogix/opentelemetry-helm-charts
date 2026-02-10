@@ -2457,6 +2457,37 @@ processors:
 {{- end }}
 
 {{- define "opentelemetry-collector.kubernetesResourcesConfig" -}}
+{{- $distribution := .Values.distribution | default "" }}
+{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "explicitProvider" .Values.presets.resourceDetection.provider) }}
+{{- $isK8s := and (ne $distribution "standalone") (ne $distribution "ecs") (ne $distribution "macos") }}
+
+{{/* Determine cloud detectors for resource catalog based on provider */}}
+{{- $catalogDetectors := list }}
+{{- if eq $provider "aws" }}
+  {{- if $isK8s }}
+    {{- $catalogDetectors = (list "ec2" "eks") }}
+  {{- else }}
+    {{- $catalogDetectors = (list "ec2") }}
+  {{- end }}
+{{- else if eq $provider "azure" }}
+  {{- if $isK8s }}
+    {{- $catalogDetectors = (list "azure" "aks") }}
+  {{- else }}
+    {{- $catalogDetectors = (list "azure") }}
+  {{- end }}
+{{- else if eq $provider "gcp" }}
+  {{- $catalogDetectors = (list "gcp") }}
+{{- else if eq $provider "on-prem" }}
+  {{- $catalogDetectors = (list) }}
+{{- else }}
+  {{/* Backward compatibility: no provider set = try all cloud providers */}}
+  {{- if $isK8s }}
+    {{- $catalogDetectors = (list "gcp" "ec2" "azure" "eks" "aks") }}
+  {{- else }}
+    {{- $catalogDetectors = (list "gcp" "ec2" "azure") }}
+  {{- end }}
+{{- end }}
+
 processors:
   {{- if .Values.presets.kubernetesResources.filterWorkflows.enabled }}
   filter/workflow:
@@ -2498,15 +2529,16 @@ processors:
       - {{ $stmt }}
       {{- end }}
   {{- end }}
+  {{- if gt (len $catalogDetectors) 0 }}
   resourcedetection/resource_catalog:
-    detectors:
-    - eks
-    - aks
-    - gcp
-    - ec2
-    - azure
+    detectors: {{ $catalogDetectors | toJson }}
     override: true
     timeout: 2s
+    {{- if has "eks" $catalogDetectors }}
+    eks:
+      node_from_env_var: K8S_NODE_NAME
+    {{- end }}
+    {{- if has "ec2" $catalogDetectors }}
     ec2:
       resource_attributes:
         host.name:
@@ -2517,6 +2549,8 @@ processors:
           enabled: false
         host.type:
           enabled: false
+    {{- end }}
+    {{- if has "azure" $catalogDetectors }}
     azure:
       resource_attributes:
         host.name:
@@ -2531,6 +2565,8 @@ processors:
           enabled: false
         azure.vm.size:
           enabled: false
+    {{- end }}
+    {{- if has "gcp" $catalogDetectors }}
     gcp:
       resource_attributes:
         host.id:
@@ -2541,6 +2577,8 @@ processors:
           enabled: false
         k8s.cluster.name:
           enabled: false
+    {{- end }}
+  {{- end }}
 exporters:
   coralogix/resource_catalog:
     timeout: "30s"
@@ -2708,7 +2746,9 @@ service:
         {{- end }}
       processors:
         - memory_limiter
+        {{- if gt (len $catalogDetectors) 0 }}
         - resourcedetection/resource_catalog
+        {{- end }}
         - transform/entity-event
         {{- if .Values.presets.kubernetesResources.dropManagedFields.enabled }}
         - transform/remove_managed_fields

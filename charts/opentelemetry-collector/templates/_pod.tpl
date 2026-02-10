@@ -53,7 +53,7 @@ containers:
           fieldRef:
             fieldPath: metadata.name
       {{- end }}
-      {{- if or .Values.presets.k8sResourceAttributes.enabled (and .Values.presets.kubernetesAttributes.enabled (or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled)) (and .Values.presets.kubernetesApiServerMetrics.enabled (eq .Values.mode "daemonset")) (eq .Values.distribution "eks/fargate") .Values.presets.profilesK8sAttributes.enabled }}
+      {{- if and (ne .Values.distribution "ecs") (ne .Values.distribution "standalone") (ne .Values.distribution "macos") }}
       - name: K8S_NODE_NAME
         valueFrom:
           fieldRef:
