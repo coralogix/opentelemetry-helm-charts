@@ -5,10 +5,10 @@ kind: OpenTelemetryCollector
 metadata:
   name: example-opentelemetry-collector
   labels:
-    helm.sh/chart: opentelemetry-collector-0.128.17
+    helm.sh/chart: opentelemetry-collector-0.129.1
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "0.142.0"
+    app.kubernetes.io/version: "0.145.0"
     app.kubernetes.io/managed-by: Helm
     
 spec:
@@ -19,7 +19,7 @@ spec:
     runAsGroup: 0
   securityContext:
     privileged: true
-  image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.142.0"
+  image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.145.0"
   imagePullPolicy: IfNotPresent
   ports:
     - name: jaeger-binary
@@ -335,6 +335,20 @@ spec:
           id: clean-up-log-record
           to: body
           type: move
+        - combine_field: body
+          combine_with: |2+
+    
+          if: (attributes["log.file.path"] matches "/var/log/pods/default_example-opentelemetry-collector.*_.*/opentelemetry-collector/.*.log")
+          is_first_entry: body matches "^\\{"
+          max_batch_size: 1000
+          max_log_size: 1048576
+          source_identifier: attributes["log.file.path"]
+          type: recombine
+        - field: body
+          if: (attributes["log.file.path"] matches "/var/log/pods/default_example-opentelemetry-collector.*_.*/opentelemetry-collector/.*.log")
+          regex: (?s)("stacktrace":"[^"]*)"}\n(.*)$
+          replace_with: $${1}\\n$${2}"}
+          type: regex_replace
         - drop_ratio: 1
           expr: (attributes["log.file.path"] matches "/var/log/pods/default_example-opentelemetry-collector.*_.*/opentelemetry-collector/.*.log")
             and ((body contains "logRecord") or (body contains "ResourceLog"))

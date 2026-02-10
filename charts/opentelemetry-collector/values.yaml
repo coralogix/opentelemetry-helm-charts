@@ -854,6 +854,8 @@ presets:
   # Adds the prometheus receiver to the metrics pipeline with a scrape config
   # targeting the collector's metrics endpoint.
   # Also adds a transform processor to clean up metric names and attributes.
+  # Set disablePrometheusReceiver to true to skip the self-scrape receiver and transform,
+  # while keeping service.telemetry.metrics.readers enabled.
   collectorMetrics:
     enabled: true
     # Pipeline to add the collector metrics receiver and processor to. Possible values are
@@ -861,6 +863,8 @@ presets:
     pipeline: metrics
     # Scrape interval for collector metrics
     scrapeInterval: "30s"
+    # Disable the self-scrape Prometheus receiver and transform processor.
+    disablePrometheusReceiver: false
 
   # Configures the collector to scrape metrics from multiple Prometheus targets.
   # Adds a prometheus receiver to the metrics pipeline that scrapes each configured target

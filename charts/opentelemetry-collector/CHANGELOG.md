@@ -2,11 +2,31 @@
 
 ## OpenTelemetry Collector
 
- ### v0.128.17 / 2026-01-26
+ ### v0.129.1 / 2026-02-10
 
 - [Feat] Add Windows-specific presets: `windowsEventLog` (collects Windows Event Logs), `iisReceiver` (collects IIS metrics), and `iisLogs` (collects IIS access logs with W3C format parsing).
 - [Feat] Update `hostMetrics` preset with Windows-specific configuration: exclude `load` scraper, add `paging` scraper, configure `filesystem` to exclude empty mount points, and use `mute_process_all_errors` for process scraper.
 - [Feat] Add `standalone-windows` example demonstrating Windows presets for standalone deployments.
+
+### v0.129.0 / 2026-02-05
+
+- [Feat] Bump OpenTelemetry Collector image to v0.145.0.
+
+### v0.128.20 / 2026-02-04
+
+- [Fix] Fix multiline stacktraces parsing for collector logs.
+
+### v0.128.19 / 2026-02-03
+
+- [Fix] Use `collection_interval` for prometheus annotation discovery preset receivers.
+
+### v0.128.18 / 2026-02-03
+
+- [Fix] Remove invalid "gke" detector from resourcedetection/region processor for GCP provider.
+
+### v0.128.17 / 2026-01-23
+
+- [Feat] Add an option to disable the collector metrics Prometheus receiver and transform while keeping telemetry readers enabled.
 
 ### v0.128.16 / 2026-01-23
 

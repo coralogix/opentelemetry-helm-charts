@@ -6,10 +6,10 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.128.17
+    helm.sh/chart: opentelemetry-collector-0.129.1
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "0.142.0"
+    app.kubernetes.io/version: "0.145.0"
     app.kubernetes.io/managed-by: Helm
     
 data:
@@ -18,62 +18,12 @@ data:
       debug: {}
     extensions:
       health_check:
-        endpoint: ${env:MY_POD_IP}:13133
+        endpoint: ${env:OTEL_LISTEN_INTERFACE:-127.0.0.1}:13133
     processors:
       memory_limiter:
         check_interval: 5s
         limit_percentage: 80
         spike_limit_percentage: 25
-      transform/prometheus:
-        error_mode: ignore
-        metric_statements:
-        - context: metric
-          statements:
-          - replace_pattern(metric.name, "_total$", "") where resource.attributes["service.name"]
-            == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_process_cpu_seconds_seconds$", "otelcol_process_cpu_seconds")
-            where resource.attributes["service.name"] == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_process_memory_rss_bytes$", "otelcol_process_memory_rss_bytes")
-            where resource.attributes["service.name"] == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_process_runtime_heap_alloc_bytes_bytes$",
-            "otelcol_process_runtime_heap_alloc_bytes") where resource.attributes["service.name"]
-            == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_process_runtime_total_alloc_bytes_bytes$",
-            "otelcol_process_runtime_total_alloc_bytes") where resource.attributes["service.name"]
-            == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_process_runtime_total_sys_memory_bytes_bytes$",
-            "otelcol_process_runtime_total_sys_memory_bytes") where resource.attributes["service.name"]
-            == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_fileconsumer_open_files$", "otelcol_fileconsumer_open_files_ratio")
-            where resource.attributes["service.name"] == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_fileconsumer_reading_files$", "otelcol_fileconsumer_reading_files_ratio")
-            where resource.attributes["service.name"] == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_ip_lookup_miss$", "otelcol_otelsvc_k8s_ip_lookup_miss_ratio")
-            where resource.attributes["service.name"] == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_added$", "otelcol_otelsvc_k8s_pod_added_ratio")
-            where resource.attributes["service.name"] == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_table_size_ratio$",
-            "otelcol_otelsvc_k8s_pod_table_size_ratio") where resource.attributes["service.name"]
-            == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_updated$", "otelcol_otelsvc_k8s_pod_updated_ratio")
-            where resource.attributes["service.name"] == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_deleted$", "otelcol_otelsvc_k8s_pod_deleted_ratio")
-            where resource.attributes["service.name"] == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_processor_filter_spans\\.filtered$",
-            "otelcol_processor_filter_spans.filtered_ratio") where resource.attributes["service.name"]
-            == "opentelemetry-collector"
-        - context: resource
-          statements:
-          - set(attributes["k8s.pod.ip"], attributes["net.host.name"]) where attributes["service.name"]
-            == "opentelemetry-collector"
-          - delete_key(attributes, "service_name") where attributes["service.name"] ==
-            "opentelemetry-collector"
-        - context: datapoint
-          statements:
-          - delete_key(attributes, "service_name") where resource.attributes["service.name"]
-            == "opentelemetry-collector"
-          - delete_key(attributes, "otel_scope_name") where attributes["service.name"]
-            == "opentelemetry-collector"
     receivers:
       hostmetrics:
         collection_interval: 10s
@@ -142,18 +92,10 @@ data:
       otlp:
         protocols:
           grpc:
-            endpoint: 0.0.0.0:4317
+            endpoint: ${env:OTEL_LISTEN_INTERFACE:-127.0.0.1}:4317
             max_recv_msg_size_mib: 20
           http:
-            endpoint: 0.0.0.0:4318
-      prometheus:
-        config:
-          scrape_configs:
-          - job_name: opentelemetry-collector
-            scrape_interval: 30s
-            static_configs:
-            - targets:
-              - 0.0.0.0:8888
+            endpoint: ${env:OTEL_LISTEN_INTERFACE:-127.0.0.1}:4318
       prometheus/multi:
         config:
           scrape_configs:
@@ -188,10 +130,8 @@ data:
           - debug
           processors:
           - memory_limiter
-          - transform/prometheus
           receivers:
           - hostmetrics
-          - prometheus
           - prometheus/multi
           - otlp
         traces:
@@ -209,5 +149,5 @@ data:
           - pull:
               exporter:
                 prometheus:
-                  host: 0.0.0.0
+                  host: ${env:OTEL_LISTEN_INTERFACE:-127.0.0.1}
                   port: 8888

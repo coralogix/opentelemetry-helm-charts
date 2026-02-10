@@ -1046,6 +1046,22 @@ receivers:
         from: attributes.log
         to: body
       {{- if .Values.presets.logsCollection.includeCollectorLogs }}
+      # Recombine collector's JSON logs with stack traces (non-JSON continuation lines)
+      # This handles the case where zap JSON logs with stack traces are split across multiple lines
+      - type: recombine
+        combine_field: body
+        source_identifier: attributes["log.file.path"]
+        is_first_entry: 'body matches "^\\{"'
+        if: '(attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/{{ include "opentelemetry-collector.lowercase_chartname" . }}/.*.log")'
+        combine_with: "\n"
+        max_log_size: {{ $.Values.presets.logsCollection.maxRecombineLogSize }}
+        max_batch_size: {{ $.Values.presets.logsCollection.maxBatchSize }}
+      # Fold continuation lines into the stacktrace JSON field
+      - type: regex_replace
+        field: body
+        regex: (?s)("stacktrace":"[^"]*)"}\n(.*)$
+        replace_with: $${1}\\n$${2}"}
+        if: '(attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/{{ include "opentelemetry-collector.lowercase_chartname" . }}/.*.log")'
       # Filter out the collector logs that contain logRecord or ResourceLog
       # This is the typical output of debug / logging exporters
       # This prevents the collector from looping over its own logs
@@ -3305,12 +3321,8 @@ processors:
         {{- $cloudDetectors = (list "azure") }}
       {{- end }}
     {{- else if eq $provider "gcp" }}
-      {{/* GCP provider: use gcp, add gke for K8s contexts */}}
-      {{- if $isK8s }}
-        {{- $cloudDetectors = (list "gcp" "gke") }}
-      {{- else }}
-        {{- $cloudDetectors = (list "gcp") }}
-      {{- end }}
+      {{/* GCP provider: use gcp detector (works for both GCP and GKE) */}}
+      {{- $cloudDetectors = (list "gcp") }}
     {{- else if eq $provider "on-prem" }}
       {{/* On-prem: no cloud detectors */}}
       {{- $cloudDetectors = (list) }}
@@ -3537,10 +3549,11 @@ service:
 {{- end }}
 {{- $includeMetrics := eq $pipeline "metrics" }}
 {{- $monitorsEnabled := or .Values.Values.podMonitor.enabled .Values.Values.serviceMonitor.enabled }}
-{{- if and $includeMetrics (not $monitorsEnabled) ($config.service.pipelines.metrics) (not (has "prometheus" $config.service.pipelines.metrics.receivers)) }}
+{{- $disablePrometheusReceiver := .Values.Values.presets.collectorMetrics.disablePrometheusReceiver }}
+{{- if and $includeMetrics (not $disablePrometheusReceiver) (not $monitorsEnabled) ($config.service.pipelines.metrics) (not (has "prometheus" $config.service.pipelines.metrics.receivers)) }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus" | uniq)  }}
 {{- end }}
-{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "transform/prometheus" $config.service.pipelines.metrics.processors)) }}
+{{- if and $includeMetrics (not $disablePrometheusReceiver) ($config.service.pipelines.metrics) (not (has "transform/prometheus" $config.service.pipelines.metrics.processors)) }}
 {{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/prometheus" | uniq)  }}
 {{- end }}
 {{- $config | toYaml }}
@@ -3548,7 +3561,8 @@ service:
 
 {{- define "opentelemetry-collector.collectorMetricsConfig" -}}
 {{- $monitorsEnabled := or .Values.podMonitor.enabled .Values.serviceMonitor.enabled }}
-{{- if not $monitorsEnabled }}
+{{- $disablePrometheusReceiver := .Values.presets.collectorMetrics.disablePrometheusReceiver }}
+{{- if and (not $monitorsEnabled) (not $disablePrometheusReceiver) }}
 receivers:
   prometheus:
     config:
@@ -3564,6 +3578,7 @@ receivers:
                 - {{ include "opentelemetry-collector.envEndpoint" (dict "env" "MY_POD_IP" "port" "8888" "context" $) | quote }}
 {{- end }}
 
+{{- if not $disablePrometheusReceiver }}
 processors:
   transform/prometheus:
     error_mode: ignore
@@ -3592,6 +3607,7 @@ processors:
         statements:
           - delete_key(attributes, "service_name") where resource.attributes["service.name"] == "opentelemetry-collector"
           - delete_key(attributes, "otel_scope_name") where attributes["service.name"] == "opentelemetry-collector"
+{{- end }}
 
 service:
   telemetry:
@@ -3912,14 +3928,14 @@ receivers:
         config:
           metrics_path: '`"prometheus.io/path" in annotations ? annotations["prometheus.io/path"] : "/metrics"`'
           endpoint: '`endpoint`:`"prometheus.io/port" in annotations ? annotations["prometheus.io/port"] : 9090`'
-          scrape_interval: "{{ .Values.presets.prometheusAnnotationDiscovery.scrapeInterval | default "30s" }}"
+          collection_interval: "{{ .Values.presets.prometheusAnnotationDiscovery.scrapeInterval | default "30s" }}"
       {{ if .Values.presets.prometheusAnnotationDiscovery.enableServiceRule }}
       prometheus_simple/service_annotations:
         rule: type == "k8s.service" && annotations["prometheus.io/scrape"] == "true"
         config:
           metrics_path: '`"prometheus.io/path" in annotations ? annotations["prometheus.io/path"] : "/metrics"`'
           endpoint: '`endpoint`:`"prometheus.io/port" in annotations ? annotations["prometheus.io/port"] : 9090`'
-          scrape_interval: "{{ .Values.presets.prometheusAnnotationDiscovery.scrapeInterval | default "30s" }}"
+          collection_interval: "{{ .Values.presets.prometheusAnnotationDiscovery.scrapeInterval | default "30s" }}"
       {{ end }}
 {{- end }}
 
