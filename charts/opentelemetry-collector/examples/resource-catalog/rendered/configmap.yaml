@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.129.1
+    helm.sh/chart: opentelemetry-collector-0.129.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.145.0"
@@ -63,11 +63,11 @@ data:
             host.name:
               enabled: false
         detectors:
-        - eks
-        - aks
         - gcp
         - ec2
         - azure
+        - eks
+        - aks
         ec2:
           resource_attributes:
             host.id:
@@ -78,6 +78,8 @@ data:
               enabled: false
             host.type:
               enabled: false
+        eks:
+          node_from_env_var: K8S_NODE_NAME
         gcp:
           resource_attributes:
             host.id:

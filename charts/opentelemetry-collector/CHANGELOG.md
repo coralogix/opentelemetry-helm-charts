@@ -2,6 +2,12 @@
 
 ## OpenTelemetry Collector
 
+### v0.129.2 / 2026-02-10
+
+- [Fix] Inject `K8S_NODE_NAME` environment variable for all Kubernetes deployments (non-ECS, non-standalone, non-macOS) to support EKS resource detection processors.
+- [Fix] Add `eks: node_from_env_var: K8S_NODE_NAME` configuration to `resourcedetection/resource_catalog` processor to fix "node name is empty" error on EKS.
+- [Feat] Make `resourcedetection/resource_catalog` processor provider-aware, using only relevant cloud detectors based on distribution setting instead of all cloud providers.
+
  ### v0.129.1 / 2026-02-10
 
 - [Feat] Add Windows-specific presets: `windowsEventLog` (collects Windows Event Logs), `iisReceiver` (collects IIS metrics), and `iisLogs` (collects IIS access logs with W3C format parsing).
