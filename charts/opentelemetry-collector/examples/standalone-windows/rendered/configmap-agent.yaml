@@ -1,0 +1,223 @@
+---
+# Source: opentelemetry-collector/templates/configmap-agent.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-opentelemetry-collector-agent
+  namespace: default
+  labels:
+    helm.sh/chart: opentelemetry-collector-0.129.1
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.145.0"
+    app.kubernetes.io/managed-by: Helm
+    
+data:
+  relay: |
+    exporters:
+      debug: {}
+    extensions:
+      health_check:
+        endpoint: ${env:OTEL_LISTEN_INTERFACE:-127.0.0.1}:13133
+    processors:
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      transform/iis:
+        error_mode: ignore
+        log_statements:
+        - context: log
+          statements:
+          - set(attributes["client.address"], attributes["c-ip"]) where attributes["c-ip"]
+            != nil
+          - set(attributes["http.request.method"], attributes["cs-method"]) where attributes["cs-method"]
+            != nil
+          - set(attributes["http.response.status_code"], attributes["sc-status"]) where
+            attributes["sc-status"] != nil
+          - set(attributes["user_agent.original"], attributes["cs(User-Agent)"]) where
+            attributes["cs(User-Agent)"] != nil
+          - set(attributes["url.path"], attributes["cs-uri-stem"]) where attributes["cs-uri-stem"]
+            != nil
+          - set(attributes["url.query"], attributes["cs-uri-query"]) where attributes["cs-uri-query"]
+            != nil
+          - set(attributes["http.request.header.referer"], [attributes["cs(Referer)"]])
+            where attributes["cs(Referer)"] != nil
+          - set(attributes["http.server.request.duration_ms"], Int(attributes["time-taken"]))
+            where attributes["time-taken"] != nil
+          - delete_key(attributes, "c-ip")
+          - delete_key(attributes, "cs-method")
+          - delete_key(attributes, "sc-status")
+          - delete_key(attributes, "cs(User-Agent)")
+          - delete_key(attributes, "cs-uri-stem")
+          - delete_key(attributes, "cs-uri-query")
+          - delete_key(attributes, "cs(Referer)")
+          - delete_key(attributes, "time-taken")
+          - delete_key(attributes, "sc-win32-status")
+          - delete_key(attributes, "s-port")
+      transform/prometheus:
+        error_mode: ignore
+        metric_statements:
+        - context: metric
+          statements:
+          - replace_pattern(metric.name, "_total$", "") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_cpu_seconds_seconds$", "otelcol_process_cpu_seconds")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_memory_rss_bytes$", "otelcol_process_memory_rss_bytes")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_heap_alloc_bytes_bytes$",
+            "otelcol_process_runtime_heap_alloc_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_total_alloc_bytes_bytes$",
+            "otelcol_process_runtime_total_alloc_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_total_sys_memory_bytes_bytes$",
+            "otelcol_process_runtime_total_sys_memory_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_fileconsumer_open_files$", "otelcol_fileconsumer_open_files_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_fileconsumer_reading_files$", "otelcol_fileconsumer_reading_files_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_ip_lookup_miss$", "otelcol_otelsvc_k8s_ip_lookup_miss_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_added$", "otelcol_otelsvc_k8s_pod_added_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_table_size_ratio$",
+            "otelcol_otelsvc_k8s_pod_table_size_ratio") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_updated$", "otelcol_otelsvc_k8s_pod_updated_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_deleted$", "otelcol_otelsvc_k8s_pod_deleted_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_filter_spans\\.filtered$",
+            "otelcol_processor_filter_spans.filtered_ratio") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+        - context: resource
+          statements:
+          - set(attributes["k8s.pod.ip"], attributes["net.host.name"]) where attributes["service.name"]
+            == "opentelemetry-collector"
+          - delete_key(attributes, "service_name") where attributes["service.name"] ==
+            "opentelemetry-collector"
+        - context: datapoint
+          statements:
+          - delete_key(attributes, "service_name") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - delete_key(attributes, "otel_scope_name") where attributes["service.name"]
+            == "opentelemetry-collector"
+    receivers:
+      filelog/iis:
+        header:
+          metadata_operators:
+          - if: body matches "^#Fields:"
+            parse_from: body
+            regex: ^#Fields:\s+(?P<csv_header>.+)$
+            type: regex_parser
+          pattern: ^#.*$
+        include:
+        - C:\inetpub\logs\LogFiles\W3SVC*\*.log
+        include_file_name: true
+        include_file_path: false
+        operators:
+        - delimiter: ' '
+          header_attribute: csv_header
+          id: iis_csv_parser
+          if: body != nil and body not matches "^#"
+          trim_space: true
+          type: csv_parser
+        start_at: beginning
+      hostmetrics:
+        collection_interval: 10s
+        scrapers:
+          cpu:
+            metrics:
+              system.cpu.utilization:
+                enabled: true
+          disk: null
+          filesystem:
+            exclude_mount_points:
+              match_type: strict
+              mount_points:
+              - ""
+          memory:
+            metrics:
+              system.memory.utilization:
+                enabled: true
+          network: null
+          paging: null
+          process:
+            metrics:
+              process.cpu.utilization:
+                enabled: true
+              process.memory.utilization:
+                enabled: true
+              process.threads:
+                enabled: true
+            mute_process_all_errors: true
+      iis:
+        collection_interval: 30s
+      otlp:
+        protocols:
+          grpc:
+            endpoint: ${env:OTEL_LISTEN_INTERFACE:-127.0.0.1}:4317
+            max_recv_msg_size_mib: 20
+          http:
+            endpoint: ${env:OTEL_LISTEN_INTERFACE:-127.0.0.1}:4318
+      prometheus:
+        config:
+          scrape_configs:
+          - job_name: opentelemetry-collector
+            scrape_interval: 30s
+            static_configs:
+            - targets:
+              - ${env:OTEL_LISTEN_INTERFACE:-127.0.0.1}:8888
+      windowseventlog/application:
+        channel: Application
+      windowseventlog/security:
+        channel: Security
+      windowseventlog/system:
+        channel: System
+    service:
+      extensions:
+      - health_check
+      pipelines:
+        logs:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          - transform/iis
+          receivers:
+          - windowseventlog/system
+          - windowseventlog/application
+          - windowseventlog/security
+          - filelog/iis
+          - otlp
+        metrics:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          - transform/prometheus
+          receivers:
+          - hostmetrics
+          - prometheus
+          - iis
+          - otlp
+        traces:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          receivers:
+          - otlp
+      telemetry:
+        logs:
+          encoding: json
+        metrics:
+          readers:
+          - pull:
+              exporter:
+                prometheus:
+                  host: ${env:OTEL_LISTEN_INTERFACE:-127.0.0.1}
+                  port: 8888

@@ -125,8 +125,11 @@ Generate default OTEL_RESOURCE_ATTRIBUTES value when resourceDetection preset is
 {{/*
 Return pod or node IP environment variable wrapped for IPv6 when required.*/}}
 {{- define "opentelemetry-collector.envHost" -}}
-{{- /* When running in ECS, standalone, or macOS mode there is no MY_POD_IP env, use 0.0.0.0 in generated config */ -}}
-{{- if and (eq .env "MY_POD_IP") (or (eq .context.Values.distribution "ecs") (eq .context.Values.distribution "standalone") (eq .context.Values.distribution "macos")) -}}
+{{- /* When running in standalone or macOS mode, use OTEL_LISTEN_INTERFACE with 127.0.0.1 fallback */ -}}
+{{- if and (eq .env "MY_POD_IP") (or (eq .context.Values.distribution "standalone") (eq .context.Values.distribution "macos")) -}}
+${env:OTEL_LISTEN_INTERFACE:-127.0.0.1}
+{{- /* When running in ECS mode there is no MY_POD_IP env, use 0.0.0.0 in generated config */ -}}
+{{- else if and (eq .env "MY_POD_IP") (eq .context.Values.distribution "ecs") -}}
 0.0.0.0
 {{- else -}}
   {{- $ip := printf "${env:%s}" .env -}}
@@ -154,4 +157,17 @@ Compose endpoint from IP environment variable and port taking networkMode into a
 {{- define "opentelemetry-collector.envEndpoint" -}}
 {{- $host := include "opentelemetry-collector.envHost" (dict "env" .env "context" .context) -}}
 {{ printf "%s:%s" $host .port }}
+{{- end -}}
+
+{{/*
+Generate health_check endpoint based on distribution.
+For standalone/macos distributions, uses OTEL_LISTEN_INTERFACE with 127.0.0.1 fallback.
+For other distributions, uses MY_POD_IP environment variable.
+*/}}
+{{- define "opentelemetry-collector.healthCheckEndpoint" -}}
+{{- if or (eq .Values.distribution "standalone") (eq .Values.distribution "macos") -}}
+${env:OTEL_LISTEN_INTERFACE:-127.0.0.1}:13133
+{{- else -}}
+${env:MY_POD_IP}:13133
+{{- end -}}
 {{- end -}}

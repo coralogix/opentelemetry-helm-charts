@@ -916,6 +916,39 @@ presets:
     # scope: system           # Optional: Systemd scope to monitor (system or user), template default: system
     # units: ["*.service"]    # Optional: list of systemd units to monitor (supports patterns)
 
+  # Configures the collector to collect Windows Event Logs.
+  # Adds windowseventlog receivers to the logs pipeline.
+  # WARNING: This preset is ONLY for Windows deployments (isWindows: true).
+  windowsEventLog:
+    enabled: false
+    # List of Windows Event Log channels to collect.
+    channels:
+      - System
+      - Application
+      - Security
+
+  # Configures the collector to collect IIS metrics using Windows Performance Counters.
+  # Adds the iis receiver to the metrics pipeline.
+  # WARNING: This preset is ONLY for Windows deployments (isWindows: true).
+  iisReceiver:
+    enabled: false
+    collectionInterval: "30s"
+
+  # Configures the collector to collect IIS access logs (W3C format).
+  # IMPORTANT: Requires feature gate: --feature-gates=filelog.allowHeaderMetadataParsing
+  # WARNING: This preset is ONLY for Windows deployments (isWindows: true).
+  iisLogs:
+    enabled: false
+    # List of IIS log file paths to collect (optional).
+    # include:
+    #   - "C:\\inetpub\\logs\\LogFiles\\W3SVC*\\*.log"
+    # Store checkpoints to resume reading after collector restart.
+    # When enabled, the collector will track file positions and resume from the last read position.
+    storeCheckpoints: false
+    # Directory to store checkpoint files (must be writable by collector).
+    # Only used when storeCheckpoints is true.
+    # Default: "C:\\ProgramData\\OpenTelemetry\\Collector\\storage"
+
   # Configures the collector to receive OTLP data.
   # Adds the OTLP receiver to the traces, metrics, and logs pipelines.
   otlpReceiver:
