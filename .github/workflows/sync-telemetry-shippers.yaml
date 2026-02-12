@@ -41,11 +41,35 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract changelog
+        id: changelog
+        run: |
+          # Extract first version block from CHANGELOG.md (latest version)
+          CHANGELOG=$(awk '
+            /^[[:space:]]*### v/ {
+              if (seen) exit
+              seen=1
+              next
+            }
+            seen {print}
+          ' charts/opentelemetry-collector/CHANGELOG.md | sed '/^[[:space:]]*$/d')
+          
+          if [[ -n "$CHANGELOG" ]]; then
+            # Base64 encode to preserve newlines and special chars
+            CHANGELOG_B64=$(echo "$CHANGELOG" | base64 -w0)
+            echo "changelog_b64=$CHANGELOG_B64" >> $GITHUB_OUTPUT
+            echo "Changelog extracted (${#CHANGELOG} chars)"
+          else
+            echo "changelog_b64=" >> $GITHUB_OUTPUT
+            echo "No changelog found"
+          fi
+
       - name: Dispatch to telemetry-shippers
         run: |
           gh api repos/coralogix/telemetry-shippers/dispatches \
             -f event_type=otel-collector-release \
             -f "client_payload[version]=${{ steps.version.outputs.value }}" \
-            -f "client_payload[pr_url]=${{ steps.pr.outputs.url }}"
+            -f "client_payload[pr_url]=${{ steps.pr.outputs.url }}" \
+            -f "client_payload[changelog_b64]=${{ steps.changelog.outputs.changelog_b64 }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
