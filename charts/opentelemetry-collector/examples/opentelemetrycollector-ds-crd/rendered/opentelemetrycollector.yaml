@@ -5,7 +5,7 @@ kind: OpenTelemetryCollector
 metadata:
   name: example-opentelemetry-collector
   labels:
-    helm.sh/chart: opentelemetry-collector-0.129.2
+    helm.sh/chart: opentelemetry-collector-0.129.3
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.145.0"
@@ -227,15 +227,22 @@ spec:
           id: clean-up-log-record
           to: body
           type: move
+        - default: skip-collector-logs-recombine
+          routes:
+          - expr: (attributes["log.file.path"] matches "/var/log/pods/default_example-opentelemetry-collector.*_.*/opentelemetry-collector/.*.log")
+            output: collector-logs-recombine
+          type: router
         - combine_field: body
           combine_with: |2+
     
-          if: (attributes["log.file.path"] matches "/var/log/pods/default_example-opentelemetry-collector.*_.*/opentelemetry-collector/.*.log")
+          id: collector-logs-recombine
           is_first_entry: body matches "^\\{"
           max_batch_size: 1000
           max_log_size: 1048576
           source_identifier: attributes["log.file.path"]
           type: recombine
+        - id: skip-collector-logs-recombine
+          type: noop
         - field: body
           if: (attributes["log.file.path"] matches "/var/log/pods/default_example-opentelemetry-collector.*_.*/opentelemetry-collector/.*.log")
           regex: (?s)("stacktrace":"[^"]*)"}\n(.*)$

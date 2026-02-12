@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.129.3 / 2026-02-12
+
+- [Fix] Apply stacktrace log recombination only to OTEL Collector stacktraces.
+
 ### v0.129.2 / 2026-02-10
 
 - [Fix] Inject `K8S_NODE_NAME` environment variable for all Kubernetes deployments (non-ECS, non-standalone, non-macOS) to support EKS resource detection processors.

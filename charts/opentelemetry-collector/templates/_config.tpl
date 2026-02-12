@@ -1048,14 +1048,21 @@ receivers:
       {{- if .Values.presets.logsCollection.includeCollectorLogs }}
       # Recombine collector's JSON logs with stack traces (non-JSON continuation lines)
       # This handles the case where zap JSON logs with stack traces are split across multiple lines
+      - type: router
+        default: skip-collector-logs-recombine
+        routes:
+          - expr: '(attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/{{ include "opentelemetry-collector.lowercase_chartname" . }}/.*.log")'
+            output: collector-logs-recombine
       - type: recombine
+        id: collector-logs-recombine
         combine_field: body
         source_identifier: attributes["log.file.path"]
         is_first_entry: 'body matches "^\\{"'
-        if: '(attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/{{ include "opentelemetry-collector.lowercase_chartname" . }}/.*.log")'
         combine_with: "\n"
         max_log_size: {{ $.Values.presets.logsCollection.maxRecombineLogSize }}
         max_batch_size: {{ $.Values.presets.logsCollection.maxBatchSize }}
+      - type: noop
+        id: skip-collector-logs-recombine
       # Fold continuation lines into the stacktrace JSON field
       - type: regex_replace
         field: body
