@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.129.4 / 2026-02-13
+
+- [Fix] Increase the `presets.loadBalancing.k8s.timeout` default to `1m` so Kubernetes resolver users get a longer resolver timeout by default.
+
 ### v0.129.3 / 2026-02-12
 
 - [Fix] Apply stacktrace log recombination only to OTEL Collector stacktraces.
