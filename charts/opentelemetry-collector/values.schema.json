@@ -1148,7 +1148,7 @@
                   }
                 },
                 "timeout": {
-                  "description": "Resolver timeout in go-Duration format, e.g. 5s, 1d, 30m. If not specified, 1s will be used.",
+                  "description": "Resolver timeout in go-Duration format, e.g. 5s, 1d, 30m. Defaults to 1m.",
                   "type": "string"
                 }
               }

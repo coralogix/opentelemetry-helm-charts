@@ -495,8 +495,8 @@ presets:
       # ports is not specified, the default port 4317 is used. When multiple ports are specified,
       # two backends are added to the load balancer as if they were at different pods.
       ports: []
-      # timeout resolver timeout in go-Duration format, e.g. 5s, 1d, 30m. If not specified, 1s will be used.
-      timeout: ""
+      # timeout resolver timeout in go-Duration format, e.g. 5s, 1d, 30m. Defaults to 1m.
+      timeout: "1m"
 
   # Configures the collector to export data to Coralogix.
   coralogixExporter:
