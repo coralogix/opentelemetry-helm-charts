@@ -3122,7 +3122,7 @@ exporters:
     subsystem_name: "{{ $endpoint.defaultSubsystemName }}"
     application_name_attributes:
       {{- if eq $.Values.distribution "ecs" }}
-      - "aws.ecs.cluster"
+      - "aws.ecs.cluster.name"
       - "aws.ecs.task.definition.family"
       {{- else if or (eq $.Values.distribution "standalone") (eq $.Values.distribution "macos") }}
       - "service.namespace"

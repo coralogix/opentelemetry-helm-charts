@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.129.5 / 2026-02-15
+
+- [Fix] Use `aws.ecs.cluster.name` instead of `aws.ecs.cluster` for ECS distribution `application_name_attributes` to match the attribute name used by the `awsecscontainermetricsd` receiver.
+
 ### v0.129.4 / 2026-02-13
 
 - [Fix] Increase the `presets.loadBalancing.k8s.timeout` default to `1m` so Kubernetes resolver users get a longer resolver timeout by default.
