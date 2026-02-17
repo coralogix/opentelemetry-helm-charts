@@ -2494,7 +2494,8 @@ processors:
     {{- end }}
   {{- else if and $isK8s (eq .Values.mode "daemonset") }}
     {{/* K8s DaemonSet - hostNetwork, IMDS accessible */}}
-    {{- if hasPrefix "eks" $distribution }}
+    {{/* Include EKS detector for EKS distributions or when distribution is unset (backward compat) */}}
+    {{- if or (hasPrefix "eks" $distribution) (eq $distribution "") }}
       {{- $catalogDetectors = (list "ec2" "eks") }}
     {{- else }}
       {{- $catalogDetectors = (list "ec2") }}
@@ -2506,7 +2507,8 @@ processors:
       {{- $catalogDetectors = (list "env") }}
     {{- else }}
       {{/* Without resourceDetection, keep IMDS detectors for backward compatibility */}}
-      {{- if hasPrefix "eks" $distribution }}
+      {{/* Include EKS detector for EKS distributions or when distribution is unset (backward compat) */}}
+      {{- if or (hasPrefix "eks" $distribution) (eq $distribution "") }}
         {{- $catalogDetectors = (list "ec2" "eks") }}
       {{- else }}
         {{- $catalogDetectors = (list "ec2") }}
@@ -3407,7 +3409,8 @@ processors:
         {{- $cloudDetectors = (list "env") }}
       {{- else if and $isK8s (eq .Values.mode "daemonset") }}
         {{/* K8s DaemonSet - hostNetwork, IMDS accessible */}}
-        {{- if hasPrefix "eks" $distribution }}
+        {{/* Include EKS detector for EKS distributions or when distribution is unset (backward compat) */}}
+        {{- if or (hasPrefix "eks" $distribution) (eq $distribution "") }}
           {{- $cloudDetectors = (list "ec2" "eks") }}
         {{- else }}
           {{- $cloudDetectors = (list "ec2") }}
