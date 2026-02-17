@@ -2469,11 +2469,31 @@ processors:
 {{- $isK8s := and (ne $distribution "standalone") (ne $distribution "ecs") (ne $distribution "macos") }}
 
 {{/* Determine cloud detectors for resource catalog based on provider */}}
-{{- $catalogDetectors := list }}
+{{/* First check if user explicitly set cloud detectors - if so, use those */}}
+{{- $catalogDetectors := .Values.presets.resourceDetection.detectors.cloud }}
+{{- if not $catalogDetectors }}
 {{- if eq $provider "aws" }}
-  {{- if $isK8s }}
-    {{- $catalogDetectors = (list "ec2" "eks") }}
+  {{- if eq $distribution "eks/fargate" }}
+    {{/* EKS on Fargate - NO IMDS access */}}
+    {{- $catalogDetectors = (list "env") }}
+  {{- else if eq $distribution "standalone" }}
+    {{/* Standalone on EC2 - direct IMDS access (no container) */}}
+    {{- $catalogDetectors = (list "ec2") }}
+  {{- else if eq $distribution "ecs" }}
+    {{/* ECS - may have hop limit issues */}}
+    {{- $catalogDetectors = (list "env") }}
+  {{- else if and $isK8s (eq .Values.mode "daemonset") }}
+    {{/* K8s DaemonSet - hostNetwork, IMDS accessible */}}
+    {{- if hasPrefix "eks" $distribution }}
+      {{- $catalogDetectors = (list "ec2" "eks") }}
+    {{- else }}
+      {{- $catalogDetectors = (list "ec2") }}
+    {{- end }}
+  {{- else if $isK8s }}
+    {{/* K8s Deployment/StatefulSet - IMDS may be blocked (hop limit) */}}
+    {{- $catalogDetectors = (list "env") }}
   {{- else }}
+    {{/* Fallback for AWS */}}
     {{- $catalogDetectors = (list "ec2") }}
   {{- end }}
 {{- else if eq $provider "azure" }}
@@ -2493,6 +2513,7 @@ processors:
   {{- else }}
     {{- $catalogDetectors = (list "gcp" "ec2" "azure") }}
   {{- end }}
+{{- end }}
 {{- end }}
 
 processors:
@@ -3354,10 +3375,28 @@ processors:
   {{- $cloudDetectors := .Values.presets.resourceDetection.detectors.cloud }}
   {{- if not $cloudDetectors }}
     {{- if eq $provider "aws" }}
-      {{/* AWS provider: use ec2, add eks for K8s contexts */}}
-      {{- if $isK8s }}
-        {{- $cloudDetectors = (list "ec2" "eks") }}
+      {{/* AWS provider: use appropriate detectors based on IMDS accessibility */}}
+      {{- if eq $distribution "eks/fargate" }}
+        {{/* EKS on Fargate - NO IMDS access */}}
+        {{- $cloudDetectors = (list "env") }}
+      {{- else if eq $distribution "standalone" }}
+        {{/* Standalone on EC2 - direct IMDS access (no container) */}}
+        {{- $cloudDetectors = (list "ec2") }}
+      {{- else if eq $distribution "ecs" }}
+        {{/* ECS - may have hop limit issues */}}
+        {{- $cloudDetectors = (list "env") }}
+      {{- else if and $isK8s (eq .Values.mode "daemonset") }}
+        {{/* K8s DaemonSet - hostNetwork, IMDS accessible */}}
+        {{- if hasPrefix "eks" $distribution }}
+          {{- $cloudDetectors = (list "ec2" "eks") }}
+        {{- else }}
+          {{- $cloudDetectors = (list "ec2") }}
+        {{- end }}
+      {{- else if $isK8s }}
+        {{/* K8s Deployment/StatefulSet - IMDS may be blocked (hop limit) */}}
+        {{- $cloudDetectors = (list "env") }}
       {{- else }}
+        {{/* Fallback for AWS */}}
         {{- $cloudDetectors = (list "ec2") }}
       {{- end }}
     {{- else if eq $provider "azure" }}
