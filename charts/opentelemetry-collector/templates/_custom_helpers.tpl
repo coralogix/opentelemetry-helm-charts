@@ -109,7 +109,8 @@ Generate default OTEL_RESOURCE_ATTRIBUTES value when resourceDetection preset is
 */}}
 {{- define "opentelemetry-collector.defaultResourceAttributes" -}}
 {{- $attrs := list -}}
-{{- if and .Values.presets.resourceDetection.enabled .Values.presets.resourceDetection.k8sNodeName.enabled -}}
+{{- if .Values.presets.resourceDetection.enabled -}}
+{{- if .Values.presets.resourceDetection.k8sNodeName.enabled -}}
 {{- $attrs = append $attrs "k8s.node.name=$(K8S_NODE_NAME)" -}}
 {{- end -}}
 {{- $deploymentEnvName := .Values.presets.resourceDetection.deploymentEnvironmentName | default .Values.global.deploymentEnvironmentName | default .Values.global.clusterName -}}
@@ -117,6 +118,7 @@ Generate default OTEL_RESOURCE_ATTRIBUTES value when resourceDetection preset is
 {{- $val := tpl . $ -}}
 {{- if ne $val "" -}}
 {{- $attrs = append $attrs (printf "deployment.environment.name=%s" $val) -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 {{- $distribution := .Values.distribution | default "" -}}
