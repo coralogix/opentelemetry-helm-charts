@@ -108,48 +108,42 @@ Determine the command to use based on platform and configuration.
 Generate default OTEL_RESOURCE_ATTRIBUTES value when resourceDetection preset is enabled.
 */}}
 {{- define "opentelemetry-collector.defaultResourceAttributes" -}}
-{{- $attrs := list }}
+{{- $attrs := list -}}
 {{- if and .Values.presets.resourceDetection.enabled .Values.presets.resourceDetection.k8sNodeName.enabled -}}
-{{-   $attrs = append $attrs "k8s.node.name=$(K8S_NODE_NAME)" -}}
+{{- $attrs = append $attrs "k8s.node.name=$(K8S_NODE_NAME)" -}}
 {{- end -}}
-{{- $deploymentEnvName := .Values.presets.resourceDetection.deploymentEnvironmentName | default .Values.global.deploymentEnvironmentName | default .Values.global.clusterName }}
-{{- with $deploymentEnvName }}
-{{-   $val := tpl . $ -}}
-{{-   if ne $val "" -}}
-{{-     $attrs = append $attrs (printf "deployment.environment.name=%s" $val) -}}
-{{-   end -}}
+{{- $deploymentEnvName := .Values.presets.resourceDetection.deploymentEnvironmentName | default .Values.global.deploymentEnvironmentName | default .Values.global.clusterName -}}
+{{- with $deploymentEnvName -}}
+{{- $val := tpl . $ -}}
+{{- if ne $val "" -}}
+{{- $attrs = append $attrs (printf "deployment.environment.name=%s" $val) -}}
 {{- end -}}
-{{/* Add cloud.provider and cloud.platform for AWS when IMDS may not be accessible */}}
-{{/* Only when resourceDetection is enabled (so env detector is used) */}}
+{{- end -}}
 {{- $distribution := .Values.distribution | default "" -}}
 {{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "explicitProvider" .Values.presets.resourceDetection.provider) -}}
 {{- $isK8s := and (ne $distribution "standalone") (ne $distribution "ecs") (ne $distribution "macos") -}}
 {{- $needsCloudAttrs := false -}}
 {{- $cloudPlatform := "" -}}
 {{- if and .Values.presets.resourceDetection.enabled (eq $provider "aws") -}}
-  {{- if eq $distribution "eks/fargate" -}}
-    {{/* EKS on Fargate - NO IMDS access */}}
-    {{- $needsCloudAttrs = true -}}
-    {{- $cloudPlatform = "aws_eks" -}}
-  {{- else if eq $distribution "ecs" -}}
-    {{/* ECS - may have hop limit issues */}}
-    {{- $needsCloudAttrs = true -}}
-    {{- $cloudPlatform = "aws_ecs" -}}
-  {{- else if and $isK8s (ne .Values.mode "daemonset") -}}
-    {{/* K8s Deployment/StatefulSet - IMDS may be blocked (hop limit) */}}
-    {{- $needsCloudAttrs = true -}}
-    {{- if hasPrefix "eks" $distribution -}}
-      {{- $cloudPlatform = "aws_eks" -}}
-    {{- else -}}
-      {{- $cloudPlatform = "aws_ec2" -}}
-    {{- end -}}
-  {{- end -}}
+{{- if eq $distribution "eks/fargate" -}}
+{{- $needsCloudAttrs = true -}}
+{{- $cloudPlatform = "aws_eks" -}}
+{{- else if eq $distribution "ecs" -}}
+{{- $needsCloudAttrs = true -}}
+{{- $cloudPlatform = "aws_ecs" -}}
+{{- else if and $isK8s (ne .Values.mode "daemonset") -}}
+{{- $needsCloudAttrs = true -}}
+{{- if hasPrefix "eks" $distribution -}}
+{{- $cloudPlatform = "aws_eks" -}}
+{{- else -}}
+{{- $cloudPlatform = "aws_ec2" -}}
 {{- end -}}
-{{/* Only add cloud attrs if user hasn't explicitly set cloud detectors (meaning they don't have IMDS access) */}}
+{{- end -}}
+{{- end -}}
 {{- $userSetCloudDetectors := gt (len .Values.presets.resourceDetection.detectors.cloud) 0 -}}
 {{- if and $needsCloudAttrs (not $userSetCloudDetectors) -}}
-{{-   $attrs = append $attrs "cloud.provider=aws" -}}
-{{-   $attrs = append $attrs (printf "cloud.platform=%s" $cloudPlatform) -}}
+{{- $attrs = append $attrs "cloud.provider=aws" -}}
+{{- $attrs = append $attrs (printf "cloud.platform=%s" $cloudPlatform) -}}
 {{- end -}}
 {{- join "," $attrs -}}
 {{- end -}}

@@ -77,8 +77,7 @@ containers:
       - name: GOMEMLIMIT
         value: {{ include "opentelemetry-collector.gomemlimit" .Values.resources.limits.memory | quote }}
       {{- end }}
-      {{- $kubeNodeNeeded := or (and .Values.presets.resourceDetection.enabled .Values.presets.resourceDetection.k8sNodeName.enabled) .Values.presets.fleetManagement.enabled }}
-      {{- if $kubeNodeNeeded }}
+      {{/* Check if OTEL_RESOURCE_ATTRIBUTES or KUBE_NODE_NAME already exist in extraEnvs */}}
       {{- $otelAttrExists := false }}
       {{- $kubeNodeExists := false }}
       {{- if .Values.extraEnvs }}
@@ -91,18 +90,20 @@ containers:
       {{- end }}
       {{- end }}
       {{- end }}
+      {{/* Inject OTEL_RESOURCE_ATTRIBUTES if helper returns a non-empty value */}}
       {{- $defaultAttrs := include "opentelemetry-collector.defaultResourceAttributes" . }}
       {{- if and (ne $defaultAttrs "") (not $otelAttrExists) }}
       - name: OTEL_RESOURCE_ATTRIBUTES
         value: {{ $defaultAttrs | quote }}
       {{- end }}
-      {{- if not $kubeNodeExists }}
+      {{/* Inject KUBE_NODE_NAME when k8sNodeName or fleetManagement is enabled */}}
+      {{- $kubeNodeNeeded := or (and .Values.presets.resourceDetection.enabled .Values.presets.resourceDetection.k8sNodeName.enabled) .Values.presets.fleetManagement.enabled }}
+      {{- if and $kubeNodeNeeded (not $kubeNodeExists) }}
       - name: KUBE_NODE_NAME
         valueFrom:
           fieldRef:
             apiVersion: v1
             fieldPath: spec.nodeName
-      {{- end }}
       {{- end }}
       {{- with .Values.extraEnvs }}
       {{- . | toYaml | nindent 6 }}
