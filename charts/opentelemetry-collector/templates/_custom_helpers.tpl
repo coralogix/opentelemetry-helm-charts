@@ -120,12 +120,13 @@ Generate default OTEL_RESOURCE_ATTRIBUTES value when resourceDetection preset is
 {{-   end -}}
 {{- end -}}
 {{/* Add cloud.provider and cloud.platform for AWS when IMDS may not be accessible */}}
+{{/* Only when resourceDetection is enabled (so env detector is used) */}}
 {{- $distribution := .Values.distribution | default "" -}}
 {{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "explicitProvider" .Values.presets.resourceDetection.provider) -}}
 {{- $isK8s := and (ne $distribution "standalone") (ne $distribution "ecs") (ne $distribution "macos") -}}
 {{- $needsCloudAttrs := false -}}
 {{- $cloudPlatform := "" -}}
-{{- if eq $provider "aws" -}}
+{{- if and .Values.presets.resourceDetection.enabled (eq $provider "aws") -}}
   {{- if eq $distribution "eks/fargate" -}}
     {{/* EKS on Fargate - NO IMDS access */}}
     {{- $needsCloudAttrs = true -}}

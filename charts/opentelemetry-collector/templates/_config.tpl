@@ -2471,17 +2471,27 @@ processors:
 {{/* Determine cloud detectors for resource catalog based on provider */}}
 {{/* First check if user explicitly set cloud detectors - if so, use those */}}
 {{- $catalogDetectors := .Values.presets.resourceDetection.detectors.cloud }}
+{{- $resourceDetectionEnabled := .Values.presets.resourceDetection.enabled }}
 {{- if not $catalogDetectors }}
 {{- if eq $provider "aws" }}
   {{- if eq $distribution "eks/fargate" }}
-    {{/* EKS on Fargate - NO IMDS access */}}
-    {{- $catalogDetectors = (list "env") }}
+    {{/* EKS on Fargate - NO IMDS access, use env only if resourceDetection injects attrs */}}
+    {{- if $resourceDetectionEnabled }}
+      {{- $catalogDetectors = (list "env") }}
+    {{- else }}
+      {{/* Without resourceDetection, env detector won't have attrs - skip detectors */}}
+      {{- $catalogDetectors = (list) }}
+    {{- end }}
   {{- else if eq $distribution "standalone" }}
     {{/* Standalone on EC2 - direct IMDS access (no container) */}}
     {{- $catalogDetectors = (list "ec2") }}
   {{- else if eq $distribution "ecs" }}
-    {{/* ECS - may have hop limit issues */}}
-    {{- $catalogDetectors = (list "env") }}
+    {{/* ECS - may have hop limit issues, use env only if resourceDetection injects attrs */}}
+    {{- if $resourceDetectionEnabled }}
+      {{- $catalogDetectors = (list "env") }}
+    {{- else }}
+      {{- $catalogDetectors = (list) }}
+    {{- end }}
   {{- else if and $isK8s (eq .Values.mode "daemonset") }}
     {{/* K8s DaemonSet - hostNetwork, IMDS accessible */}}
     {{- if hasPrefix "eks" $distribution }}
@@ -2491,7 +2501,17 @@ processors:
     {{- end }}
   {{- else if $isK8s }}
     {{/* K8s Deployment/StatefulSet - IMDS may be blocked (hop limit) */}}
-    {{- $catalogDetectors = (list "env") }}
+    {{- if $resourceDetectionEnabled }}
+      {{/* Use env detector - OTEL_RESOURCE_ATTRIBUTES will be injected */}}
+      {{- $catalogDetectors = (list "env") }}
+    {{- else }}
+      {{/* Without resourceDetection, keep IMDS detectors for backward compatibility */}}
+      {{- if hasPrefix "eks" $distribution }}
+        {{- $catalogDetectors = (list "ec2" "eks") }}
+      {{- else }}
+        {{- $catalogDetectors = (list "ec2") }}
+      {{- end }}
+    {{- end }}
   {{- else }}
     {{/* Fallback for AWS */}}
     {{- $catalogDetectors = (list "ec2") }}
