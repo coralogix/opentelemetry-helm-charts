@@ -142,7 +142,7 @@ Generate default OTEL_RESOURCE_ATTRIBUTES value when resourceDetection preset is
 {{- end -}}
 {{- end -}}
 {{- end -}}
-{{- $userSetCloudDetectors := gt (len .Values.presets.resourceDetection.detectors.cloud) 0 -}}
+{{- $userSetCloudDetectors := and .Values.presets.resourceDetection.detectors.cloud (gt (len .Values.presets.resourceDetection.detectors.cloud) 0) -}}
 {{- if and $needsCloudAttrs (not $userSetCloudDetectors) -}}
 {{- $attrs = append $attrs "cloud.provider=aws" -}}
 {{- $attrs = append $attrs (printf "cloud.platform=%s" $cloudPlatform) -}}
