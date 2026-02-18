@@ -77,35 +77,47 @@ containers:
       - name: GOMEMLIMIT
         value: {{ include "opentelemetry-collector.gomemlimit" .Values.resources.limits.memory | quote }}
       {{- end }}
-      {{- $kubeNodeNeeded := or (and .Values.presets.resourceDetection.enabled .Values.presets.resourceDetection.k8sNodeName.enabled) .Values.presets.fleetManagement.enabled }}
-      {{- if $kubeNodeNeeded }}
-      {{- $otelAttrExists := false }}
-      {{- $kubeNodeExists := false }}
-      {{- if .Values.extraEnvs }}
-      {{- range .Values.extraEnvs }}
-      {{- if eq .name "OTEL_RESOURCE_ATTRIBUTES" }}
-      {{- $otelAttrExists = true }}
-      {{- end }}
-      {{- if eq .name "KUBE_NODE_NAME" }}
-      {{- $kubeNodeExists = true }}
-      {{- end }}
-      {{- end }}
-      {{- end }}
-      {{- $defaultAttrs := include "opentelemetry-collector.defaultResourceAttributes" . }}
-      {{- if and (ne $defaultAttrs "") (not $otelAttrExists) }}
+      {{- $otelAttrUserValue := "" -}}
+      {{- $otelAttrHasValueFrom := false -}}
+      {{- $kubeNodeExists := false -}}
+      {{- range .Values.extraEnvs -}}
+      {{- if eq .name "OTEL_RESOURCE_ATTRIBUTES" -}}
+      {{- if .value -}}
+      {{- $otelAttrUserValue = .value -}}
+      {{- else -}}
+      {{- $otelAttrHasValueFrom = true -}}
+      {{- end -}}
+      {{- end -}}
+      {{- if eq .name "KUBE_NODE_NAME" -}}
+      {{- $kubeNodeExists = true -}}
+      {{- end -}}
+      {{- end -}}
+      {{- $defaultAttrs := include "opentelemetry-collector.defaultResourceAttributes" . -}}
+      {{- if not $otelAttrHasValueFrom -}}
+      {{- if or (ne $otelAttrUserValue "") (ne $defaultAttrs "") }}
       - name: OTEL_RESOURCE_ATTRIBUTES
+        {{- if and (ne $otelAttrUserValue "") (ne $defaultAttrs "") }}
+        value: {{ printf "%s,%s" $otelAttrUserValue $defaultAttrs | quote }}
+        {{- else if ne $otelAttrUserValue "" }}
+        value: {{ $otelAttrUserValue | quote }}
+        {{- else }}
         value: {{ $defaultAttrs | quote }}
-      {{- end }}
-      {{- if not $kubeNodeExists }}
+        {{- end }}
+      {{- end -}}
+      {{- end -}}
+      {{- $kubeNodeNeeded := or (and .Values.presets.resourceDetection.enabled .Values.presets.resourceDetection.k8sNodeName.enabled) .Values.presets.fleetManagement.enabled -}}
+      {{- if and $kubeNodeNeeded (not $kubeNodeExists) }}
       - name: KUBE_NODE_NAME
         valueFrom:
           fieldRef:
             apiVersion: v1
             fieldPath: spec.nodeName
-      {{- end }}
-      {{- end }}
-      {{- with .Values.extraEnvs }}
-      {{- . | toYaml | nindent 6 }}
+      {{- end -}}
+      {{- range .Values.extraEnvs -}}
+      {{- $skipOtelAttr := and (eq .name "OTEL_RESOURCE_ATTRIBUTES") .value -}}
+      {{- if not $skipOtelAttr }}
+      {{- list . | toYaml | nindent 6 }}
+      {{- end -}}
       {{- end }}
     {{- with .Values.extraEnvsFrom }}
     envFrom:

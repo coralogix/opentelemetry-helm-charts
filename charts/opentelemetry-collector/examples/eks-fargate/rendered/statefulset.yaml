@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.129.5
+    helm.sh/chart: opentelemetry-collector-0.129.6
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.145.0"
@@ -26,7 +26,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 7908aec61b5aa1963dc8e86e915b1d0739d9fb61699ad53bf91c2b1ac6e2721e
+        checksum/config: d65ecd24b6e56e68120e7dd7a44658396202f2e0953efdc85556e87603408176
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -82,7 +82,7 @@ spec:
             - name: GOMEMLIMIT
               value: "1638MiB"
             - name: OTEL_RESOURCE_ATTRIBUTES
-              value: "k8s.node.name=$(K8S_NODE_NAME),deployment.environment.name=my-eks-fargate-cluster"
+              value: "k8s.node.name=$(K8S_NODE_NAME),deployment.environment.name=my-eks-fargate-cluster,cloud.provider=aws,cloud.platform=aws_eks"
             - name: KUBE_NODE_NAME
               valueFrom:
                 fieldRef:
