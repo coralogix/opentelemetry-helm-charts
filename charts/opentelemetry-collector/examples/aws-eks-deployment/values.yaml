@@ -1,0 +1,20 @@
+# Example: AWS EKS Deployment (cluster-collector pattern)
+# This demonstrates:
+# 1. IMDS-safe resource detection for Deployments (env detector + hardcoded cloud attrs)
+# 2. Append behavior for user-provided OTEL_RESOURCE_ATTRIBUTES
+
+distribution: eks
+mode: deployment
+
+presets:
+  resourceDetection:
+    enabled: true
+    # DaemonSets use ec2/eks detectors (IMDS accessible via hostNetwork)
+    # Deployments/StatefulSets use env detector with hardcoded cloud attrs
+    # to avoid IMDS hop limit issues (HttpPutResponseHopLimit=1)
+
+# User-provided attributes are APPENDED with chart defaults
+# Result: "service.name=my-cluster-collector,team=platform,k8s.node.name=...,cloud.provider=aws,cloud.platform=aws_eks"
+extraEnvs:
+  - name: OTEL_RESOURCE_ATTRIBUTES
+    value: "service.name=my-cluster-collector,team=platform"

@@ -2,9 +2,9 @@
 
 ## OpenTelemetry Collector
 
-### v0.129.6 / 2026-02-16
+### v0.129.6 / 2026-02-18
 
-- [Fix] Fix AWS resource detection for Deployments/StatefulSets when IMDS hop limit is 1. DaemonSets (hostNetwork) continue using EC2/EKS detectors. Deployments/StatefulSets now use `env` detector with hardcoded `cloud.provider` and `cloud.platform` attributes via `OTEL_RESOURCE_ATTRIBUTES`.
+- [Fix] AWS resource detection for Deployments/StatefulSets. On EKS clusters where `HttpPutResponseHopLimit=1`, IMDS is not accessible from container pods, causing the EC2/EKS detectors to fail. Deployments/StatefulSets now use the `env` detector with `cloud.provider` and `cloud.platform` attributes injected via `OTEL_RESOURCE_ATTRIBUTES`.
 
 ### v0.129.5 / 2026-02-15
 
