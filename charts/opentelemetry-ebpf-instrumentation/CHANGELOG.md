@@ -2,6 +2,9 @@
 
 ## OpenTelemetry eBPF Instrumentatihon
 
+### v0.1.11 / 2026-02-17
+- [Change] Bump OBI image to v0.5.0
+
 ### v0.1.10 / 2026-01-12
 - [Change] Bump OBI image to v0.4.1
 
