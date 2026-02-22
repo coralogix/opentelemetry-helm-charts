@@ -37,6 +37,55 @@ Create a filter expression for multiline logs configuration.
 {{- end -}}
 
 {{/*
+AWS cloud detectors for resourcedetection.
+Input: dict with distribution, mode, isK8s, provider, resourceDetectionEnabled (for catalog - when false, K8s Deployment/StatefulSet uses ec2/eks fallback)
+Returns: comma-separated detector names (e.g. "ec2,eks") to avoid fromJson type issues
+*/}}
+{{- define "opentelemetry-collector.awsCloudDetectors" -}}
+{{- $distribution := .distribution | default "" }}
+{{- $mode := .mode | default "daemonset" }}
+{{- $isK8s := .isK8s }}
+{{- $provider := .provider }}
+{{- $resourceDetectionEnabled := true }}
+{{- if hasKey . "resourceDetectionEnabled" }}
+{{- $resourceDetectionEnabled = .resourceDetectionEnabled }}
+{{- end }}
+{{- $detectors := list -}}
+{{- if eq $provider "aws" }}
+  {{- if eq $distribution "eks/fargate" }}
+    {{- $detectors = (list "env") }}
+  {{- else if eq $distribution "standalone" }}
+    {{- $detectors = (list "ec2") }}
+  {{- else if eq $distribution "ecs" }}
+    {{/* ECS on EC2: daemon with host network, IMDS accessible */}}
+    {{- $detectors = (list "ec2") }}
+  {{- else if and $isK8s (eq $mode "daemonset") }}
+    {{- if hasPrefix "eks" $distribution }}
+      {{- $detectors = (list "ec2" "eks") }}
+    {{- else if eq $distribution "" }}
+      {{/* Self-managed K8s on AWS: ec2 only, no EKS detector */}}
+      {{- $detectors = (list "ec2") }}
+    {{- else }}
+      {{- $detectors = (list "ec2") }}
+    {{- end }}
+  {{- else if $isK8s }}
+    {{- if $resourceDetectionEnabled }}
+      {{- $detectors = (list "env") }}
+    {{- else }}
+      {{- if or (hasPrefix "eks" $distribution) (eq $distribution "") }}
+        {{- $detectors = (list "ec2" "eks") }}
+      {{- else }}
+        {{- $detectors = (list "ec2") }}
+      {{- end }}
+    {{- end }}
+  {{- else }}
+    {{- $detectors = (list "ec2") }}
+  {{- end }}
+{{- end }}
+{{- if gt (len $detectors) 0 }}{{ join "," $detectors }}{{- end -}}
+{{- end -}}
+
+{{/*
 Determine the container image to use based on presets and user overrides.
 */}}
 {{- define "opentelemetry-collector.image" }}
@@ -122,7 +171,7 @@ Generate default OTEL_RESOURCE_ATTRIBUTES value when resourceDetection preset is
 {{- end -}}
 {{- end -}}
 {{- $distribution := .Values.distribution | default "" -}}
-{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "explicitProvider" .Values.presets.resourceDetection.provider) -}}
+{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "topLevelProvider" .Values.provider "explicitProvider" .Values.presets.resourceDetection.provider) -}}
 {{- $isK8s := and (ne $distribution "standalone") (ne $distribution "ecs") (ne $distribution "macos") -}}
 {{- $needsCloudAttrs := false -}}
 {{- $cloudPlatform := "" -}}

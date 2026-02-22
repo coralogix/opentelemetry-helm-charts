@@ -96,6 +96,11 @@ isWindows: false
 # When using EKS Fargate set this to "eks/fargate"
 distribution: ""
 
+# Cloud provider. When empty, inferred from distribution.
+# For self-managed K8s (distribution=""), set explicitly: aws, gcp, azure, on-prem
+# Options: aws, gcp, azure, on-prem, "" (empty = infer from distribution)
+provider: ""
+
 # Specify which namespace should be used to deploy the resources into
 namespaceOverride: ""
 
