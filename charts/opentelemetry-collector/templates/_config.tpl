@@ -3413,11 +3413,11 @@ processors:
     detectors: {{ $cloudDetectors | toJson }}
     timeout: 2s
     override: true
-    {{- if and (ne $distribution "ecs") (ne $distribution "standalone") (contains $cloudDetectorsStr "eks") }}
+    {{- if and (ne $distribution "ecs") (ne $distribution "standalone") (contains "eks" $cloudDetectorsStr) }}
     eks:
       node_from_env_var: K8S_NODE_NAME
     {{- end }}
-    {{- if contains $cloudDetectorsStr "aks" }}
+    {{- if contains "aks" $cloudDetectorsStr }}
     aks:
       resource_attributes:
         cloud.provider:
