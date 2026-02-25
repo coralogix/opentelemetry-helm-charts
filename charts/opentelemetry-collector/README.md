@@ -118,29 +118,16 @@ When `provider` is empty (default), the chart infers the provider from the `dist
 - `aks` → `azure`
 - Empty distribution → backward compatibility (tries all cloud providers)
 
-#### AWS EKS and IMDS Hop Limit
+#### AWS EKS and IMDS Access
 
-On AWS EKS clusters, the EC2 Instance Metadata Service (IMDS) is used to detect cloud attributes. DaemonSets can access IMDS via `hostNetwork: true`, but Deployments and StatefulSets require `HttpPutResponseHopLimit >= 2` to access IMDS.
+On AWS EKS clusters, the EC2 Instance Metadata Service (IMDS) is used to detect cloud attributes like `cloud.region`, `cloud.account.id`, and `host.id`. Per [AWS EKS Best Practices](https://docs.aws.amazon.com/eks/latest/best-practices/identity-and-access-management.html#_identities_and_credentials_for_eks_pods_recommendations), `HttpPutResponseHopLimit = 1` is the recommended default to prevent pods from inheriting EC2 instance profile permissions.
 
-When `provider: aws` is set, the chart automatically handles this:
+When `provider: aws` is set, the chart automatically handles IMDS restrictions:
 
-- **DaemonSets**: Use `ec2` + `eks` detectors (IMDS accessible via hostNetwork)
-- **Deployments/StatefulSets**: Use `env` detector only with `cloud.provider` and `cloud.platform` injected via environment variables (stable without IMDS access)
+- **DaemonSets**: Use `ec2` + `eks` detectors (IMDS accessible via `hostNetwork: true`, which bypasses hop limit)
+- **Deployments/StatefulSets**: Use `env` detector only with `cloud.provider` and `cloud.platform` injected via environment variables (works without IMDS access)
 
-**For clusters with hop limit ≥ 2**, you can override to enable full EC2 attribute detection on Deployments/StatefulSets:
-
-```yaml
-provider: aws
-distribution: eks
-presets:
-  resourceDetection:
-    detectors:
-      cloud:
-        - ec2
-        - eks
-```
-
-This override tells the chart to use EC2/EKS detectors regardless of deployment mode, which is safe when IMDS is accessible.
+This default behavior is secure and compatible with `HttpPutResponseHopLimit = 1`.
 
 ### Configuration for Kubernetes Container Logs
 
