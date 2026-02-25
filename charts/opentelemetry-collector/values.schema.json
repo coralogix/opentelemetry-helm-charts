@@ -20,6 +20,10 @@
       "description": "Specifies the distribution of the collector. Supported values include \"standalone\", \"macos\", \"ecs\", \"eks\", \"aks\", \"gke\", \"gke/autopilot\", and \"eks/fargate\".",
       "type": "string"
     },
+    "provider": {
+      "description": "Cloud provider. When empty, inferred from distribution. For self-managed K8s (distribution=\"\"), set explicitly: aws, gcp, azure, on-prem.",
+      "type": "string"
+    },
     "enabled": {
       "description": "Usually used when using Opentelemetry-collector as a subchart.",
       "type": "boolean"

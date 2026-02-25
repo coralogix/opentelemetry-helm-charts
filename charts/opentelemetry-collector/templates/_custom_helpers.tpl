@@ -37,6 +37,55 @@ Create a filter expression for multiline logs configuration.
 {{- end -}}
 
 {{/*
+AWS cloud detectors for resourcedetection.
+Input: dict with distribution, mode, isK8s, provider, resourceDetectionEnabled (for catalog - when false, K8s Deployment/StatefulSet uses ec2/eks fallback)
+Returns: comma-separated detector names (e.g. "ec2,eks") to avoid fromJson type issues
+*/}}
+{{- define "opentelemetry-collector.awsCloudDetectors" -}}
+{{- $distribution := .distribution | default "" }}
+{{- $mode := .mode | default "daemonset" }}
+{{- $isK8s := .isK8s }}
+{{- $provider := .provider }}
+{{- $resourceDetectionEnabled := true }}
+{{- if hasKey . "resourceDetectionEnabled" }}
+{{- $resourceDetectionEnabled = .resourceDetectionEnabled }}
+{{- end }}
+{{- $detectors := list -}}
+{{- if eq $provider "aws" }}
+  {{- if eq $distribution "eks/fargate" }}
+    {{- $detectors = (list "env") }}
+  {{- else if eq $distribution "standalone" }}
+    {{- $detectors = (list "ec2") }}
+  {{- else if eq $distribution "ecs" }}
+    {{/* ECS on EC2: daemon with host network, IMDS accessible */}}
+    {{- $detectors = (list "ec2") }}
+  {{- else if and $isK8s (eq $mode "daemonset") }}
+    {{- if hasPrefix "eks" $distribution }}
+      {{- $detectors = (list "ec2" "eks") }}
+    {{- else if eq $distribution "" }}
+      {{/* Self-managed K8s on AWS: ec2 only, no EKS detector */}}
+      {{- $detectors = (list "ec2") }}
+    {{- else }}
+      {{- $detectors = (list "ec2") }}
+    {{- end }}
+  {{- else if $isK8s }}
+    {{- if $resourceDetectionEnabled }}
+      {{- $detectors = (list "env") }}
+    {{- else }}
+      {{- if or (hasPrefix "eks" $distribution) (eq $distribution "") }}
+        {{- $detectors = (list "ec2" "eks") }}
+      {{- else }}
+        {{- $detectors = (list "ec2") }}
+      {{- end }}
+    {{- end }}
+  {{- else }}
+    {{- $detectors = (list "ec2") }}
+  {{- end }}
+{{- end }}
+{{- if gt (len $detectors) 0 }}{{ join "," $detectors }}{{- end -}}
+{{- end -}}
+
+{{/*
 Determine the container image to use based on presets and user overrides.
 */}}
 {{- define "opentelemetry-collector.image" }}
@@ -108,16 +157,44 @@ Determine the command to use based on platform and configuration.
 Generate default OTEL_RESOURCE_ATTRIBUTES value when resourceDetection preset is enabled.
 */}}
 {{- define "opentelemetry-collector.defaultResourceAttributes" -}}
-{{- $attrs := list }}
-{{- if and .Values.presets.resourceDetection.enabled .Values.presets.resourceDetection.k8sNodeName.enabled -}}
-{{-   $attrs = append $attrs "k8s.node.name=$(K8S_NODE_NAME)" -}}
+{{- $attrs := list -}}
+{{- if .Values.presets.resourceDetection.enabled -}}
+{{- if .Values.presets.resourceDetection.k8sNodeName.enabled -}}
+{{- $attrs = append $attrs "k8s.node.name=$(K8S_NODE_NAME)" -}}
 {{- end -}}
-{{- $deploymentEnvName := .Values.presets.resourceDetection.deploymentEnvironmentName | default .Values.global.deploymentEnvironmentName | default .Values.global.clusterName }}
-{{- with $deploymentEnvName }}
-{{-   $val := tpl . $ -}}
-{{-   if ne $val "" -}}
-{{-     $attrs = append $attrs (printf "deployment.environment.name=%s" $val) -}}
-{{-   end -}}
+{{- $deploymentEnvName := .Values.presets.resourceDetection.deploymentEnvironmentName | default .Values.global.deploymentEnvironmentName | default .Values.global.clusterName -}}
+{{- with $deploymentEnvName -}}
+{{- $val := tpl . $ -}}
+{{- if ne $val "" -}}
+{{- $attrs = append $attrs (printf "deployment.environment.name=%s" $val) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $distribution := .Values.distribution | default "" -}}
+{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "topLevelProvider" .Values.provider "explicitProvider" .Values.presets.resourceDetection.provider) -}}
+{{- $isK8s := and (ne $distribution "standalone") (ne $distribution "ecs") (ne $distribution "macos") -}}
+{{- $needsCloudAttrs := false -}}
+{{- $cloudPlatform := "" -}}
+{{- if and .Values.presets.resourceDetection.enabled (eq $provider "aws") -}}
+{{- if eq $distribution "eks/fargate" -}}
+{{- $needsCloudAttrs = true -}}
+{{- $cloudPlatform = "aws_eks" -}}
+{{- else if eq $distribution "ecs" -}}
+{{- $needsCloudAttrs = true -}}
+{{- $cloudPlatform = "aws_ecs" -}}
+{{- else if and $isK8s (ne .Values.mode "daemonset") -}}
+{{- $needsCloudAttrs = true -}}
+{{- if hasPrefix "eks" $distribution -}}
+{{- $cloudPlatform = "aws_eks" -}}
+{{- else -}}
+{{- $cloudPlatform = "aws_ec2" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $userSetCloudDetectors := and .Values.presets.resourceDetection.detectors .Values.presets.resourceDetection.detectors.cloud (gt (len .Values.presets.resourceDetection.detectors.cloud) 0) -}}
+{{- if and $needsCloudAttrs (not $userSetCloudDetectors) -}}
+{{- $attrs = append $attrs "cloud.provider=aws" -}}
+{{- $attrs = append $attrs (printf "cloud.platform=%s" $cloudPlatform) -}}
 {{- end -}}
 {{- join "," $attrs -}}
 {{- end -}}

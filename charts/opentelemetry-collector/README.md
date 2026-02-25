@@ -103,6 +103,32 @@ presets:
         - azure
 ```
 
+### Cloud Provider Configuration
+
+The `provider` field allows you to explicitly specify your cloud provider. When set, the chart uses only the detectors relevant to that provider instead of trying all cloud providers.
+
+```yaml
+provider: aws  # Options: aws, gcp, azure, on-prem, "" (auto-infer from distribution)
+distribution: eks
+```
+
+When `provider` is empty (default), the chart infers the provider from the `distribution` setting:
+- `eks`, `eks/fargate` → `aws`
+- `gke`, `gke/autopilot` → `gcp`
+- `aks` → `azure`
+- Empty distribution → backward compatibility (tries all cloud providers)
+
+#### AWS EKS and IMDS Access
+
+On AWS EKS clusters, the EC2 Instance Metadata Service (IMDS) is used to detect cloud attributes like `cloud.region`, `cloud.account.id`, and `host.id`. Per [AWS EKS Best Practices](https://docs.aws.amazon.com/eks/latest/best-practices/identity-and-access-management.html#_identities_and_credentials_for_eks_pods_recommendations), `HttpPutResponseHopLimit = 1` is the recommended default to prevent pods from inheriting EC2 instance profile permissions.
+
+When `provider: aws` is set, the chart automatically handles IMDS restrictions:
+
+- **DaemonSets**: Use `ec2` + `eks` detectors (IMDS accessible via `hostNetwork: true`, which bypasses hop limit)
+- **Deployments/StatefulSets**: Use `env` detector only with `cloud.provider` and `cloud.platform` injected via environment variables (works without IMDS access)
+
+This default behavior is secure and compatible with `HttpPutResponseHopLimit = 1`.
+
 ### Configuration for Kubernetes Container Logs
 
 The collector can be used to collect logs sent to standard output by Kubernetes containers.

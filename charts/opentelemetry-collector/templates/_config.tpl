@@ -86,24 +86,32 @@ Returns the endpoint name if provided, otherwise sanitizes the domain.
 
 {{/*
 Infer cloud provider from distribution.
-Returns: "aws", "azure", "gcp", or "" (empty string if no match)
-Usage: {{ include "opentelemetry-collector.inferProvider" (dict "distribution" .Values.distribution "explicitProvider" .Values.presets.resourceDetection.provider) }}
+Returns: "aws", "azure", "gcp", "on-prem", or "" (empty string if no match)
+Resolution order: topLevelProvider → explicitProvider (preset) → inferred from distribution
+Usage: {{ include "opentelemetry-collector.inferProvider" (dict "distribution" .Values.distribution "topLevelProvider" .Values.provider "explicitProvider" .Values.presets.resourceDetection.provider) }}
 */}}
 {{- define "opentelemetry-collector.inferProvider" -}}
 {{- $distribution := .distribution | default "" }}
-{{- $inferredProvider := "" }}
-{{- if or (hasPrefix "eks" $distribution) (eq $distribution "ecs") }}
-  {{- $inferredProvider = "aws" }}
-{{- else if hasPrefix "gke" $distribution }}
-  {{- $inferredProvider = "gcp" }}
-{{- else if hasPrefix "aks" $distribution }}
-  {{- $inferredProvider = "azure" }}
-{{- end }}
-{{- $explicitProvider := .explicitProvider | default "" }}
-{{- if ne $explicitProvider "" }}
-  {{- $explicitProvider }}
+{{- $topLevelProvider := .topLevelProvider | default "" }}
+{{- if eq $topLevelProvider "on_prem" }}
+  {{- "on-prem" }}
 {{- else }}
-  {{- $inferredProvider }}
+  {{- $inferredProvider := "" }}
+  {{- if or (hasPrefix "eks" $distribution) (eq $distribution "ecs") }}
+    {{- $inferredProvider = "aws" }}
+  {{- else if hasPrefix "gke" $distribution }}
+    {{- $inferredProvider = "gcp" }}
+  {{- else if hasPrefix "aks" $distribution }}
+    {{- $inferredProvider = "azure" }}
+  {{- end }}
+  {{- $explicitProvider := .explicitProvider | default "" }}
+  {{- if ne $topLevelProvider "" }}
+    {{- $topLevelProvider }}
+  {{- else if ne $explicitProvider "" }}
+    {{- $explicitProvider }}
+  {{- else }}
+    {{- $inferredProvider }}
+  {{- end }}
 {{- end }}
 {{- end }}
 
@@ -1732,7 +1740,7 @@ processors:
 {{- $distribution := .Values.distribution | default "" }}
 
 {{/* Infer provider from distribution if not explicitly set */}}
-{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "explicitProvider" .Values.presets.reduceResourceAttributes.provider) }}
+{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "topLevelProvider" .Values.provider "explicitProvider" .Values.presets.reduceResourceAttributes.provider) }}
 
 {{/* Determine context based on distribution */}}
 {{- $isK8s := and (ne $distribution "standalone") (ne $distribution "ecs") (ne $distribution "macos") }}
@@ -2465,16 +2473,21 @@ processors:
 
 {{- define "opentelemetry-collector.kubernetesResourcesConfig" -}}
 {{- $distribution := .Values.distribution | default "" }}
-{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "explicitProvider" .Values.presets.resourceDetection.provider) }}
+{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "topLevelProvider" .Values.provider "explicitProvider" .Values.presets.resourceDetection.provider) }}
 {{- $isK8s := and (ne $distribution "standalone") (ne $distribution "ecs") (ne $distribution "macos") }}
 
 {{/* Determine cloud detectors for resource catalog based on provider */}}
-{{- $catalogDetectors := list }}
+{{/* First check if user explicitly set cloud detectors - if so, use those */}}
+{{- $catalogDetectors := .Values.presets.resourceDetection.detectors.cloud }}
+{{- $resourceDetectionEnabled := .Values.presets.resourceDetection.enabled }}
+{{- if not $catalogDetectors }}
 {{- if eq $provider "aws" }}
-  {{- if $isK8s }}
-    {{- $catalogDetectors = (list "ec2" "eks") }}
-  {{- else }}
-    {{- $catalogDetectors = (list "ec2") }}
+  {{- $awsCatalogStr := include "opentelemetry-collector.awsCloudDetectors" (dict "distribution" $distribution "mode" .Values.mode "isK8s" $isK8s "provider" $provider "resourceDetectionEnabled" $resourceDetectionEnabled) }}
+  {{- $catalogDetectors = list }}
+  {{- if ne $awsCatalogStr "" }}
+  {{- range split "," $awsCatalogStr }}
+  {{- $catalogDetectors = append $catalogDetectors (trim .) }}
+  {{- end }}
   {{- end }}
 {{- else if eq $provider "azure" }}
   {{- if $isK8s }}
@@ -2487,12 +2500,13 @@ processors:
 {{- else if eq $provider "on-prem" }}
   {{- $catalogDetectors = (list) }}
 {{- else }}
-  {{/* Backward compatibility: no provider set = try all cloud providers */}}
+  {{/* Backward compatibility: no provider set = try all cloud providers (match resourcedetection/region) */}}
   {{- if $isK8s }}
-    {{- $catalogDetectors = (list "gcp" "ec2" "azure" "eks" "aks") }}
+    {{- $catalogDetectors = (list "gcp" "ec2" "azure" "eks") }}
   {{- else }}
     {{- $catalogDetectors = (list "gcp" "ec2" "azure") }}
   {{- end }}
+{{- end }}
 {{- end }}
 
 processors:
@@ -2790,7 +2804,7 @@ service:
 {{- define "opentelemetry-collector.hostEntityEventsConfig" -}}
 {{- /* Infer provider to determine if region detection should be included */ -}}
 {{- $distribution := .Values.distribution | default "" }}
-{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "explicitProvider" .Values.presets.resourceDetection.provider) }}
+{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "topLevelProvider" .Values.provider "explicitProvider" .Values.presets.resourceDetection.provider) }}
 {{- /* Determine if cloud tags should be collected for infra explorer */ -}}
 {{- $useEc2 := and (eq $provider "aws") (ne $distribution "eks/fargate") }}
 {{- $useAzure := eq $provider "azure" }}
@@ -3292,7 +3306,7 @@ processors:
 {{- $regionEnabled := .Values.Values.presets.resourceDetection.region.enabled }}
 {{- /* Infer provider to match processor creation logic */ -}}
 {{- $distribution := .Values.Values.distribution | default "" }}
-{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "explicitProvider" .Values.Values.presets.resourceDetection.provider) }}
+{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "topLevelProvider" .Values.Values.provider "explicitProvider" .Values.Values.presets.resourceDetection.provider) }}
 {{- $includeLogs := eq $pipeline "all" }}
 {{- $includeMetrics := or (eq $pipeline "all") (eq $pipeline "metrics") }}
 {{- $includeTraces := or (eq $pipeline "all") (eq $pipeline "traces") }}
@@ -3343,7 +3357,7 @@ processors:
 {{- $distribution := .Values.distribution | default "" }}
 
 {{/* Infer provider from distribution if not explicitly set */}}
-{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "explicitProvider" .Values.presets.resourceDetection.provider) }}
+{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "topLevelProvider" .Values.provider "explicitProvider" .Values.presets.resourceDetection.provider) }}
 
 {{/* Determine context based on distribution */}}
 {{- $isK8s := and (ne $distribution "standalone") (ne $distribution "ecs") (ne $distribution "macos") }}
@@ -3354,11 +3368,12 @@ processors:
   {{- $cloudDetectors := .Values.presets.resourceDetection.detectors.cloud }}
   {{- if not $cloudDetectors }}
     {{- if eq $provider "aws" }}
-      {{/* AWS provider: use ec2, add eks for K8s contexts */}}
-      {{- if $isK8s }}
-        {{- $cloudDetectors = (list "ec2" "eks") }}
-      {{- else }}
-        {{- $cloudDetectors = (list "ec2") }}
+      {{- $awsDetectorsStr := include "opentelemetry-collector.awsCloudDetectors" (dict "distribution" $distribution "mode" .Values.mode "isK8s" $isK8s "provider" $provider "resourceDetectionEnabled" true) }}
+      {{- $cloudDetectors = list }}
+      {{- if ne $awsDetectorsStr "" }}
+      {{- range split "," $awsDetectorsStr }}
+      {{- $cloudDetectors = append $cloudDetectors (trim .) }}
+      {{- end }}
       {{- end }}
     {{- else if eq $provider "azure" }}
       {{/* Azure provider: use azure, add aks for K8s contexts */}}
@@ -3392,16 +3407,17 @@ processors:
           enabled: true
   {{- /* Skip region detection for on-prem deployments */ -}}
   {{- if and .Values.presets.resourceDetection.region.enabled (ne $provider "on-prem") }}
+  {{- $cloudDetectorsStr := join "," $cloudDetectors -}}
   {{- if gt (len $cloudDetectors) 0 }}
   resourcedetection/region:
     detectors: {{ $cloudDetectors | toJson }}
     timeout: 2s
     override: true
-    {{- if and (ne $distribution "ecs") (ne $distribution "standalone") (has "eks" $cloudDetectors) }}
+    {{- if and (ne $distribution "ecs") (ne $distribution "standalone") (contains "eks" $cloudDetectorsStr) }}
     eks:
       node_from_env_var: K8S_NODE_NAME
     {{- end }}
-    {{- if has "aks" $cloudDetectors }}
+    {{- if contains "aks" $cloudDetectorsStr }}
     aks:
       resource_attributes:
         cloud.provider:
