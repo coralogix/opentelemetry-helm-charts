@@ -189,6 +189,26 @@ config:
           - otlphttp
 ```
 
+### Configuration for ECS container attributes
+
+The `ecsAttributesContainerLogs` preset adds `ecsattributes/container-logs` to logs, traces,
+and profiles pipelines when those pipelines exist. This behavior is unchanged from previous releases.
+
+You can also enable profiles `service.name` fallback mapping from ECS resource attributes:
+
+- `aws.ecs.task.definition.family`
+- `aws.ecs.container.name`
+
+This mapping only applies to the existing `profiles` pipeline and does not create a new pipeline.
+
+```yaml
+presets:
+  ecsAttributesContainerLogs:
+    enabled: true
+    profilesServiceName:
+      enabled: true
+```
+
 ### Configuration for Journald Logs
 
 The collector can read logs directly from the systemd journal by enabling the

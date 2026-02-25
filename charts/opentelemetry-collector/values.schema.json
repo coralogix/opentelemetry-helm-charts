@@ -566,6 +566,16 @@
             "enabled": {
               "description": "Enable ECS container logs attribute enrichment processor.",
               "type": "boolean"
+            },
+            "profilesServiceName": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Enable profiles service.name mapping from ECS task/container attributes.",
+                  "type": "boolean"
+                }
+              }
             }
           }
         },

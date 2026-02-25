@@ -1,0 +1,23 @@
+mode: daemonset
+
+presets:
+  profilesCollection:
+    enabled: true
+  ecsAttributesContainerLogs:
+    enabled: true
+    profilesServiceName:
+      enabled: true
+
+config:
+  service:
+    telemetry:
+      logs:
+        level: info
+    pipelines:
+      profiles:
+        receivers:
+          - otlp
+        processors:
+          - memory_limiter
+        exporters:
+          - debug
