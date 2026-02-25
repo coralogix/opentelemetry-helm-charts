@@ -154,6 +154,8 @@ presets:
   # NOTE: The preset name is incorrect; it should be ecsContainerAttributes.
   ecsAttributesContainerLogs:
     enabled: false
+    profilesServiceName:
+      enabled: false
   # Configures the collector to collect ECS container logs from the host.
   # Adds a filelog receiver pointed at /hostfs/var/lib/docker/containers and
   # relies on the hostfs mount. Best used with mode = daemonset.

@@ -3285,6 +3285,12 @@ processors:
 {{- if and ($config.service.pipelines.profiles) (not (has "ecsattributes/container-logs" $config.service.pipelines.profiles.processors)) }}
 {{- $_ := set $config.service.pipelines.profiles "processors" (prepend $config.service.pipelines.profiles.processors "ecsattributes/container-logs" | uniq)  }}
 {{- end }}
+{{- if and .Values.Values.presets.ecsAttributesContainerLogs.profilesServiceName.enabled ($config.service.pipelines.profiles) }}
+{{- $config = mustMergeOverwrite (include "opentelemetry-collector.ecsAttributesContainerLogsProfilesServiceNameConfig" .Values | fromYaml) $config }}
+{{- if not (has "transform/profiles-ecs-service-name" $config.service.pipelines.profiles.processors) }}
+{{- $_ := set $config.service.pipelines.profiles "processors" (append $config.service.pipelines.profiles.processors "transform/profiles-ecs-service-name" | uniq)  }}
+{{- end }}
+{{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
@@ -3295,6 +3301,16 @@ processors:
       sources:
         - "log.file.path"
         - "container.id"
+{{- end }}
+
+{{- define "opentelemetry-collector.ecsAttributesContainerLogsProfilesServiceNameConfig" -}}
+processors:
+  transform/profiles-ecs-service-name:
+    profile_statements:
+      - context: resource
+        statements:
+          - set(resource.attributes["service.name"], resource.attributes["aws.ecs.task.definition.family"]) where (resource.attributes["service.name"] == nil or resource.attributes["service.name"] == "") and resource.attributes["aws.ecs.task.definition.family"] != nil and resource.attributes["aws.ecs.task.definition.family"] != ""
+          - set(resource.attributes["service.name"], resource.attributes["aws.ecs.container.name"]) where (resource.attributes["service.name"] == nil or resource.attributes["service.name"] == "") and resource.attributes["aws.ecs.container.name"] != nil and resource.attributes["aws.ecs.container.name"] != ""
 {{- end }}
 
 {{- define "opentelemetry-collector.applyResourceDetectionConfig" -}}
