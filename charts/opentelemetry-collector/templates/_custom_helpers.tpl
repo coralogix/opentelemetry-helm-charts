@@ -117,6 +117,13 @@ Determine the command to use based on platform and configuration.
 {{- $executable := "/otelcol-contrib" -}}
 {{- $configPath := "/conf/relay.yaml" -}}
 {{- $configArg := "" -}}
+{{- $profilesSupportEnabled := or .Values.presets.profilesCollection.enabled .Values.presets.ebpfProfiler.enabled -}}
+{{- $profilesGateAlreadySet := false -}}
+{{- range .Values.command.extraArgs -}}
+  {{- if contains "service.profilesSupport" . -}}
+    {{- $profilesGateAlreadySet = true -}}
+  {{- end -}}
+{{- end -}}
 {{- /* Step 1: If on Windows, the executable path is different */ -}}
 {{- if .Values.isWindows -}}
 {{- $executable = "C:\\otelcol-contrib.exe" | quote -}}
@@ -145,7 +152,7 @@ Determine the command to use based on platform and configuration.
 {{- if $configArg }}
 - {{ $configArg }}
 {{- end }}
-{{- if (and (or (.Values.presets.profilesCollection.enabled) (.Values.presets.ebpfProfiler.enabled)) (not .Values.presets.fleetManagement.enabled)) }}
+{{- if and $profilesSupportEnabled (not .Values.presets.fleetManagement.enabled) (not $profilesGateAlreadySet) }}
 - "--feature-gates=+service.profilesSupport"
 {{- end }}
 {{- range .Values.command.extraArgs }}

@@ -39,7 +39,14 @@ agent:
 
   # This adds CLI arguments to the Collector.
   args: [
-    {{- if .Values.presets.profilesCollection.enabled }}
+    {{- $profilesSupportEnabled := or .Values.presets.profilesCollection.enabled .Values.presets.ebpfProfiler.enabled }}
+    {{- $profilesGateAlreadySet := false }}
+    {{- range .Values.command.extraArgs }}
+      {{- if contains "service.profilesSupport" . }}
+        {{- $profilesGateAlreadySet = true }}
+      {{- end }}
+    {{- end }}
+    {{- if and $profilesSupportEnabled (not $profilesGateAlreadySet) }}
       "--feature-gates=+service.profilesSupport",
     {{- end }}
   ]
