@@ -1,0 +1,7 @@
+presets:
+  ebpfProfiler:
+    enabled: true
+  fleetManagement:
+    enabled: true
+    supervisor:
+      enabled: false

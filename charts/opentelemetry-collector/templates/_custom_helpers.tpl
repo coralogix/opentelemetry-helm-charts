@@ -152,7 +152,7 @@ Determine the command to use based on platform and configuration.
 {{- if $configArg }}
 - {{ $configArg }}
 {{- end }}
-{{- if and $profilesSupportEnabled (not .Values.presets.fleetManagement.enabled) (not $profilesGateAlreadySet) }}
+{{- if and $profilesSupportEnabled (not .Values.presets.fleetManagement.supervisor.enabled) (not $profilesGateAlreadySet) }}
 - "--feature-gates=+service.profilesSupport"
 {{- end }}
 {{- range .Values.command.extraArgs }}
