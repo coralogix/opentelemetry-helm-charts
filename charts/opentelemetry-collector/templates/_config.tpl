@@ -3451,25 +3451,25 @@ processors:
       - context: resource
         statements:
           - set(attributes["cloud.platform"], "azure_vm") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and attributes["cloud.platform"] == "azure.vm"
-          - set(attributes["cloud.platform"], "azure_eks") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and (attributes["cloud.platform"] == "azure.eks" or attributes["cloud.platform"] == "azure.aks")
+          - set(attributes["cloud.platform"], "azure_aks") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and attributes["cloud.platform"] == "azure.aks"
           - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
     trace_statements:
       - context: resource
         statements:
           - set(attributes["cloud.platform"], "azure_vm") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and attributes["cloud.platform"] == "azure.vm"
-          - set(attributes["cloud.platform"], "azure_eks") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and (attributes["cloud.platform"] == "azure.eks" or attributes["cloud.platform"] == "azure.aks")
+          - set(attributes["cloud.platform"], "azure_aks") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and attributes["cloud.platform"] == "azure.aks"
           - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
     log_statements:
       - context: resource
         statements:
           - set(attributes["cloud.platform"], "azure_vm") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and attributes["cloud.platform"] == "azure.vm"
-          - set(attributes["cloud.platform"], "azure_eks") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and (attributes["cloud.platform"] == "azure.eks" or attributes["cloud.platform"] == "azure.aks")
+          - set(attributes["cloud.platform"], "azure_aks") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and attributes["cloud.platform"] == "azure.aks"
           - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
     profile_statements:
       - context: resource
         statements:
           - set(attributes["cloud.platform"], "azure_vm") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and attributes["cloud.platform"] == "azure.vm"
-          - set(attributes["cloud.platform"], "azure_eks") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and (attributes["cloud.platform"] == "azure.eks" or attributes["cloud.platform"] == "azure.aks")
+          - set(attributes["cloud.platform"], "azure_aks") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and (attributes["cloud.platform"] == "azure.aks" or attributes["cloud.platform"] == "azure.aks")
           - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
   {{- end }}
 {{- end }}
