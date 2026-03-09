@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.130.1 / 2026-03-09
+
+- [Feat] Normalize Azure `cloud.platform` values from dotted forms to underscored forms.
+
 ### v0.130.0 / 2026-03-06
 
 - [Feat] Bump OpenTelemetry Collector image to v0.147.0.
