@@ -3351,19 +3351,19 @@ processors:
 {{- if and $regionEnabled (ne $provider "on-prem") $includeProfiles ($config.service.pipelines.profiles) (not (has "resourcedetection/region" $config.service.pipelines.profiles.processors)) }}
 {{- $_ := set $config.service.pipelines.profiles "processors" (prepend $config.service.pipelines.profiles.processors "resourcedetection/region" | uniq)  }}
 {{- end }}
-{{- /* Azure-specific: add transform/azure-host-name after resourcedetection processors */ -}}
+{{- /* Azure-specific: add transform/azure-attributes after resourcedetection processors */ -}}
 {{- if eq $provider "azure" }}
-{{- if and $includeLogs ($config.service.pipelines.logs) (not (has "transform/azure-host-name" $config.service.pipelines.logs.processors)) }}
-{{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "transform/azure-host-name" | uniq)  }}
+{{- if and $includeLogs ($config.service.pipelines.logs) (not (has "transform/azure-attributes" $config.service.pipelines.logs.processors)) }}
+{{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "transform/azure-attributes" | uniq)  }}
 {{- end }}
-{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "transform/azure-host-name" $config.service.pipelines.metrics.processors)) }}
-{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/azure-host-name" | uniq)  }}
+{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "transform/azure-attributes" $config.service.pipelines.metrics.processors)) }}
+{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/azure-attributes" | uniq)  }}
 {{- end }}
-{{- if and $includeTraces ($config.service.pipelines.traces) (not (has "transform/azure-host-name" $config.service.pipelines.traces.processors)) }}
-{{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/azure-host-name" | uniq)  }}
+{{- if and $includeTraces ($config.service.pipelines.traces) (not (has "transform/azure-attributes" $config.service.pipelines.traces.processors)) }}
+{{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/azure-attributes" | uniq)  }}
 {{- end }}
-{{- if and $includeProfiles ($config.service.pipelines.profiles) (not (has "transform/azure-host-name" $config.service.pipelines.profiles.processors)) }}
-{{- $_ := set $config.service.pipelines.profiles "processors" (append $config.service.pipelines.profiles.processors "transform/azure-host-name" | uniq)  }}
+{{- if and $includeProfiles ($config.service.pipelines.profiles) (not (has "transform/azure-attributes" $config.service.pipelines.profiles.processors)) }}
+{{- $_ := set $config.service.pipelines.profiles "processors" (append $config.service.pipelines.profiles.processors "transform/azure-attributes" | uniq)  }}
 {{- end }}
 {{- end }}
 {{- $config | toYaml }}
@@ -3443,25 +3443,33 @@ processors:
     {{- end }}
   {{- end }}
   {{- end }}
-  {{- /* Azure-specific transform: set host.name from azure.vm.name if empty */ -}}
+  {{- /* Azure-specific transform: normalize cloud.platform and set host.name from azure.vm.name if empty */ -}}
   {{- if eq $provider "azure" }}
-  transform/azure-host-name:
+  transform/azure-attributes:
     error_mode: silent
     metric_statements:
       - context: resource
         statements:
+          - set(attributes["cloud.platform"], "azure_vm") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and attributes["cloud.platform"] == "azure.vm"
+          - set(attributes["cloud.platform"], "azure_eks") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and (attributes["cloud.platform"] == "azure.eks" or attributes["cloud.platform"] == "azure.aks")
           - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
     trace_statements:
       - context: resource
         statements:
+          - set(attributes["cloud.platform"], "azure_vm") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and attributes["cloud.platform"] == "azure.vm"
+          - set(attributes["cloud.platform"], "azure_eks") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and (attributes["cloud.platform"] == "azure.eks" or attributes["cloud.platform"] == "azure.aks")
           - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
     log_statements:
       - context: resource
         statements:
+          - set(attributes["cloud.platform"], "azure_vm") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and attributes["cloud.platform"] == "azure.vm"
+          - set(attributes["cloud.platform"], "azure_eks") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and (attributes["cloud.platform"] == "azure.eks" or attributes["cloud.platform"] == "azure.aks")
           - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
     profile_statements:
       - context: resource
         statements:
+          - set(attributes["cloud.platform"], "azure_vm") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and attributes["cloud.platform"] == "azure.vm"
+          - set(attributes["cloud.platform"], "azure_eks") where attributes["cloud.platform"] != nil and attributes["cloud.platform"] != "" and (attributes["cloud.platform"] == "azure.eks" or attributes["cloud.platform"] == "azure.aks")
           - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
   {{- end }}
 {{- end }}
