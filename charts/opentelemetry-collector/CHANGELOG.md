@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.130.2 / 2026-03-12
+
+- [Fix] Preserve `telemetry.sdk.*` resource attributes on traces when `reduceResourceAttributes` is enabled in provider-based mode, while continuing to remove them for logs and metrics.
+
 ### v0.130.1 / 2026-03-12
 
 - [Feat] Add optional `presets.ebpfProfiler.samplesPerSecond` support that maps to `receivers.profiling.samples_per_second` only when set.
