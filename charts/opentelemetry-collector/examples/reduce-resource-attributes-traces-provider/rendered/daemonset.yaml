@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 90822efbedc54954972f0b01f23b6a311cd82e9e9a528a1a2c5809a8435b9058
+        checksum/config: 5c8e71321aaa57d006596971819e72ba81a6eb9778dad1a943b40c456c68e10a
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -48,9 +48,11 @@ spec:
             - name: otlp
               containerPort: 4317
               protocol: TCP
+              hostPort: 4317
             - name: otlp-http
               containerPort: 4318
               protocol: TCP
+              hostPort: 4318
           env:
             - name: MY_POD_IP
               valueFrom:
@@ -60,13 +62,6 @@ spec:
             - name: K8S_NODE_NAME
               valueFrom:
                 fieldRef:
-                  fieldPath: spec.nodeName
-            - name: OTEL_RESOURCE_ATTRIBUTES
-              value: "k8s.node.name=$(K8S_NODE_NAME)"
-            - name: KUBE_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
                   fieldPath: spec.nodeName
           livenessProbe:
             httpGet:
@@ -79,17 +74,6 @@ spec:
           volumeMounts:
             - mountPath: /conf
               name: opentelemetry-collector-configmap
-            - name: varlogpods
-              mountPath: /var/log/pods
-              readOnly: true
-            - mountPath: /etc/machine-id
-              mountPropagation: HostToContainer
-              name: etcmachineid
-              readOnly: true
-            - mountPath: /var/lib/dbus/machine-id
-              mountPropagation: HostToContainer
-              name: varlibdbusmachineid
-              readOnly: true
       volumes:
         - name: opentelemetry-collector-configmap
           configMap:
@@ -97,15 +81,6 @@ spec:
             items:
               - key: relay
                 path: relay.yaml
-        - name: varlogpods
-          hostPath:
-            path: /var/log/pods
-        - name: etcmachineid
-          hostPath:
-            path: /etc/machine-id
-        - name: varlibdbusmachineid
-          hostPath:
-            path: /var/lib/dbus/machine-id
       nodeSelector:
         kubernetes.io/os: linux
       hostNetwork: false
