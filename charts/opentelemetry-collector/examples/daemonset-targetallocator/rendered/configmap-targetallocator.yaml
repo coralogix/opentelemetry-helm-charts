@@ -28,5 +28,10 @@ data:
       service_monitor_selector: {}
       service_monitor_namespace_selector: {}
       pod_monitor_namespace_selector: {}
-      probe_selector: {}
-      probe_namespace_selector: {}
+      probe_selector:
+        matchexpressions: []
+        matchlabels:
+          app: example-probe
+      probe_namespace_selector:
+        matchlabels:
+          monitoring: enabled
