@@ -226,7 +226,7 @@ config:
           genai:
             anthropic:
               enabled: true
-            genai:
+            openai:
               enabled: true
       redis_db_cache:
         enabled: true
