@@ -2,7 +2,9 @@
 
 ## OpenTelemetry Collector
 
+### v0.130.7 / 2026-04-09
 
+- [Feat] Add support for fallback configuration for the Supervisor.
 
 ### v0.130.6 / 2026-04-01
 
