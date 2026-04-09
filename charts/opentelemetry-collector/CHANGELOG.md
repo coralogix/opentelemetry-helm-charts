@@ -2,6 +2,11 @@
 
 ## OpenTelemetry Collector
 
+### v0.130.7 / 2026-04-09
+
+- [Fix] Fix `podSecurityContext` and `securityContext` indentation when `collectorCRD.generate` is true.
+
+
 ### v0.130.5 / 2026-03-31
 
 - [Feat] For `distribution` `standalone` and `macos`, prepend `cx.application.name` and `cx.subsystem.name` to Coralogix exporter `application_name_attributes` and `subsystem_name_attributes` (before `service.namespace` / `service.name`) so presets such as `filelogMulti` and `prometheusMulti` drive Application/Subsystem when set.
