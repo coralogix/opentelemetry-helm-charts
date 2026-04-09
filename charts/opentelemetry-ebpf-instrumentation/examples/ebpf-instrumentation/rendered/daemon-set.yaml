@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 9460528104736745dd861ecd0fad4730d36f80a59be95303272bb88457688ba1
+        checksum/config: 4bddd753d21f85b94b7579f54d6fd0e855a410f9f2c8704d132e081eb6cfc241
       labels:
         helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.13
         app.kubernetes.io/name: opentelemetry-ebpf-instrumentation
