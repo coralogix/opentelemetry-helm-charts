@@ -37,6 +37,9 @@ presets:
     supervisor:
       enabled: true
       minimalCollectorConfig: true
+      initial_fallback_configs:
+      - "test_path"
+      - "http://some.randomtest/config.yaml"
     customAttributes:
       environment: "production"
       team: "platform"
