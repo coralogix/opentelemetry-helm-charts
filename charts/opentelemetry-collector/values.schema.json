@@ -1678,7 +1678,7 @@
                   "type": "boolean",
                   "default": true
                 },
-                "initial_fallback_configs": {
+                "initialFallbackConfigs": {
                   "description": "Specifies fallback configuration paths for the Supervisor.",
                   "type": "array",
                   "items": {
