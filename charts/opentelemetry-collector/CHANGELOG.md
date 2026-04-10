@@ -2,7 +2,7 @@
 
 ## OpenTelemetry Collector
 
-### Unreleased
+### v0.130.8 / 2026-04-10
 
 - [Fix] Add `IsMap()` guards to `transform/kube-events` processor to prevent `INVALID_ARGUMENT` when a Kubernetes event log body is a plain string (CDS-2869)
 
