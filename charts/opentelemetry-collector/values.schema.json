@@ -1414,6 +1414,21 @@
                 },
                 "queueSize": {
                   "type": "integer"
+                },
+                "batch": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "flushTimeout": {
+                      "type": "string"
+                    },
+                    "minSize": {
+                      "type": "integer"
+                    },
+                    "maxSize": {
+                      "type": "integer"
+                    }
+                  }
                 }
               }
             }
