@@ -2620,39 +2620,7 @@ exporters:
       headers:
         X-Coralogix-Distribution: "{{ if eq .Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq .Values.distribution "standalone" }}helm-otel-standalone{{ else if eq .Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ .Values.global.version }}"
         x-coralogix-ingress: "metadata-as-otlp-logs/v1"
-    {{- with .Values.presets.coralogixExporter.sendingQueue }}
-    sending_queue:
-      {{- if hasKey . "enabled" }}
-      enabled: {{ .enabled }}
-      {{- end }}
-      {{- if hasKey . "numConsumers" }}
-      num_consumers: {{ .numConsumers }}
-      {{- end }}
-      {{- if hasKey . "waitForResult" }}
-      wait_for_result: {{ .waitForResult }}
-      {{- end }}
-      {{- if hasKey . "blockOnOverflow" }}
-      block_on_overflow: {{ .blockOnOverflow }}
-      {{- end }}
-      {{- if .sizer }}
-      sizer: {{ .sizer | quote }}
-      {{- end }}
-      {{- if hasKey . "queueSize" }}
-      queue_size: {{ .queueSize }}
-      {{- end }}
-      {{- with .batch }}
-      batch:
-        {{- if .flushTimeout }}
-        flush_timeout: {{ .flushTimeout | quote }}
-        {{- end }}
-        {{- if hasKey . "minSize" }}
-        min_size: {{ .minSize }}
-        {{- end }}
-        {{- if hasKey . "maxSize" }}
-        max_size: {{ .maxSize }}
-        {{- end }}
-      {{- end }}
-    {{- end }}
+    {{ include "opentelemetry-collector.coralogixSendingQueueConfig" .Values.presets.coralogixResourceCatalogExporter.sendingQueue | nindent 4 }}
 {{- if .Values.global.additionalEndpoints }}
 {{- range $endpoint := .Values.global.additionalEndpoints }}
   {{- if eq $endpoint.enabled true }}
@@ -2668,39 +2636,7 @@ exporters:
       headers:
         X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $.Values.global.version }}"
         x-coralogix-ingress: "{{ $endpoint.ingress | default "metadata-as-otlp-logs/v1" }}"
-    {{- with $.Values.presets.coralogixExporter.sendingQueue }}
-    sending_queue:
-      {{- if hasKey . "enabled" }}
-      enabled: {{ .enabled }}
-      {{- end }}
-      {{- if hasKey . "numConsumers" }}
-      num_consumers: {{ .numConsumers }}
-      {{- end }}
-      {{- if hasKey . "waitForResult" }}
-      wait_for_result: {{ .waitForResult }}
-      {{- end }}
-      {{- if hasKey . "blockOnOverflow" }}
-      block_on_overflow: {{ .blockOnOverflow }}
-      {{- end }}
-      {{- if .sizer }}
-      sizer: {{ .sizer | quote }}
-      {{- end }}
-      {{- if hasKey . "queueSize" }}
-      queue_size: {{ .queueSize }}
-      {{- end }}
-      {{- with .batch }}
-      batch:
-        {{- if .flushTimeout }}
-        flush_timeout: {{ .flushTimeout | quote }}
-        {{- end }}
-        {{- if hasKey . "minSize" }}
-        min_size: {{ .minSize }}
-        {{- end }}
-        {{- if hasKey . "maxSize" }}
-        max_size: {{ .maxSize }}
-        {{- end }}
-      {{- end }}
-    {{- end }}
+    {{ include "opentelemetry-collector.coralogixSendingQueueConfig" $.Values.presets.coralogixResourceCatalogExporter.sendingQueue | nindent 4 }}
   {{- end }}
 {{- end }}
 {{- end }}
@@ -2894,39 +2830,7 @@ exporters:
       headers:
         X-Coralogix-Distribution: "{{ if eq .Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq .Values.distribution "standalone" }}helm-otel-standalone{{ else if eq .Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ .Values.global.version }}"
         x-coralogix-ingress: "metadata-as-otlp-logs/v1"
-    {{- with .Values.presets.coralogixExporter.sendingQueue }}
-    sending_queue:
-      {{- if hasKey . "enabled" }}
-      enabled: {{ .enabled }}
-      {{- end }}
-      {{- if hasKey . "numConsumers" }}
-      num_consumers: {{ .numConsumers }}
-      {{- end }}
-      {{- if hasKey . "waitForResult" }}
-      wait_for_result: {{ .waitForResult }}
-      {{- end }}
-      {{- if hasKey . "blockOnOverflow" }}
-      block_on_overflow: {{ .blockOnOverflow }}
-      {{- end }}
-      {{- if .sizer }}
-      sizer: {{ .sizer | quote }}
-      {{- end }}
-      {{- if hasKey . "queueSize" }}
-      queue_size: {{ .queueSize }}
-      {{- end }}
-      {{- with .batch }}
-      batch:
-        {{- if .flushTimeout }}
-        flush_timeout: {{ .flushTimeout | quote }}
-        {{- end }}
-        {{- if hasKey . "minSize" }}
-        min_size: {{ .minSize }}
-        {{- end }}
-        {{- if hasKey . "maxSize" }}
-        max_size: {{ .maxSize }}
-        {{- end }}
-      {{- end }}
-    {{- end }}
+    {{ include "opentelemetry-collector.coralogixSendingQueueConfig" .Values.presets.coralogixResourceCatalogExporter.sendingQueue | nindent 4 }}
 {{- if .Values.global.additionalEndpoints }}
 {{- range $endpoint := .Values.global.additionalEndpoints }}
   {{- if eq $endpoint.enabled true }}
@@ -2942,39 +2846,7 @@ exporters:
       headers:
         X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $.Values.global.version }}"
         x-coralogix-ingress: "metadata-as-otlp-logs/v1"
-    {{- with $.Values.presets.coralogixExporter.sendingQueue }}
-    sending_queue:
-      {{- if hasKey . "enabled" }}
-      enabled: {{ .enabled }}
-      {{- end }}
-      {{- if hasKey . "numConsumers" }}
-      num_consumers: {{ .numConsumers }}
-      {{- end }}
-      {{- if hasKey . "waitForResult" }}
-      wait_for_result: {{ .waitForResult }}
-      {{- end }}
-      {{- if hasKey . "blockOnOverflow" }}
-      block_on_overflow: {{ .blockOnOverflow }}
-      {{- end }}
-      {{- if .sizer }}
-      sizer: {{ .sizer | quote }}
-      {{- end }}
-      {{- if hasKey . "queueSize" }}
-      queue_size: {{ .queueSize }}
-      {{- end }}
-      {{- with .batch }}
-      batch:
-        {{- if .flushTimeout }}
-        flush_timeout: {{ .flushTimeout | quote }}
-        {{- end }}
-        {{- if hasKey . "minSize" }}
-        min_size: {{ .minSize }}
-        {{- end }}
-        {{- if hasKey . "maxSize" }}
-        max_size: {{ .maxSize }}
-        {{- end }}
-      {{- end }}
-    {{- end }}
+    {{ include "opentelemetry-collector.coralogixSendingQueueConfig" $.Values.presets.coralogixResourceCatalogExporter.sendingQueue | nindent 4 }}
   {{- end }}
 {{- end }}
 {{- end }}
@@ -3174,6 +3046,42 @@ exporters:
 {{- $config | toYaml }}
 {{- end }}
 
+{{- define "opentelemetry-collector.coralogixSendingQueueConfig" -}}
+{{- with . }}
+sending_queue:
+  {{- if hasKey . "enabled" }}
+  enabled: {{ .enabled }}
+  {{- end }}
+  {{- if hasKey . "numConsumers" }}
+  num_consumers: {{ .numConsumers }}
+  {{- end }}
+  {{- if hasKey . "waitForResult" }}
+  wait_for_result: {{ .waitForResult }}
+  {{- end }}
+  {{- if hasKey . "blockOnOverflow" }}
+  block_on_overflow: {{ .blockOnOverflow }}
+  {{- end }}
+  {{- if .sizer }}
+  sizer: {{ .sizer | quote }}
+  {{- end }}
+  {{- if hasKey . "queueSize" }}
+  queue_size: {{ .queueSize }}
+  {{- end }}
+  {{- with .batch }}
+  batch:
+    {{- if .flushTimeout }}
+    flush_timeout: {{ .flushTimeout | quote }}
+    {{- end }}
+    {{- if hasKey . "minSize" }}
+    min_size: {{ .minSize }}
+    {{- end }}
+    {{- if hasKey . "maxSize" }}
+    max_size: {{ .maxSize }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}
+
 {{- define "opentelemetry-collector.otlpExporterConfig" -}}
 {{- $endpoint := required "presets.otlpExporter.endpoint must be set when the otlpExporter preset is enabled." .Values.presets.otlpExporter.endpoint }}
 exporters:
@@ -3324,39 +3232,7 @@ exporters:
       multiplier: {{ .multiplier }}
       {{- end }}
     {{- end }}
-    {{- with $.Values.presets.coralogixExporter.sendingQueue }}
-    sending_queue:
-      {{- if hasKey . "enabled" }}
-      enabled: {{ .enabled }}
-      {{- end }}
-      {{- if hasKey . "numConsumers" }}
-      num_consumers: {{ .numConsumers }}
-      {{- end }}
-      {{- if hasKey . "waitForResult" }}
-      wait_for_result: {{ .waitForResult }}
-      {{- end }}
-      {{- if hasKey . "blockOnOverflow" }}
-      block_on_overflow: {{ .blockOnOverflow }}
-      {{- end }}
-      {{- if .sizer }}
-      sizer: {{ .sizer | quote }}
-      {{- end }}
-      {{- if hasKey . "queueSize" }}
-      queue_size: {{ .queueSize }}
-      {{- end }}
-      {{- with .batch }}
-      batch:
-        {{- if .flushTimeout }}
-        flush_timeout: {{ .flushTimeout | quote }}
-        {{- end }}
-        {{- if hasKey . "minSize" }}
-        min_size: {{ .minSize }}
-        {{- end }}
-        {{- if hasKey . "maxSize" }}
-        max_size: {{ .maxSize }}
-        {{- end }}
-      {{- end }}
-    {{- end }}
+    {{ include "opentelemetry-collector.coralogixSendingQueueConfig" $.Values.presets.coralogixExporter.sendingQueue | nindent 4 }}
 {{- end }}
 {{- end }}
 

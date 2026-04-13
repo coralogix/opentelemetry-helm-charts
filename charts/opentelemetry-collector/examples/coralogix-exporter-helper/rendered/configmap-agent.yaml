@@ -38,10 +38,6 @@ data:
           max_interval: 20s
           multiplier: 2
         sending_queue:
-          batch:
-            flush_timeout: 250ms
-            max_size: 2097152
-            min_size: 1048576
           block_on_overflow: true
           enabled: true
           num_consumers: 5
@@ -82,10 +78,6 @@ data:
           max_interval: 20s
           multiplier: 2
         sending_queue:
-          batch:
-            flush_timeout: 250ms
-            max_size: 2097152
-            min_size: 1048576
           block_on_overflow: true
           enabled: true
           num_consumers: 5
@@ -126,10 +118,6 @@ data:
           max_interval: 20s
           multiplier: 2
         sending_queue:
-          batch:
-            flush_timeout: 250ms
-            max_size: 2097152
-            min_size: 1048576
           block_on_overflow: true
           enabled: true
           num_consumers: 5
@@ -170,10 +158,6 @@ data:
           max_interval: 20s
           multiplier: 2
         sending_queue:
-          batch:
-            flush_timeout: 250ms
-            max_size: 2097152
-            min_size: 1048576
           block_on_overflow: true
           enabled: true
           num_consumers: 5

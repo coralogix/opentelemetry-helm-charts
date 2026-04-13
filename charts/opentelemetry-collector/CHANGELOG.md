@@ -4,7 +4,7 @@
 
 ### v0.130.9 / 2026-04-13
 
-- [Fix] Enable byte-sized Coralogix exporter queue batching by default.
+- [Fix] Enable byte-sized Coralogix resource catalog exporter queue batching by default.
 
 ### v0.130.8 / 2026-04-10
 

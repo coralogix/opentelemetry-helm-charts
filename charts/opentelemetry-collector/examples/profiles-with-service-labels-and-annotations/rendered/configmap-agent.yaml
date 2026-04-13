@@ -31,15 +31,6 @@ data:
         profiles:
           headers:
             X-Coralogix-Distribution: helm-otel-integration/
-        sending_queue:
-          batch:
-            flush_timeout: 250ms
-            max_size: 2097152
-            min_size: 1048576
-          enabled: true
-          num_consumers: 20
-          queue_size: 52428800
-          sizer: bytes
         subsystem_name: ""
         subsystem_name_attributes:
         - k8s.deployment.name

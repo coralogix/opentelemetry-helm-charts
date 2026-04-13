@@ -38,10 +38,6 @@ data:
           max_interval: 20s
           multiplier: 2
         sending_queue:
-          batch:
-            flush_timeout: 250ms
-            max_size: 2097152
-            min_size: 1048576
           block_on_overflow: true
           enabled: true
           num_consumers: 5
@@ -82,10 +78,6 @@ data:
           max_interval: 20s
           multiplier: 2
         sending_queue:
-          batch:
-            flush_timeout: 250ms
-            max_size: 2097152
-            min_size: 1048576
           block_on_overflow: true
           enabled: true
           num_consumers: 5
@@ -126,10 +118,6 @@ data:
           max_interval: 20s
           multiplier: 2
         sending_queue:
-          batch:
-            flush_timeout: 250ms
-            max_size: 2097152
-            min_size: 1048576
           block_on_overflow: true
           enabled: true
           num_consumers: 5
@@ -170,10 +158,6 @@ data:
           max_interval: 20s
           multiplier: 2
         sending_queue:
-          batch:
-            flush_timeout: 250ms
-            max_size: 2097152
-            min_size: 1048576
           block_on_overflow: true
           enabled: true
           num_consumers: 5
@@ -204,12 +188,10 @@ data:
             flush_timeout: 250ms
             max_size: 2097152
             min_size: 1048576
-          block_on_overflow: true
           enabled: true
-          num_consumers: 5
-          queue_size: 500
-          sizer: requests
-          wait_for_result: false
+          num_consumers: 20
+          queue_size: 52428800
+          sizer: bytes
         subsystem_name: catalog
         timeout: 30s
       coralogix/resource_catalog_coralogixsg_com:
@@ -225,12 +207,10 @@ data:
             flush_timeout: 250ms
             max_size: 2097152
             min_size: 1048576
-          block_on_overflow: true
           enabled: true
-          num_consumers: 5
-          queue_size: 500
-          sizer: requests
-          wait_for_result: false
+          num_consumers: 20
+          queue_size: 52428800
+          sizer: bytes
         subsystem_name: catalog
         timeout: 30s
       coralogix/resource_catalog_myeu2:
@@ -246,12 +226,10 @@ data:
             flush_timeout: 250ms
             max_size: 2097152
             min_size: 1048576
-          block_on_overflow: true
           enabled: true
-          num_consumers: 5
-          queue_size: 500
-          sizer: requests
-          wait_for_result: false
+          num_consumers: 20
+          queue_size: 52428800
+          sizer: bytes
         subsystem_name: catalog
         timeout: 30s
       coralogix/resource_catalog_private_coralogix_com:
@@ -267,12 +245,10 @@ data:
             flush_timeout: 250ms
             max_size: 2097152
             min_size: 1048576
-          block_on_overflow: true
           enabled: true
-          num_consumers: 5
-          queue_size: 500
-          sizer: requests
-          wait_for_result: false
+          num_consumers: 20
+          queue_size: 52428800
+          sizer: bytes
         subsystem_name: catalog
         timeout: 30s
       debug: {}
