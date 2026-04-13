@@ -2,7 +2,7 @@
 
 ## OpenTelemetry Collector
 
-### v0.130.10 / 2026-04-13
+### v0.130.11 / 2026-04-13
 
 - [Fix] Use the dedicated supervised eBPF profiler image and managed collector executable when `presets.ebpfProfiler` and `presets.fleetManagement.supervisor` are both enabled.
 
