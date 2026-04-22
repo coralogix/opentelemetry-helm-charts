@@ -3086,6 +3086,9 @@ sending_queue:
     {{- if hasKey . "maxSize" }}
     max_size: {{ .maxSize }}
     {{- end }}
+    {{- if hasKey . "sizer" }}
+    sizer: {{ .sizer | quote }}
+    {{- end }}
   {{- end }}
 {{- end }}
 {{- end }}

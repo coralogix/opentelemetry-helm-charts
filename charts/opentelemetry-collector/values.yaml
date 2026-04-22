@@ -572,6 +572,7 @@ presets:
         flushTimeout: 250ms
         minSize: 1048576
         maxSize: 2097152
+        sizer: bytes            # requests | items | bytes
 
   # Configures the collector to export data with the OTLP exporter.
   otlpExporter:
