@@ -1410,7 +1410,8 @@
                   "type": "boolean"
                 },
                 "sizer": {
-                  "type": "string"
+                  "type": "string",
+                  "enum": ["bytes", "requests", "items"]
                 },
                 "queueSize": {
                   "type": "integer"
@@ -1470,7 +1471,8 @@
                   "type": "boolean"
                 },
                 "sizer": {
-                  "type": "string"
+                  "type": "string",
+                  "enum": ["bytes", "requests", "items"]
                 },
                 "queueSize": {
                   "type": "integer"
@@ -1489,7 +1491,8 @@
                       "type": "integer"
                     },
                     "sizer": {
-                      "type": "string"
+                      "type": "string",
+                      "enum": ["bytes", "requests", "items"]
                     }
                   }
                 }
