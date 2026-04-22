@@ -1027,10 +1027,11 @@ presets:
     # Options: aws, azure, gcp, on-prem, "" (empty = try all cloud providers for backward compatibility)
     provider: ""
     detectors:
-      # List of detectors used by the resourcedetection/env processor.
+      # List of detectors for the resourcedetection/env processor. Leave unset
+      # (null) to use the chart default: [system, env], or [env, k8snode, system]
+      # for on-prem Kubernetes (`provider: on-prem` with a K8s distribution).
+      # Set explicitly (including [] to disable) to override.
       env:
-        - system
-        - env
       # Optional list of cloud detectors. When left empty the chart enables the
       # default cloud detectors for the selected distribution.
       cloud: []
