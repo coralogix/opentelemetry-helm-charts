@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.130.15 / 2026-04-22
+
+- [Fix] Use `syslog_parser` for macOS system log parsing logic.
+
 ### v0.130.14 / 2026-04-22
 
 - [Fix] Ensure Coralogix exporter batcher from resource catalog pipeline uses the correct sizer.

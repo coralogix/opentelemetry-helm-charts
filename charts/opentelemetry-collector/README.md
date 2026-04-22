@@ -252,7 +252,10 @@ The collector can tail the macOS system log file by enabling the
 `macosSystemLogs` preset. When enabled, the chart adds a dedicated
 `filelog/macos-system-log` receiver to the logs pipeline. The receiver reads
 from `/var/log/system.log` by default and normalizes each entry into the log
-body using a regex parser.
+body using the `syslog_parser` operator in `rfc3164` mode with
+`allow_skip_pri_header: true` so macOS log lines without `<PRI>` prefixes are
+accepted, and `location: Local` so timestamp parsing matches the local macOS
+timezone.
 
 This preset is disabled by default and is intended for standalone macOS nodes
 where the collector already has local access to `/var/log/system.log`. The
