@@ -824,8 +824,8 @@
               "additionalProperties": false,
               "properties": {
                 "env": {
-                  "description": "List of detectors to use with the resourcedetection/env processor.",
-                  "type": "array",
+                  "description": "List of detectors to use with the resourcedetection/env processor. Leave null to use the chart default ([system, env], or [env, k8snode, system] for on-prem Kubernetes). Set explicitly (including []) to override.",
+                  "type": ["array", "null"],
                   "items": {
                     "type": "string"
                   }

@@ -3427,7 +3427,11 @@ processors:
   {{- if and (eq $provider "on-prem") $isK8s }}
     {{- $defaultEnvDetectors = list "env" "k8snode" "system" }}
   {{- end }}
-  {{- $envDetectors := .Values.presets.resourceDetection.detectors.env | default $defaultEnvDetectors }}
+  {{/* Distinguish "unset" (nil) from "explicitly empty" so users can opt out via env: []. */}}
+  {{- $envDetectors := .Values.presets.resourceDetection.detectors.env }}
+  {{- if kindIs "invalid" $envDetectors }}
+    {{- $envDetectors = $defaultEnvDetectors }}
+  {{- end }}
   {{/* Determine cloud detectors based on provider */}}
   {{- $cloudDetectors := .Values.presets.resourceDetection.detectors.cloud }}
   {{- if not $cloudDetectors }}
