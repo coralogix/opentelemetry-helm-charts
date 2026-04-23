@@ -1137,31 +1137,24 @@ receivers:
     multiline:
       line_start_pattern: '^[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}'
     operators:
-      - type: regex_parser
-        regex: '^(?P<timestamp>[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(?P<host>[^\s]+)\s+(?P<app>[A-Za-z0-9._-]+)(?:\[(?P<pid>\d+)\])?:\s+(?P<msg>[\s\S]*)$'
-      - type: time_parser
-        parse_from: attributes.timestamp
-        layout_type: gotime
-        layout: 'Jan _2 15:04:05'
+      - type: syslog_parser
+        protocol: rfc3164
+        allow_skip_pri_header: true
+        location: Local
       - type: move
-        from: attributes.host
+        from: attributes.message
+        to: body
+      - type: move
+        from: attributes.hostname
         to: resource["host.name"]
       - type: move
-        from: attributes.app
+        from: attributes.appname
         to: resource["app"]
       {{- if .Values.presets.macosSystemLogs.dynamicSubsystemName }}
       - type: copy
         from: resource["app"]
         to: resource["service.name"]
       {{- end }}
-      - type: move
-        from: attributes.pid
-        to: resource["process.pid"]
-      - type: remove
-        field: attributes.timestamp
-      - type: move
-        from: attributes.msg
-        to: body
 {{- end }}
 
 {{- define "opentelemetry-collector.filelogMultiConfig" -}}
