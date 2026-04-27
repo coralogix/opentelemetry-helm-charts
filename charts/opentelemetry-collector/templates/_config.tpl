@@ -1338,6 +1338,7 @@ processors:
       - sources:
           - from: resource_attribute
             name: container.id
+          - from: connection
 
 service:
   pipelines:
@@ -1444,6 +1445,7 @@ processors:
       - sources:
           - from: resource_attribute
             name: container.id
+          - from: connection
 {{- end }}
 
 {{- define "opentelemetry-collector.ebpfProfilerConfig" -}}

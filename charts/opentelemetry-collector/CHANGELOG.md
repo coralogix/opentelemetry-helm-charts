@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.130.16 / 2026-04-27
+
+- [Feat] Use `connection` pod association for profiling k8sattributes processor
+
 ### v0.130.15 / 2026-04-22
 
 - [Fix] Use `syslog_parser` for macOS system log parsing logic.
