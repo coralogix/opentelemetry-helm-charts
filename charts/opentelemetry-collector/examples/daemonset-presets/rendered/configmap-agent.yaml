@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.130.16
+    helm.sh/chart: opentelemetry-collector-0.130.17
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.147.0"
@@ -456,32 +456,37 @@ data:
           type: filter
         - default: logs-collection-continue
           routes:
-          - expr: (body matches "\"resource\":{.*?},?")
+          - expr: (body matches "\"resource\":{.*?},?") and not (body matches "\"logger\":\"supervisor\\.collector\"")
             output: parse-body
           type: router
         - id: parse-body
           if: (attributes["log.file.path"] matches "/var/log/pods/default_example-opentelemetry-collector.*_.*/.*/.*.log")
+            and not (body matches "\"logger\":\"supervisor\\.collector\"")
           on_error: send_quiet
           parse_to: attributes["parsed_body_tmp"]
           type: json_parser
         - field: body
           if: (attributes["log.file.path"] matches "/var/log/pods/default_example-opentelemetry-collector.*_.*/.*/.*.log")
+            and not (body matches "\"logger\":\"supervisor\\.collector\"")
           on_error: send_quiet
           regex: \"resource\":{.*?},?
           replace_with: ""
           type: regex_replace
         - from: attributes["parsed_body_tmp"]["resource"]
           if: (attributes["log.file.path"] matches "/var/log/pods/default_example-opentelemetry-collector.*_.*/.*/.*.log")
+            and not (body matches "\"logger\":\"supervisor\\.collector\"")
           on_error: send_quiet
           to: resource["attributes_tmp"]
           type: move
         - field: attributes["parsed_body_tmp"]
           if: (attributes["log.file.path"] matches "/var/log/pods/default_example-opentelemetry-collector.*_.*/.*/.*.log")
+            and not (body matches "\"logger\":\"supervisor\\.collector\"")
           on_error: send_quiet
           type: remove
         - field: resource["attributes_tmp"]
           id: flatten-resource
           if: (attributes["log.file.path"] matches "/var/log/pods/default_example-opentelemetry-collector.*_.*/.*/.*.log")
+            and not (body matches "\"logger\":\"supervisor\\.collector\"")
           on_error: send_quiet
           type: flatten
         - id: logs-collection-continue

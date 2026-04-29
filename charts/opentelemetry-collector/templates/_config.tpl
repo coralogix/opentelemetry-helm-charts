@@ -837,6 +837,9 @@ processors:
 {{- define "opentelemetry-collector.applyLogsCollectionConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.logsCollectionConfig" .Values | fromYaml) .config }}
 {{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers "filelog" | uniq)  }}
+{{- if and (.Values.Values.presets.logsCollection.includeCollectorLogs) (.Values.Values.presets.fleetManagement.enabled) (.Values.Values.presets.fleetManagement.supervisor.enabled) ($config.service.pipelines.logs) (not (has "transform/unwrap_supervisor_collector_logs" $config.service.pipelines.logs.processors)) }}
+{{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "transform/unwrap_supervisor_collector_logs" | uniq)  }}
+{{- end }}
 {{- if .Values.Values.presets.logsCollection.storeCheckpoints}}
 {{- $_ := set $config.service "extensions" (append $config.service.extensions "file_storage" | uniq)  }}
 {{- end }}
@@ -1091,31 +1094,31 @@ receivers:
       - type: router
         routes:
           - output: parse-body
-            expr: '(body matches "\"resource\":{.*?},?")'
+            expr: '(body matches "\"resource\":{.*?},?") and not (body matches "\"logger\":\"supervisor\\.collector\"")'
         default: logs-collection-continue
       - type: json_parser
         id: parse-body
         parse_to: attributes["parsed_body_tmp"]
-        if: (attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log")
+        if: '(attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log") and not (body matches "\"logger\":\"supervisor\\.collector\"")'
         on_error: send_quiet
       - type: regex_replace
         field: body
         regex: \"resource\":{.*?},?
         replace_with: ""
-        if: (attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log")
+        if: '(attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log") and not (body matches "\"logger\":\"supervisor\\.collector\"")'
         on_error: send_quiet
       - type: move
         from: attributes["parsed_body_tmp"]["resource"]
         to: resource["attributes_tmp"]
-        if: (attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log")
+        if: '(attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log") and not (body matches "\"logger\":\"supervisor\\.collector\"")'
         on_error: send_quiet
       - type: remove
         field: attributes["parsed_body_tmp"]
-        if: (attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log")
+        if: '(attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log") and not (body matches "\"logger\":\"supervisor\\.collector\"")'
         on_error: send_quiet
       - type: flatten
         id: flatten-resource
-        if: (attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log")
+        if: '(attributes["log.file.path"] matches "/var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}.*_.*/.*/.*.log") and not (body matches "\"logger\":\"supervisor\\.collector\"")'
         field: resource["attributes_tmp"]
         on_error: send_quiet
       {{- end }}
@@ -1124,6 +1127,29 @@ receivers:
       {{- if .Values.presets.logsCollection.extraFilelogOperators }}
       {{- .Values.presets.logsCollection.extraFilelogOperators | toYaml | nindent 6 }}
       {{- end }}
+{{- if and .Values.presets.logsCollection.includeCollectorLogs .Values.presets.fleetManagement.enabled .Values.presets.fleetManagement.supervisor.enabled }}
+processors:
+  # The supervisor forwards the managed collector logs through its own logger.
+  # Those records arrive as a JSON log whose `msg` field contains another JSON
+  # collector log. This transform unwraps the nested collector log back into a
+  # first-class log record so it looks like the direct collector case.
+  transform/unwrap_supervisor_collector_logs:
+    error_mode: silent
+    log_statements:
+      - context: log
+        statements:
+          - set(log.cache["supervisor_outer"], ParseJSON(log.body)) where IsString(log.body) and IsMatch(log.body, "^\\{.*\"logger\":\"supervisor\\.collector\"")
+          - set(log.cache["supervisor_inner"], ParseJSON(log.cache["supervisor_outer"]["msg"])) where IsMap(log.cache["supervisor_outer"]) and log.cache["supervisor_outer"]["logger"] == "supervisor.collector" and IsString(log.cache["supervisor_outer"]["msg"]) and IsMatch(log.cache["supervisor_outer"]["msg"], "^\\{")
+          - set(log.time, Time(log.cache["supervisor_inner"]["ts"], "%Y-%m-%dT%H:%M:%S.%fZ")) where IsMap(log.cache["supervisor_inner"]) and log.cache["supervisor_inner"]["ts"] != nil
+          - merge_maps(log.attributes, log.cache["supervisor_inner"], "upsert") where IsMap(log.cache["supervisor_inner"])
+          - merge_maps(resource.attributes, log.attributes["resource"], "upsert") where IsMap(log.attributes["resource"])
+          - set(log.body, log.attributes["msg"]) where IsMap(log.cache["supervisor_inner"]) and log.attributes["msg"] != nil
+          - set(log.attributes["supervisor.logger"], log.cache["supervisor_outer"]["logger"]) where IsMap(log.cache["supervisor_outer"])
+          - delete_key(log.attributes, "resource") where IsMap(log.cache["supervisor_inner"])
+          - delete_key(log.attributes, "ts") where IsMap(log.cache["supervisor_inner"])
+          - delete_key(log.attributes, "level") where IsMap(log.cache["supervisor_inner"])
+          - delete_key(log.attributes, "msg") where IsMap(log.cache["supervisor_inner"])
+{{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.macosSystemLogsConfig" -}}

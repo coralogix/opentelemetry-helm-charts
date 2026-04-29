@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.130.17 / 2026-04-28
+
+- [Fix] Convert `supervisor.collector` wrapped collector logs into first-class log records when `presets.logsCollection.includeCollectorLogs` is enabled, preserving the nested collector severity, body, component attributes, and resource attributes instead of leaving them embedded in the outer `msg` string.
+
 ### v0.130.16 / 2026-04-27
 
 - [Feat] Use `connection` pod association for profiling k8sattributes processor
