@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.130.18 / 2026-04-30
+
+- [Fix] Exclude `BOOKMARK` and `ERROR` watch event types from the `k8sobjects/resource_catalog` watch receivers used by the Kubernetes resource catalog presets, reducing non-actionable watch stream noise while preserving normal watch recovery behavior.
+
 ### v0.130.17 / 2026-04-28
 
 - [Fix] Convert `supervisor.collector` wrapped collector logs into first-class log records when `presets.logsCollection.includeCollectorLogs` is enabled, preserving the nested collector severity, body, component attributes, and resource attributes instead of leaving them embedded in the outer `msg` string.
