@@ -2,6 +2,14 @@
 
 ## OpenTelemetry Collector
 
+### v0.131.1 / 2026-04-30
+
+- [Fix] Keep the `opentelemetry-collector-ebpf-profiler` distribution on image tag `0.147.0` by default when the `ebpfProfiler` preset is enabled, while allowing `image.tag` overrides.
+
+### v0.131.0 / 2026-04-30
+
+- [Feat] Bump OpenTelemetry Collector image to v0.151.0.
+
 ### v0.130.18 / 2026-04-30
 
 - [Fix] Exclude `BOOKMARK` and `ERROR` watch event types from the `k8sobjects/resource_catalog` watch receivers used by the Kubernetes resource catalog presets, reducing non-actionable watch stream noise while preserving normal watch recovery behavior.
