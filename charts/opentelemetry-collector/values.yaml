@@ -276,10 +276,21 @@ presets:
     serviceAnnotations: []
   # Configures the collector to run the eBPF profiler distribution.
   # Switches the image to otelcol-ebpf-profiler and wires a profiles pipeline
-  # with the profiling receiver. Logs/metrics/traces pipelines are removed and
-  # the otlpReceiver/collectorMetrics presets are ignored for compatibility.
+  # with the profiling receiver. By default, profiles are forwarded to a node-local
+  # agent over OTLP so Kubernetes enrichment and service-name mapping can run in
+  # the standard agent collector instead of the eBPF profiler distribution.
+  # Logs/metrics/traces pipelines are removed and the collectorMetrics preset is
+  # ignored for compatibility.
   ebpfProfiler:
     enabled: false
+    forwardToAgent:
+      enabled: true
+      # Node-local agent OTLP gRPC endpoint. The default targets the hostPort
+      # exposed by an agent DaemonSet on the same Kubernetes node.
+      endpoint: ${env:K8S_NODE_IP}:4317
+      headers: {}
+      tls:
+        insecure: true
     # Interval for sending profiling data.
     reporterInterval: 5s
     # Samples per second for profiling collection.

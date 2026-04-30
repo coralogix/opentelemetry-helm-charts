@@ -259,6 +259,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.otlpReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyOtlpReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if and .Values.presets.ebpfProfiler.enabled .Values.presets.ebpfProfiler.forwardToAgent.enabled }}
+{{- $config = (include "opentelemetry-collector.applyEbpfProfilerForwardToAgentConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.awsecscontainermetricsdReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyAwsecsContainerMetricsdReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -294,6 +297,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.batch.enabled }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if and .Values.presets.ebpfProfiler.enabled .Values.presets.ebpfProfiler.forwardToAgent.enabled }}
+{{- $config = (include "opentelemetry-collector.applyEbpfProfilerForwardToAgentConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.applyMemoryLimiterProcessorAsFirst" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -456,6 +462,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.batch.enabled }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if and .Values.presets.ebpfProfiler.enabled .Values.presets.ebpfProfiler.forwardToAgent.enabled }}
+{{- $config = (include "opentelemetry-collector.applyEbpfProfilerForwardToAgentConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.applyMemoryLimiterProcessorAsFirst" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -872,6 +881,8 @@ processors:
 
 {{- define "opentelemetry-collector.applyProfilesK8sAttributesConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.profilesK8sAttributesConfig" .Values | fromYaml) .config }}
+{{- $skipProfilesProcessing := and .Values.Values.presets.ebpfProfiler.enabled .Values.Values.presets.ebpfProfiler.forwardToAgent.enabled }}
+{{- if not $skipProfilesProcessing }}
 {{- if $config.service.pipelines.profiles }}
 {{- $profilesProcessors := $config.service.pipelines.profiles.processors | default (list) }}
 {{- if not (has "k8sattributes/profiles" $profilesProcessors) }}
@@ -881,6 +892,7 @@ processors:
 {{- $profilesProcessors = append $profilesProcessors "transform/profiles" }}
 {{- end }}
 {{- $_ := set $config.service.pipelines.profiles "processors" ($profilesProcessors | uniq) }}
+{{- end }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
@@ -893,6 +905,29 @@ processors:
 {{- if not (has "profiling" $profilesReceivers) }}
 {{- $_ := set $config.service.pipelines.profiles "receivers" (append $profilesReceivers "profiling" | uniq)  }}
 {{- end }}
+{{- end }}
+{{- if $config.service.pipelines }}
+{{- $profilesPipeline := dict }}
+{{- if $config.service.pipelines.profiles }}
+{{- $_ := set $profilesPipeline "profiles" $config.service.pipelines.profiles }}
+{{- end }}
+{{- $_ := set $config.service "pipelines" $profilesPipeline }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyEbpfProfilerForwardToAgentConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.ebpfProfilerForwardToAgentConfig" .Values | fromYaml) .config }}
+{{- $profilingReceiver := dict "profiling" $config.receivers.profiling }}
+{{- $_ := set $config "receivers" $profilingReceiver }}
+{{- $memoryLimiterProcessor := dict "memory_limiter" $config.processors.memory_limiter }}
+{{- $_ := set $config "processors" $memoryLimiterProcessor }}
+{{- $agentExporter := dict "otlp/agent" (index $config.exporters "otlp/agent") }}
+{{- $_ := set $config "exporters" $agentExporter }}
+{{- if $config.service.pipelines.profiles }}
+{{- $_ := set $config.service.pipelines.profiles "receivers" (list "profiling") }}
+{{- $_ := set $config.service.pipelines.profiles "processors" (list "memory_limiter") }}
+{{- $_ := set $config.service.pipelines.profiles "exporters" (list "otlp/agent") }}
 {{- end }}
 {{- if $config.service.pipelines }}
 {{- $profilesPipeline := dict }}
@@ -1492,6 +1527,20 @@ service:
       receivers: []
       processors: []
       exporters: []
+{{- end }}
+
+{{- define "opentelemetry-collector.ebpfProfilerForwardToAgentConfig" -}}
+exporters:
+  otlp/agent:
+    endpoint: {{ .Values.presets.ebpfProfiler.forwardToAgent.endpoint | quote }}
+    {{- with .Values.presets.ebpfProfiler.forwardToAgent.headers }}
+    headers:
+{{ toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.presets.ebpfProfiler.forwardToAgent.tls }}
+    tls:
+{{ toYaml . | nindent 6 }}
+    {{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyKubernetesExtraMetrics" -}}
@@ -3237,6 +3286,7 @@ exporters:
     profiles:
       headers:
         X-Coralogix-Distribution: "{{ if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
+        x-coralogix-ingress: "otlp/v1.10.0"
     application_name: "{{ $endpoint.defaultApplicationName }}"
     subsystem_name: "{{ $endpoint.defaultSubsystemName }}"
     application_name_attributes:
@@ -3568,6 +3618,10 @@ processors:
 {{/* Build the list of port for service */}}
 {{- define "opentelemetry-collector.servicePortsConfig" -}}
 {{- $ports := deepCopy .Values.ports }}
+{{- if and .Values.presets.ebpfProfiler.enabled .Values.presets.ebpfProfiler.forwardToAgent.enabled }}
+{{- $_ := unset $ports "otlp" }}
+{{- $_ := unset $ports "otlp-http" }}
+{{- end }}
 {{- range $key, $port := $ports }}
 {{- if $port.enabled }}
 - name: {{ $key }}
@@ -3588,6 +3642,10 @@ processors:
 {{- define "opentelemetry-collector.podPortsConfig" -}}
 {{- $ports := deepCopy .Values.ports }}
 {{- $distribution := .Values.distribution }}
+{{- if and .Values.presets.ebpfProfiler.enabled .Values.presets.ebpfProfiler.forwardToAgent.enabled }}
+{{- $_ := unset $ports "otlp" }}
+{{- $_ := unset $ports "otlp-http" }}
+{{- end }}
 {{- if .Values.presets.jaegerReceiver.enabled }}
   {{/* Add Jaeger ports only if they don't already exist */}}
   {{- if not (hasKey $ports "jaeger-grpc") }}

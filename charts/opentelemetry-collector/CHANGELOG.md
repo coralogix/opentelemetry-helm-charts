@@ -2,6 +2,11 @@
 
 ## OpenTelemetry Collector
 
+### v0.131.1 / 2026-04-30
+
+- [Feat] Forward eBPF profiler profiles to a node-local agent over OTLP by default, keeping Kubernetes attributes and profile service-name mapping on the standard agent collector.
+- [Feat] Add the `x-coralogix-ingress: otlp/v1.10.0` header to Coralogix profile exports.
+
 ### v0.131.0 / 2026-04-30
 
 - [Feat] Bump OpenTelemetry Collector image to v0.151.0.

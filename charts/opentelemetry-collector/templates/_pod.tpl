@@ -66,7 +66,7 @@ containers:
             apiVersion: v1
             fieldPath: metadata.name
       {{- end }}
-      {{- if or .Values.presets.kubeletMetrics.enabled .Values.presets.kubernetesExtraMetrics.perNode }}
+      {{- if or .Values.presets.kubeletMetrics.enabled .Values.presets.kubernetesExtraMetrics.perNode (and .Values.presets.ebpfProfiler.enabled .Values.presets.ebpfProfiler.forwardToAgent.enabled) }}
       - name: K8S_NODE_IP
         valueFrom:
           fieldRef:

@@ -4,16 +4,6 @@ presets:
   ebpfProfiler:
     enabled: true
     samplesPerSecond: 77
-  profilesK8sAttributes:
-    enabled: true
-  ecsAttributesContainerLogs:
-    enabled: true
-    profilesServiceName:
-      enabled: true
-  metadata:
-    enabled: true
-    clusterName: "test-cluster"
-    integrationName: "coralogix-integration-helm"
   otlpExporter:
     enabled: false
   otlpReceiver:
@@ -30,9 +20,3 @@ config:
         cx.agent.type: "ebpf-profiler"
       logs:
         level: "debug"
-    pipelines:
-      profiles:
-        exporters:
-          - debug
-        processors:
-          - memory_limiter

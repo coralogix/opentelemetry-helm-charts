@@ -532,6 +532,12 @@ The HTTP endpoint can be configured via `presets.pprof.endpoint`.
 ### Configuration for eBPF profiler preset
 
 Set `presets.ebpfProfiler.enabled` to `true` to use the eBPF profiler distribution.
+By default, this preset forwards profiles to a node-local agent at
+`${env:K8S_NODE_IP}:4317` with the `otlp/agent` exporter. This keeps Kubernetes
+attribute enrichment and profile `service.name` mapping in the standard agent
+collector, where components such as `k8sattributes` and `transform` are available,
+instead of rendering that logic in the eBPF profiler distribution.
+
 You can optionally set `presets.ebpfProfiler.samplesPerSecond` to render
 `receivers.profiling.samples_per_second` in the generated collector config. When
 `presets.ebpfProfiler.samplesPerSecond` is not set, the chart omits
@@ -542,6 +548,24 @@ presets:
   ebpfProfiler:
     enabled: true
     samplesPerSecond: 77
+    forwardToAgent:
+      enabled: true
+      endpoint: ${env:K8S_NODE_IP}:4317
+```
+
+Configure the receiving agent with a profiles pipeline, the OTLP receiver, and
+profile enrichment presets:
+
+```yaml
+mode: daemonset
+
+presets:
+  profilesCollection:
+    enabled: true
+  profilesK8sAttributes:
+    enabled: true
+  otlpReceiver:
+    enabled: true
 ```
 
 ### Configuration for standalone distribution
