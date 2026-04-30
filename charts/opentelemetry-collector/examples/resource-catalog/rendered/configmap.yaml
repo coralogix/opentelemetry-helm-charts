@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.130.17
+    helm.sh/chart: opentelemetry-collector-0.130.18
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.147.0"
@@ -171,61 +171,118 @@ data:
     receivers:
       k8sobjects/resource_catalog:
         objects:
-        - group: ""
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: ""
           mode: watch
           name: namespaces
-        - group: ""
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: ""
           mode: watch
           name: nodes
-        - group: ""
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: ""
           mode: watch
           name: persistentvolumeclaims
-        - group: ""
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: ""
           mode: watch
           name: persistentvolumes
-        - group: ""
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: ""
           mode: watch
           name: pods
-        - group: apps
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: apps
           mode: watch
           name: daemonsets
-        - group: apps
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: apps
           mode: watch
           name: deployments
-        - group: apps
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: apps
           mode: watch
           name: replicasets
-        - group: apps
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: apps
           mode: watch
           name: statefulsets
-        - group: autoscaling
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: autoscaling
           mode: watch
           name: horizontalpodautoscalers
-        - group: batch
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: batch
           mode: watch
           name: cronjobs
-        - group: batch
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: batch
           mode: watch
           name: jobs
-        - group: extensions
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: extensions
           mode: watch
           name: ingresses
-        - group: networking.k8s.io
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: networking.k8s.io
           mode: watch
           name: ingresses
-        - group: policy
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: policy
           mode: watch
           name: poddisruptionbudgets
-        - group: rbac.authorization.k8s.io
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: rbac.authorization.k8s.io
           mode: watch
           name: clusterrolebindings
-        - group: rbac.authorization.k8s.io
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: rbac.authorization.k8s.io
           mode: watch
           name: clusterroles
-        - group: rbac.authorization.k8s.io
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: rbac.authorization.k8s.io
           mode: watch
           name: rolebindings
-        - group: rbac.authorization.k8s.io
+        - exclude_watch_type:
+          - BOOKMARK
+          - ERROR
+          group: rbac.authorization.k8s.io
           mode: watch
           name: roles
       otlp:

@@ -2738,60 +2738,79 @@ receivers:
       - name: namespaces
         mode: "watch"
         group: ""
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
       - name: nodes
         mode: "watch"
         group: ""
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
       - name: persistentvolumeclaims
         mode: "watch"
         group: ""
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
       - name: persistentvolumes
         mode: "watch"
         group: ""
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
       - name: pods
         mode: "watch"
         group: ""
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
       - name: daemonsets
         mode: "watch"
         group: "apps"
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
       - name: deployments
         mode: "watch"
         group: "apps"
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
       - name: replicasets
         mode: "watch"
         group: "apps"
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
       - name: statefulsets
         mode: "watch"
         group: "apps"
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
       - name: horizontalpodautoscalers
         mode: "watch"
         group: "autoscaling"
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
       - name: cronjobs
         mode: "watch"
         group: "batch"
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
       - name: jobs
         mode: "watch"
         group: "batch"
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
       - name: ingresses
         mode: "watch"
         group: "extensions"
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
       - name: ingresses
         mode: "watch"
         group: "networking.k8s.io"
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
       - name: poddisruptionbudgets
         mode: "watch"
         group: "policy"
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
       - name: clusterrolebindings
         mode: "watch"
         group: "rbac.authorization.k8s.io"
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
       - name: clusterroles
         mode: "watch"
         group: "rbac.authorization.k8s.io"
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
       - name: rolebindings
         mode: "watch"
         group: "rbac.authorization.k8s.io"
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
       - name: roles
         mode: "watch"
         group: "rbac.authorization.k8s.io"
+        exclude_watch_type: ["BOOKMARK", "ERROR"]
 service:
   pipelines:
     logs/resource_catalog:
