@@ -2,14 +2,6 @@
 
 ## OpenTelemetry Collector
 
-### v0.131.2 / 2026-04-30
-
-- [Fix] Revert the eBPF profiler default image tag pin so eBPF profiler images follow the chart `appVersion` by default again.
-
-### v0.131.1 / 2026-04-30
-
-- [Fix] Keep the `opentelemetry-collector-ebpf-profiler` distribution on image tag `0.147.0` by default when the `ebpfProfiler` preset is enabled, while allowing `image.tag` overrides.
-
 ### v0.131.0 / 2026-04-30
 
 - [Feat] Bump OpenTelemetry Collector image to v0.151.0.
