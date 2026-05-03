@@ -109,6 +109,11 @@ the Kubernetes informers once on behalf of every OBI Pod and streams the
 metadata back over gRPC, so OBI Pods no longer hit the API server for
 informer traffic.
 
+> **Note:** Even when `k8s-cache` is enabled, OBI Pods still need their own
+> `ServiceAccount` and may perform limited direct Kubernetes API lookups for
+> node and cluster metadata. The cache eliminates the per-Pod informer
+> watch traffic, not all API access.
+
 The cache is disabled by default. To enable it, set `k8sCache.replicas` to a
 non-zero value:
 
