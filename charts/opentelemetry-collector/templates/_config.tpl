@@ -3603,10 +3603,6 @@ processors:
 {{/* Build the list of port for service */}}
 {{- define "opentelemetry-collector.servicePortsConfig" -}}
 {{- $ports := deepCopy .Values.ports }}
-{{- if and .Values.presets.ebpfProfiler.enabled .Values.presets.ebpfProfiler.forwardToAgent.enabled }}
-{{- $_ := unset $ports "otlp" }}
-{{- $_ := unset $ports "otlp-http" }}
-{{- end }}
 {{- range $key, $port := $ports }}
 {{- if $port.enabled }}
 - name: {{ $key }}
@@ -3627,10 +3623,6 @@ processors:
 {{- define "opentelemetry-collector.podPortsConfig" -}}
 {{- $ports := deepCopy .Values.ports }}
 {{- $distribution := .Values.distribution }}
-{{- if and .Values.presets.ebpfProfiler.enabled .Values.presets.ebpfProfiler.forwardToAgent.enabled }}
-{{- $_ := unset $ports "otlp" }}
-{{- $_ := unset $ports "otlp-http" }}
-{{- end }}
 {{- if .Values.presets.jaegerReceiver.enabled }}
   {{/* Add Jaeger ports only if they don't already exist */}}
   {{- if not (hasKey $ports "jaeger-grpc") }}

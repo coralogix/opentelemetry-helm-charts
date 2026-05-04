@@ -47,6 +47,15 @@ spec:
             privileged: true
           image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-ebpf-profiler:0.151.0"
           imagePullPolicy: IfNotPresent
+          ports:
+            - name: otlp
+              containerPort: 4317
+              protocol: TCP
+              hostPort: 4317
+            - name: otlp-http
+              containerPort: 4318
+              protocol: TCP
+              hostPort: 4318
           env:
             - name: MY_POD_IP
               valueFrom:
