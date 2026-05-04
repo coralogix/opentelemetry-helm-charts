@@ -276,8 +276,11 @@ presets:
     serviceAnnotations: []
   # Configures the collector to run the eBPF profiler distribution.
   # Switches the image to otelcol-ebpf-profiler and wires a profiles pipeline
-  # with the profiling receiver. Logs/metrics/traces pipelines are removed and
-  # the otlpReceiver/collectorMetrics presets are ignored for compatibility.
+  # with the profiling receiver. Use the otlpExporter preset to forward profiles
+  # to a node-local agent when Kubernetes enrichment and service-name mapping
+  # should run in the standard agent collector instead of the eBPF profiler distribution.
+  # Logs/metrics/traces pipelines are removed and the collectorMetrics preset is
+  # ignored for compatibility.
   ebpfProfiler:
     enabled: false
     # Interval for sending profiling data.
@@ -591,6 +594,11 @@ presets:
     #   headers:
     #     Authorization: "Bearer ${env:CORALOGIX_PRIVATE_KEY}"
     headers: {}
+    # Optional OTLP exporter TLS settings.
+    # Example:
+    #   tls:
+    #     insecure: true
+    tls: {}
 
   # Configures grouping spans into transactions and enabling Coralogix transaction processor.
   transactions:

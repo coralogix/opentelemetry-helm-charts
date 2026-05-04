@@ -1533,6 +1533,11 @@
               "additionalProperties": {
                 "type": "string"
               }
+            },
+            "tls": {
+              "description": "Optional OTLP exporter TLS settings.",
+              "type": "object",
+              "additionalProperties": true
             }
           }
         },

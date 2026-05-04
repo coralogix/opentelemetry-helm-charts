@@ -4,18 +4,12 @@ presets:
   ebpfProfiler:
     enabled: true
     samplesPerSecond: 77
-  profilesK8sAttributes:
-    enabled: true
-  ecsAttributesContainerLogs:
-    enabled: true
-    profilesServiceName:
-      enabled: true
-  metadata:
-    enabled: true
-    clusterName: "test-cluster"
-    integrationName: "coralogix-integration-helm"
   otlpExporter:
-    enabled: false
+    enabled: true
+    endpoint: ${env:K8S_NODE_IP}:4317
+    pipelines: ["profiles"]
+    tls:
+      insecure: true
   otlpReceiver:
     enabled: false
   # unsupported by ebpf profiler distro
@@ -30,9 +24,3 @@ config:
         cx.agent.type: "ebpf-profiler"
       logs:
         level: "debug"
-    pipelines:
-      profiles:
-        exporters:
-          - debug
-        processors:
-          - memory_limiter

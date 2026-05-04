@@ -1364,6 +1364,7 @@ processors:
       - sources:
           - from: resource_attribute
             name: container.id
+      - sources:
           - from: connection
 
 service:
@@ -1471,6 +1472,7 @@ processors:
       - sources:
           - from: resource_attribute
             name: container.id
+      - sources:
           - from: connection
 {{- end }}
 
@@ -1490,7 +1492,8 @@ service:
   pipelines:
     profiles:
       receivers: []
-      processors: []
+      processors:
+        - memory_limiter
       exporters: []
 {{- end }}
 
@@ -3142,6 +3145,10 @@ exporters:
     headers:
 {{ toYaml . | nindent 6 }}
     {{- end }}
+    {{- with .Values.presets.otlpExporter.tls }}
+    tls:
+{{ toYaml . | nindent 6 }}
+    {{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyCoralogixExporterConfig" -}}
@@ -3237,6 +3244,7 @@ exporters:
     profiles:
       headers:
         X-Coralogix-Distribution: "{{ if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
+        x-coralogix-ingress: "otlp/v1.10.0"
     application_name: "{{ $endpoint.defaultApplicationName }}"
     subsystem_name: "{{ $endpoint.defaultSubsystemName }}"
     application_name_attributes:
