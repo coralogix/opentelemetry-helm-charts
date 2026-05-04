@@ -553,16 +553,14 @@ presets:
       endpoint: ${env:K8S_NODE_IP}:4317
 ```
 
-Configure the receiving agent with a profiles pipeline, the OTLP receiver, and
-profile enrichment presets:
+Configure the receiving agent with a profiles pipeline, Kubernetes profile
+enrichment, and the OTLP receiver:
 
 ```yaml
 mode: daemonset
 
 presets:
   profilesCollection:
-    enabled: true
-  profilesK8sAttributes:
     enabled: true
   otlpReceiver:
     enabled: true
