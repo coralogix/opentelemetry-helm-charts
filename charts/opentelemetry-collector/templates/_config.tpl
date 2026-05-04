@@ -915,24 +915,10 @@ processors:
 
 {{- define "opentelemetry-collector.applyEbpfProfilerForwardToAgentConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.ebpfProfilerForwardToAgentConfig" .Values | fromYaml) .config }}
-{{- $profilingReceiver := dict "profiling" $config.receivers.profiling }}
-{{- $_ := set $config "receivers" $profilingReceiver }}
-{{- $memoryLimiterProcessor := dict "memory_limiter" $config.processors.memory_limiter }}
-{{- $_ := set $config "processors" $memoryLimiterProcessor }}
-{{- $agentExporter := dict "otlp/agent" (index $config.exporters "otlp/agent") }}
-{{- $_ := set $config "exporters" $agentExporter }}
-{{- if $config.service.pipelines.profiles }}
-{{- $_ := set $config.service.pipelines.profiles "receivers" (list "profiling") }}
-{{- $_ := set $config.service.pipelines.profiles "processors" (list "memory_limiter") }}
-{{- $_ := set $config.service.pipelines.profiles "exporters" (list "otlp/agent") }}
-{{- end }}
-{{- if $config.service.pipelines }}
-{{- $profilesPipeline := dict }}
-{{- if $config.service.pipelines.profiles }}
-{{- $_ := set $profilesPipeline "profiles" $config.service.pipelines.profiles }}
-{{- end }}
-{{- $_ := set $config.service "pipelines" $profilesPipeline }}
-{{- end }}
+{{- $_ := set $config "receivers" (dict "profiling" $config.receivers.profiling) }}
+{{- $_ := set $config "processors" (dict "memory_limiter" $config.processors.memory_limiter) }}
+{{- $_ := set $config "exporters" (dict "otlp/agent" (index $config.exporters "otlp/agent")) }}
+{{- $_ := set $config.service "pipelines" (dict "profiles" (dict "receivers" (list "profiling") "processors" (list "memory_limiter") "exporters" (list "otlp/agent"))) }}
 {{- $config | toYaml }}
 {{- end }}
 
