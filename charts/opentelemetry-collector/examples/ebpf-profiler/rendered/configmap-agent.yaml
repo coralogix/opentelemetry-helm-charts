@@ -15,7 +15,8 @@ metadata:
 data:
   relay: |
     exporters:
-      otlp/agent:
+      debug: {}
+      otlp:
         endpoint: ${env:K8S_NODE_IP}:4317
         tls:
           insecure: true
@@ -42,7 +43,7 @@ data:
       pipelines:
         profiles:
           exporters:
-          - otlp/agent
+          - otlp
           processors:
           - memory_limiter
           receivers:

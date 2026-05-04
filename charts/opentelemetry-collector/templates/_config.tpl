@@ -259,9 +259,6 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.otlpReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyOtlpReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if and .Values.presets.ebpfProfiler.enabled .Values.presets.ebpfProfiler.forwardToAgent.enabled }}
-{{- $config = (include "opentelemetry-collector.applyEbpfProfilerForwardToAgentConfig" (dict "Values" $data "config" $config) | fromYaml) }}
-{{- end }}
 {{- if .Values.presets.awsecscontainermetricsdReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyAwsecsContainerMetricsdReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -297,9 +294,6 @@ Build config file for daemonset OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.batch.enabled }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorConfig" (dict "Values" $data "config" $config) | fromYaml) }}
-{{- end }}
-{{- if and .Values.presets.ebpfProfiler.enabled .Values.presets.ebpfProfiler.forwardToAgent.enabled }}
-{{- $config = (include "opentelemetry-collector.applyEbpfProfilerForwardToAgentConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.applyMemoryLimiterProcessorAsFirst" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -462,9 +456,6 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.batch.enabled }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorConfig" (dict "Values" $data "config" $config) | fromYaml) }}
-{{- end }}
-{{- if and .Values.presets.ebpfProfiler.enabled .Values.presets.ebpfProfiler.forwardToAgent.enabled }}
-{{- $config = (include "opentelemetry-collector.applyEbpfProfilerForwardToAgentConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.applyMemoryLimiterProcessorAsFirst" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -910,15 +901,6 @@ processors:
 {{- end }}
 {{- $_ := set $config.service "pipelines" $profilesPipeline }}
 {{- end }}
-{{- $config | toYaml }}
-{{- end }}
-
-{{- define "opentelemetry-collector.applyEbpfProfilerForwardToAgentConfig" -}}
-{{- $config := mustMergeOverwrite (include "opentelemetry-collector.ebpfProfilerForwardToAgentConfig" .Values | fromYaml) .config }}
-{{- $_ := set $config "receivers" (dict "profiling" $config.receivers.profiling) }}
-{{- $_ := set $config "processors" (dict "memory_limiter" $config.processors.memory_limiter) }}
-{{- $_ := set $config "exporters" (dict "otlp/agent" (index $config.exporters "otlp/agent")) }}
-{{- $_ := set $config.service "pipelines" (dict "profiles" (dict "receivers" (list "profiling") "processors" (list "memory_limiter") "exporters" (list "otlp/agent"))) }}
 {{- $config | toYaml }}
 {{- end }}
 
@@ -1510,22 +1492,9 @@ service:
   pipelines:
     profiles:
       receivers: []
-      processors: []
+      processors:
+        - memory_limiter
       exporters: []
-{{- end }}
-
-{{- define "opentelemetry-collector.ebpfProfilerForwardToAgentConfig" -}}
-exporters:
-  otlp/agent:
-    endpoint: {{ .Values.presets.ebpfProfiler.forwardToAgent.endpoint | quote }}
-    {{- with .Values.presets.ebpfProfiler.forwardToAgent.headers }}
-    headers:
-{{ toYaml . | nindent 6 }}
-    {{- end }}
-    {{- with .Values.presets.ebpfProfiler.forwardToAgent.tls }}
-    tls:
-{{ toYaml . | nindent 6 }}
-    {{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyKubernetesExtraMetrics" -}}
@@ -3174,6 +3143,10 @@ exporters:
     endpoint: {{ $endpoint | quote }}
     {{- with .Values.presets.otlpExporter.headers }}
     headers:
+{{ toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.presets.otlpExporter.tls }}
+    tls:
 {{ toYaml . | nindent 6 }}
     {{- end }}
 {{- end }}

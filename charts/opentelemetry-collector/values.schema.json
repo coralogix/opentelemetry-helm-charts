@@ -1533,6 +1533,11 @@
               "additionalProperties": {
                 "type": "string"
               }
+            },
+            "tls": {
+              "description": "Optional OTLP exporter TLS settings.",
+              "type": "object",
+              "additionalProperties": true
             }
           }
         },
@@ -2087,33 +2092,6 @@
             "enabled": {
               "description": "Specifies whether to enable the eBPF profiler preset.",
               "type": "boolean"
-            },
-            "forwardToAgent": {
-              "description": "Forwards eBPF profiles to a node-local agent over OTLP so profile enrichment runs in the agent collector.",
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "enabled": {
-                  "description": "Specifies whether to forward eBPF profiles to an agent OTLP endpoint.",
-                  "type": "boolean"
-                },
-                "endpoint": {
-                  "description": "Agent OTLP gRPC endpoint that receives eBPF profiles.",
-                  "type": "string"
-                },
-                "headers": {
-                  "description": "Optional headers for the agent OTLP exporter.",
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  }
-                },
-                "tls": {
-                  "description": "Optional TLS settings for the agent OTLP exporter.",
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
             },
             "reporterInterval": {
               "description": "Interval for sending profiling data.",

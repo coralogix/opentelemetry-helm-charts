@@ -1,6 +1,17 @@
 presets:
   ebpfProfiler:
     enabled: true
+  otlpExporter:
+    enabled: true
+    endpoint: ${env:K8S_NODE_IP}:4317
+    pipelines: ["profiles"]
+    tls:
+      insecure: true
+  otlpReceiver:
+    enabled: false
+  # unsupported by ebpf profiler distro
+  collectorMetrics:
+    enabled: false
   fleetManagement:
     enabled: true
     supervisor:

@@ -5,7 +5,11 @@ presets:
     enabled: true
     samplesPerSecond: 77
   otlpExporter:
-    enabled: false
+    enabled: true
+    endpoint: ${env:K8S_NODE_IP}:4317
+    pipelines: ["profiles"]
+    tls:
+      insecure: true
   otlpReceiver:
     enabled: false
   # unsupported by ebpf profiler distro
