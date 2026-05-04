@@ -881,8 +881,6 @@ processors:
 
 {{- define "opentelemetry-collector.applyProfilesK8sAttributesConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.profilesK8sAttributesConfig" .Values | fromYaml) .config }}
-{{- $skipProfilesProcessing := and .Values.Values.presets.ebpfProfiler.enabled .Values.Values.presets.ebpfProfiler.forwardToAgent.enabled }}
-{{- if not $skipProfilesProcessing }}
 {{- if $config.service.pipelines.profiles }}
 {{- $profilesProcessors := $config.service.pipelines.profiles.processors | default (list) }}
 {{- if not (has "k8sattributes/profiles" $profilesProcessors) }}
@@ -892,7 +890,6 @@ processors:
 {{- $profilesProcessors = append $profilesProcessors "transform/profiles" }}
 {{- end }}
 {{- $_ := set $config.service.pipelines.profiles "processors" ($profilesProcessors | uniq) }}
-{{- end }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
