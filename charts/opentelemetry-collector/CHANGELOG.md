@@ -7,6 +7,7 @@
 - [Feat] Forward eBPF profiler profiles to a node-local agent over OTLP by default, keeping Kubernetes attributes and profile service-name mapping on the standard agent collector.
 - [Feat] Add the `x-coralogix-ingress: otlp/v1.10.0` header to Coralogix profile exports.
 - [Fix] Match profile Kubernetes attributes by `container.id` before falling back to connection-based pod association.
+- [Fix] Scope profile Kubernetes RBAC to the `profilesCollection` and `profilesK8sAttributes` presets that configure `k8sattributes/profiles`.
 
 ### v0.131.0 / 2026-04-30
 
