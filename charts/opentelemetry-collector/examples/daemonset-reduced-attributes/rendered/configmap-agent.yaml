@@ -99,6 +99,7 @@ data:
         - sources:
           - from: resource_attribute
             name: container.id
+        - sources:
           - from: connection
       memory_limiter:
         check_interval: 5s

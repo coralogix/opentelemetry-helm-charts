@@ -1399,6 +1399,7 @@ processors:
       - sources:
           - from: resource_attribute
             name: container.id
+      - sources:
           - from: connection
 
 service:
@@ -1506,6 +1507,7 @@ processors:
       - sources:
           - from: resource_attribute
             name: container.id
+      - sources:
           - from: connection
 {{- end }}
 
