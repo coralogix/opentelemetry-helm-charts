@@ -282,6 +282,7 @@ presets:
   # Logs/metrics/traces pipelines are removed and the collectorMetrics preset is
   # ignored for compatibility.
   ebpfProfiler:
+    imageVersion: v0.4.0
     enabled: false
     # Interval for sending profiling data.
     reporterInterval: 5s

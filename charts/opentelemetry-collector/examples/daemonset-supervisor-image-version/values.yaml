@@ -1,0 +1,18 @@
+global:
+  domain: "eu2.coralogix.com"
+  clusterName: "production"
+  defaultApplicationName: otel
+  defaultSubsystemName: integration
+
+mode: daemonset
+
+presets:
+  fleetManagement:
+    enabled: true
+    agentType: "agent"
+    supervisor:
+      enabled: true
+      imageVersion: 0.5.0
+  coralogixExporter:
+    enabled: true
+    privateKey: ${env:CORALOGIX_PRIVATE_KEY}
