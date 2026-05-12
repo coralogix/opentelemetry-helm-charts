@@ -1764,6 +1764,10 @@
                   "type": "boolean",
                   "default": true
                 },
+                "imageVersion": {
+                  "description": "Image tag for the Coralogix supervised Collector image.",
+                  "type": "string"
+                },
                 "initialFallbackConfigs": {
                   "description": "Specifies fallback configuration paths for the Supervisor.",
                   "type": "array",
