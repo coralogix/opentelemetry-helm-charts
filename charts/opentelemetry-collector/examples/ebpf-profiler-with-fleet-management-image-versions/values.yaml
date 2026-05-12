@@ -9,7 +9,7 @@ mode: daemonset
 presets:
   ebpfProfiler:
     enabled: true
-    imageVersion: v0.5.0
+    supervisedImageVersion: v0.5.0
   fleetManagement:
     enabled: true
     agentType: "agent"

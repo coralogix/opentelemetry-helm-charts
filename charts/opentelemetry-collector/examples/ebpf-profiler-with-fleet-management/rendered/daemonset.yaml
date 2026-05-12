@@ -44,7 +44,7 @@ spec:
             runAsUser: 0
             runAsGroup: 0
             privileged: true
-          image: "cgx.jfrog.io/coralogix-docker-images/coralogix-otel-supervised-ebpf-profiler:v0.4.0"
+          image: "cgx.jfrog.io/coralogix-docker-images/coralogix-otel-supervised-ebpf-profiler:v0.5.0"
           imagePullPolicy: IfNotPresent
           ports:
             - name: otlp
