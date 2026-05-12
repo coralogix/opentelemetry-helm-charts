@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.131.2 / 2026-05-12
+
+- [Feat] Enable `presets.coralogixExporter.keepalive` preset for Coralogix exporter by default.
+
 ### v0.131.1 / 2026-04-30
 
 - [Feat] Support forwarding eBPF profiler profiles to a node-local agent with the `otlpExporter` preset, keeping Kubernetes attributes and profile service-name mapping on the standard agent collector.

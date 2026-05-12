@@ -702,8 +702,25 @@ configuration's `agent.args` field instead of being appended to the `opampsuperv
 ### Configuration for Coralogix exporter keepalive
 
 The chart can pass shared gRPC keepalive settings to the Coralogix exporter by setting
-`presets.coralogixExporter.keepalive`. This block is omitted entirely unless configured, so existing
-deployments keep their current exporter configuration by default.
+`presets.coralogixExporter.keepalive`. Keepalive is enabled by default with the chart's standard
+values, and you can override any of those fields explicitly. Set `keepalive.enabled: false` to
+force the block to stay disabled.
+
+```yaml
+presets:
+  coralogixExporter:
+    enabled: true
+```
+
+The default values rendered are:
+
+```yaml
+time: 30s
+timeout: 10s
+permit_without_stream: false
+```
+
+You can still override individual fields, for example:
 
 ```yaml
 presets:
@@ -712,6 +729,7 @@ presets:
     keepalive:
       time: 30s
       timeout: 10s
+      permit_without_stream: false
 ```
 
 ## CRDs
