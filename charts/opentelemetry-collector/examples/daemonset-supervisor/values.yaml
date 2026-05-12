@@ -5,9 +5,6 @@ global:
   defaultSubsystemName: integration
   version: "1.0"
 
-image:
-  tag: 0.129.1
-
 command:
   name: opampsupervisor
   extraArgs:

@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.131.1
+    helm.sh/chart: opentelemetry-collector-0.131.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.151.0"
@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: c6df539fc890d1569bf81622378117cb8372d5c130c131f071a9e3a4e2e2f583
+        checksum/config: b4db043f8c72ce89e11e6612123f2281aa6e3508898b92bc459843226f6b91d2
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -42,7 +42,7 @@ spec:
             - --config=/etc/otelcol-contrib/supervisor.yaml
           securityContext:
             {}
-          image: "cgx.jfrog.io/coralogix-docker-images/coralogix-otel-supervised-collector:0.129.1"
+          image: "cgx.jfrog.io/coralogix-docker-images/coralogix-otel-supervised-collector:0.4.0"
           imagePullPolicy: IfNotPresent
           ports:
             - name: otlp
