@@ -42,7 +42,7 @@ spec:
             - --config=/etc/otelcol-contrib/supervisor.yaml
           securityContext:
             {}
-          image: "cgx.jfrog.io/coralogix-docker-images/coralogix-otel-supervised-collector:0.4.0"
+          image: "cgx.jfrog.io/coralogix-docker-images/coralogix-otel-supervised-collector:0.1.0"
           imagePullPolicy: IfNotPresent
           ports:
             - name: otlp
