@@ -1428,6 +1428,10 @@
                     },
                     "maxSize": {
                       "type": "integer"
+                    },
+                    "sizer": {
+                      "type": "string",
+                      "enum": ["bytes", "requests", "items"]
                     }
                   }
                 }

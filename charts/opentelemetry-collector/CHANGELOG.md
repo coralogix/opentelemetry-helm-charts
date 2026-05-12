@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.131.3 / 2026-05-12
+
+- [Feat] Enable byte-sized batching for the Coralogix exporter sending queue by default.
+
 ### v0.131.2 / 2026-05-12
 
 - [Feat] Enable `presets.coralogixExporter.keepalive` preset for Coralogix exporter by default.
