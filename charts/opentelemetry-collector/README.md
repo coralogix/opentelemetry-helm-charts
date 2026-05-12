@@ -83,6 +83,20 @@ config:
 
 The chart also provides several presets, detailed below, to help configure importantKubernetes components. For more details on each component, see [Kubernetes Collector Components](https://opentelemetry.io/docs/kubernetes/collector/components/).
 
+### Configuration for Thanos Objstore
+
+The Collector Objstore confmap provider can read object-store settings from a mounted Thanos Objstore configuration file. This file is not created by default. To create it, enable `objstoreConfig`; the chart writes the ConfigMap, mounts it into the Collector container, and sets `OBJSTORE_CONFIG_PATH` to the mounted file path. This setting applies only to chart-managed workloads, not to `collectorCRD.generate`.
+
+```yaml
+objstoreConfig:
+  enabled: true
+  config:
+    type: GCS
+    config:
+      bucket: my-bucket
+      prefix: ""
+```
+
 ### Configuration for Resource Detection
 
 The resource detection preset can add infrastructure metadata such as the host ID and cloud provider attributes to your telemetry. To enable it, set `presets.resourceDetection.enabled` to `true`.

@@ -2355,6 +2355,45 @@
         }
       }
     },
+    "objstoreConfig": {
+      "description": "Configuration for creating and mounting a Thanos Objstore ConfigMap.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "Specifies whether the objstore ConfigMap, volume mount, and OBJSTORE_CONFIG_PATH environment variable should be configured.",
+          "type": "boolean"
+        },
+        "create": {
+          "description": "Specifies whether the chart should create the objstore ConfigMap. Set to false to mount an existing ConfigMap.",
+          "type": "boolean"
+        },
+        "name": {
+          "description": "Existing or generated objstore ConfigMap name.",
+          "type": "string"
+        },
+        "mountPath": {
+          "description": "Directory where the objstore ConfigMap is mounted.",
+          "type": "string"
+        },
+        "fileName": {
+          "description": "File name for the mounted objstore configuration.",
+          "type": "string"
+        },
+        "config": {
+          "description": "Thanos Objstore configuration as a YAML object or templated string.",
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": true
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
     "config": {
       "description": "Configuration that applies to both standalone and agent collector. Overwritable by standalone and agent specific configs.",
       "type": "object"

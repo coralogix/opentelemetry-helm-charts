@@ -1,0 +1,12 @@
+{{- if and (not .Values.collectorCRD.generate) .Values.objstoreConfig.enabled .Values.objstoreConfig.create -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "opentelemetry-collector.objstoreConfigMapName" . }}
+  namespace: {{ template "opentelemetry-collector.namespace" . }}
+  labels:
+    {{- include "opentelemetry-collector.labels" . | nindent 4 }}
+data:
+  {{ .Values.objstoreConfig.fileName }}: |
+    {{- include "opentelemetry-collector.objstoreConfigData" . | nindent 4 }}
+{{- end }}

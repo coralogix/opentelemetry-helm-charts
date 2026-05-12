@@ -1060,6 +1060,23 @@ configMap:
   # Specifies whether a configMap should be created (true by default)
   create: true
 
+# Creates and mounts a ConfigMap containing Thanos Objstore configuration.
+# This is only applied to chart-managed workloads, not to the Collector CRD.
+# When enabled, the chart also sets OBJSTORE_CONFIG_PATH to the mounted file path.
+objstoreConfig:
+  enabled: false
+  # Specifies whether an objstore ConfigMap should be created by this chart.
+  # When set to false, set name to an existing ConfigMap name.
+  create: true
+  # Existing or generated ConfigMap name. Defaults to "<fullname>-objstore".
+  name: ""
+  # Directory where the ConfigMap is mounted.
+  mountPath: /etc/otel/objstore
+  # File name for the mounted objstore configuration.
+  fileName: objstore.yaml
+  # Thanos Objstore configuration. This can be a YAML object or a templated string.
+  config: {}
+
 # Base collector configuration.
 # Supports templating. To escape existing instances of {{ }}, use {{` <original content> `}}.
 # For example, {{ REDACTED_EMAIL }} becomes {{` {{ REDACTED_EMAIL }} `}}.
