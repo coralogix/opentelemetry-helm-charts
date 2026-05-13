@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.131.3
+    helm.sh/chart: opentelemetry-collector-0.131.4
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.151.0"
@@ -45,6 +45,11 @@ data:
           max_interval: 20s
           multiplier: 2
         sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
           block_on_overflow: true
           enabled: true
           num_consumers: 5
@@ -92,6 +97,11 @@ data:
           max_interval: 20s
           multiplier: 2
         sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
           block_on_overflow: true
           enabled: true
           num_consumers: 5
@@ -139,6 +149,11 @@ data:
           max_interval: 20s
           multiplier: 2
         sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
           block_on_overflow: true
           enabled: true
           num_consumers: 5
@@ -186,6 +201,11 @@ data:
           max_interval: 20s
           multiplier: 2
         sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
           block_on_overflow: true
           enabled: true
           num_consumers: 5
@@ -291,7 +311,7 @@ data:
         agent_description:
           include_resource_attributes: true
           non_identifying_attributes:
-            helm.chart.opentelemetry-collector.version: 0.131.3
+            helm.chart.opentelemetry-collector.version: 0.131.4
         server:
           http:
             endpoint: https://ingress.coralogix.com/opamp/v1
@@ -302,7 +322,7 @@ data:
         agent_description:
           include_resource_attributes: true
           non_identifying_attributes:
-            helm.chart.opentelemetry-collector.version: 0.131.3
+            helm.chart.opentelemetry-collector.version: 0.131.4
         server:
           http:
             endpoint: https://ingress.coralogixsg.com/opamp/v1
@@ -313,7 +333,7 @@ data:
         agent_description:
           include_resource_attributes: true
           non_identifying_attributes:
-            helm.chart.opentelemetry-collector.version: 0.131.3
+            helm.chart.opentelemetry-collector.version: 0.131.4
         server:
           http:
             endpoint: https://ingress.eu2.coralogix.com/opamp/v1
@@ -324,7 +344,7 @@ data:
         agent_description:
           include_resource_attributes: true
           non_identifying_attributes:
-            helm.chart.opentelemetry-collector.version: 0.131.3
+            helm.chart.opentelemetry-collector.version: 0.131.4
         server:
           http:
             endpoint: https://ingress.private.coralogix.com/opamp/v1

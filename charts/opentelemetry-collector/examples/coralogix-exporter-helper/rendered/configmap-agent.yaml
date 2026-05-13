@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.131.3
+    helm.sh/chart: opentelemetry-collector-0.131.4
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.151.0"
@@ -45,6 +45,11 @@ data:
           max_interval: 20s
           multiplier: 2
         sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
           block_on_overflow: true
           enabled: true
           num_consumers: 5
@@ -92,6 +97,11 @@ data:
           max_interval: 20s
           multiplier: 2
         sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
           block_on_overflow: true
           enabled: true
           num_consumers: 5
@@ -139,6 +149,11 @@ data:
           max_interval: 20s
           multiplier: 2
         sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
           block_on_overflow: true
           enabled: true
           num_consumers: 5
@@ -186,6 +201,11 @@ data:
           max_interval: 20s
           multiplier: 2
         sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
           block_on_overflow: true
           enabled: true
           num_consumers: 5
