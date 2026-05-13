@@ -2127,6 +2127,16 @@
             "tracers": {
               "description": "Comma-delimited list of tracers to enable (or \"all\").",
               "type": "string"
+            },
+            "obi_correlation": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Share the traces_ctx_v1 BPF map with OBI for trace-profile correlation.",
+                  "type": "boolean"
+                }
+              }
             }
           }
         },

@@ -2,6 +2,10 @@
 
 ## OpenTelemetry eBPF Instrumentation
 
+### v0.1.16 / 2026-05-13
+
+- [Feat] Add `bpffs.enabled` (default `true`) value that mounts the host `/sys/fs/bpf` with `mountPropagation: Bidirectional`, so OBI's pinned `traces_ctx_v1` map at `<bpf_fs_path>/otel/traces_ctx_v1` is host-visible and shareable with the eBPF profiler for trace-profile correlation.
+
 ### v0.1.15 / 2026-04-09
 
 - [Chore] Bump version to v0.1.15.
