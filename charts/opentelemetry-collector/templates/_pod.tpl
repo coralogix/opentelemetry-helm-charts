@@ -292,7 +292,7 @@ containers:
       - name: debug
         mountPath: /sys/kernel/debug
         readOnly: false
-      {{- if .Values.presets.ebpfProfiler.obi.enabled }}
+      {{- if .Values.presets.ebpfProfiler.obi_correlation.enabled }}
       - name: bpffs
         mountPath: /sys/fs/bpf
         mountPropagation: Bidirectional
@@ -437,7 +437,7 @@ volumes:
   - name: debug
     hostPath:
       path: /sys/kernel/debug
-  {{- if .Values.presets.ebpfProfiler.obi.enabled }}
+  {{- if .Values.presets.ebpfProfiler.obi_correlation.enabled }}
   - name: bpffs
     hostPath:
       path: /sys/fs/bpf
