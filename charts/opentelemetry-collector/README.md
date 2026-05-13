@@ -712,18 +712,23 @@ To enable this behavior, set `presets.fleetManagement.supervisor.initialFallback
 
 #### Objstore provider configuration
 
-The Collector Objstore confmap provider can read object-store settings from a mounted Thanos Objstore configuration file. This file is not created by default. To create it, enable `objstoreConfig`; the chart writes the ConfigMap, mounts it into the Collector container, and sets `OBJSTORE_CONFIG_PATH` to the mounted file path.
+The Collector Objstore confmap provider can read object-store settings from a mounted Thanos Objstore configuration file. This file is not created by default. To create it, enable `presets.fleetManagement.supervisor.objstoreConfig`; the chart writes the ConfigMap, mounts it into the Collector container, and sets `OBJSTORE_CONFIG_PATH` to the mounted file path.
 
 ```yaml
-objstoreConfig:
-  enabled: true
-  config:
-    type: GCS
-    config:
-      bucket: my-bucket
+presets:
+  fleetManagement:
+    enabled: true
+    supervisor:
+      enabled: true
+      objstoreConfig:
+        enabled: true
+        config:
+          type: GCS
+          config:
+            bucket: my-bucket
 ```
 
-For a full reference of the Thanos Objstore configuration that can the customized in the `objsoreConfig.config` key, please refer to the [Thanos Objstore supported providers documentation](https://github.com/thanos-io/objstore#supported-providers-clients).
+For a full reference of the Thanos Objstore configuration that can be customized in the `presets.fleetManagement.supervisor.objstoreConfig.config` key, please refer to the [Thanos Objstore supported providers documentation](https://github.com/thanos-io/objstore#supported-providers-clients).
 
 ### Configuration for Coralogix exporter keepalive
 

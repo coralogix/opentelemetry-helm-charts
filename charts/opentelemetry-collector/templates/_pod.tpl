@@ -1,4 +1,6 @@
 {{- define "opentelemetry-collector.pod" -}}
+{{- $objstoreConfig := .Values.presets.fleetManagement.supervisor.objstoreConfig -}}
+{{- $objstoreConfigEnabled := and .Values.presets.fleetManagement.enabled .Values.presets.fleetManagement.supervisor.enabled $objstoreConfig.enabled -}}
 {{- with .Values.imagePullSecrets }}
 imagePullSecrets:
   {{- toYaml . | nindent 2 }}
@@ -117,7 +119,7 @@ containers:
             apiVersion: v1
             fieldPath: spec.nodeName
       {{- end -}}
-      {{- if and .Values.objstoreConfig.enabled (not $objstoreConfigPathExists) }}
+      {{- if and $objstoreConfigEnabled (not $objstoreConfigPathExists) }}
       - name: OBJSTORE_CONFIG_PATH
         value: {{ include "opentelemetry-collector.objstoreConfigPath" . | quote }}
       {{- end }}
@@ -211,9 +213,9 @@ containers:
       - mountPath: {{ .Values.isWindows | ternary "C:\\conf" "/conf" }}
         name: {{ include "opentelemetry-collector.lowercase_chartname" . }}-configmap
       {{- end }}
-      {{- if .Values.objstoreConfig.enabled }}
+      {{- if $objstoreConfigEnabled }}
       - name: objstore-configmap
-        mountPath: {{ .Values.objstoreConfig.mountPath | quote }}
+        mountPath: {{ $objstoreConfig.mountPath | quote }}
         readOnly: true
       {{- end }}
       {{- if (and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled)) }}
@@ -358,13 +360,13 @@ volumes:
         - key: relay
           path: relay.yaml
   {{- end }}
-  {{- if .Values.objstoreConfig.enabled }}
+  {{- if $objstoreConfigEnabled }}
   - name: objstore-configmap
     configMap:
       name: {{ include "opentelemetry-collector.objstoreConfigMapName" . }}
       items:
-        - key: {{ .Values.objstoreConfig.fileName }}
-          path: {{ .Values.objstoreConfig.fileName }}
+        - key: {{ $objstoreConfig.fileName }}
+          path: {{ $objstoreConfig.fileName }}
   {{- end }}
   {{- if (and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled)) }}
   - name: {{ include "opentelemetry-collector.fullname" . }}-supervisor

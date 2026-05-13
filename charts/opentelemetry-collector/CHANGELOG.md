@@ -6,7 +6,7 @@
 
 - [Feat] Unify versioning of all Supervisor-based images and control it from `presets.fleetManagement.supervisor.imageVersion`. Top-level `image.tag` overrides has priority over this.
 - [Feat] Upgrade image used by the Supervisor preset to the latest Coralogix Supervised Collector images, v0.6.0.
-- [Feat] Add optional `objstoreConfig` support to create and mount a Thanos Objstore ConfigMap and set `OBJSTORE_CONFIG_PATH` for the Collector.
+- [Feat] Add optional `presets.fleetManagement.supervisor.objstoreConfig` support to create and mount a Thanos Objstore ConfigMap, which will be used by the Supervisor.
 
 ### v0.131.2 / 2026-05-12
 
