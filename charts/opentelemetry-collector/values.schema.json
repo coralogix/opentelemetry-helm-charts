@@ -2104,10 +2104,6 @@
               "description": "Specifies whether to enable the eBPF profiler preset.",
               "type": "boolean"
             },
-            "supervisedImageVersion": {
-              "description": "Image tag for the Supervised eBPF profiler image.",
-              "type": "string"
-            },
             "reporterInterval": {
               "description": "Interval for sending profiling data.",
               "type": "string"
