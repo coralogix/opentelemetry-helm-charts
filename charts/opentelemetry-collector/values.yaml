@@ -554,11 +554,11 @@ presets:
       enabled: true
       numConsumers: 20
       sizer: bytes            # requests | items | bytes
-      queueSize: 209715200
+      queueSize: 209715200    # 200 mib
       batch:
         flushTimeout: 250ms
-        minSize: 1048576
-        maxSize: 2097152
+        minSize: 1048576      # 1 mib
+        maxSize: 2097152      # 2 mib
         sizer: bytes            # requests | items | bytes
     # Shared gRPC client settings for the Coralogix exporter.
     # Keepalive is enabled by default with the values below.
@@ -575,11 +575,11 @@ presets:
       enabled: true
       numConsumers: 20
       sizer: bytes            # requests | items | bytes
-      queueSize: 209715200
+      queueSize: 209715200    # 200 mib
       batch:
         flushTimeout: 250ms
-        minSize: 1048576
-        maxSize: 2097152
+        minSize: 1048576      # 1 mib
+        maxSize: 2097152      # 2 mib
         sizer: bytes            # requests | items | bytes
 
   # Configures the collector to export data with the OTLP exporter.

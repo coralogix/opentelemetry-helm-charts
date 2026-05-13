@@ -4,7 +4,7 @@
 
 ### v0.131.3 / 2026-05-12
 
-- [Feat] Enable byte-sized batching for the Coralogix exporter sending queue by default.
+- [Breaking] Enable byte-sized batching for the Coralogix exporter sending queue by default. The collector can now consume more memory. See the [OpenTelemetry Collector documentation on exporterhelper](https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/exporterhelper/README.md#sending-queue-batch-settings) for details.
 
 ### v0.131.2 / 2026-05-12
 
