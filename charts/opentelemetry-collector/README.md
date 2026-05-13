@@ -721,7 +721,6 @@ objstoreConfig:
     type: GCS
     config:
       bucket: my-bucket
-      prefix: ""
 ```
 
 ### Configuration for Coralogix exporter keepalive
