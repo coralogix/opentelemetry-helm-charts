@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.131.3 / 2026-05-13
+
+- [Feat] Enable OBI trace-profile correlation by default under `presets.ebpfProfiler.obi.enabled`. Sets `obi_process_ctx: true` on the profiling receiver and mounts `/sys/fs/bpf` Bidirectional so the profiler shares OBI's pinned `traces_ctx_v1` map at `<bpf_fs_root>/otel/traces_ctx_v1`. Requires `otelcol-ebpf-profiler` image >= 0.152.0.
+
 ### v0.131.2 / 2026-05-12
 
 - [Feat] Enable `presets.coralogixExporter.keepalive` preset for Coralogix exporter by default.

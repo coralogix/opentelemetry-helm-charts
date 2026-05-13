@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.131.2
+    helm.sh/chart: opentelemetry-collector-0.131.3
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.151.0"
@@ -30,6 +30,7 @@ data:
         spike_limit_percentage: 25
     receivers:
       profiling:
+        obi_process_ctx: true
         off_cpu_threshold: 0
         probabilistic_interval: 1m
         probabilistic_threshold: 100

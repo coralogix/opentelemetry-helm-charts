@@ -127,6 +127,11 @@ spec:
             - mountPath: /sys/fs/cgroup
               name: cgroup
           {{- end }}
+          {{- if .Values.bpffs.enabled }}
+            - mountPath: /sys/fs/bpf
+              name: bpffs
+              mountPropagation: Bidirectional
+          {{- end }}
           {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -158,6 +163,12 @@ spec:
         - name: cgroup
           hostPath:
             path: /sys/fs/cgroup
+      {{- end }}
+      {{- if .Values.bpffs.enabled }}
+        - name: bpffs
+          hostPath:
+            path: {{ .Values.bpffs.hostPath }}
+            type: Directory
       {{- end }}
       {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}
