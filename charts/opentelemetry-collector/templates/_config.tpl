@@ -1488,7 +1488,7 @@ receivers:
     {{- with .Values.presets.ebpfProfiler.samplesPerSecond }}
     samples_per_second: {{ . }}
     {{- end }}
-    {{- if .Values.presets.ebpfProfiler.obi.enabled }}
+    {{- if .Values.presets.ebpfProfiler.obi_correlation.enabled }}
     obi_process_ctx: true
     {{- end }}
 service:

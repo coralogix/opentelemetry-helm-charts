@@ -301,7 +301,7 @@ presets:
     # `traces_ctx_v1` LRU map with the OBI eBPF instrumentation DaemonSet,
     # pinned at `<bpf_fs_root>/otel/traces_ctx_v1`, so each profile sample
     # is stitched to the active OBI trace/span IDs.
-    obi:
+    obi_correlation:
       enabled: true
   # Configures the collector to collect host metrics.
   # Adds the hostmetrics receiver to the metrics pipeline
