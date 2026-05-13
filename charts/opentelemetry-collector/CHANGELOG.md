@@ -2,12 +2,16 @@
 
 ## OpenTelemetry Collector
 
-### v0.131.2 / 2026-05-12
+### v0.131.3 / 2026-05-13
 
 - [Feat] Upgrade image used by the Supervisor preset to the latest Coralogix Supervised Collector image, v0.1.0.
 - [Fix] Honor `presets.ebpfProfiler.imageVersion` when rendering eBPF profiler images and use the latest version, v0.4.0.
 - [Feat] Add Supervisor and eBPF profiler examples that use preset-specific image version settings. Top-level `image.tag` overrides has priority over this.
 - [Feat] Add optional `objstoreConfig` support to create and mount a Thanos Objstore ConfigMap and set `OBJSTORE_CONFIG_PATH` for the Collector.
+
+### v0.131.2 / 2026-05-12
+
+- [Feat] Enable `presets.coralogixExporter.keepalive` preset for Coralogix exporter by default.
 
 ### v0.131.1 / 2026-04-30
 

@@ -557,12 +557,14 @@ presets:
     #   blockOnOverflow: false
     #   sizer: requests        # requests | items | bytes
     #   queueSize: 1000
-    # Optional shared gRPC client settings for the Coralogix exporter.
-    # When keepalive is not set, the chart renders no additional transport config.
-    # keepalive:
-    #   time: 30s
-    #   timeout: 10s
-    #   permitWithoutStream: false
+    # Shared gRPC client settings for the Coralogix exporter.
+    # Keepalive is enabled by default with the values below.
+    # Set keepalive.enabled=false to force keepalive to stay disabled.
+    keepalive:
+      enabled: true
+      time: 30s
+      timeout: 10s
+      permit_without_stream: false
 
   # Configures exporter helper settings specifically for the Coralogix resource catalog exporter.
   coralogixResourceCatalogExporter:

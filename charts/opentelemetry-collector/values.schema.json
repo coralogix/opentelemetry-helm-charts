@@ -1437,13 +1437,20 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
+                "enabled": {
+                  "description": "When true, renders Coralogix exporter gRPC keepalive settings. Defaults to true. When false, omits keepalive entirely.",
+                  "type": "boolean"
+                },
                 "time": {
+                  "description": "Time after which a keepalive ping is sent when keepalive is enabled.",
                   "type": "string"
                 },
                 "timeout": {
+                  "description": "Amount of time the client waits for a keepalive ping acknowledgement when keepalive is enabled.",
                   "type": "string"
                 },
-                "permitWithoutStream": {
+                "permit_without_stream": {
+                  "description": "Whether keepalive pings are permitted when no RPC stream is active.",
                   "type": "boolean"
                 }
               }

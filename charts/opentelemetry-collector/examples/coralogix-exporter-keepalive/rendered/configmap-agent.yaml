@@ -23,6 +23,8 @@ data:
         domain: coralogix.com
         domain_settings:
           keepalive:
+            enabled: true
+            permit_without_stream: false
             time: 30s
             timeout: 10s
         logs:

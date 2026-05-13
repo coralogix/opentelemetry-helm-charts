@@ -21,6 +21,12 @@ data:
         - k8s.namespace.name
         - service.namespace
         domain: coralogix.com
+        domain_settings:
+          keepalive:
+            enabled: true
+            permit_without_stream: false
+            time: 30s
+            timeout: 10s
         logs:
           headers:
             X-Coralogix-Distribution: helm-otel-integration/1.0
@@ -62,6 +68,12 @@ data:
         - k8s.namespace.name
         - service.namespace
         domain: coralogixsg.com
+        domain_settings:
+          keepalive:
+            enabled: true
+            permit_without_stream: false
+            time: 30s
+            timeout: 10s
         logs:
           headers:
             X-Coralogix-Distribution: helm-otel-integration/1.0
@@ -103,6 +115,12 @@ data:
         - k8s.namespace.name
         - service.namespace
         domain: eu2.coralogix.com
+        domain_settings:
+          keepalive:
+            enabled: true
+            permit_without_stream: false
+            time: 30s
+            timeout: 10s
         logs:
           headers:
             X-Coralogix-Distribution: helm-otel-integration/1.0
@@ -144,6 +162,12 @@ data:
         - k8s.namespace.name
         - service.namespace
         domain: private.coralogix.com
+        domain_settings:
+          keepalive:
+            enabled: true
+            permit_without_stream: false
+            time: 30s
+            timeout: 10s
         logs:
           headers:
             X-Coralogix-Distribution: helm-otel-integration/1.0

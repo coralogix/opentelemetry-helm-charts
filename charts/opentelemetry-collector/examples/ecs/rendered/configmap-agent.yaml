@@ -21,6 +21,12 @@ data:
         - aws.ecs.cluster.name
         - aws.ecs.task.definition.family
         domain: ""
+        domain_settings:
+          keepalive:
+            enabled: true
+            permit_without_stream: false
+            time: 30s
+            timeout: 10s
         logs:
           headers:
             X-Coralogix-Distribution: ecs-ec2-integration/
