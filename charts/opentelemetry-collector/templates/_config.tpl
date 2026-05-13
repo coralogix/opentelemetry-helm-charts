@@ -1488,6 +1488,9 @@ receivers:
     {{- with .Values.presets.ebpfProfiler.samplesPerSecond }}
     samples_per_second: {{ . }}
     {{- end }}
+    {{- if .Values.presets.ebpfProfiler.obi.enabled }}
+    obi_process_ctx: true
+    {{- end }}
 service:
   pipelines:
     profiles:

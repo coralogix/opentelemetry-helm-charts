@@ -307,6 +307,11 @@ containers:
       - name: debug
         mountPath: /sys/kernel/debug
         readOnly: false
+      {{- if .Values.presets.ebpfProfiler.obi.enabled }}
+      - name: bpffs
+        mountPath: /sys/fs/bpf
+        mountPropagation: Bidirectional
+      {{- end }}
       {{- end }}
       {{- if .Values.presets.resourceDetection.enabled }}
       {{- if and (not .Values.isWindows) (not (eq .Values.distribution "eks/fargate")) }}
@@ -455,6 +460,12 @@ volumes:
   - name: debug
     hostPath:
       path: /sys/kernel/debug
+  {{- if .Values.presets.ebpfProfiler.obi.enabled }}
+  - name: bpffs
+    hostPath:
+      path: /sys/fs/bpf
+      type: Directory
+  {{- end }}
   {{- end }}
   {{- if .Values.presets.resourceDetection.enabled }}
   {{- if and (not .Values.isWindows) (not (eq .Values.distribution "eks/fargate")) }}
