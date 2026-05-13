@@ -703,7 +703,7 @@ configuration's `agent.args` field instead of being appended to the `opampsuperv
 
 Whenever a new Collector starts and it cannot reach the Fleet Manager to receive remote configuration, the Supervisor can optionally provide an initial fallback configuration to the Collector to ensure that it has a valid configuration to start from. When connection to the Fleet Manager is restored, this configuration will be dropped in favor of the remote configuration received from the Fleet Manager, even if such remote configuration is empty.
 
-To enable this behavior, set `presets.fleetManagement.supervisor.initialFallbackConfig` to a valid Collector configuration. By default, few different configuration providers are enabled for files, environment variables, and multiple object storage vendors. Here's a few examples on how to configure them:
+To enable this behavior, set `presets.fleetManagement.supervisor.initialFallbackConfigs` to valid Collector configuration paths. By default, few different configuration providers are enabled for files, environment variables, and multiple object storage vendors. Here's a few examples on how to configure them:
 
 - Files: can be used with an explicit `file:` prefix (i.e. `file:/etc/otel/configs:prod.yaml`) or with the path directly (i.e. `/etc/otel/configs.prod.yaml` or `./config.prod.yaml`).
 - Environment variables: can be used with an explicit `env:` prefix (i.e. `env:CONFIG_PATH`).
