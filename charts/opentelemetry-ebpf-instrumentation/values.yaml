@@ -213,6 +213,7 @@ config:
         http: 2048
         mysql: 4096
         postgres: 4096
+        kafka: 4096
       payload_extraction:
         http:
           graphql:
@@ -223,10 +224,24 @@ config:
             enabled: true
           sqlpp:
             enabled: true
+          jsonrpc:
+            enabled: true
           genai:
             anthropic:
               enabled: true
             openai:
+              enabled: true
+            embedding:
+              enabled: true
+            gemini:
+              enabled: true
+            mcp:
+              enabled: true
+            qwen:
+              enabled: true
+            rereank:
+              enabled: true
+            retrieval:
               enabled: true
       redis_db_cache:
         enabled: true
