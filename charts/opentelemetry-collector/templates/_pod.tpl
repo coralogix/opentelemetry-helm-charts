@@ -1,4 +1,6 @@
 {{- define "opentelemetry-collector.pod" -}}
+{{- $objstoreConfig := .Values.presets.fleetManagement.supervisor.objstoreConfig -}}
+{{- $objstoreConfigEnabled := and .Values.presets.fleetManagement.enabled .Values.presets.fleetManagement.supervisor.enabled $objstoreConfig.enabled -}}
 {{- with .Values.imagePullSecrets }}
 imagePullSecrets:
   {{- toYaml . | nindent 2 }}
@@ -80,6 +82,7 @@ containers:
       {{- $otelAttrUserValue := "" -}}
       {{- $otelAttrHasValueFrom := false -}}
       {{- $kubeNodeExists := false -}}
+      {{- $objstoreConfigPathExists := false -}}
       {{- range .Values.extraEnvs -}}
       {{- if eq .name "OTEL_RESOURCE_ATTRIBUTES" -}}
       {{- if .value -}}
@@ -90,6 +93,9 @@ containers:
       {{- end -}}
       {{- if eq .name "KUBE_NODE_NAME" -}}
       {{- $kubeNodeExists = true -}}
+      {{- end -}}
+      {{- if eq .name "OBJSTORE_CONFIG_PATH" -}}
+      {{- $objstoreConfigPathExists = true -}}
       {{- end -}}
       {{- end -}}
       {{- $defaultAttrs := include "opentelemetry-collector.defaultResourceAttributes" . -}}
@@ -113,6 +119,10 @@ containers:
             apiVersion: v1
             fieldPath: spec.nodeName
       {{- end -}}
+      {{- if and $objstoreConfigEnabled (not $objstoreConfigPathExists) }}
+      - name: OBJSTORE_CONFIG_PATH
+        value: {{ include "opentelemetry-collector.objstoreConfigPath" . | quote }}
+      {{- end }}
       {{- range .Values.extraEnvs -}}
       {{- $skipOtelAttr := and (eq .name "OTEL_RESOURCE_ATTRIBUTES") .value -}}
       {{- if not $skipOtelAttr }}
@@ -202,6 +212,11 @@ containers:
       {{- if .Values.configMap.create }}
       - mountPath: {{ .Values.isWindows | ternary "C:\\conf" "/conf" }}
         name: {{ include "opentelemetry-collector.lowercase_chartname" . }}-configmap
+      {{- end }}
+      {{- if $objstoreConfigEnabled }}
+      - name: objstore-configmap
+        mountPath: {{ $objstoreConfig.mountPath | quote }}
+        readOnly: true
       {{- end }}
       {{- if (and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled)) }}
       - mountPath: /etc/otelcol-contrib/supervisor.yaml
@@ -344,6 +359,14 @@ volumes:
       items:
         - key: relay
           path: relay.yaml
+  {{- end }}
+  {{- if $objstoreConfigEnabled }}
+  - name: objstore-configmap
+    configMap:
+      name: {{ include "opentelemetry-collector.objstoreConfigMapName" . }}
+      items:
+        - key: {{ $objstoreConfig.fileName }}
+          path: {{ $objstoreConfig.fileName }}
   {{- end }}
   {{- if (and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled)) }}
   - name: {{ include "opentelemetry-collector.fullname" . }}-supervisor

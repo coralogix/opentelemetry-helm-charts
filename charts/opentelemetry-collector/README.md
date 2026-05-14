@@ -699,6 +699,37 @@ To override this behavior and retain the Collector configuration according to th
 When supervisor mode is enabled, `command.extraArgs` is passed to the managed Collector via the supervisor
 configuration's `agent.args` field instead of being appended to the `opampsupervisor` container command.
 
+#### Initial fallback configuration
+
+Whenever a new Collector starts and it cannot reach the Fleet Manager to receive remote configuration, the Supervisor can optionally provide an initial fallback configuration to the Collector to ensure that it has a valid configuration to start from. When connection to the Fleet Manager is restored, this configuration will be dropped in favor of the remote configuration received from the Fleet Manager, even if such remote configuration is empty.
+
+To enable this behavior, set `presets.fleetManagement.supervisor.initialFallbackConfigs` to valid Collector configuration paths. By default, few different configuration providers are enabled for files, environment variables, and multiple object storage vendors. Here's a few examples on how to configure them:
+
+- Files: can be used with an explicit `file:` prefix (i.e. `file:/etc/otel/configs:prod.yaml`) or with the path directly (i.e. `/etc/otel/configs.prod.yaml` or `./config.prod.yaml`).
+- Environment variables: can be used with an explicit `env:` prefix (i.e. `env:CONFIG_PATH`).
+- S3: can be used with an explicit `s3://` prefix (i.e. `s3://my-bucket/configs/prod.yaml`). It uses the same environment variables as the AWS CLI to authenticate and access the bucket. 
+- Objstore: a special provider created by Coralogix based on the Thanos Objstore. It offers access to many different object storage providers. It can be used with the explicit `objstore:` prefix (i.e. `objstore:my-config`). It accepts a `type` query parameter to specify the underlying object storage provider (i.e. `objstore:my-config?type=GCS`). Further configuration can be provided through a ConfigMap, as described in the next section.
+
+#### Objstore provider configuration
+
+The Collector Objstore confmap provider can read object-store settings from a mounted Thanos Objstore configuration file. This file is not created by default. To create it, enable `presets.fleetManagement.supervisor.objstoreConfig`; the chart writes the ConfigMap, mounts it into the Collector container, and sets `OBJSTORE_CONFIG_PATH` to the mounted file path.
+
+```yaml
+presets:
+  fleetManagement:
+    enabled: true
+    supervisor:
+      enabled: true
+      objstoreConfig:
+        enabled: true
+        config:
+          type: GCS
+          config:
+            bucket: my-bucket
+```
+
+For a full reference of the Thanos Objstore configuration that can be customized in the `presets.fleetManagement.supervisor.objstoreConfig.config` key, please refer to the [Thanos Objstore supported providers documentation](https://github.com/thanos-io/objstore#supported-providers-clients).
+
 ### Configuration for Coralogix exporter keepalive
 
 The chart can pass shared gRPC keepalive settings to the Coralogix exporter by setting

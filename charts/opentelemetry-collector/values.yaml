@@ -818,6 +818,8 @@ presets:
     # It's not recommended for use in production environments.
     # Support will be provided only when it reaches a stable release.
     supervisor:
+      # Version of the Supervised Collector image to use when the Supervisor preset is enabled.
+      imageVersion: 0.6.0
       enabled: false
       # Specifies whether to use a minimal Collector config.
       # When enabled, the Collector configuration will not include any other
@@ -826,6 +828,22 @@ presets:
       # Fallback configurations to if the OpAMP connection to the Fleet Manager fails at agent start-up time.
       # On reconnection this configuration is dropped in favor of the remote configuration sent by the Fleet Manager.
       initialFallbackConfigs: []
+      # Creates and mounts a ConfigMap containing Thanos Objstore configuration.
+      # This is only applied to chart-managed workloads, not to the Collector CRD.
+      # When enabled, the chart also sets OBJSTORE_CONFIG_PATH to the mounted file path.
+      objstoreConfig:
+        enabled: false
+        # Specifies whether an objstore ConfigMap should be created by this chart.
+        # When set to false, set name to an existing ConfigMap name.
+        create: true
+        # Existing or generated ConfigMap name. Defaults to "<fullname>-objstore".
+        name: ""
+        # Directory where the ConfigMap is mounted.
+        mountPath: /etc/otel/objstore
+        # File name for the mounted objstore configuration.
+        fileName: objstore.yaml
+        # Thanos Objstore configuration. This can be a YAML object or a templated string.
+        config: {}
     # Custom non-identifying attributes to add to the agent description.
     # These attributes will be included in the non_identifying_attributes section
     # for both supervisor and OpAMP extensions.

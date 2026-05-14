@@ -1,0 +1,13 @@
+{{- $objstoreConfig := .Values.presets.fleetManagement.supervisor.objstoreConfig -}}
+{{- if and (not .Values.collectorCRD.generate) .Values.presets.fleetManagement.enabled .Values.presets.fleetManagement.supervisor.enabled $objstoreConfig.enabled $objstoreConfig.create -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "opentelemetry-collector.objstoreConfigMapName" . }}
+  namespace: {{ template "opentelemetry-collector.namespace" . }}
+  labels:
+    {{- include "opentelemetry-collector.labels" . | nindent 4 }}
+data:
+  {{ $objstoreConfig.fileName }}: |
+    {{- include "opentelemetry-collector.objstoreConfigData" . | nindent 4 }}
+{{- end }}

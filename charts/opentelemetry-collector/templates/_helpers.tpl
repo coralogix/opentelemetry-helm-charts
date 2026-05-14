@@ -123,6 +123,38 @@ Create the name of the priorityClass to use
 {{- default (include "opentelemetry-collector.fullname" .) .Values.priorityClass.name }}
 {{- end }}
 
+{{/*
+Create the name of the objstore ConfigMap to use.
+*/}}
+{{- define "opentelemetry-collector.objstoreConfigMapName" -}}
+{{- $objstoreConfig := .Values.presets.fleetManagement.supervisor.objstoreConfig -}}
+{{- if $objstoreConfig.name }}
+{{- $objstoreConfig.name }}
+{{- else }}
+{{- printf "%s-objstore" (include "opentelemetry-collector.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create the mounted path to the objstore configuration file.
+*/}}
+{{- define "opentelemetry-collector.objstoreConfigPath" -}}
+{{- $objstoreConfig := .Values.presets.fleetManagement.supervisor.objstoreConfig -}}
+{{- printf "%s/%s" (trimSuffix "/" $objstoreConfig.mountPath) $objstoreConfig.fileName }}
+{{- end }}
+
+{{/*
+Render the Thanos Objstore configuration data.
+*/}}
+{{- define "opentelemetry-collector.objstoreConfigData" -}}
+{{- $objstoreConfig := .Values.presets.fleetManagement.supervisor.objstoreConfig -}}
+{{- if kindIs "string" $objstoreConfig.config -}}
+{{- tpl $objstoreConfig.config . }}
+{{- else -}}
+{{- tpl ($objstoreConfig.config | toYaml) . }}
+{{- end -}}
+{{- end }}
+
 {{- define "opentelemetry-collector.podAnnotations" -}}
 {{- if .Values.podAnnotations }}
 {{- tpl (.Values.podAnnotations | toYaml) . }}

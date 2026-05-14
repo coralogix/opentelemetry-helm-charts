@@ -2,6 +2,12 @@
 
 ## OpenTelemetry Collector
 
+### v0.131.4 / 2026-05-13
+
+- [Feat] Unify versioning of all Supervisor-based images and control it from `presets.fleetManagement.supervisor.imageVersion`. Top-level `image.tag` overrides has priority over this.
+- [Feat] Upgrade image used by the Supervisor preset to the latest Coralogix Supervised Collector images, v0.6.0.
+- [Feat] Add optional `presets.fleetManagement.supervisor.objstoreConfig` support to create and mount a Thanos Objstore ConfigMap, which will be used by the Supervisor.
+
 ### v0.131.3 / 2026-05-12
 
 - [Breaking] Enable byte-sized batching for the Coralogix exporter sending queue by default. The collector can now consume more memory. See the [Coralogix exporter sending queue and batching](https://github.com/coralogix/telemetry-shippers/blob/master/otel-integration/k8s-helm/README.md#coralogix-exporter-sending-queue-and-batching) documentation for details.
