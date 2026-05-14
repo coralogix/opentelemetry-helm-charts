@@ -771,31 +771,31 @@ processors:
     metric_statements:
       - context: metric
         statements:
-          - set(unit, "1") where name == "k8s.pod.phase"
-          - set(unit, "") where name == "kube_node_info"
-          - set(unit, "") where name == "k8s.container.status.last_terminated_reason"
+          - set(metric.unit, "1") where metric.name == "k8s.pod.phase"
+          - set(metric.unit, "") where metric.name == "kube_node_info"
+          - set(metric.unit, "") where metric.name == "k8s.container.status.last_terminated_reason"
       - context: datapoint
         statements:
-          - set(value_int, 1) where metric.name == "kube_pod_status_qos_class"
-          - set(attributes["qos_class"], resource.attributes["k8s.pod.qos_class"]) where metric.name == "kube_pod_status_qos_class"
-          - set(attributes["pod"], resource.attributes["k8s.pod.name"]) where metric.name == "kube_pod_status_reason"
-          - set(attributes["reason"], "Evicted") where metric.name == "kube_pod_status_reason" and value_int == 1
-          - set(attributes["reason"], "NodeAffinity") where metric.name == "kube_pod_status_reason" and value_int == 2
-          - set(attributes["reason"], "NodeLost") where metric.name == "kube_pod_status_reason" and value_int == 3
-          - set(attributes["reason"], "Shutdown") where metric.name == "kube_pod_status_reason" and value_int == 4
-          - set(attributes["reason"], "UnexpectedAdmissionError") where metric.name == "kube_pod_status_reason" and value_int == 5
-          - set(value_int, 0) where metric.name == "kube_pod_status_reason" and value_int == 6
-          - set(value_int, 1) where metric.name == "kube_pod_status_reason" and value_int != 0
-          - set(value_int, 1) where metric.name == "kube_node_info"
-          - set(attributes["kubelet_version"], resource.attributes["k8s.kubelet.version"]) where metric.name == "kube_node_info"
-          - set(value_int, 1) where metric.name == "k8s.container.status.last_terminated_reason"
-          - set(attributes["reason"], "") where metric.name == "k8s.container.status.last_terminated_reason"
-          - set(attributes["reason"], resource.attributes["k8s.container.status.last_terminated_reason"]) where metric.name == "k8s.container.status.last_terminated_reason"
+          - set(datapoint.value_int, 1) where metric.name == "kube_pod_status_qos_class"
+          - set(datapoint.attributes["qos_class"], resource.attributes["k8s.pod.qos_class"]) where metric.name == "kube_pod_status_qos_class"
+          - set(datapoint.attributes["pod"], resource.attributes["k8s.pod.name"]) where metric.name == "kube_pod_status_reason"
+          - set(datapoint.attributes["reason"], "Evicted") where metric.name == "kube_pod_status_reason" and datapoint.value_int == 1
+          - set(datapoint.attributes["reason"], "NodeAffinity") where metric.name == "kube_pod_status_reason" and datapoint.value_int == 2
+          - set(datapoint.attributes["reason"], "NodeLost") where metric.name == "kube_pod_status_reason" and datapoint.value_int == 3
+          - set(datapoint.attributes["reason"], "Shutdown") where metric.name == "kube_pod_status_reason" and datapoint.value_int == 4
+          - set(datapoint.attributes["reason"], "UnexpectedAdmissionError") where metric.name == "kube_pod_status_reason" and datapoint.value_int == 5
+          - set(datapoint.value_int, 0) where metric.name == "kube_pod_status_reason" and datapoint.value_int == 6
+          - set(datapoint.value_int, 1) where metric.name == "kube_pod_status_reason" and datapoint.value_int != 0
+          - set(datapoint.value_int, 1) where metric.name == "kube_node_info"
+          - set(datapoint.attributes["kubelet_version"], resource.attributes["k8s.kubelet.version"]) where metric.name == "kube_node_info"
+          - set(datapoint.value_int, 1) where metric.name == "k8s.container.status.last_terminated_reason"
+          - set(datapoint.attributes["reason"], "") where metric.name == "k8s.container.status.last_terminated_reason"
+          - set(datapoint.attributes["reason"], resource.attributes["k8s.container.status.last_terminated_reason"]) where metric.name == "k8s.container.status.last_terminated_reason"
       - context: resource
         statements:
-          - delete_key(attributes, "k8s.container.status.last_terminated_reason")
-          - delete_key(attributes, "k8s.pod.qos_class")
-          - delete_key(attributes, "k8s.kubelet.version")
+          - delete_key(resource.attributes, "k8s.container.status.last_terminated_reason")
+          - delete_key(resource.attributes, "k8s.pod.qos_class")
+          - delete_key(resource.attributes, "k8s.kubelet.version")
   {{- end }}
 {{- end }}
 
@@ -826,12 +826,12 @@ processors:
     metric_statements:
       - context: metric
         statements:
-          - set(unit, "1") where name == "container.cpu.usage"
-          - set(name, "container.cpu.utilization") where name == "container.cpu.usage"
-          - set(unit, "1") where name == "k8s.pod.cpu.usage"
-          - set(name, "k8s.pod.cpu.utilization") where name == "k8s.pod.cpu.usage"
-          - set(unit, "1") where name == "k8s.node.cpu.usage"
-          - set(name, "k8s.node.cpu.utilization") where name == "k8s.node.cpu.usage"
+          - set(metric.unit, "1") where metric.name == "container.cpu.usage"
+          - set(metric.name, "container.cpu.utilization") where metric.name == "container.cpu.usage"
+          - set(metric.unit, "1") where metric.name == "k8s.pod.cpu.usage"
+          - set(metric.name, "k8s.pod.cpu.utilization") where metric.name == "k8s.pod.cpu.usage"
+          - set(metric.unit, "1") where metric.name == "k8s.node.cpu.usage"
+          - set(metric.name, "k8s.node.cpu.utilization") where metric.name == "k8s.node.cpu.usage"
 {{- end }}
 
 {{- define "opentelemetry-collector.applyLogsCollectionConfig" -}}
@@ -1267,7 +1267,7 @@ processors:
       - context: log
         statements:
 {{- range .Values.presets.logsCollection.reduceLogAttributes.denylist }}
-          - delete_key(attributes, "{{ . }}")
+          - delete_key(log.attributes, "{{ . }}")
 {{- end }}
 {{- end }}
 
@@ -1545,10 +1545,10 @@ processors:
     metrics:
       metric:
         - 'resource.attributes["service.name"] == "kubernetes-cadvisor" and
-          (name != "container_fs_writes_total" and name != "container_fs_reads_total" and
-          name != "container_fs_writes_bytes_total" and name != "container_fs_reads_bytes_total" and
-          name != "container_fs_usage_bytes" and name != "container_cpu_cfs_throttled_periods_total" and
-          name != "container_cpu_cfs_periods_total")'
+          (metric.name != "container_fs_writes_total" and metric.name != "container_fs_reads_total" and
+          metric.name != "container_fs_writes_bytes_total" and metric.name != "container_fs_reads_bytes_total" and
+          metric.name != "container_fs_usage_bytes" and metric.name != "container_cpu_cfs_throttled_periods_total" and
+          metric.name != "container_cpu_cfs_periods_total")'
 {{- end }}
 {{- end }}
 
@@ -1599,7 +1599,7 @@ processors:
   filter/k8s_apiserver_metrics:
     metrics:
       metric:
-        - 'resource.attributes["service.name"] == "kubernetes-apiserver" and name != "kubernetes_build_info"'
+        - 'resource.attributes["service.name"] == "kubernetes-apiserver" and metric.name != "kubernetes_build_info"'
 {{- end }}
 {{- end }}
 
@@ -1946,7 +1946,7 @@ processors:
     trace_statements:
       - context: span
         statements:
-          - set(attributes["http.method"], attributes["http.request.method"]) where attributes["http.request.method"] != nil
+          - set(span.attributes["http.method"], span.attributes["http.request.method"]) where span.attributes["http.request.method"] != nil
 {{- end }}
 
 {{- define "opentelemetry-collector.applyFleetManagementConfig" -}}
@@ -2238,13 +2238,13 @@ processors:
   filter/db_spanmetrics:
     traces:
       span:
-        - 'attributes["db.system"] == nil'
+        - 'span.attributes["db.system"] == nil'
 {{- end }}
 {{- if .Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled }}
   filter/db_compact_spanmetrics:
     traces:
       span:
-        - 'kind != SPAN_KIND_CLIENT or attributes["db.namespace"] == nil or attributes["db.system"] == nil'
+        - 'span.kind != SPAN_KIND_CLIENT or span.attributes["db.namespace"] == nil or span.attributes["db.system"] == nil'
 {{- end }}
 {{- if .Values.presets.spanMetrics.enabled }}
   transform/spanmetrics:
@@ -2277,49 +2277,49 @@ processors:
     trace_statements:
       - context: resource
         statements:
-          - keep_keys(attributes, ["service.name", "k8s.cluster.name", "host.name", "deployment.environment.name"])
+          - keep_keys(resource.attributes, ["service.name", "k8s.cluster.name", "host.name", "deployment.environment.name"])
 {{- end }}
 {{- if .Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled }}
   transform/db_compact:
     trace_statements:
       - context: resource
         statements:
-          - keep_keys(attributes, ["service.name", "k8s.cluster.name", "host.name", "deployment.environment.name"])
+          - keep_keys(resource.attributes, ["service.name", "k8s.cluster.name", "host.name", "deployment.environment.name"])
       - context: span
         statements:
-          - keep_keys(attributes, ["db.namespace", "db.system"])
+          - keep_keys(span.attributes, ["db.namespace", "db.system"])
 {{- end }}
 {{- if and (.Values.presets.spanMetrics.compactMetrics.enabled) (.Values.presets.spanMetrics.compactMetrics.dropHistogram) }}
   transform/compact_histogram:
     metric_statements:
       - context: metric
         statements:
-          - extract_sum_metric(false, ".sum") where name == "compact.duration"
-          - extract_count_metric(false, ".count") where name == "compact.duration"
-          - set(unit, "") where name == "compact.duration.sum"
-          - set(unit, "") where name == "compact.duration.count"
-          - set(name, "compact.duration.ms.sum") where name == "compact.duration.sum"
-          - set(name, "compact.duration.ms.count") where name == "compact.duration.count"
+          - extract_sum_metric(false, ".sum") where metric.name == "compact.duration"
+          - extract_count_metric(false, ".count") where metric.name == "compact.duration"
+          - set(metric.unit, "") where metric.name == "compact.duration.sum"
+          - set(metric.unit, "") where metric.name == "compact.duration.count"
+          - set(metric.name, "compact.duration.ms.sum") where metric.name == "compact.duration.sum"
+          - set(metric.name, "compact.duration.ms.count") where metric.name == "compact.duration.count"
   filter/drop_histogram:
     metrics:
       metric:
-        - 'name == "compact.duration"'
+        - 'metric.name == "compact.duration"'
 {{- end }}
 {{- if and (.Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled) (.Values.presets.spanMetrics.dbMetrics.compactMetrics.dropHistogram) }}
   transform/db_compact_histogram:
     metric_statements:
       - context: metric
         statements:
-          - extract_sum_metric(false, ".sum") where name == "db_compact.duration"
-          - extract_count_metric(false, ".count") where name == "db_compact.duration"
-          - set(unit, "") where name == "db_compact.duration.sum"
-          - set(unit, "") where name == "db_compact.duration.count"
-          - set(name, "db_compact.duration.ms.sum") where name == "db_compact.duration.sum"
-          - set(name, "db_compact.duration.ms.count") where name == "db_compact.duration.count"
+          - extract_sum_metric(false, ".sum") where metric.name == "db_compact.duration"
+          - extract_count_metric(false, ".count") where metric.name == "db_compact.duration"
+          - set(metric.unit, "") where metric.name == "db_compact.duration.sum"
+          - set(metric.unit, "") where metric.name == "db_compact.duration.count"
+          - set(metric.name, "db_compact.duration.ms.sum") where metric.name == "db_compact.duration.sum"
+          - set(metric.name, "db_compact.duration.ms.count") where metric.name == "db_compact.duration.count"
   filter/drop_db_compact_histogram:
     metrics:
       metric:
-        - 'name == "db_compact.duration"'
+        - 'metric.name == "db_compact.duration"'
 {{- end }}
 {{- if or (.Values.presets.spanMetrics.dbMetrics.enabled) (.Values.presets.spanMetrics.compactMetrics.enabled) (.Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled) }}
 service:
@@ -2552,8 +2552,8 @@ processors:
     error_mode: silent
     logs:
       log_record:
-        - 'body["object"]["kind"] == "Pod" and not IsMatch(String(body["object"]["metadata"]["ownerReferences"]), ".*StatefulSet.*|.*ReplicaSet.*|.*Job.*|.*DaemonSet.*")'
-        - 'body["kind"] == "Pod" and not IsMatch(String(body["metadata"]["ownerReferences"]), ".*StatefulSet.*|.*ReplicaSet.*|.*Job.*|.*DaemonSet.*")'
+        - 'log.body["object"]["kind"] == "Pod" and not IsMatch(String(log.body["object"]["metadata"]["ownerReferences"]), ".*StatefulSet.*|.*ReplicaSet.*|.*Job.*|.*DaemonSet.*")'
+        - 'log.body["kind"] == "Pod" and not IsMatch(String(log.body["metadata"]["ownerReferences"]), ".*StatefulSet.*|.*ReplicaSet.*|.*Job.*|.*DaemonSet.*")'
   {{- end }}
   {{- if .Values.presets.kubernetesResources.filterStatements }}
   filter/workflow-custom:
@@ -2569,15 +2569,15 @@ processors:
     log_statements:
       - context: log
         statements:
-          - set(attributes["otel.entity.interval"], Milliseconds(Duration("1h")))
+          - set(log.attributes["otel.entity.interval"], Milliseconds(Duration("1h")))
   {{- if .Values.presets.kubernetesResources.dropManagedFields.enabled }}
   transform/remove_managed_fields:
     error_mode: silent
     log_statements:
       - context: log
         statements:
-          - delete_key(body["object"]["metadata"], "managedFields")
-          - delete_key(body["metadata"], "managedFields")
+          - delete_key(log.body["object"]["metadata"], "managedFields")
+          - delete_key(log.body["metadata"], "managedFields")
   {{- end }}
   {{- if .Values.presets.kubernetesResources.transformStatements }}
   transform/kubernetes_transform:
@@ -2952,11 +2952,11 @@ processors:
     log_statements:
       - context: log
         statements:
-          - set(attributes["otel.entity.id"]["host.id"], resource.attributes["host.id"])
-          - merge_maps(attributes, resource.attributes, "insert")
+          - set(log.attributes["otel.entity.id"]["host.id"], resource.attributes["host.id"])
+          - merge_maps(log.attributes, resource.attributes, "insert")
       - context: resource
         statements:
-          - keep_keys(attributes, [""])
+          - keep_keys(resource.attributes, [""])
 {{- if eq $provider "azure" }}
   transform/azure-host-attributes:
     error_mode: silent
@@ -3352,21 +3352,21 @@ processors:
     metric_statements:
     - context: resource
       statements:
-      - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
-      - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$", "$$1") where attributes["k8s.replicaset.name"] != nil
-      - delete_key(attributes, "k8s.replicaset.name")
+      - set(resource.attributes["k8s.deployment.name"], resource.attributes["k8s.replicaset.name"])
+      - replace_pattern(resource.attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$", "$$1") where resource.attributes["k8s.replicaset.name"] != nil
+      - delete_key(resource.attributes, "k8s.replicaset.name")
     trace_statements:
     - context: resource
       statements:
-      - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
-      - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$", "$$1") where attributes["k8s.replicaset.name"] != nil
-      - delete_key(attributes, "k8s.replicaset.name")
+      - set(resource.attributes["k8s.deployment.name"], resource.attributes["k8s.replicaset.name"])
+      - replace_pattern(resource.attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$", "$$1") where resource.attributes["k8s.replicaset.name"] != nil
+      - delete_key(resource.attributes, "k8s.replicaset.name")
     log_statements:
     - context: resource
       statements:
-      - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
-      - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$", "$$1") where attributes["k8s.replicaset.name"] != nil
-      - delete_key(attributes, "k8s.replicaset.name")
+      - set(resource.attributes["k8s.deployment.name"], resource.attributes["k8s.replicaset.name"])
+      - replace_pattern(resource.attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$", "$$1") where resource.attributes["k8s.replicaset.name"] != nil
+      - delete_key(resource.attributes, "k8s.replicaset.name")
 {{- end }}
 
 {{- define "opentelemetry-collector.applyEcsAttributesContainerLogsConfig" -}}
@@ -3557,19 +3557,19 @@ processors:
     metric_statements:
       - context: resource
         statements:
-          - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
+          - set(resource.attributes["host.name"], resource.attributes["azure.vm.name"]) where resource.attributes["azure.vm.name"] != nil and (resource.attributes["host.name"] == nil or resource.attributes["host.name"] == "")
     trace_statements:
       - context: resource
         statements:
-          - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
+          - set(resource.attributes["host.name"], resource.attributes["azure.vm.name"]) where resource.attributes["azure.vm.name"] != nil and (resource.attributes["host.name"] == nil or resource.attributes["host.name"] == "")
     log_statements:
       - context: resource
         statements:
-          - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
+          - set(resource.attributes["host.name"], resource.attributes["azure.vm.name"]) where resource.attributes["azure.vm.name"] != nil and (resource.attributes["host.name"] == nil or resource.attributes["host.name"] == "")
     profile_statements:
       - context: resource
         statements:
-          - set(attributes["host.name"], attributes["azure.vm.name"]) where attributes["azure.vm.name"] != nil and (attributes["host.name"] == nil or attributes["host.name"] == "")
+          - set(resource.attributes["host.name"], resource.attributes["azure.vm.name"]) where resource.attributes["azure.vm.name"] != nil and (resource.attributes["host.name"] == nil or resource.attributes["host.name"] == "")
   {{- end }}
 {{- end }}
 
@@ -3680,9 +3680,9 @@ processors:
     log_statements:
       - context: log
         statements:
-          - keep_keys(body["object"], ["type", "eventTime", "reason", "regarding", "note", "metadata", "deprecatedFirstTimestamp", "deprecatedLastTimestamp"]) where IsMap(body) and IsMap(body["object"])
-          - keep_keys(body["object"]["metadata"], ["creationTimestamp"]) where IsMap(body) and IsMap(body["object"]) and IsMap(body["object"]["metadata"])
-          - keep_keys(body["object"]["regarding"], ["kind", "name", "namespace"]) where IsMap(body) and IsMap(body["object"]) and IsMap(body["object"]["regarding"])
+          - keep_keys(log.body["object"], ["type", "eventTime", "reason", "regarding", "note", "metadata", "deprecatedFirstTimestamp", "deprecatedLastTimestamp"]) where IsMap(log.body) and IsMap(log.body["object"])
+          - keep_keys(log.body["object"]["metadata"], ["creationTimestamp"]) where IsMap(log.body) and IsMap(log.body["object"]) and IsMap(log.body["object"]["metadata"])
+          - keep_keys(log.body["object"]["regarding"], ["kind", "name", "namespace"]) where IsMap(log.body) and IsMap(log.body["object"]) and IsMap(log.body["object"]["regarding"])
 {{- end }}
 
 {{- define "opentelemetry-collector.applyHeadSamplingConfig" -}}
@@ -3787,12 +3787,12 @@ processors:
           - replace_pattern(metric.name, "^otelcol_processor_filter_spans\\.filtered$", "otelcol_processor_filter_spans.filtered_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
       - context: resource
         statements:
-          - set(attributes["k8s.pod.ip"], attributes["net.host.name"]) where attributes["service.name"] == "opentelemetry-collector"
-          - delete_key(attributes, "service_name") where attributes["service.name"] == "opentelemetry-collector"
+          - set(resource.attributes["k8s.pod.ip"], resource.attributes["net.host.name"]) where resource.attributes["service.name"] == "opentelemetry-collector"
+          - delete_key(resource.attributes, "service_name") where resource.attributes["service.name"] == "opentelemetry-collector"
       - context: datapoint
         statements:
-          - delete_key(attributes, "service_name") where resource.attributes["service.name"] == "opentelemetry-collector"
-          - delete_key(attributes, "otel_scope_name") where attributes["service.name"] == "opentelemetry-collector"
+          - delete_key(datapoint.attributes, "service_name") where resource.attributes["service.name"] == "opentelemetry-collector"
+          - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"] == "opentelemetry-collector"
 {{- end }}
 
 service:
@@ -3892,8 +3892,8 @@ processors:
       - context: log
         statements:
           # Extract systemd unit name from _SYSTEMD_UNIT or SYSLOG_IDENTIFIER (e.g., "ssh.service" -> "ssh")
-          - set(resource.attributes["service.name"], body["_SYSTEMD_UNIT"]) where body["_SYSTEMD_UNIT"] != nil and body["_SYSTEMD_UNIT"] != ""
-          - set(resource.attributes["service.name"], body["SYSLOG_IDENTIFIER"]) where body["_SYSTEMD_UNIT"] == nil and body["SYSLOG_IDENTIFIER"] != nil and body["SYSLOG_IDENTIFIER"] != ""
+          - set(resource.attributes["service.name"], log.body["_SYSTEMD_UNIT"]) where log.body["_SYSTEMD_UNIT"] != nil and log.body["_SYSTEMD_UNIT"] != ""
+          - set(resource.attributes["service.name"], log.body["SYSLOG_IDENTIFIER"]) where log.body["_SYSTEMD_UNIT"] == nil and log.body["SYSLOG_IDENTIFIER"] != nil and log.body["SYSLOG_IDENTIFIER"] != ""
           - replace_pattern(resource.attributes["service.name"], "\\.service$", "") where resource.attributes["service.name"] != nil and resource.attributes["service.name"] != ""
 {{- end }}
 {{- end }}
@@ -3997,26 +3997,26 @@ processors:
       - context: log
         statements:
           # Map IIS fields to OTel semantic conventions
-          - set(attributes["client.address"], attributes["c-ip"]) where attributes["c-ip"] != nil
-          - set(attributes["http.request.method"], attributes["cs-method"]) where attributes["cs-method"] != nil
-          - set(attributes["http.response.status_code"], attributes["sc-status"]) where attributes["sc-status"] != nil
-          - set(attributes["user_agent.original"], attributes["cs(User-Agent)"]) where attributes["cs(User-Agent)"] != nil
-          - set(attributes["url.path"], attributes["cs-uri-stem"]) where attributes["cs-uri-stem"] != nil
-          - set(attributes["url.query"], attributes["cs-uri-query"]) where attributes["cs-uri-query"] != nil
+          - set(log.attributes["client.address"], log.attributes["c-ip"]) where log.attributes["c-ip"] != nil
+          - set(log.attributes["http.request.method"], log.attributes["cs-method"]) where log.attributes["cs-method"] != nil
+          - set(log.attributes["http.response.status_code"], log.attributes["sc-status"]) where log.attributes["sc-status"] != nil
+          - set(log.attributes["user_agent.original"], log.attributes["cs(User-Agent)"]) where log.attributes["cs(User-Agent)"] != nil
+          - set(log.attributes["url.path"], log.attributes["cs-uri-stem"]) where log.attributes["cs-uri-stem"] != nil
+          - set(log.attributes["url.query"], log.attributes["cs-uri-query"]) where log.attributes["cs-uri-query"] != nil
           # Map referrer and duration to descriptive custom attributes (not in official semantic conventions)
-          - set(attributes["http.request.header.referer"], [attributes["cs(Referer)"]]) where attributes["cs(Referer)"] != nil
-          - set(attributes["http.server.request.duration_ms"], Int(attributes["time-taken"])) where attributes["time-taken"] != nil
+          - set(log.attributes["http.request.header.referer"], [log.attributes["cs(Referer)"]]) where log.attributes["cs(Referer)"] != nil
+          - set(log.attributes["http.server.request.duration_ms"], Int(log.attributes["time-taken"])) where log.attributes["time-taken"] != nil
           # Cleanup raw IIS attributes
-          - delete_key(attributes, "c-ip")
-          - delete_key(attributes, "cs-method")
-          - delete_key(attributes, "sc-status")
-          - delete_key(attributes, "cs(User-Agent)")
-          - delete_key(attributes, "cs-uri-stem")
-          - delete_key(attributes, "cs-uri-query")
-          - delete_key(attributes, "cs(Referer)")
-          - delete_key(attributes, "time-taken")
-          - delete_key(attributes, "sc-win32-status")
-          - delete_key(attributes, "s-port")
+          - delete_key(log.attributes, "c-ip")
+          - delete_key(log.attributes, "cs-method")
+          - delete_key(log.attributes, "sc-status")
+          - delete_key(log.attributes, "cs(User-Agent)")
+          - delete_key(log.attributes, "cs-uri-stem")
+          - delete_key(log.attributes, "cs-uri-query")
+          - delete_key(log.attributes, "cs(Referer)")
+          - delete_key(log.attributes, "time-taken")
+          - delete_key(log.attributes, "sc-win32-status")
+          - delete_key(log.attributes, "s-port")
 {{- end }}
 
 {{- define "opentelemetry-collector.applySystemdReceiverConfig" -}}

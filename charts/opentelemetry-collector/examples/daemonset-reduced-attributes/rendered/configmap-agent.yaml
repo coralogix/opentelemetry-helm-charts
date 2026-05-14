@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.131.4
+    helm.sh/chart: opentelemetry-collector-0.131.5
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.151.0"
@@ -36,11 +36,11 @@ data:
       filter/k8s_extra_metrics:
         metrics:
           metric:
-          - resource.attributes["service.name"] == "kubernetes-cadvisor" and (name !=
-            "container_fs_writes_total" and name != "container_fs_reads_total" and name
-            != "container_fs_writes_bytes_total" and name != "container_fs_reads_bytes_total"
-            and name != "container_fs_usage_bytes" and name != "container_cpu_cfs_throttled_periods_total"
-            and name != "container_cpu_cfs_periods_total")
+          - resource.attributes["service.name"] == "kubernetes-cadvisor" and (metric.name
+            != "container_fs_writes_total" and metric.name != "container_fs_reads_total"
+            and metric.name != "container_fs_writes_bytes_total" and metric.name != "container_fs_reads_bytes_total"
+            and metric.name != "container_fs_usage_bytes" and metric.name != "container_cpu_cfs_throttled_periods_total"
+            and metric.name != "container_cpu_cfs_periods_total")
       k8sattributes:
         extract:
           metadata:
@@ -132,24 +132,24 @@ data:
         log_statements:
         - context: resource
           statements:
-          - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
-          - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
-            "$$1") where attributes["k8s.replicaset.name"] != nil
-          - delete_key(attributes, "k8s.replicaset.name")
+          - set(resource.attributes["k8s.deployment.name"], resource.attributes["k8s.replicaset.name"])
+          - replace_pattern(resource.attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
+            "$$1") where resource.attributes["k8s.replicaset.name"] != nil
+          - delete_key(resource.attributes, "k8s.replicaset.name")
         metric_statements:
         - context: resource
           statements:
-          - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
-          - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
-            "$$1") where attributes["k8s.replicaset.name"] != nil
-          - delete_key(attributes, "k8s.replicaset.name")
+          - set(resource.attributes["k8s.deployment.name"], resource.attributes["k8s.replicaset.name"])
+          - replace_pattern(resource.attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
+            "$$1") where resource.attributes["k8s.replicaset.name"] != nil
+          - delete_key(resource.attributes, "k8s.replicaset.name")
         trace_statements:
         - context: resource
           statements:
-          - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
-          - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
-            "$$1") where attributes["k8s.replicaset.name"] != nil
-          - delete_key(attributes, "k8s.replicaset.name")
+          - set(resource.attributes["k8s.deployment.name"], resource.attributes["k8s.replicaset.name"])
+          - replace_pattern(resource.attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
+            "$$1") where resource.attributes["k8s.replicaset.name"] != nil
+          - delete_key(resource.attributes, "k8s.replicaset.name")
       transform/profiles:
         profile_statements:
         - set(resource.attributes["service.name"], resource.attributes["k8s.label.instance"])
@@ -362,10 +362,10 @@ data:
         log_statements:
         - context: log
           statements:
-          - delete_key(attributes, "log.iostream")
-          - delete_key(attributes, "log.file.path")
-          - delete_key(attributes, "logtag")
-          - delete_key(attributes, "time")
+          - delete_key(log.attributes, "log.iostream")
+          - delete_key(log.attributes, "log.file.path")
+          - delete_key(log.attributes, "logtag")
+          - delete_key(log.attributes, "time")
       transform/test:
         error_mode: silent
         trace_statements:

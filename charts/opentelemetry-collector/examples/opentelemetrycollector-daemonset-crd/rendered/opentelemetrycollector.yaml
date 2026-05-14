@@ -5,7 +5,7 @@ kind: OpenTelemetryCollector
 metadata:
   name: example-opentelemetry-collector
   labels:
-    helm.sh/chart: opentelemetry-collector-0.131.4
+    helm.sh/chart: opentelemetry-collector-0.131.5
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.151.0"
@@ -163,35 +163,35 @@ spec:
         log_statements:
         - context: resource
           statements:
-          - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
-          - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
-            "$$1") where attributes["k8s.replicaset.name"] != nil
-          - delete_key(attributes, "k8s.replicaset.name")
+          - set(resource.attributes["k8s.deployment.name"], resource.attributes["k8s.replicaset.name"])
+          - replace_pattern(resource.attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
+            "$$1") where resource.attributes["k8s.replicaset.name"] != nil
+          - delete_key(resource.attributes, "k8s.replicaset.name")
         metric_statements:
         - context: resource
           statements:
-          - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
-          - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
-            "$$1") where attributes["k8s.replicaset.name"] != nil
-          - delete_key(attributes, "k8s.replicaset.name")
+          - set(resource.attributes["k8s.deployment.name"], resource.attributes["k8s.replicaset.name"])
+          - replace_pattern(resource.attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
+            "$$1") where resource.attributes["k8s.replicaset.name"] != nil
+          - delete_key(resource.attributes, "k8s.replicaset.name")
         trace_statements:
         - context: resource
           statements:
-          - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
-          - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
-            "$$1") where attributes["k8s.replicaset.name"] != nil
-          - delete_key(attributes, "k8s.replicaset.name")
+          - set(resource.attributes["k8s.deployment.name"], resource.attributes["k8s.replicaset.name"])
+          - replace_pattern(resource.attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
+            "$$1") where resource.attributes["k8s.replicaset.name"] != nil
+          - delete_key(resource.attributes, "k8s.replicaset.name")
       transform/kubeletstatscpu:
         error_mode: ignore
         metric_statements:
         - context: metric
           statements:
-          - set(unit, "1") where name == "container.cpu.usage"
-          - set(name, "container.cpu.utilization") where name == "container.cpu.usage"
-          - set(unit, "1") where name == "k8s.pod.cpu.usage"
-          - set(name, "k8s.pod.cpu.utilization") where name == "k8s.pod.cpu.usage"
-          - set(unit, "1") where name == "k8s.node.cpu.usage"
-          - set(name, "k8s.node.cpu.utilization") where name == "k8s.node.cpu.usage"
+          - set(metric.unit, "1") where metric.name == "container.cpu.usage"
+          - set(metric.name, "container.cpu.utilization") where metric.name == "container.cpu.usage"
+          - set(metric.unit, "1") where metric.name == "k8s.pod.cpu.usage"
+          - set(metric.name, "k8s.pod.cpu.utilization") where metric.name == "k8s.pod.cpu.usage"
+          - set(metric.unit, "1") where metric.name == "k8s.node.cpu.usage"
+          - set(metric.name, "k8s.node.cpu.utilization") where metric.name == "k8s.node.cpu.usage"
       transform/prometheus:
         error_mode: ignore
         metric_statements:
@@ -232,15 +232,15 @@ spec:
             == "opentelemetry-collector"
         - context: resource
           statements:
-          - set(attributes["k8s.pod.ip"], attributes["net.host.name"]) where attributes["service.name"]
+          - set(resource.attributes["k8s.pod.ip"], resource.attributes["net.host.name"])
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - delete_key(resource.attributes, "service_name") where resource.attributes["service.name"]
             == "opentelemetry-collector"
-          - delete_key(attributes, "service_name") where attributes["service.name"] ==
-            "opentelemetry-collector"
         - context: datapoint
           statements:
-          - delete_key(attributes, "service_name") where resource.attributes["service.name"]
+          - delete_key(datapoint.attributes, "service_name") where resource.attributes["service.name"]
             == "opentelemetry-collector"
-          - delete_key(attributes, "otel_scope_name") where attributes["service.name"]
+          - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
             == "opentelemetry-collector"
     receivers:
       filelog:

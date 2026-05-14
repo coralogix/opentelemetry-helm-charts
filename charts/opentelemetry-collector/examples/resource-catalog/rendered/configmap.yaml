@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.131.4
+    helm.sh/chart: opentelemetry-collector-0.131.5
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.151.0"
@@ -44,9 +44,9 @@ data:
         error_mode: silent
         logs:
           log_record:
-          - body["object"]["kind"] == "Pod" and not IsMatch(String(body["object"]["metadata"]["ownerReferences"]),
+          - log.body["object"]["kind"] == "Pod" and not IsMatch(String(log.body["object"]["metadata"]["ownerReferences"]),
             ".*StatefulSet.*|.*ReplicaSet.*|.*Job.*|.*DaemonSet.*")
-          - body["kind"] == "Pod" and not IsMatch(String(body["metadata"]["ownerReferences"]),
+          - log.body["kind"] == "Pod" and not IsMatch(String(log.body["metadata"]["ownerReferences"]),
             ".*StatefulSet.*|.*ReplicaSet.*|.*Job.*|.*DaemonSet.*")
       filter/workflow-custom:
         error_mode: silent
@@ -106,7 +106,7 @@ data:
         log_statements:
         - context: log
           statements:
-          - set(attributes["otel.entity.interval"], Milliseconds(Duration("1h")))
+          - set(log.attributes["otel.entity.interval"], Milliseconds(Duration("1h")))
       transform/kubernetes_transform:
         error_mode: silent
         log_statements:
@@ -151,23 +151,23 @@ data:
             == "opentelemetry-collector"
         - context: resource
           statements:
-          - set(attributes["k8s.pod.ip"], attributes["net.host.name"]) where attributes["service.name"]
+          - set(resource.attributes["k8s.pod.ip"], resource.attributes["net.host.name"])
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - delete_key(resource.attributes, "service_name") where resource.attributes["service.name"]
             == "opentelemetry-collector"
-          - delete_key(attributes, "service_name") where attributes["service.name"] ==
-            "opentelemetry-collector"
         - context: datapoint
           statements:
-          - delete_key(attributes, "service_name") where resource.attributes["service.name"]
+          - delete_key(datapoint.attributes, "service_name") where resource.attributes["service.name"]
             == "opentelemetry-collector"
-          - delete_key(attributes, "otel_scope_name") where attributes["service.name"]
+          - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
             == "opentelemetry-collector"
       transform/remove_managed_fields:
         error_mode: silent
         log_statements:
         - context: log
           statements:
-          - delete_key(body["object"]["metadata"], "managedFields")
-          - delete_key(body["metadata"], "managedFields")
+          - delete_key(log.body["object"]["metadata"], "managedFields")
+          - delete_key(log.body["metadata"], "managedFields")
     receivers:
       k8sobjects/resource_catalog:
         objects:
