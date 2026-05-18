@@ -4,7 +4,7 @@
 
 ### v0.131.5 / 2026-05-18
 
-- [Feat] Add `transformStatements`, `spanNameReplacePattern`, `dbMetrics`, and `compactMetrics` options to the `spanMetricsMulti` preset, matching the single `spanMetrics` preset capabilities.
+- [Feat] Add optional `transformStatements`, `spanNameReplacePattern`, `dbMetrics`, and `compactMetrics` to the `spanMetricsMulti` preset, matching the single `spanMetrics` preset capabilities. All are opt-in (`dbMetrics` / `compactMetrics` default to off; dimension helpers preserve prior `spanMetricsMulti` behavior unless explicitly configured).
 
 ### v0.131.4 / 2026-05-13
 
