@@ -6,10 +6,10 @@ metadata:
   name: example-opentelemetry-ebpf-instrumentation
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.15
+    helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.16
     app.kubernetes.io/name: opentelemetry-ebpf-instrumentation
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "v0.7.1"
+    app.kubernetes.io/version: "v0.9.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: obi
     app.kubernetes.io/component: config
@@ -23,9 +23,14 @@ data:
     attributes:
       kubernetes:
         enable: true
+      select:
+        '*':
+          include:
+          - gen_ai.*
     ebpf:
       buffer_sizes:
         http: 2048
+        kafka: 4096
         mysql: 4096
         postgres: 4096
       payload_extraction:
@@ -37,9 +42,23 @@ data:
           genai:
             anthropic:
               enabled: true
+            embedding:
+              enabled: true
+            gemini:
+              enabled: true
+            mcp:
+              enabled: true
             openai:
               enabled: true
+            qwen:
+              enabled: true
+            rereank:
+              enabled: true
+            retrieval:
+              enabled: true
           graphql:
+            enabled: true
+          jsonrpc:
             enabled: true
           sqlpp:
             enabled: true

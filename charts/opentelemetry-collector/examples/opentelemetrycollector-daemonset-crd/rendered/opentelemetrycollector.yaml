@@ -5,7 +5,7 @@ kind: OpenTelemetryCollector
 metadata:
   name: example-opentelemetry-collector
   labels:
-    helm.sh/chart: opentelemetry-collector-0.131.5
+    helm.sh/chart: opentelemetry-collector-0.131.6
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.151.0"
@@ -121,9 +121,10 @@ spec:
     processors:
       k8sattributes:
         extract:
+          deployment_name_from_replicaset: true
           metadata:
           - k8s.namespace.name
-          - k8s.replicaset.name
+          - k8s.deployment.name
           - k8s.statefulset.name
           - k8s.daemonset.name
           - k8s.cronjob.name
@@ -159,28 +160,6 @@ spec:
         - action: upsert
           key: cx.otel_integration.name
           value: coralogix-integration-helm
-      transform/k8s_attributes:
-        log_statements:
-        - context: resource
-          statements:
-          - set(resource.attributes["k8s.deployment.name"], resource.attributes["k8s.replicaset.name"])
-          - replace_pattern(resource.attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
-            "$$1") where resource.attributes["k8s.replicaset.name"] != nil
-          - delete_key(resource.attributes, "k8s.replicaset.name")
-        metric_statements:
-        - context: resource
-          statements:
-          - set(resource.attributes["k8s.deployment.name"], resource.attributes["k8s.replicaset.name"])
-          - replace_pattern(resource.attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
-            "$$1") where resource.attributes["k8s.replicaset.name"] != nil
-          - delete_key(resource.attributes, "k8s.replicaset.name")
-        trace_statements:
-        - context: resource
-          statements:
-          - set(resource.attributes["k8s.deployment.name"], resource.attributes["k8s.replicaset.name"])
-          - replace_pattern(resource.attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
-            "$$1") where resource.attributes["k8s.replicaset.name"] != nil
-          - delete_key(resource.attributes, "k8s.replicaset.name")
       transform/kubeletstatscpu:
         error_mode: ignore
         metric_statements:
@@ -489,7 +468,6 @@ spec:
           - memory_limiter
           - resource/metadata
           - k8sattributes
-          - transform/k8s_attributes
           receivers:
           - filelog
           - otlp
@@ -501,7 +479,6 @@ spec:
           - resource/metadata
           - k8sattributes
           - transform/kubeletstatscpu
-          - transform/k8s_attributes
           - transform/prometheus
           receivers:
           - hostmetrics
@@ -515,7 +492,6 @@ spec:
           - memory_limiter
           - resource/metadata
           - k8sattributes
-          - transform/k8s_attributes
           receivers:
           - otlp
       telemetry:

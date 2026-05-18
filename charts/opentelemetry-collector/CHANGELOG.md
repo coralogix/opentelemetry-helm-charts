@@ -2,9 +2,14 @@
 
 ## OpenTelemetry Collector
 
+### v0.131.6 / 2026-05-18
+
+- [Fix] Rewrite chart-owned OTTL statements to use explicit context-prefixed paths, removing collector startup rewrite warnings across transform/filter presets.
+- [Fix] Update example-only OTTL snippets to use explicit span attribute paths and regenerate rendered examples.
+
 ### v0.131.5 / 2026-05-14
 
-- [Fix] Fix warnings related to OTTL syntax.
+- [Fix] Switch the `kubernetesAttributes` preset to `k8sattributes.extract.deployment_name_from_replicaset: true`, keeping `k8s.deployment.name` extraction while removing the extra `transform/k8s_attributes` workaround processor.
 
 ### v0.131.4 / 2026-05-13
 

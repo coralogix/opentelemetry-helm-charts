@@ -1659,20 +1659,11 @@ receivers:
 
 {{- define "opentelemetry-collector.applyKubernetesAttributesConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.kubernetesAttributesConfig" .Values | fromYaml) .config }}
-{{- if and ($config.service.pipelines.logs) (not (has "transform/k8s_attributes" $config.service.pipelines.logs.processors)) }}
-{{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "transform/k8s_attributes" | uniq)  }}
-{{- end }}
 {{- if and ($config.service.pipelines.logs) (not (has "k8sattributes" $config.service.pipelines.logs.processors)) }}
 {{- $_ := set $config.service.pipelines.logs "processors" (prepend $config.service.pipelines.logs.processors "k8sattributes" | uniq)  }}
 {{- end }}
-{{- if and ($config.service.pipelines.metrics) (not (has "transform/k8s_attributes" $config.service.pipelines.metrics.processors)) }}
-{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/k8s_attributes" | uniq)  }}
-{{- end }}
 {{- if and ($config.service.pipelines.metrics) (not (has "k8sattributes" $config.service.pipelines.metrics.processors)) }}
 {{- $_ := set $config.service.pipelines.metrics "processors" (prepend $config.service.pipelines.metrics.processors "k8sattributes" | uniq)  }}
-{{- end }}
-{{- if and ($config.service.pipelines.traces) (not (has "transform/k8s_attributes" $config.service.pipelines.traces.processors)) }}
-{{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/k8s_attributes" | uniq)  }}
 {{- end }}
 {{- if and ($config.service.pipelines.traces) (not (has "k8sattributes" $config.service.pipelines.traces.processors)) }}
 {{- $_ := set $config.service.pipelines.traces "processors" (prepend $config.service.pipelines.traces.processors "k8sattributes" | uniq)  }}
@@ -3321,9 +3312,10 @@ processors:
       - from: resource_attribute
         name: k8s.job.name
     extract:
+      deployment_name_from_replicaset: true
       metadata:
         - "k8s.namespace.name"
-        - "k8s.replicaset.name"
+        - "k8s.deployment.name"
         - "k8s.statefulset.name"
         - "k8s.daemonset.name"
         - "k8s.cronjob.name"
@@ -3348,25 +3340,6 @@ processors:
           key_regex: (.*)
           from: pod
       {{- end }}
-  transform/k8s_attributes:
-    metric_statements:
-    - context: resource
-      statements:
-      - set(resource.attributes["k8s.deployment.name"], resource.attributes["k8s.replicaset.name"])
-      - replace_pattern(resource.attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$", "$$1") where resource.attributes["k8s.replicaset.name"] != nil
-      - delete_key(resource.attributes, "k8s.replicaset.name")
-    trace_statements:
-    - context: resource
-      statements:
-      - set(resource.attributes["k8s.deployment.name"], resource.attributes["k8s.replicaset.name"])
-      - replace_pattern(resource.attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$", "$$1") where resource.attributes["k8s.replicaset.name"] != nil
-      - delete_key(resource.attributes, "k8s.replicaset.name")
-    log_statements:
-    - context: resource
-      statements:
-      - set(resource.attributes["k8s.deployment.name"], resource.attributes["k8s.replicaset.name"])
-      - replace_pattern(resource.attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$", "$$1") where resource.attributes["k8s.replicaset.name"] != nil
-      - delete_key(resource.attributes, "k8s.replicaset.name")
 {{- end }}
 
 {{- define "opentelemetry-collector.applyEcsAttributesContainerLogsConfig" -}}
@@ -4301,7 +4274,6 @@ service:
         {{- end }}
         {{- if .Values.presets.kubernetesAttributes.enabled }}
         - k8sattributes
-        - transform/k8s_attributes
         {{- end }}
       exporters: [coralogix]
     {{- end }}
@@ -4316,7 +4288,6 @@ service:
         {{- end }}
         {{- if .Values.presets.kubernetesAttributes.enabled }}
         - k8sattributes
-        - transform/k8s_attributes
         {{- end }}
       exporters: [coralogix]
   extensions: [health_check, k8s_observer]
