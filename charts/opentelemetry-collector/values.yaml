@@ -446,6 +446,14 @@ presets:
   # using OTTL. For more information see https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/connector/routingconnector
   spanMetricsMulti:
     enabled: false
+    # Optional: same knobs as spanMetrics preset. Omitted by default so upgrades keep existing behavior.
+    # serviceVersion:
+    #   enabled: false
+    # errorTracking uses presets.spanMetrics.errorTracking when spanMetricsMulti.errorTracking is unset.
+    # dbMetrics:
+    #   enabled: false
+    # compactMetrics:
+    #   enabled: false
     extraDimensions:
       - name: http.method
       - name: cgx.transaction
