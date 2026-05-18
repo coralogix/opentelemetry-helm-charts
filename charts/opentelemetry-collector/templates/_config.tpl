@@ -2105,6 +2105,256 @@ cx.integrationID: "{{ .Values.presets.fleetManagement.integrationID }}"
 {{- end }}
 {{- end}}
 
+{{- define "opentelemetry-collector.spanMetricsExtras.connectors" -}}
+{{- $p := .preset -}}
+{{- $histogramBuckets := .histogramBuckets -}}
+{{- if $p.dbMetrics.enabled }}
+  spanmetrics/db:
+    namespace: "db"
+    aggregation_cardinality_limit: {{ $p.aggregationCardinalityLimit }}
+    add_resource_attributes: true
+    histogram:
+      unit: ms
+      explicit:
+        buckets: {{ $histogramBuckets | toYaml | nindent 12 }}
+    dimensions:
+      - name: db.namespace
+      - name: db.operation.name
+      - name: db.collection.name
+      - name: db.system
+      {{- if $p.dbMetrics.serviceVersion.enabled }}
+      - name: service.version
+      {{- end }}
+      {{- if $p.dbMetrics.extraDimensions }}
+      {{- $p.dbMetrics.extraDimensions | toYaml | nindent 6 }}
+      {{- end }}
+{{- if $p.metricsExpiration }}
+    metrics_expiration: "{{ $p.metricsExpiration }}"
+{{- else }}
+    metrics_expiration: 0
+{{- end }}
+{{- if $p.collectionInterval }}
+    metrics_flush_interval: "{{ $p.collectionInterval }}"
+{{- else }}
+    metrics_flush_interval: 15s
+{{- end }}
+  forward/db: {}
+{{- end }}
+{{- if $p.compactMetrics.enabled }}
+  forward/compact: {}
+  spanmetrics/compact:
+    aggregation_cardinality_limit: {{ $p.aggregationCardinalityLimit }}
+    add_resource_attributes: true
+    exclude_dimensions:
+    - span.name
+{{- if $histogramBuckets }}
+    histogram:
+      unit: ms
+      explicit:
+        buckets: {{ $histogramBuckets | toYaml | nindent 12 }}
+{{- end }}
+{{- if $p.metricsExpiration }}
+    metrics_expiration: "{{ $p.metricsExpiration }}"
+{{- else }}
+    metrics_expiration: 0
+{{- end }}
+{{- if $p.collectionInterval }}
+    metrics_flush_interval: "{{ $p.collectionInterval }}"
+{{- else }}
+    metrics_flush_interval: 15s
+{{- end }}
+    namespace: compact
+{{- end }}
+{{- if $p.dbMetrics.compactMetrics.enabled }}
+  forward/db_compact: {}
+  spanmetrics/db_compact:
+    aggregation_cardinality_limit: {{ $p.aggregationCardinalityLimit }}
+    add_resource_attributes: true
+    dimensions:
+      - name: db.namespace
+      - name: db.system
+    exclude_dimensions:
+    - span.name
+    - span.kind
+{{- if $histogramBuckets }}
+    histogram:
+      unit: ms
+      explicit:
+        buckets: {{ $histogramBuckets | toYaml | nindent 12 }}
+{{- end }}
+{{- if $p.metricsExpiration }}
+    metrics_expiration: "{{ $p.metricsExpiration }}"
+{{- else }}
+    metrics_expiration: 0
+{{- end }}
+{{- if $p.collectionInterval }}
+    metrics_flush_interval: "{{ $p.collectionInterval }}"
+{{- else }}
+    metrics_flush_interval: 15s
+{{- end }}
+    namespace: db_compact
+{{- end }}
+{{- end -}}
+
+{{- define "opentelemetry-collector.spanMetricsExtras.processors" -}}
+{{- $p := .preset -}}
+{{- if $p.spanNameReplacePattern }}
+  transform/span_name:
+    trace_statements:
+      - context: span
+        statements:
+        {{- range $index, $pattern := $p.spanNameReplacePattern }}
+        - replace_pattern(span.name, "{{ $pattern.regex }}", "{{ $pattern.replacement }}")
+        {{- end}}
+{{- end }}
+{{- if $p.dbMetrics.enabled }}
+  filter/db_spanmetrics:
+    traces:
+      span:
+        - 'attributes["db.system"] == nil'
+{{- end }}
+{{- if $p.dbMetrics.compactMetrics.enabled }}
+  filter/db_compact_spanmetrics:
+    traces:
+      span:
+        - 'kind != SPAN_KIND_CLIENT or attributes["db.namespace"] == nil or attributes["db.system"] == nil'
+{{- end }}
+{{- if $p.dbMetrics.transformStatements }}
+  transform/db:
+    error_mode: silent
+    trace_statements:
+      - context: span
+        statements:
+        {{- range $index, $pattern := $p.dbMetrics.transformStatements }}
+        - {{ $pattern }}
+        {{- end}}
+{{- end }}
+{{- if $p.compactMetrics.enabled }}
+  transform/compact:
+    trace_statements:
+      - context: resource
+        statements:
+          - keep_keys(attributes, ["service.name", "k8s.cluster.name", "host.name", "deployment.environment.name"])
+{{- end }}
+{{- if $p.dbMetrics.compactMetrics.enabled }}
+  transform/db_compact:
+    trace_statements:
+      - context: resource
+        statements:
+          - keep_keys(attributes, ["service.name", "k8s.cluster.name", "host.name", "deployment.environment.name"])
+      - context: span
+        statements:
+          - keep_keys(attributes, ["db.namespace", "db.system"])
+{{- end }}
+{{- if and ($p.compactMetrics.enabled) ($p.compactMetrics.dropHistogram) }}
+  transform/compact_histogram:
+    metric_statements:
+      - context: metric
+        statements:
+          - extract_sum_metric(false, ".sum") where name == "compact.duration"
+          - extract_count_metric(false, ".count") where name == "compact.duration"
+          - set(unit, "") where name == "compact.duration.sum"
+          - set(unit, "") where name == "compact.duration.count"
+          - set(name, "compact.duration.ms.sum") where name == "compact.duration.sum"
+          - set(name, "compact.duration.ms.count") where name == "compact.duration.count"
+  filter/drop_histogram:
+    metrics:
+      metric:
+        - 'name == "compact.duration"'
+{{- end }}
+{{- if and ($p.dbMetrics.compactMetrics.enabled) ($p.dbMetrics.compactMetrics.dropHistogram) }}
+  transform/db_compact_histogram:
+    metric_statements:
+      - context: metric
+        statements:
+          - extract_sum_metric(false, ".sum") where name == "db_compact.duration"
+          - extract_count_metric(false, ".count") where name == "db_compact.duration"
+          - set(unit, "") where name == "db_compact.duration.sum"
+          - set(unit, "") where name == "db_compact.duration.count"
+          - set(name, "db_compact.duration.ms.sum") where name == "db_compact.duration.sum"
+          - set(name, "db_compact.duration.ms.count") where name == "db_compact.duration.count"
+  filter/drop_db_compact_histogram:
+    metrics:
+      metric:
+        - 'name == "db_compact.duration"'
+{{- end }}
+{{- end -}}
+
+{{- define "opentelemetry-collector.spanMetricsExtras.service" -}}
+{{- $p := .preset -}}
+{{- $transformProcessor := .transformProcessor -}}
+{{- $compactMetricsExporters := .compactMetricsExporters | default (list "coralogix") -}}
+{{- if or ($p.dbMetrics.enabled) ($p.compactMetrics.enabled) ($p.dbMetrics.compactMetrics.enabled) }}
+service:
+  pipelines:
+{{- if $p.dbMetrics.enabled }}
+    traces/db:
+      exporters:
+      - spanmetrics/db
+      processors:
+      - filter/db_spanmetrics
+      {{- if $p.dbMetrics.transformStatements }}
+      - transform/db
+      {{- end }}
+      - batch
+      receivers:
+      - forward/db
+{{- end }}
+{{- if $p.compactMetrics.enabled }}
+    traces/compact:
+      exporters:
+      - spanmetrics/compact
+      processors:
+      - transform/compact
+      - batch
+      receivers:
+      - forward/compact
+    metrics/compact:
+      receivers:
+      - spanmetrics/compact
+      processors:
+      - memory_limiter
+      - {{ $transformProcessor }}
+      {{- if $p.compactMetrics.dropHistogram }}
+      - transform/compact_histogram
+      - filter/drop_histogram
+      {{- end }}
+      - batch
+      exporters:
+      {{- $compactMetricsExporters | toYaml | nindent 6 }}
+{{- end }}
+{{- if $p.dbMetrics.compactMetrics.enabled }}
+    traces/db_compact:
+      exporters:
+      - spanmetrics/db_compact
+      processors:
+      - filter/db_compact_spanmetrics
+      - transform/db_compact
+      - batch
+      receivers:
+      - forward/db_compact
+    metrics/db_compact:
+      receivers:
+      - spanmetrics/db_compact
+      processors:
+      - memory_limiter
+      - {{ $transformProcessor }}
+      {{- if $p.dbMetrics.compactMetrics.dropHistogram }}
+      - transform/db_compact_histogram
+      - filter/drop_db_compact_histogram
+      {{- end }}
+      - batch
+      exporters:
+      {{- $compactMetricsExporters | toYaml | nindent 6 }}
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{- define "opentelemetry-collector.spanMetricsExtrasEnabled" -}}
+{{- $p := . -}}
+{{- or ($p.spanNameReplacePattern) ($p.dbMetrics.enabled) ($p.transformStatements) ($p.compactMetrics.enabled) ($p.dbMetrics.compactMetrics.enabled) -}}
+{{- end -}}
+
 {{- define "opentelemetry-collector.spanMetricsConfig" -}}
 connectors:
   spanmetrics:
@@ -2136,116 +2386,11 @@ connectors:
 {{- else }}
     metrics_expiration: 0
 {{- end }}
-{{- if .Values.presets.spanMetrics.dbMetrics.enabled }}
-  spanmetrics/db:
-    namespace: "db"
-    aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
-    add_resource_attributes: true
-    histogram:
-      unit: ms
-      explicit:
-        buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
-    dimensions:
-      - name: db.namespace
-      - name: db.operation.name
-      - name: db.collection.name
-      - name: db.system
-      {{- if .Values.presets.spanMetrics.dbMetrics.serviceVersion.enabled }}
-      - name: service.version
-      {{- end }}
-      {{- if .Values.presets.spanMetrics.dbMetrics.extraDimensions }}
-      {{- .Values.presets.spanMetrics.dbMetrics.extraDimensions | toYaml | nindent 6 }}
-      {{- end }}
-{{- if .Values.presets.spanMetrics.metricsExpiration }}
-    metrics_expiration: "{{ .Values.presets.spanMetrics.metricsExpiration }}"
-{{- else }}
-    metrics_expiration: 0
-{{- end }}
-{{- if .Values.presets.spanMetrics.collectionInterval }}
-    metrics_flush_interval: "{{ .Values.presets.spanMetrics.collectionInterval }}"
-{{- else }}
-    metrics_flush_interval: 15s
-{{- end }}
-  forward/db: {}
-{{- end }}
-{{- if .Values.presets.spanMetrics.compactMetrics.enabled }}
-  forward/compact: {}
-  spanmetrics/compact:
-    aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
-    add_resource_attributes: true
-    exclude_dimensions:
-    - span.name
-{{- if .Values.presets.spanMetrics.histogramBuckets }}
-    histogram:
-      unit: ms
-      explicit:
-        buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
-{{- end }}
-{{- if .Values.presets.spanMetrics.metricsExpiration }}
-    metrics_expiration: "{{ .Values.presets.spanMetrics.metricsExpiration }}"
-{{- else }}
-    metrics_expiration: 0
-{{- end }}
-{{- if .Values.presets.spanMetrics.collectionInterval }}
-    metrics_flush_interval: "{{ .Values.presets.spanMetrics.collectionInterval }}"
-{{- else }}
-    metrics_flush_interval: 15s
-{{- end }}
-    namespace: compact
-{{- end }}
-{{- if .Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled }}
-  forward/db_compact: {}
-  spanmetrics/db_compact:
-    aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
-    add_resource_attributes: true
-    dimensions:
-      - name: db.namespace
-      - name: db.system
-    exclude_dimensions:
-    - span.name
-    - span.kind
-{{- if .Values.presets.spanMetrics.histogramBuckets }}
-    histogram:
-      unit: ms
-      explicit:
-        buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
-{{- end }}
-{{- if .Values.presets.spanMetrics.metricsExpiration }}
-    metrics_expiration: "{{ .Values.presets.spanMetrics.metricsExpiration }}"
-{{- else }}
-    metrics_expiration: 0
-{{- end }}
-{{- if .Values.presets.spanMetrics.collectionInterval }}
-    metrics_flush_interval: "{{ .Values.presets.spanMetrics.collectionInterval }}"
-{{- else }}
-    metrics_flush_interval: 15s
-{{- end }}
-    namespace: db_compact
-{{- end }}
-{{- if or (.Values.presets.spanMetrics.enabled) (.Values.presets.spanMetrics.spanNameReplacePattern) (.Values.presets.spanMetrics.dbMetrics.enabled) (.Values.presets.spanMetrics.transformStatements) (.Values.presets.spanMetrics.compactMetrics.enabled) (.Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled) (.Values.presets.spanMetricsMulti.enabled) }}
+{{- include "opentelemetry-collector.spanMetricsExtras.connectors" (dict "preset" .Values.presets.spanMetrics "histogramBuckets" .Values.presets.spanMetrics.histogramBuckets) }}
+{{- if or (.Values.presets.spanMetrics.enabled) (include "opentelemetry-collector.spanMetricsExtrasEnabled" .Values.presets.spanMetrics) }}
 processors:
 {{- end}}
-{{- if .Values.presets.spanMetrics.spanNameReplacePattern }}
-  transform/span_name:
-    trace_statements:
-      - context: span
-        statements:
-        {{- range $index, $pattern := .Values.presets.spanMetrics.spanNameReplacePattern }}
-        - replace_pattern(span.name, "{{ $pattern.regex }}", "{{ $pattern.replacement }}")
-        {{- end}}
-{{- end }}
-{{- if .Values.presets.spanMetrics.dbMetrics.enabled }}
-  filter/db_spanmetrics:
-    traces:
-      span:
-        - 'attributes["db.system"] == nil'
-{{- end }}
-{{- if .Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled }}
-  filter/db_compact_spanmetrics:
-    traces:
-      span:
-        - 'kind != SPAN_KIND_CLIENT or attributes["db.namespace"] == nil or attributes["db.system"] == nil'
-{{- end }}
+{{- include "opentelemetry-collector.spanMetricsExtras.processors" (dict "preset" .Values.presets.spanMetrics) }}
 {{- if .Values.presets.spanMetrics.enabled }}
   transform/spanmetrics:
     error_mode: silent
@@ -2262,147 +2407,29 @@ processors:
         {{- end}}
     {{- end }}
 {{- end }}
-{{- if .Values.presets.spanMetrics.dbMetrics.transformStatements }}
-  transform/db:
-    error_mode: silent
-    trace_statements:
-      - context: span
-        statements:
-        {{- range $index, $pattern := .Values.presets.spanMetrics.dbMetrics.transformStatements }}
-        - {{ $pattern }}
-        {{- end}}
-{{- end }}
-{{- if .Values.presets.spanMetrics.compactMetrics.enabled }}
-  transform/compact:
-    trace_statements:
-      - context: resource
-        statements:
-          - keep_keys(attributes, ["service.name", "k8s.cluster.name", "host.name", "deployment.environment.name"])
-{{- end }}
-{{- if .Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled }}
-  transform/db_compact:
-    trace_statements:
-      - context: resource
-        statements:
-          - keep_keys(attributes, ["service.name", "k8s.cluster.name", "host.name", "deployment.environment.name"])
-      - context: span
-        statements:
-          - keep_keys(attributes, ["db.namespace", "db.system"])
-{{- end }}
-{{- if and (.Values.presets.spanMetrics.compactMetrics.enabled) (.Values.presets.spanMetrics.compactMetrics.dropHistogram) }}
-  transform/compact_histogram:
-    metric_statements:
-      - context: metric
-        statements:
-          - extract_sum_metric(false, ".sum") where name == "compact.duration"
-          - extract_count_metric(false, ".count") where name == "compact.duration"
-          - set(unit, "") where name == "compact.duration.sum"
-          - set(unit, "") where name == "compact.duration.count"
-          - set(name, "compact.duration.ms.sum") where name == "compact.duration.sum"
-          - set(name, "compact.duration.ms.count") where name == "compact.duration.count"
-  filter/drop_histogram:
-    metrics:
-      metric:
-        - 'name == "compact.duration"'
-{{- end }}
-{{- if and (.Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled) (.Values.presets.spanMetrics.dbMetrics.compactMetrics.dropHistogram) }}
-  transform/db_compact_histogram:
-    metric_statements:
-      - context: metric
-        statements:
-          - extract_sum_metric(false, ".sum") where name == "db_compact.duration"
-          - extract_count_metric(false, ".count") where name == "db_compact.duration"
-          - set(unit, "") where name == "db_compact.duration.sum"
-          - set(unit, "") where name == "db_compact.duration.count"
-          - set(name, "db_compact.duration.ms.sum") where name == "db_compact.duration.sum"
-          - set(name, "db_compact.duration.ms.count") where name == "db_compact.duration.count"
-  filter/drop_db_compact_histogram:
-    metrics:
-      metric:
-        - 'name == "db_compact.duration"'
-{{- end }}
-{{- if or (.Values.presets.spanMetrics.dbMetrics.enabled) (.Values.presets.spanMetrics.compactMetrics.enabled) (.Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled) }}
-service:
-  pipelines:
-{{- if .Values.presets.spanMetrics.dbMetrics.enabled }}
-    traces/db:
-      exporters:
-      - spanmetrics/db
-      processors:
-      - filter/db_spanmetrics
-      {{- if .Values.presets.spanMetrics.dbMetrics.transformStatements }}
-      - transform/db
-      {{- end }}
-      - batch
-      receivers:
-      - forward/db
-{{- end }}
-{{- if .Values.presets.spanMetrics.compactMetrics.enabled }}
-    traces/compact:
-      exporters:
-      - spanmetrics/compact
-      processors:
-      - transform/compact
-      - batch
-      receivers:
-      - forward/compact
-    metrics/compact:
-      receivers:
-      - spanmetrics/compact
-      processors:
-      - memory_limiter
-      - transform/spanmetrics
-      {{- if .Values.presets.spanMetrics.compactMetrics.dropHistogram }}
-      - transform/compact_histogram
-      - filter/drop_histogram
-      {{- end }}
-      - batch
-      exporters:
-      - coralogix
-{{- end }}
-{{- if .Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled }}
-    traces/db_compact:
-      exporters:
-      - spanmetrics/db_compact
-      processors:
-      - filter/db_compact_spanmetrics
-      - transform/db_compact
-      - batch
-      receivers:
-      - forward/db_compact
-    metrics/db_compact:
-      receivers:
-      - spanmetrics/db_compact
-      processors:
-      - memory_limiter
-      - transform/spanmetrics
-      {{- if .Values.presets.spanMetrics.dbMetrics.compactMetrics.dropHistogram }}
-      - transform/db_compact_histogram
-      - filter/drop_db_compact_histogram
-      {{- end }}
-      - batch
-      exporters:
-      - coralogix
-{{- end }}
-{{- end }}
-{{- end }}
+{{- include "opentelemetry-collector.spanMetricsExtras.service" (dict "preset" .Values.presets.spanMetrics "transformProcessor" "transform/spanmetrics") }}
+{{- end -}}
 
-{{- define "opentelemetry-collector.spanMetricsMulti.extraDimensions" }}
+{{- define "opentelemetry-collector.spanMetricsMulti.extraDimensions" -}}
 {{- if .Values.presets.spanMetricsMulti.extraDimensions }}
 {{- .Values.presets.spanMetricsMulti.extraDimensions | toYaml }}
 {{- end }}
-{{- if .Values.presets.spanMetrics.errorTracking.enabled }}
+{{- if .Values.presets.spanMetricsMulti.errorTracking.enabled }}
 - name: http.response.status_code
 - name: rpc.grpc.status_code
+{{- end }}
+{{- if .Values.presets.spanMetricsMulti.serviceVersion.enabled }}
+- name: service.version
 {{- end }}
 {{- end}}
 
 {{- define "opentelemetry-collector.applySpanMetricsMultiConfig" -}}
+{{- $sm := .Values.Values.presets.spanMetricsMulti }}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.spanMetricsMultiConfig" .Values | fromYaml) .config }}
 {{- $tracesPipeline := deepCopy $config.service.pipelines.traces }}
 {{- $_ := set $tracesPipeline "processors" (list "batch") }}
 {{- $_ := set $tracesPipeline "receivers" (list "routing") }}
-{{- range $index, $cfg := .Values.Values.presets.spanMetricsMulti.configs }}
+{{- range $index, $cfg := $sm.configs }}
 {{- $pipeline := deepCopy $tracesPipeline}}
 {{- $pipelineKey := (printf "traces/%d" $index) }}
 {{- $_ := set $pipeline "exporters" (append $pipeline.exporters (printf "spanmetrics/%d" $index) ) }}
@@ -2412,15 +2439,45 @@ service:
 {{- $_ := set $pipeline "exporters" (append $pipeline.exporters "spanmetrics/default" ) }}
 {{- $_ := merge $config.service.pipelines (dict "traces/default" $pipeline )  }}
 {{- if $config.service.pipelines.traces }}
-{{- $_ := set $config.service.pipelines.traces "exporters" (list "routing") }}
+{{- $tracesExporters := list "routing" }}
+{{- if $sm.dbMetrics.enabled }}
+{{- $tracesExporters = append $tracesExporters "forward/db" | uniq }}
+{{- end }}
+{{- if $sm.compactMetrics.enabled }}
+{{- $tracesExporters = append $tracesExporters "forward/compact" | uniq }}
+{{- end }}
+{{- if $sm.dbMetrics.compactMetrics.enabled }}
+{{- $tracesExporters = append $tracesExporters "forward/db_compact" | uniq }}
+{{- end }}
+{{- $_ := set $config.service.pipelines.traces "exporters" $tracesExporters }}
+{{- if $sm.transformStatements }}
+{{- if not (has "transform/spanmetricsmulti" $config.service.pipelines.traces.processors) }}
+{{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/spanmetricsmulti" | uniq) }}
+{{- end }}
+{{- end }}
+{{- if $sm.spanNameReplacePattern }}
+{{- $_ := set $config.service.pipelines.traces "processors" (prepend $config.service.pipelines.traces.processors "transform/span_name" | uniq) }}
+{{- end }}
 {{- end }}
 {{- if $config.service.pipelines.metrics }}
-{{- range $index, $cfg := .Values.Values.presets.spanMetricsMulti.configs }}
+{{- $metricsExporters := $config.service.pipelines.metrics.exporters | default (list "coralogix") }}
+{{- range $index, $cfg := $sm.configs }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers (printf "spanmetrics/%d" $index))  }}
 {{- end }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "spanmetrics/default")  }}
+{{- if $sm.dbMetrics.enabled }}
+{{- if not (has "spanmetrics/db" $config.service.pipelines.metrics.receivers) }}
+{{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "spanmetrics/db" | uniq) }}
+{{- end }}
+{{- end }}
 {{- if and ($config.service.pipelines.metrics) (not (has "transform/spanmetricsmulti" $config.service.pipelines.metrics.processors)) }}
 {{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/spanmetricsmulti" | uniq)  }}
+{{- end }}
+{{- if index $config.service.pipelines "metrics/compact" }}
+{{- $_ := set (index $config.service.pipelines "metrics/compact") "exporters" $metricsExporters }}
+{{- end }}
+{{- if index $config.service.pipelines "metrics/db_compact" }}
+{{- $_ := set (index $config.service.pipelines "metrics/db_compact") "exporters" $metricsExporters }}
 {{- end }}
 {{- end }}
 {{- $config | toYaml }}
@@ -2437,8 +2494,8 @@ connectors:
         pipelines: [traces/{{- $index }}]
       {{- end }}
   spanmetrics/default:
-{{- if .Values.presets.spanMetrics.namespace }}
-    namespace: "{{ .Values.presets.spanMetrics.namespace }}"
+{{- if .Values.presets.spanMetricsMulti.namespace }}
+    namespace: "{{ .Values.presets.spanMetricsMulti.namespace }}"
 {{- else }}
     namespace: ""
 {{- end }}
@@ -2483,20 +2540,32 @@ connectors:
     {{- else }}
     metrics_expiration: 0
     {{- end }}
-    {{- if $root.Values.presets.spanMetricsMulti.extraDimensions }}
+    {{- $extraDimensions := include "opentelemetry-collector.spanMetricsMulti.extraDimensions" $root }}
+    {{- if and $extraDimensions (gt (len $extraDimensions) 0) }}
     dimensions:
-    {{- $root.Values.presets.spanMetricsMulti.extraDimensions | toYaml | nindent 10 }}
+    {{- $extraDimensions | nindent 10 }}
     {{- end }}
   {{- end }}
-
+{{- include "opentelemetry-collector.spanMetricsExtras.connectors" (dict "preset" .Values.presets.spanMetricsMulti "histogramBuckets" .Values.presets.spanMetricsMulti.defaultHistogramBuckets) }}
+{{- if or (include "opentelemetry-collector.spanMetricsExtrasEnabled" .Values.presets.spanMetricsMulti) true }}
 processors:
+{{- end }}
   transform/spanmetricsmulti:
     error_mode: silent
     metric_statements:
       - context: datapoint
         statements:
         {{- include "opentelemetry-collector.spanMetricsStatusCodeStatements" . | nindent 8 }}
-
+    {{- if .Values.presets.spanMetricsMulti.transformStatements }}
+    trace_statements:
+      - context: span
+        statements:
+        {{- range $index, $pattern := .Values.presets.spanMetricsMulti.transformStatements }}
+        - {{ $pattern }}
+        {{- end }}
+    {{- end }}
+{{- include "opentelemetry-collector.spanMetricsExtras.processors" (dict "preset" .Values.presets.spanMetricsMulti) }}
+{{- include "opentelemetry-collector.spanMetricsExtras.service" (dict "preset" .Values.presets.spanMetricsMulti "transformProcessor" "transform/spanmetricsmulti") }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyKubernetesResourcesConfig" -}}

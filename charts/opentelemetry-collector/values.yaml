@@ -446,6 +446,21 @@ presets:
   # using OTTL. For more information see https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/connector/routingconnector
   spanMetricsMulti:
     enabled: false
+    serviceVersion:
+      enabled: true
+    dbMetrics:
+      enabled: false
+      serviceVersion:
+        enabled: true
+      extraDimensions: []
+      compactMetrics:
+        enabled: false
+        dropHistogram: false
+    compactMetrics:
+      enabled: false
+      dropHistogram: false
+    errorTracking:
+      enabled: true
     extraDimensions:
       - name: http.method
       - name: cgx.transaction
@@ -457,6 +472,8 @@ presets:
       - name: db.system
     defaultHistogramBuckets:
       [1ms, 4ms, 10ms, 20ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s]
+    transformStatements: []
+    spanNameReplacePattern: []
     # collectionInterval: 30s
     # metricsExpiration: 5m
     aggregationCardinalityLimit: 100000

@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.131.5 / 2026-05-18
+
+- [Feat] Add `transformStatements`, `spanNameReplacePattern`, `dbMetrics`, and `compactMetrics` options to the `spanMetricsMulti` preset, matching the single `spanMetrics` preset capabilities.
+
 ### v0.131.4 / 2026-05-13
 
 - [Feat] Unify versioning of all Supervisor-based images and control it from `presets.fleetManagement.supervisor.imageVersion`. Top-level `image.tag` overrides has priority over this.
