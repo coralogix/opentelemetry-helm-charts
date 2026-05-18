@@ -2444,7 +2444,7 @@ processors:
 {{- end}}
 
 {{- define "opentelemetry-collector.applySpanMetricsMultiConfig" -}}
-{{- $sm := merge (dict "dbMetrics" (dict "enabled" false "compactMetrics" (dict "enabled" false)) "compactMetrics" (dict "enabled" false)) .Values.Values.presets.spanMetricsMulti }}
+{{- $sm := mergeOverwrite (dict "dbMetrics" (dict "enabled" false "compactMetrics" (dict "enabled" false)) "compactMetrics" (dict "enabled" false)) .Values.Values.presets.spanMetricsMulti }}
 {{- $hasTransformStatements := and $sm.transformStatements (gt (len $sm.transformStatements) 0) }}
 {{- $hasSpanNameReplacePattern := and $sm.spanNameReplacePattern (gt (len $sm.spanNameReplacePattern) 0) }}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.spanMetricsMultiConfig" .Values | fromYaml) .config }}
@@ -2506,7 +2506,7 @@ processors:
 {{- end }}
 
 {{- define "opentelemetry-collector.spanMetricsMultiConfig" -}}
-{{- $sm := merge (dict "dbMetrics" (dict "enabled" false "compactMetrics" (dict "enabled" false)) "compactMetrics" (dict "enabled" false)) .Values.presets.spanMetricsMulti }}
+{{- $sm := mergeOverwrite (dict "dbMetrics" (dict "enabled" false "compactMetrics" (dict "enabled" false)) "compactMetrics" (dict "enabled" false)) .Values.presets.spanMetricsMulti }}
 connectors:
   routing:
     default_pipelines: [traces/default]
