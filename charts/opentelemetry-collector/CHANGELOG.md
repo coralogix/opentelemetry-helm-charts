@@ -2,9 +2,13 @@
 
 ## OpenTelemetry Collector
 
-### v0.131.5 / 2026-05-18
+### v0.131.6 / 2026-05-18
 
 - [Feat] Add optional `transformStatements`, `spanNameReplacePattern`, `dbMetrics`, and `compactMetrics` to the `spanMetricsMulti` preset, matching the single `spanMetrics` preset capabilities. All are opt-in (`dbMetrics` / `compactMetrics` default to off; dimension helpers preserve prior `spanMetricsMulti` behavior unless explicitly configured).
+
+### v0.131.5 / 2026-05-14
+
+- [Fix] Switch the `kubernetesAttributes` preset to `k8sattributes.extract.deployment_name_from_replicaset: true`, keeping `k8s.deployment.name` extraction while removing the extra `transform/k8s_attributes` workaround processor.
 
 ### v0.131.4 / 2026-05-13
 
