@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.131.4
+    helm.sh/chart: opentelemetry-collector-0.131.5
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.151.0"
@@ -43,9 +43,10 @@ data:
             and name != "container_cpu_cfs_periods_total")
       k8sattributes:
         extract:
+          deployment_name_from_replicaset: true
           metadata:
           - k8s.namespace.name
-          - k8s.replicaset.name
+          - k8s.deployment.name
           - k8s.statefulset.name
           - k8s.daemonset.name
           - k8s.cronjob.name
@@ -128,28 +129,6 @@ data:
           node_from_env_var: K8S_NODE_NAME
         override: true
         timeout: 2s
-      transform/k8s_attributes:
-        log_statements:
-        - context: resource
-          statements:
-          - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
-          - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
-            "$$1") where attributes["k8s.replicaset.name"] != nil
-          - delete_key(attributes, "k8s.replicaset.name")
-        metric_statements:
-        - context: resource
-          statements:
-          - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
-          - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
-            "$$1") where attributes["k8s.replicaset.name"] != nil
-          - delete_key(attributes, "k8s.replicaset.name")
-        trace_statements:
-        - context: resource
-          statements:
-          - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
-          - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
-            "$$1") where attributes["k8s.replicaset.name"] != nil
-          - delete_key(attributes, "k8s.replicaset.name")
       transform/profiles:
         profile_statements:
         - set(resource.attributes["service.name"], resource.attributes["k8s.label.instance"])
@@ -656,7 +635,6 @@ data:
           - resourcedetection/env
           - k8sattributes
           - transform/reduce_log_attributes
-          - transform/k8s_attributes
           - transform/reduce
           - batch
           receivers:
@@ -670,7 +648,6 @@ data:
           - resourcedetection/region
           - resourcedetection/env
           - k8sattributes
-          - transform/k8s_attributes
           - filter/k8s_extra_metrics
           - transform/reduce
           - batch
@@ -687,7 +664,6 @@ data:
           - resourcedetection/region
           - resourcedetection/env
           - k8sattributes
-          - transform/k8s_attributes
           - transform/reduce
           - transform/test
           - batch

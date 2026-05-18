@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.131.5 / 2026-05-14
+
+- [Fix] Switch the `kubernetesAttributes` preset to `k8sattributes.extract.deployment_name_from_replicaset: true`, keeping `k8s.deployment.name` extraction while removing the extra `transform/k8s_attributes` workaround processor.
+
 ### v0.131.4 / 2026-05-13
 
 - [Feat] Unify versioning of all Supervisor-based images and control it from `presets.fleetManagement.supervisor.imageVersion`. Top-level `image.tag` overrides has priority over this.

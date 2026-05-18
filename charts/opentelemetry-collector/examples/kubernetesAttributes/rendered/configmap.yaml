@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.131.4
+    helm.sh/chart: opentelemetry-collector-0.131.5
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.151.0"
@@ -26,9 +26,10 @@ data:
         timeout: 1s
       k8sattributes:
         extract:
+          deployment_name_from_replicaset: true
           metadata:
           - k8s.namespace.name
-          - k8s.replicaset.name
+          - k8s.deployment.name
           - k8s.statefulset.name
           - k8s.daemonset.name
           - k8s.cronjob.name
@@ -54,28 +55,6 @@ data:
         check_interval: 5s
         limit_percentage: 80
         spike_limit_percentage: 25
-      transform/k8s_attributes:
-        log_statements:
-        - context: resource
-          statements:
-          - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
-          - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
-            "$$1") where attributes["k8s.replicaset.name"] != nil
-          - delete_key(attributes, "k8s.replicaset.name")
-        metric_statements:
-        - context: resource
-          statements:
-          - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
-          - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
-            "$$1") where attributes["k8s.replicaset.name"] != nil
-          - delete_key(attributes, "k8s.replicaset.name")
-        trace_statements:
-        - context: resource
-          statements:
-          - set(attributes["k8s.deployment.name"], attributes["k8s.replicaset.name"])
-          - replace_pattern(attributes["k8s.deployment.name"], "^(.*)-[0-9a-zA-Z]+$",
-            "$$1") where attributes["k8s.replicaset.name"] != nil
-          - delete_key(attributes, "k8s.replicaset.name")
       transform/prometheus:
         error_mode: ignore
         metric_statements:
@@ -152,7 +131,6 @@ data:
           processors:
           - memory_limiter
           - k8sattributes
-          - transform/k8s_attributes
           - batch
           receivers:
           - otlp
@@ -162,7 +140,6 @@ data:
           processors:
           - memory_limiter
           - k8sattributes
-          - transform/k8s_attributes
           - transform/prometheus
           - batch
           receivers:
@@ -174,7 +151,6 @@ data:
           processors:
           - memory_limiter
           - k8sattributes
-          - transform/k8s_attributes
           - batch
           receivers:
           - otlp
