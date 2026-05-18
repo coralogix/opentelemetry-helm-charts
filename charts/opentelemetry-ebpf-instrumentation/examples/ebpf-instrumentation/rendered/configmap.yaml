@@ -23,6 +23,10 @@ data:
     attributes:
       kubernetes:
         enable: true
+      select:
+        '*':
+          include:
+          - gen_ai.*
     ebpf:
       buffer_sizes:
         http: 2048

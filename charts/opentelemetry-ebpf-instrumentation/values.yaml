@@ -252,6 +252,10 @@ config:
     attributes:
       kubernetes:
         enable: true
+      select:
+        '*':
+          include:
+            - 'gen_ai.*'
     filter:
       network:
         k8s_dst_owner_name:
