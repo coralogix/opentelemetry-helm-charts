@@ -2556,9 +2556,10 @@ connectors:
     {{- else }}
     metrics_expiration: 0
     {{- end }}
-    {{- if $root.Values.presets.spanMetricsMulti.extraDimensions }}
+    {{- $extraDimensions := include "opentelemetry-collector.spanMetricsMulti.extraDimensions" $root }}
+    {{- if and $extraDimensions (gt (len $extraDimensions) 0) }}
     dimensions:
-    {{- $root.Values.presets.spanMetricsMulti.extraDimensions | toYaml | nindent 10 }}
+    {{- $extraDimensions | nindent 10 }}
     {{- end }}
   {{- end }}
 {{- include "opentelemetry-collector.spanMetricsExtras.connectors" (dict "preset" $sm "histogramBuckets" .Values.presets.spanMetricsMulti.defaultHistogramBuckets) }}
