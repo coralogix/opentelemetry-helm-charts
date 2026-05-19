@@ -2,9 +2,14 @@
 
 ## OpenTelemetry Collector
 
-### v0.131.6 / 2026-05-18
+### v0.131.7 / 2026-05-18
 
 - [Feat] Add optional `transformStatements`, `spanNameReplacePattern`, `dbMetrics`, and `compactMetrics` to the `spanMetricsMulti` preset, matching the single `spanMetrics` preset capabilities. All are opt-in (`dbMetrics` / `compactMetrics` default to off; dimension helpers preserve prior `spanMetricsMulti` behavior unless explicitly configured).
+
+### v0.131.6 / 2026-05-18
+
+- [Fix] Rewrite chart-owned OTTL statements to use explicit context-prefixed paths, removing collector startup rewrite warnings across transform/filter presets.
+- [Fix] Update example-only OTTL snippets to use explicit span attribute paths and regenerate rendered examples.
 
 ### v0.131.5 / 2026-05-14
 

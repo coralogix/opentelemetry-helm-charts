@@ -91,9 +91,9 @@ extraConfig:
     transform/test:
       error_mode: silent
       trace_statements:
-        - context: span
-          statements:
-            - set(attributes["http.response.status_code"], attributes["http.status_code"]) where attributes["http.response.status_code"] == nil
+      - context: span
+        statements:
+          - set(span.attributes["http.response.status_code"], span.attributes["http.status_code"]) where span.attributes["http.response.status_code"] == nil
   service:
     pipelines:
       traces:
