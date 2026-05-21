@@ -1,0 +1,30 @@
+mode: daemonset
+
+presets:
+  batch:
+    enabled: true
+  spanMetricsMulti:
+    enabled: true
+    transformStatements:
+      - set(attributes["custom"], true)
+    spanNameReplacePattern:
+      - regex: "/[0-9a-f-]{36}"
+        replacement: "/?"
+    dbMetrics:
+      enabled: true
+      transformStatements:
+        - set(attributes["db.custom"], true)
+      compactMetrics:
+        enabled: true
+    compactMetrics:
+      enabled: true
+    configs:
+      - selector: route() where attributes["service.name"] == "one"
+        histogramBuckets: [1s, 2s]
+      - selector: route() where attributes["service.name"] == "two"
+        histogramBuckets: [5s, 10s]
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 200M
