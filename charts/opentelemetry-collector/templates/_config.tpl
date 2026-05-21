@@ -2399,20 +2399,18 @@ service:
 {{- end}}
 
 {{/*
-Routed spanmetrics/<index> connectors: only user-configured spanMetricsMulti dimensions.
-Does not fall back to presets.spanMetrics.errorTracking (preserves pre-upgrade cardinality).
+Routed spanmetrics/<index>: raw extraDimensions only; errorTracking/serviceVersion dims require
+explicit presets.spanMetricsMulti.errorTracking.enabled or serviceVersion.enabled (no spanMetrics fallback).
 */}}
 {{- define "opentelemetry-collector.spanMetricsMulti.routedExtraDimensions" -}}
 {{- if .Values.presets.spanMetricsMulti.extraDimensions }}
 {{- .Values.presets.spanMetricsMulti.extraDimensions | toYaml }}
 {{- end }}
-{{- $multiErrorTracking := .Values.presets.spanMetricsMulti.errorTracking -}}
-{{- if and $multiErrorTracking (hasKey $multiErrorTracking "enabled") $multiErrorTracking.enabled }}
+{{- if eq (dig "errorTracking" "enabled" nil .Values.presets.spanMetricsMulti) true }}
 - name: http.response.status_code
 - name: rpc.grpc.status_code
 {{- end }}
-{{- $multiServiceVersion := .Values.presets.spanMetricsMulti.serviceVersion -}}
-{{- if and $multiServiceVersion $multiServiceVersion.enabled }}
+{{- if eq (dig "serviceVersion" "enabled" nil .Values.presets.spanMetricsMulti) true }}
 - name: service.version
 {{- end }}
 {{- end}}
