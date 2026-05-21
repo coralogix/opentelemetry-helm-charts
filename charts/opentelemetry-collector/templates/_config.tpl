@@ -2398,6 +2398,25 @@ service:
 {{- end }}
 {{- end}}
 
+{{/*
+Routed spanmetrics/<index> connectors: only user-configured spanMetricsMulti dimensions.
+Does not fall back to presets.spanMetrics.errorTracking (preserves pre-upgrade cardinality).
+*/}}
+{{- define "opentelemetry-collector.spanMetricsMulti.routedExtraDimensions" -}}
+{{- if .Values.presets.spanMetricsMulti.extraDimensions }}
+{{- .Values.presets.spanMetricsMulti.extraDimensions | toYaml }}
+{{- end }}
+{{- $multiErrorTracking := .Values.presets.spanMetricsMulti.errorTracking -}}
+{{- if and $multiErrorTracking (hasKey $multiErrorTracking "enabled") $multiErrorTracking.enabled }}
+- name: http.response.status_code
+- name: rpc.grpc.status_code
+{{- end }}
+{{- $multiServiceVersion := .Values.presets.spanMetricsMulti.serviceVersion -}}
+{{- if and $multiServiceVersion $multiServiceVersion.enabled }}
+- name: service.version
+{{- end }}
+{{- end}}
+
 {{- define "opentelemetry-collector.applySpanMetricsMultiConfig" -}}
 {{- $sm := mergeOverwrite (dict "dbMetrics" (dict "enabled" false "compactMetrics" (dict "enabled" false)) "compactMetrics" (dict "enabled" false)) .Values.Values.presets.spanMetricsMulti }}
 {{- $hasTransformStatements := and $sm.transformStatements (gt (len $sm.transformStatements) 0) }}
@@ -2520,10 +2539,10 @@ connectors:
     {{- else }}
     metrics_expiration: 0
     {{- end }}
-    {{- $extraDimensions := include "opentelemetry-collector.spanMetricsMulti.extraDimensions" $root }}
-    {{- if and $extraDimensions (gt (len $extraDimensions) 0) }}
+    {{- $routedExtraDimensions := include "opentelemetry-collector.spanMetricsMulti.routedExtraDimensions" $root }}
+    {{- if and $routedExtraDimensions (gt (len $routedExtraDimensions) 0) }}
     dimensions:
-    {{- $extraDimensions | nindent 10 }}
+    {{- $routedExtraDimensions | nindent 10 }}
     {{- end }}
   {{- end }}
 {{- include "opentelemetry-collector.spanMetricsMultiExtras.connectors" (dict "preset" $sm "histogramBuckets" .Values.presets.spanMetricsMulti.defaultHistogramBuckets) }}
