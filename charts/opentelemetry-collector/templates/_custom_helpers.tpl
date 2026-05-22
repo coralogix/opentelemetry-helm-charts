@@ -252,11 +252,14 @@ Compose endpoint from IP environment variable and port taking networkMode into a
 {{/*
 Generate health_check endpoint based on distribution.
 For standalone/macos distributions, uses OTEL_LISTEN_INTERFACE with 127.0.0.1 fallback.
-For other distributions, uses MY_POD_IP environment variable.
+For other distributions, uses MY_POD_IP environment variable, wrapped in
+brackets when networkMode is ipv6 (RFC 3986).
 */}}
 {{- define "opentelemetry-collector.healthCheckEndpoint" -}}
 {{- if or (eq .Values.distribution "standalone") (eq .Values.distribution "macos") -}}
 ${env:OTEL_LISTEN_INTERFACE:-127.0.0.1}:13133
+{{- else if eq .Values.networkMode "ipv6" -}}
+[${env:MY_POD_IP}]:13133
 {{- else -}}
 ${env:MY_POD_IP}:13133
 {{- end -}}
