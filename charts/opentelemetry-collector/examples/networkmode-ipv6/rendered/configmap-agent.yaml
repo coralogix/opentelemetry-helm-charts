@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.131.7
+    helm.sh/chart: opentelemetry-collector-0.131.8
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.151.0"
@@ -18,7 +18,7 @@ data:
       debug: {}
     extensions:
       health_check:
-        endpoint: ${env:MY_POD_IP}:13133
+        endpoint: '[${env:MY_POD_IP}]:13133'
     processors:
       memory_limiter:
         check_interval: 5s
