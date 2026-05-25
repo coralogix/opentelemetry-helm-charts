@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.131.7
+    helm.sh/chart: opentelemetry-collector-0.131.8
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.151.0"
@@ -26,6 +26,15 @@ data:
         - pipelines:
           - traces/1
           statement: route() where attributes["service.name"] == "one"
+      routing/spanname-traces:
+        default_pipelines:
+        - traces/spanname-sanitized
+        error_mode: ignore
+        table:
+        - condition: attributes["service.name"] == "one"
+          context: resource
+          pipelines:
+          - traces/spanname-bypass
       spanmetrics/0:
         aggregation_cardinality_limit: 100
         dimensions:
@@ -206,11 +215,8 @@ data:
           - otlp
         traces:
           exporters:
-          - routing
-          processors:
-          - memory_limiter
-          - redaction/spanname
-          - batch
+          - routing/spanname-traces
+          processors: []
           receivers:
           - otlp
         traces/0:
@@ -237,6 +243,21 @@ data:
           - batch
           receivers:
           - routing
+        traces/spanname-bypass:
+          exporters:
+          - routing
+          processors:
+          - memory_limiter
+          receivers:
+          - routing/spanname-traces
+        traces/spanname-sanitized:
+          exporters:
+          - routing
+          processors:
+          - memory_limiter
+          - redaction/spanname
+          receivers:
+          - routing/spanname-traces
       telemetry:
         logs:
           encoding: json

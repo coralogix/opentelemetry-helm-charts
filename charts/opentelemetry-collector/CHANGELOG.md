@@ -2,6 +2,11 @@
 
 ## OpenTelemetry Collector
 
+### v0.131.8 / 2026-05-25
+
+- [Feat] Add `presets.spanMetricsSanitization.bypassCondition` to skip span-metrics URL/database/span-name sanitization for matching traces using a resource-context OTTL condition while preserving the same downstream processors and exporters on both bypassed and sanitized paths.
+- [Fix] Apply span-metrics sanitization once per source trace path, including `spanMetricsMulti`, without re-sanitizing internal `routing`/`forward` fan-out pipelines.
+
 ### v0.131.7 / 2026-05-18
 
 - [Feat] Add optional `transformStatements`, `spanNameReplacePattern`, `dbMetrics`, and `compactMetrics` to the `spanMetricsMulti` preset, matching the single `spanMetrics` preset capabilities. All are opt-in (`dbMetrics` / `compactMetrics` default to off; dimension helpers preserve prior `spanMetricsMulti` behavior unless explicitly configured).

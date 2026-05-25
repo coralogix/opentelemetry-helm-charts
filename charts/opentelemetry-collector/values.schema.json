@@ -1279,6 +1279,11 @@
               "description": "Enables URL sanitization for span names and HTTP attributes.",
               "type": "boolean"
             },
+            "bypassCondition": {
+              "description": "Optional OTTL condition evaluated in resource context. Matching traces bypass span metrics sanitization while still flowing through the same downstream processors and exporters.",
+              "type": "string",
+              "default": ""
+            },
             "sanitizeDatabases": {
               "description": "Allowlist of database types whose statements should be sanitized. Available values: sql, redis, memcached, mongo, opensearch, es",
               "type": "array",

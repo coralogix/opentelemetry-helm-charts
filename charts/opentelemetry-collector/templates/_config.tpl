@@ -173,7 +173,6 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.spanMetricsMulti.enabled }}
 {{- $config = (include "opentelemetry-collector.applySpanMetricsMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- $config = (include "opentelemetry-collector.applySpanMetricsSanitizationIfEnabled" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- if .Values.presets.kubernetesResources.enabled }}
 {{- $config = (include "opentelemetry-collector.applyKubernetesResourcesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -297,6 +296,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- end }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.applyMemoryLimiterProcessorAsFirst" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- $config = (include "opentelemetry-collector.applySpanMetricsSanitizationIfEnabled" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.removePipelinesWithoutExporters" (dict "config" $config) | fromYaml) }}
 {{- $supervisorEnabled := and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
 {{- if and ($supervisorEnabled) (.Values.presets.fleetManagement.supervisor.minimalCollectorConfig) }}
@@ -384,7 +384,6 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.spanMetricsMulti.enabled }}
 {{- $config = (include "opentelemetry-collector.applySpanMetricsMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- $config = (include "opentelemetry-collector.applySpanMetricsSanitizationIfEnabled" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- if .Values.presets.kubernetesResources.enabled }}
 {{- $config = (include "opentelemetry-collector.applyKubernetesResourcesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -459,6 +458,7 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.applyMemoryLimiterProcessorAsFirst" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- $config = (include "opentelemetry-collector.applySpanMetricsSanitizationIfEnabled" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.removePipelinesWithoutExporters" (dict "config" $config) | fromYaml) }}
 {{- $supervisorEnabled := and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
 {{- if and ($supervisorEnabled) (.Values.presets.fleetManagement.supervisor.minimalCollectorConfig) }}
@@ -4461,9 +4461,12 @@ receivers:
 
 {{- define "opentelemetry-collector.applySpanMetricsSanitization" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.spanMetricsSanitizationConfig" . | fromYaml) .config }}
+{{- $bypassCondition := trim (default "" .Values.presets.spanMetricsSanitization.bypassCondition) }}
+{{- if eq $bypassCondition "" }}
 {{- with $config.service }}
 {{- range $name, $_ := .pipelines }}
-{{- if hasPrefix $name "traces" }}
+{{- $pipeline := index $config.service.pipelines $name }}
+{{- if and (hasPrefix "traces" $name) (eq (include "opentelemetry-collector.shouldSanitizeTracePipeline" (dict "name" $name "pipeline" $pipeline)) "true") }}
 {{- $pipeline := index $config.service.pipelines $name }}
 {{- $existing := $pipeline.processors | default (list) }}
 {{- $withRedaction := append $existing "redaction/spanname" }}
@@ -4471,7 +4474,87 @@ receivers:
 {{- end }}
 {{- end }}
 {{- end }}
+{{- else }}
+{{- if not $config.connectors }}
+{{- $_ := set $config "connectors" dict }}
+{{- end }}
+{{- $pipelines := deepCopy $config.service.pipelines }}
+{{- range $name, $pipelineConfig := $pipelines }}
+{{- if and (hasPrefix "traces" $name) (eq (include "opentelemetry-collector.shouldSanitizeTracePipeline" (dict "name" $name "pipeline" $pipelineConfig)) "true") }}
+{{- $pipeline := deepCopy $pipelineConfig }}
+{{- $existingProcessors := $pipeline.processors | default (list) }}
+{{- $bypassProcessors := without $existingProcessors "redaction/spanname" | uniq }}
+{{- $sanitizedProcessors := append $bypassProcessors "redaction/spanname" | uniq }}
+{{- $intermediateOnly := eq (include "opentelemetry-collector.tracePipelineExportsOnlyToConnectors" (dict "pipeline" $pipeline)) "true" }}
+{{- if $intermediateOnly }}
+{{- $bypassProcessors = without $bypassProcessors "batch" | uniq }}
+{{- $sanitizedProcessors = without $sanitizedProcessors "batch" | uniq }}
+{{- end }}
+{{- $parts := splitList "/" $name }}
+{{- $signal := index $parts 0 }}
+{{- $pipelineName := "" }}
+{{- if gt (len $parts) 1 }}
+{{- $pipelineName = index $parts 1 }}
+{{- end }}
+{{- $routerName := printf "routing/spanname-%s" (replace "/" "-" $name) }}
+{{- $bypassPipelineName := "" }}
+{{- $sanitizedPipelineName := "" }}
+{{- if eq $pipelineName "" }}
+{{- $bypassPipelineName = printf "%s/spanname-bypass" $signal }}
+{{- $sanitizedPipelineName = printf "%s/spanname-sanitized" $signal }}
+{{- else }}
+{{- $bypassPipelineName = printf "%s/%s-spanname-bypass" $signal $pipelineName }}
+{{- $sanitizedPipelineName = printf "%s/%s-spanname-sanitized" $signal $pipelineName }}
+{{- end }}
+{{- if hasKey $config.connectors $routerName }}
+{{- fail (printf "presets.spanMetricsSanitization.bypassCondition conflicts with existing connector %q" $routerName) }}
+{{- end }}
+{{- if hasKey $config.service.pipelines $bypassPipelineName }}
+{{- fail (printf "presets.spanMetricsSanitization.bypassCondition conflicts with existing traces pipeline %q" $bypassPipelineName) }}
+{{- end }}
+{{- if hasKey $config.service.pipelines $sanitizedPipelineName }}
+{{- fail (printf "presets.spanMetricsSanitization.bypassCondition conflicts with existing traces pipeline %q" $sanitizedPipelineName) }}
+{{- end }}
+{{- $_ := set $config.connectors $routerName (dict "default_pipelines" (list $sanitizedPipelineName) "error_mode" "ignore" "table" (list (dict "context" "resource" "condition" $bypassCondition "pipelines" (list $bypassPipelineName)))) }}
+{{- $bypassPipeline := deepCopy $pipeline }}
+{{- $_ := set $bypassPipeline "receivers" (list $routerName) }}
+{{- $_ := set $bypassPipeline "processors" $bypassProcessors }}
+{{- $_ := set $config.service.pipelines $bypassPipelineName $bypassPipeline }}
+{{- $sanitizedPipeline := deepCopy $pipeline }}
+{{- $_ := set $sanitizedPipeline "receivers" (list $routerName) }}
+{{- $_ := set $sanitizedPipeline "processors" $sanitizedProcessors }}
+{{- $_ := set $config.service.pipelines $sanitizedPipelineName $sanitizedPipeline }}
+{{- $_ := set (index $config.service.pipelines $name) "processors" (list) }}
+{{- $_ := set (index $config.service.pipelines $name) "exporters" (list $routerName) }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.shouldSanitizeTracePipeline" -}}
+{{- $name := .name -}}
+{{- $pipeline := .pipeline -}}
+{{- $receivers := $pipeline.receivers | default (list) -}}
+{{- $sourcePipeline := false -}}
+{{- range $receiver := $receivers }}
+{{- if and (ne $receiver "routing") (not (hasPrefix "forward/" $receiver)) (not (hasPrefix "routing/spanname-" $receiver)) }}
+{{- $sourcePipeline = true -}}
+{{- end }}
+{{- end }}
+{{- if or (eq $name "traces") $sourcePipeline }}true{{- else }}false{{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.tracePipelineExportsOnlyToConnectors" -}}
+{{- $pipeline := .pipeline -}}
+{{- $exporters := $pipeline.exporters | default (list) -}}
+{{- $connectorOnly := gt (len $exporters) 0 -}}
+{{- range $exporter := $exporters }}
+{{- if and (not (hasPrefix "routing" $exporter)) (not (hasPrefix "forward/" $exporter)) (not (hasPrefix "spanmetrics/" $exporter)) }}
+{{- $connectorOnly = false -}}
+{{- end }}
+{{- end }}
+{{- if $connectorOnly }}true{{- else }}false{{- end }}
 {{- end }}
 
 

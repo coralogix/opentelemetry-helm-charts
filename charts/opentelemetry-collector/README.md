@@ -83,6 +83,19 @@ config:
 
 The chart also provides several presets, detailed below, to help configure importantKubernetes components. For more details on each component, see [Kubernetes Collector Components](https://opentelemetry.io/docs/kubernetes/collector/components/).
 
+### Configuration for Span Metrics Sanitization
+
+The `spanMetricsSanitization` preset wires `redaction/spanname` into every traces pipeline when span metrics presets are enabled. It can sanitize URL-like span names and HTTP attributes, and optionally scrub supported database statements.
+
+Set `presets.spanMetricsSanitization.bypassCondition` to an OTTL condition in `resource` context to skip sanitization for matching services while keeping the rest of each traces pipeline unchanged. Matching traces still flow through the same downstream processors and exporters; only the sanitization step is bypassed. For example:
+
+```yaml
+presets:
+  spanMetricsSanitization:
+    enabled: true
+    bypassCondition: attributes["service.name"] == "payments"
+```
+
 ### Configuration for Resource Detection
 
 The resource detection preset can add infrastructure metadata such as the host ID and cloud provider attributes to your telemetry. To enable it, set `presets.resourceDetection.enabled` to `true`.

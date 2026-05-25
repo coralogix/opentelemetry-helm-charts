@@ -486,10 +486,15 @@ presets:
   # - `sanitizeDatabases` is an allowlist of database backends whose statements should be scrubbed
   #   (valid: sql, redis, memcached, mongo, opensearch, es). By default sanitization is disabled for
   #   database statements.
+  # - `bypassCondition` optionally skips span-name/URL/database sanitization for traces whose resource
+  #   attributes match the given OTTL condition in resource context. Example:
+  #   `attributes["service.name"] == "my-service"`. Matching traces still run through the same
+  #   processors and exporters as sanitized traces.
   # Additional redaction settings can be supplied via `extraConfig.processors.redaction`.
   spanMetricsSanitization:
     enabled: auto  # auto: enabled when spanMetrics or spanMetricsMulti presets are enabled
     sanitize_url: true
+    bypassCondition: ""
     sanitizeDatabases:
       []
 
