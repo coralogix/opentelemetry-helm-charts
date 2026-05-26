@@ -2378,8 +2378,10 @@ service:
 {{- end }}
 {{- end }}
 
-{{- define "opentelemetry-collector.spanMetricsMulti.extraDimensions" -}}
-{{- $extra := .Values.presets.spanMetricsMulti.extraDimensions | default list }}
+{{- define "opentelemetry-collector.spanMetricsMulti.buildExtraDimensions" -}}
+{{- $values := .Values -}}
+{{- $inheritSpanMetricsPreset := .inheritSpanMetricsPreset | default false -}}
+{{- $extra := $values.presets.spanMetricsMulti.extraDimensions | default list }}
 {{- $seen := dict }}
 {{- range $extra }}
 {{- $_ := set $seen .name true }}
@@ -2387,12 +2389,12 @@ service:
 {{- if $extra }}
 {{- $extra | toYaml }}
 {{- end }}
-{{- $multiErrorTracking := .Values.presets.spanMetricsMulti.errorTracking -}}
+{{- $multiErrorTracking := $values.presets.spanMetricsMulti.errorTracking -}}
 {{- $errorTrackingEnabled := false -}}
 {{- if and $multiErrorTracking (hasKey $multiErrorTracking "enabled") -}}
 {{- $errorTrackingEnabled = $multiErrorTracking.enabled -}}
-{{- else -}}
-{{- $errorTrackingEnabled = .Values.presets.spanMetrics.errorTracking.enabled -}}
+{{- else if $inheritSpanMetricsPreset -}}
+{{- $errorTrackingEnabled = $values.presets.spanMetrics.errorTracking.enabled -}}
 {{- end -}}
 {{- if $errorTrackingEnabled }}
 {{- if not (hasKey $seen "http.response.status_code") }}
@@ -2404,12 +2406,27 @@ service:
 {{- $_ := set $seen "rpc.grpc.status_code" true }}
 {{- end }}
 {{- end }}
-{{- $multiServiceVersion := .Values.presets.spanMetricsMulti.serviceVersion -}}
+{{- $multiServiceVersion := $values.presets.spanMetricsMulti.serviceVersion -}}
 {{- if and $multiServiceVersion $multiServiceVersion.enabled }}
 {{- if not (hasKey $seen "service.version") }}
 - name: service.version
 {{- end }}
 {{- end }}
+{{- end}}
+
+{{- define "opentelemetry-collector.spanMetricsMulti.extraDimensions" -}}
+{{- include "opentelemetry-collector.spanMetricsMulti.buildExtraDimensions" (dict "Values" .Values "inheritSpanMetricsPreset" true) -}}
+{{- end}}
+
+{{/*
+Routed spanmetrics/<index> use the same dimension builder as spanmetrics/default only when
+presets.spanMetricsMulti.inheritDefaultDimensions is true. Otherwise they keep prior behavior:
+extraDimensions plus errorTracking/serviceVersion only when explicitly enabled on spanMetricsMulti
+(without presets.spanMetrics fallback).
+*/}}
+{{- define "opentelemetry-collector.spanMetricsMulti.routedExtraDimensions" -}}
+{{- $inheritSpanMetricsPreset := eq (dig "inheritDefaultDimensions" nil .Values.presets.spanMetricsMulti) true -}}
+{{- include "opentelemetry-collector.spanMetricsMulti.buildExtraDimensions" (dict "Values" .Values "inheritSpanMetricsPreset" $inheritSpanMetricsPreset) -}}
 {{- end}}
 
 {{- define "opentelemetry-collector.applySpanMetricsMultiConfig" -}}
@@ -2534,7 +2551,7 @@ connectors:
     {{- else }}
     metrics_expiration: 0
     {{- end }}
-    {{- $routedExtraDimensions := include "opentelemetry-collector.spanMetricsMulti.extraDimensions" $root }}
+    {{- $routedExtraDimensions := include "opentelemetry-collector.spanMetricsMulti.routedExtraDimensions" $root }}
     {{- if and $routedExtraDimensions (gt (len $routedExtraDimensions) 0) }}
     dimensions:
     {{- $routedExtraDimensions | nindent 10 }}

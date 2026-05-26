@@ -450,6 +450,10 @@ presets:
     # serviceVersion:
     #   enabled: false
     # errorTracking uses presets.spanMetrics.errorTracking when spanMetricsMulti.errorTracking is unset.
+    # inheritDefaultDimensions: when true, routed spanmetrics/<index> connectors use the same
+    # errorTracking/serviceVersion dimension rules as spanmetrics/default (including spanMetrics
+    # fallback). Defaults to false to preserve prior routed connector behavior on upgrade.
+    # inheritDefaultDimensions: false
     # dbMetrics:
     #   enabled: false
     # compactMetrics:

@@ -1209,6 +1209,11 @@
                 }
               }
             },
+            "inheritDefaultDimensions": {
+              "description": "When true, routed spanmetrics connectors inherit errorTracking and serviceVersion dimensions using the same rules as spanmetrics/default (including presets.spanMetrics fallback). Defaults to false to preserve prior routed connector behavior.",
+              "type": "boolean",
+              "default": false
+            },
             "namespace": {
               "description": "Defines the namespace of the generated metrics. If namespace provided, generated metric name will be added namespace. prefix.",
               "type": "string"

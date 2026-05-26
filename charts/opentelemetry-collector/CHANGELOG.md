@@ -4,7 +4,7 @@
 
 ### v0.131.9 / 2026-05-26
 
-- [Fix] Apply the same `spanMetricsMulti` extra dimensions (including `errorTracking` fallback from `presets.spanMetrics`) to all spanmetrics connectors, and skip auto-added status code dimensions when they are already listed in `extraDimensions`.
+- [Fix] Deduplicate `spanMetricsMulti` status code dimensions on `spanmetrics/default` when they are already listed in `extraDimensions`. Add opt-in `presets.spanMetricsMulti.inheritDefaultDimensions` to apply the same dimension rules (including `presets.spanMetrics.errorTracking` fallback) to routed `spanmetrics/<index>` connectors; defaults to `false` to preserve existing routed connector behavior on upgrade.
 
 ### v0.131.7 / 2026-05-18
 
