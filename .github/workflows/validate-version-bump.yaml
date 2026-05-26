@@ -6,6 +6,9 @@ on:
   pull_request:
     paths:
       - 'charts/opentelemetry-collector/Chart.yaml'
+      - 'charts/opentelemetry-collector/CHANGELOG.md'
+      - 'charts/opentelemetry-collector/validate-chart-version-bump.sh'
+      - '.github/workflows/validate-version-bump.yaml'
   workflow_dispatch:
 
 jobs:
@@ -20,4 +23,3 @@ jobs:
       - name: Validate chart version bump
         run: |
           make validate-version-bump
-
