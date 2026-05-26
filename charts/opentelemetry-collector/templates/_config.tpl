@@ -2379,39 +2379,36 @@ service:
 {{- end }}
 
 {{- define "opentelemetry-collector.spanMetricsMulti.extraDimensions" -}}
-{{- if .Values.presets.spanMetricsMulti.extraDimensions }}
-{{- .Values.presets.spanMetricsMulti.extraDimensions | toYaml }}
+{{- $extra := .Values.presets.spanMetricsMulti.extraDimensions | default list }}
+{{- $seen := dict }}
+{{- range $extra }}
+{{- $_ := set $seen .name true }}
+{{- end }}
+{{- if $extra }}
+{{- $extra | toYaml }}
 {{- end }}
 {{- $multiErrorTracking := .Values.presets.spanMetricsMulti.errorTracking -}}
+{{- $errorTrackingEnabled := false -}}
 {{- if and $multiErrorTracking (hasKey $multiErrorTracking "enabled") -}}
-{{- if $multiErrorTracking.enabled }}
+{{- $errorTrackingEnabled = $multiErrorTracking.enabled -}}
+{{- else -}}
+{{- $errorTrackingEnabled = .Values.presets.spanMetrics.errorTracking.enabled -}}
+{{- end -}}
+{{- if $errorTrackingEnabled }}
+{{- if not (hasKey $seen "http.response.status_code") }}
 - name: http.response.status_code
-- name: rpc.grpc.status_code
+{{- $_ := set $seen "http.response.status_code" true }}
 {{- end }}
-{{- else if .Values.presets.spanMetrics.errorTracking.enabled }}
-- name: http.response.status_code
+{{- if not (hasKey $seen "rpc.grpc.status_code") }}
 - name: rpc.grpc.status_code
+{{- $_ := set $seen "rpc.grpc.status_code" true }}
+{{- end }}
 {{- end }}
 {{- $multiServiceVersion := .Values.presets.spanMetricsMulti.serviceVersion -}}
 {{- if and $multiServiceVersion $multiServiceVersion.enabled }}
+{{- if not (hasKey $seen "service.version") }}
 - name: service.version
 {{- end }}
-{{- end}}
-
-{{/*
-Routed spanmetrics/<index>: raw extraDimensions only; errorTracking/serviceVersion dims require
-explicit presets.spanMetricsMulti.errorTracking.enabled or serviceVersion.enabled (no spanMetrics fallback).
-*/}}
-{{- define "opentelemetry-collector.spanMetricsMulti.routedExtraDimensions" -}}
-{{- if .Values.presets.spanMetricsMulti.extraDimensions }}
-{{- .Values.presets.spanMetricsMulti.extraDimensions | toYaml }}
-{{- end }}
-{{- if eq (dig "errorTracking" "enabled" nil .Values.presets.spanMetricsMulti) true }}
-- name: http.response.status_code
-- name: rpc.grpc.status_code
-{{- end }}
-{{- if eq (dig "serviceVersion" "enabled" nil .Values.presets.spanMetricsMulti) true }}
-- name: service.version
 {{- end }}
 {{- end}}
 
@@ -2537,7 +2534,7 @@ connectors:
     {{- else }}
     metrics_expiration: 0
     {{- end }}
-    {{- $routedExtraDimensions := include "opentelemetry-collector.spanMetricsMulti.routedExtraDimensions" $root }}
+    {{- $routedExtraDimensions := include "opentelemetry-collector.spanMetricsMulti.extraDimensions" $root }}
     {{- if and $routedExtraDimensions (gt (len $routedExtraDimensions) 0) }}
     dimensions:
     {{- $routedExtraDimensions | nindent 10 }}

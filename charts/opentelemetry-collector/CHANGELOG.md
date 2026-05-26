@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.131.9 / 2026-05-26
+
+- [Fix] Apply the same `spanMetricsMulti` extra dimensions (including `errorTracking` fallback from `presets.spanMetrics`) to all spanmetrics connectors, and skip auto-added status code dimensions when they are already listed in `extraDimensions`.
+
 ### v0.131.7 / 2026-05-18
 
 - [Feat] Add optional `transformStatements`, `spanNameReplacePattern`, `dbMetrics`, and `compactMetrics` to the `spanMetricsMulti` preset, matching the single `spanMetrics` preset capabilities. All are opt-in (`dbMetrics` / `compactMetrics` default to off; dimension helpers preserve prior `spanMetricsMulti` behavior unless explicitly configured).
