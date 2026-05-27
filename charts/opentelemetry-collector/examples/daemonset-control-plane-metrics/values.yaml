@@ -1,0 +1,29 @@
+mode: daemonset
+
+presets:
+  kubernetesApiServerMetrics:
+    enabled: true
+    controllerManager:
+      enabled: true
+    scheduler:
+      enabled: true
+    proxy:
+      enabled: true
+    etcd:
+      enabled: true
+
+config:
+  exporters:
+    debug:
+      verbosity: detailed
+
+  service:
+    pipelines:
+      metrics:
+        exporters:
+          - debug
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 200M

@@ -1556,6 +1556,9 @@ processors:
 {{- $scrapeAll := .Values.Values.presets.kubernetesApiServerMetrics.scrapeAll | default false }}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.kubernetesApiServerMetricsConfig" (dict "Values" .Values.Values "scrapeAll" $scrapeAll) | fromYaml) .config }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus/k8s_apiserver_metrics" | uniq)  }}
+{{- if eq (include "opentelemetry-collector.hasManagedControlPlaneMetrics" .Values.Values) "true" }}
+{{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "receiver_creator" | uniq)  }}
+{{- end }}
 {{- if not $scrapeAll }}
 {{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "filter/k8s_apiserver_metrics" | uniq)  }}
 {{- end }}
@@ -1563,7 +1566,18 @@ processors:
 {{- $config | toYaml }}
 {{- end }}
 
+{{- define "opentelemetry-collector.hasManagedControlPlaneMetrics" -}}
+{{- if or .presets.kubernetesApiServerMetrics.controllerManager.enabled .presets.kubernetesApiServerMetrics.scheduler.enabled .presets.kubernetesApiServerMetrics.proxy.enabled .presets.kubernetesApiServerMetrics.etcd.enabled -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end }}
+
 {{- define "opentelemetry-collector.kubernetesApiServerMetricsConfig" -}}
+{{- $scrapeAll := default false .scrapeAll -}}
+{{- $scrapeInterval := .Values.presets.kubernetesApiServerMetrics.scrapeInterval | default "30s" -}}
+{{- $etcdPort := .Values.presets.kubernetesApiServerMetrics.etcd.port | default "2381" -}}
 extensions:
   k8s_observer:
     auth_type: serviceAccount
@@ -1593,7 +1607,96 @@ receivers:
               ]
             action: keep
             regex: default;kubernetes;https
-{{- $scrapeAll := default false .scrapeAll }}
+{{- if eq (include "opentelemetry-collector.hasManagedControlPlaneMetrics" .Values) "true" }}
+  receiver_creator:
+    watch_observers: [k8s_observer]
+    receivers:
+{{- if .Values.presets.kubernetesApiServerMetrics.controllerManager.enabled }}
+      prometheus/k8s_controller_manager_metrics:
+        rule: type == "pod" && (labels["k8s-app"] == "kube-controller-manager" || labels["component"] == "kube-controller-manager")
+        config:
+          config:
+            scrape_configs:
+              - job_name: "kube-controller-manager"
+                scrape_interval: {{ $scrapeInterval | quote }}
+                static_configs:
+                  - targets: ["`endpoint`:10257"]
+                scheme: https
+                authorization:
+                  credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+                  type: Bearer
+                tls_config:
+                  ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                  insecure_skip_verify: true
+{{- if not $scrapeAll }}
+                metric_relabel_configs:
+                  - source_labels: [__name__]
+                    action: keep
+                    regex: "(workqueue_longest_running_processor_seconds|workqueue_unfinished_work_seconds|workqueue_depth|workqueue_retries_total|workqueue_queue_duration_seconds)(?:_sum|_count|_bucket)?"
+{{- end }}
+{{- end }}
+{{- if .Values.presets.kubernetesApiServerMetrics.scheduler.enabled }}
+      prometheus/k8s_scheduler_metrics:
+        rule: type == "pod" && (labels["k8s-app"] == "kube-scheduler" || labels["component"] == "kube-scheduler")
+        config:
+          config:
+            scrape_configs:
+              - job_name: "kubernetes-scheduler"
+                scrape_interval: {{ $scrapeInterval | quote }}
+                static_configs:
+                  - targets: ["`endpoint`:10259"]
+                scheme: https
+                authorization:
+                  credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+                  type: Bearer
+                tls_config:
+                  ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                  insecure_skip_verify: true
+{{- if not $scrapeAll }}
+                metric_relabel_configs:
+                  - source_labels: [__name__]
+                    action: keep
+                    regex: "(rest_client_request_duration_seconds|rest_client_requests_total|scheduler_pending_pods|scheduler_schedule_attempts_total|scheduler_queue_incoming_pods_total|scheduler_preemption_attempts_total|scheduler_scheduling_algorithm_duration_seconds|scheduler_pod_scheduling_sli_duration_seconds)(?:_sum|_count|_bucket)?"
+{{- end }}
+{{- end }}
+{{- if .Values.presets.kubernetesApiServerMetrics.proxy.enabled }}
+      prometheus/k8s_proxy_metrics:
+        rule: type == "pod" && labels["k8s-app"] == "kube-proxy"
+        config:
+          config:
+            scrape_configs:
+              - job_name: "kubernetes-proxy"
+                scrape_interval: {{ $scrapeInterval | quote }}
+                static_configs:
+                  - targets: ["`endpoint`:10249"]
+{{- if not $scrapeAll }}
+                metric_relabel_configs:
+                  - source_labels: [__name__]
+                    action: keep
+                    regex: "(kubeproxy_sync_proxy_rules_iptables_restore_failures_total|kubeproxy_sync_proxy_rules_service_changes_total|kubeproxy_sync_proxy_rules_service_changes_pending|kubeproxy_sync_proxy_rules_duration_seconds|kubeproxy_network_programming_duration_seconds)(?:_sum|_count|_bucket)?"
+                  - action: drop
+                    regex: 'kubeproxy_network_programming_duration_seconds_bucket;([1-3][1-46-9]|[4-9][1-9]|100|110|115|270)\.0'
+                    source_labels: [__name__, le]
+{{- end }}
+{{- end }}
+{{- if .Values.presets.kubernetesApiServerMetrics.etcd.enabled }}
+      prometheus/k8s_etcd_metrics:
+        rule: type == "pod" && (labels["k8s-app"] == "etcd-manager-events" || labels["k8s-app"] == "etcd-manager-main" || labels["component"] == "etcd")
+        config:
+          config:
+            scrape_configs:
+              - job_name: "etcd"
+                scrape_interval: {{ $scrapeInterval | quote }}
+                static_configs:
+                  - targets: ["`endpoint`:{{ $etcdPort }}"]
+{{- if not $scrapeAll }}
+                metric_relabel_configs:
+                  - source_labels: [__name__]
+                    action: keep
+                    regex: "(etcd_server_is_leader|etcd_server_leader_changes_seen_total|etcd_server_proposals_applied_total|etcd_server_proposals_committed_total|etcd_server_proposals_failed_total|etcd_server_proposals_pending|etcd_disk_wal_fsync_duration_seconds)(?:_sum|_count|_bucket)?"
+{{- end }}
+{{- end }}
+{{- end }}
 {{- if not $scrapeAll }}
 processors:
   filter/k8s_apiserver_metrics:

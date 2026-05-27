@@ -1,0 +1,248 @@
+---
+# Source: opentelemetry-collector/templates/configmap-agent.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-opentelemetry-collector-agent
+  namespace: default
+  labels:
+    helm.sh/chart: opentelemetry-collector-0.134.0
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.151.0"
+    app.kubernetes.io/managed-by: Helm
+    
+data:
+  relay: |
+    exporters:
+      debug:
+        verbosity: detailed
+    extensions:
+      health_check:
+        endpoint: ${env:MY_POD_IP}:13133
+      k8s_observer:
+        auth_type: serviceAccount
+        node: ${env:K8S_NODE_NAME}
+        observe_pods: true
+    processors:
+      filter/k8s_apiserver_metrics:
+        metrics:
+          metric:
+          - resource.attributes["service.name"] == "kubernetes-apiserver" and metric.name
+            != "kubernetes_build_info"
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      transform/prometheus:
+        error_mode: ignore
+        metric_statements:
+        - context: metric
+          statements:
+          - replace_pattern(metric.name, "_total$", "") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_cpu_seconds_seconds$", "otelcol_process_cpu_seconds")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_memory_rss_bytes$", "otelcol_process_memory_rss_bytes")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_heap_alloc_bytes_bytes$",
+            "otelcol_process_runtime_heap_alloc_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_total_alloc_bytes_bytes$",
+            "otelcol_process_runtime_total_alloc_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_total_sys_memory_bytes_bytes$",
+            "otelcol_process_runtime_total_sys_memory_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_fileconsumer_open_files$", "otelcol_fileconsumer_open_files_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_fileconsumer_reading_files$", "otelcol_fileconsumer_reading_files_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_ip_lookup_miss$", "otelcol_otelsvc_k8s_ip_lookup_miss_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_added$", "otelcol_otelsvc_k8s_pod_added_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_table_size_ratio$",
+            "otelcol_otelsvc_k8s_pod_table_size_ratio") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_updated$", "otelcol_otelsvc_k8s_pod_updated_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_deleted$", "otelcol_otelsvc_k8s_pod_deleted_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_filter_spans\\.filtered$",
+            "otelcol_processor_filter_spans.filtered_ratio") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+        - context: resource
+          statements:
+          - set(resource.attributes["k8s.pod.ip"], resource.attributes["net.host.name"])
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - delete_key(resource.attributes, "service_name") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+        - context: datapoint
+          statements:
+          - delete_key(datapoint.attributes, "service_name") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
+            == "opentelemetry-collector"
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: ${env:MY_POD_IP}:4317
+            max_recv_msg_size_mib: 20
+          http:
+            endpoint: ${env:MY_POD_IP}:4318
+      prometheus:
+        config:
+          scrape_configs:
+          - job_name: opentelemetry-collector
+            scrape_interval: 30s
+            static_configs:
+            - targets:
+              - ${env:MY_POD_IP}:8888
+      prometheus/k8s_apiserver_metrics:
+        config:
+          scrape_configs:
+          - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+            honor_timestamps: true
+            job_name: kubernetes-apiserver
+            kubernetes_sd_configs:
+            - role: endpoints
+            relabel_configs:
+            - action: keep
+              regex: default;kubernetes;https
+              source_labels:
+              - __meta_kubernetes_namespace
+              - __meta_kubernetes_service_name
+              - __meta_kubernetes_endpoint_port_name
+            scheme: https
+            tls_config:
+              ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+              insecure_skip_verify: true
+      receiver_creator:
+        receivers:
+          prometheus/k8s_controller_manager_metrics:
+            config:
+              config:
+                scrape_configs:
+                - authorization:
+                    credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+                    type: Bearer
+                  job_name: kube-controller-manager
+                  metric_relabel_configs:
+                  - action: keep
+                    regex: (workqueue_longest_running_processor_seconds|workqueue_unfinished_work_seconds|workqueue_depth|workqueue_retries_total|workqueue_queue_duration_seconds)(?:_sum|_count|_bucket)?
+                    source_labels:
+                    - __name__
+                  scheme: https
+                  scrape_interval: 30s
+                  static_configs:
+                  - targets:
+                    - '`endpoint`:10257'
+                  tls_config:
+                    ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                    insecure_skip_verify: true
+            rule: type == "pod" && (labels["k8s-app"] == "kube-controller-manager" ||
+              labels["component"] == "kube-controller-manager")
+          prometheus/k8s_etcd_metrics:
+            config:
+              config:
+                scrape_configs:
+                - job_name: etcd
+                  metric_relabel_configs:
+                  - action: keep
+                    regex: (etcd_server_is_leader|etcd_server_leader_changes_seen_total|etcd_server_proposals_applied_total|etcd_server_proposals_committed_total|etcd_server_proposals_failed_total|etcd_server_proposals_pending|etcd_disk_wal_fsync_duration_seconds)(?:_sum|_count|_bucket)?
+                    source_labels:
+                    - __name__
+                  scrape_interval: 30s
+                  static_configs:
+                  - targets:
+                    - '`endpoint`:2381'
+            rule: type == "pod" && (labels["k8s-app"] == "etcd-manager-events" || labels["k8s-app"]
+              == "etcd-manager-main" || labels["component"] == "etcd")
+          prometheus/k8s_proxy_metrics:
+            config:
+              config:
+                scrape_configs:
+                - job_name: kubernetes-proxy
+                  metric_relabel_configs:
+                  - action: keep
+                    regex: (kubeproxy_sync_proxy_rules_iptables_restore_failures_total|kubeproxy_sync_proxy_rules_service_changes_total|kubeproxy_sync_proxy_rules_service_changes_pending|kubeproxy_sync_proxy_rules_duration_seconds|kubeproxy_network_programming_duration_seconds)(?:_sum|_count|_bucket)?
+                    source_labels:
+                    - __name__
+                  - action: drop
+                    regex: kubeproxy_network_programming_duration_seconds_bucket;([1-3][1-46-9]|[4-9][1-9]|100|110|115|270)\.0
+                    source_labels:
+                    - __name__
+                    - le
+                  scrape_interval: 30s
+                  static_configs:
+                  - targets:
+                    - '`endpoint`:10249'
+            rule: type == "pod" && labels["k8s-app"] == "kube-proxy"
+          prometheus/k8s_scheduler_metrics:
+            config:
+              config:
+                scrape_configs:
+                - authorization:
+                    credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+                    type: Bearer
+                  job_name: kubernetes-scheduler
+                  metric_relabel_configs:
+                  - action: keep
+                    regex: (rest_client_request_duration_seconds|rest_client_requests_total|scheduler_pending_pods|scheduler_schedule_attempts_total|scheduler_queue_incoming_pods_total|scheduler_preemption_attempts_total|scheduler_scheduling_algorithm_duration_seconds|scheduler_pod_scheduling_sli_duration_seconds)(?:_sum|_count|_bucket)?
+                    source_labels:
+                    - __name__
+                  scheme: https
+                  scrape_interval: 30s
+                  static_configs:
+                  - targets:
+                    - '`endpoint`:10259'
+                  tls_config:
+                    ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+                    insecure_skip_verify: true
+            rule: type == "pod" && (labels["k8s-app"] == "kube-scheduler" || labels["component"]
+              == "kube-scheduler")
+        watch_observers:
+        - k8s_observer
+    service:
+      extensions:
+      - health_check
+      - k8s_observer
+      pipelines:
+        logs:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          receivers:
+          - otlp
+        metrics:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          - filter/k8s_apiserver_metrics
+          - transform/prometheus
+          receivers:
+          - prometheus/k8s_apiserver_metrics
+          - receiver_creator
+          - prometheus
+          - otlp
+        traces:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          receivers:
+          - otlp
+      telemetry:
+        logs:
+          encoding: json
+        metrics:
+          readers:
+          - pull:
+              exporter:
+                prometheus:
+                  host: ${env:MY_POD_IP}
+                  port: 8888
