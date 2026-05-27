@@ -41,25 +41,6 @@ Some care must be taken when using `hostNetwork: true`, as then OpenTelemetry Co
 
 By default the chart configures endpoints for IPv4 addresses. When deploying in an IPv6 environment set `networkMode: ipv6` so the endpoints use bracket notation around IP variables.
 
-## Local OpenShift Testing On macOS
-
-For local OpenShift-oriented testing on macOS, the repository includes a MicroShift helper at [scripts/microshift-macos.sh](scripts/microshift-macos.sh).
-
-It wraps the supported setup we validated for this chart:
-
-- configures the local Podman machine in rootful mode
-- bootstraps MicroShift via the upstream `quickstart.sh`
-- tears it down via the upstream `quickclean.sh`
-- runs `kubectl` inside the MicroShift container, which avoids the host kubeconfig `localhost:6443` issue
-
-Examples:
-
-```console
-charts/opentelemetry-collector/scripts/microshift-macos.sh start
-charts/opentelemetry-collector/scripts/microshift-macos.sh status
-charts/opentelemetry-collector/scripts/microshift-macos.sh kubectl get pods -A
-charts/opentelemetry-collector/scripts/microshift-macos.sh shutdown
-```
 
 ## Configuration
 

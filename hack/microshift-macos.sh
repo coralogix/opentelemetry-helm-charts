@@ -143,6 +143,7 @@ cmd_shutdown() {
 cmd_status() {
   require_tool podman
   require_tool sudo
+  require_tool jq
 
   echo "== Podman machine =="
   podman machine inspect "${PODMAN_MACHINE}" | jq '.[0] | {Name,State,Rootful,Resources,LastUp}'
@@ -186,8 +187,6 @@ cmd_shell() {
 }
 
 main() {
-  require_tool jq
-
   local cmd="${1:-help}"
   shift || true
 
