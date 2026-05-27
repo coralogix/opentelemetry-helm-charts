@@ -1194,6 +1194,16 @@ clusterRole:
 podSecurityContext: {}
 securityContext: {}
 
+# Whether to create an OpenShift SecurityContextConstraints object for the
+# collector service account when distribution=openshift.
+securityContextConstraints:
+  create: true
+  # Name of the SecurityContextConstraints resource to create.
+  # If not set a name is generated using the fullname template.
+  name: ""
+  # Extra fields merged into the chart-managed SCC definition.
+  overwrite: {}
+
 nodeSelector: {}
 tolerations: []
 affinity: {}

@@ -1,0 +1,51 @@
+{{/*
+Default values for the chart-managed OpenShift SecurityContextConstraints.
+*/}}
+{{- define "opentelemetry-collector.defaultSecurityContextConstraints" -}}
+priority: 10
+allowHostDirVolumePlugin: true
+allowHostIPC: false
+allowHostNetwork: {{ include "opentelemetry-collector.openshiftNeedsHostNetworkScc" . | empty | not }}
+allowHostPID: {{ include "opentelemetry-collector.openshiftNeedsHostPidScc" . | empty | not }}
+allowHostPorts: {{ include "opentelemetry-collector.openshiftNeedsHostPortsScc" . | empty | not }}
+allowPrivilegeEscalation: true
+allowPrivilegedContainer: {{ include "opentelemetry-collector.openshiftNeedsPrivilegedScc" . | empty | not }}
+allowedCapabilities:
+  - '*'
+defaultAddCapabilities: []
+fsGroup:
+  type: RunAsAny
+readOnlyRootFilesystem: false
+requiredDropCapabilities: []
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  type: RunAsAny
+seccompProfiles:
+  - '*'
+supplementalGroups:
+  type: RunAsAny
+volumes:
+  - configMap
+  - csi
+  - downwardAPI
+  - emptyDir
+  - ephemeral
+  - hostPath
+  - persistentVolumeClaim
+  - projected
+  - secret
+{{- end -}}
+
+{{- if and (not .Values.collectorCRD.generate) (eq .Values.distribution "openshift") .Values.securityContextConstraints.create -}}
+kind: SecurityContextConstraints
+apiVersion: security.openshift.io/v1
+metadata:
+  name: {{ include "opentelemetry-collector.securityContextConstraintsName" . }}
+  labels:
+    {{- include "opentelemetry-collector.labels" . | nindent 4 }}
+users:
+  - system:serviceaccount:{{ include "opentelemetry-collector.namespace" . }}:{{ include "opentelemetry-collector.serviceAccountName" . }}
+{{- $config := include "opentelemetry-collector.defaultSecurityContextConstraints" . | fromYaml }}
+{{ .Values.securityContextConstraints.overwrite | mustMergeOverwrite $config | toYaml }}
+{{- end }}

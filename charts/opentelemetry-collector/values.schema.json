@@ -2616,6 +2616,27 @@
     "securityContext": {
       "type": "object"
     },
+    "securityContextConstraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "description": "Specifies whether to create an OpenShift SecurityContextConstraints object."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the OpenShift SecurityContextConstraints resource to create."
+        },
+        "overwrite": {
+          "type": "object",
+          "description": "Extra fields merged into the chart-managed OpenShift SecurityContextConstraints definition."
+        }
+      },
+      "required": [
+        "create"
+      ]
+    },
     "nodeSelector": {
       "type": "object"
     },
