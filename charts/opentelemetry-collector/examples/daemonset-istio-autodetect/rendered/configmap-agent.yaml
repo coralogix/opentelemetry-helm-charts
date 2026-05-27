@@ -1,0 +1,234 @@
+---
+# Source: opentelemetry-collector/templates/configmap-agent.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-opentelemetry-collector-agent
+  namespace: default
+  labels:
+    helm.sh/chart: opentelemetry-collector-0.133.0
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.151.0"
+    app.kubernetes.io/managed-by: Helm
+    
+data:
+  relay: |
+    exporters:
+      debug:
+        verbosity: detailed
+    extensions:
+      health_check:
+        endpoint: ${env:MY_POD_IP}:13133
+      k8s_observer:
+        auth_type: serviceAccount
+        observe_pods: true
+    processors:
+      attributes/istio:
+        actions:
+        - action: delete
+          key: source_cluster
+        - action: delete
+          key: destination_cluster
+        - action: delete
+          key: source_canonical_service
+        - action: delete
+          key: destination_canonical_service
+        - action: delete
+          key: source_canonical_revision
+        - action: delete
+          key: destination_canonical_revision
+        include:
+          match_type: regexp
+          metric_names:
+          - istio_.*
+      k8sattributes:
+        extract:
+          deployment_name_from_replicaset: true
+          metadata:
+          - k8s.namespace.name
+          - k8s.deployment.name
+          - k8s.statefulset.name
+          - k8s.daemonset.name
+          - k8s.cronjob.name
+          - k8s.job.name
+          - k8s.node.name
+          - k8s.pod.name
+          - k8s.pod.uid
+          - k8s.pod.start_time
+        filter:
+          node_from_env_var: K8S_NODE_NAME
+        passthrough: false
+        pod_association:
+        - sources:
+          - from: resource_attribute
+            name: k8s.pod.ip
+        - sources:
+          - from: resource_attribute
+            name: k8s.pod.uid
+        - sources:
+          - from: connection
+        - sources:
+          - from: resource_attribute
+            name: k8s.job.name
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      transform/drop_server_attrs:
+        error_mode: ignore
+        metric_statements:
+        - delete_key(resource.attributes, "server.address") where scope.name == "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver"
+        - delete_key(resource.attributes, "server.port") where scope.name == "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver"
+      transform/istio_service_name:
+        error_mode: ignore
+        log_statements:
+        - context: resource
+          statements:
+          - set(attributes["service.name"], Concat([attributes["k8s.pod.labels.app"],
+            attributes["k8s.namespace.name"]], ".")) where attributes["service.name"]
+            == nil and attributes["k8s.pod.labels.app"] != nil and attributes["k8s.namespace.name"]
+            != nil
+          - set(cache["owner_name"], attributes["k8s.pod.name"]) where attributes["service.name"]
+            == nil and attributes["k8s.pod.name"] != nil
+          - replace_pattern(cache["owner_name"], "^(.+?)-(?:(?:[0-9bcdf]+-)?[bcdfghjklmnpqrstvwxz2456789]{5}|[0-9]+)$$",
+            "$$1") where attributes["service.name"] == nil and cache["owner_name"] !=
+            nil
+          - set(attributes["service.name"], Concat([cache["owner_name"], attributes["k8s.namespace.name"]],
+            ".")) where attributes["service.name"] == nil and cache["owner_name"] != nil
+            and attributes["k8s.namespace.name"] != nil
+      transform/prometheus:
+        error_mode: ignore
+        metric_statements:
+        - context: metric
+          statements:
+          - replace_pattern(metric.name, "_total$", "") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_cpu_seconds_seconds$", "otelcol_process_cpu_seconds")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_memory_rss_bytes$", "otelcol_process_memory_rss_bytes")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_heap_alloc_bytes_bytes$",
+            "otelcol_process_runtime_heap_alloc_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_total_alloc_bytes_bytes$",
+            "otelcol_process_runtime_total_alloc_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_total_sys_memory_bytes_bytes$",
+            "otelcol_process_runtime_total_sys_memory_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_fileconsumer_open_files$", "otelcol_fileconsumer_open_files_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_fileconsumer_reading_files$", "otelcol_fileconsumer_reading_files_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_ip_lookup_miss$", "otelcol_otelsvc_k8s_ip_lookup_miss_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_added$", "otelcol_otelsvc_k8s_pod_added_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_table_size_ratio$",
+            "otelcol_otelsvc_k8s_pod_table_size_ratio") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_updated$", "otelcol_otelsvc_k8s_pod_updated_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_deleted$", "otelcol_otelsvc_k8s_pod_deleted_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_filter_spans\\.filtered$",
+            "otelcol_processor_filter_spans.filtered_ratio") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+        - context: resource
+          statements:
+          - set(resource.attributes["k8s.pod.ip"], resource.attributes["net.host.name"])
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - delete_key(resource.attributes, "service_name") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+        - context: datapoint
+          statements:
+          - delete_key(datapoint.attributes, "service_name") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
+            == "opentelemetry-collector"
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: ${env:MY_POD_IP}:4317
+            max_recv_msg_size_mib: 20
+          http:
+            endpoint: ${env:MY_POD_IP}:4318
+      prometheus:
+        config:
+          scrape_configs:
+          - job_name: opentelemetry-collector
+            scrape_interval: 30s
+            static_configs:
+            - targets:
+              - ${env:MY_POD_IP}:8888
+      receiver_creator:
+        receivers:
+          prometheus/istio_autodetect:
+            config:
+              config:
+                scrape_configs:
+                - job_name: istio-autodetect
+                  metric_relabel_configs:
+                  - action: keep
+                    regex: (envoy_cluster_lb_healthy_panic|envoy_cluster_manager_warming_clusters|envoy_cluster_membership_healthy|envoy_cluster_membership_total|envoy_cluster_ssl_handshake|envoy_cluster_ssl_session_reused|envoy_cluster_ssl_versions_TLSv1_2|envoy_cluster_ssl_versions_TLSv1_3|envoy_cluster_upstream_cx_active|envoy_cluster_upstream_cx_close_notify|envoy_cluster_upstream_cx_connect_attempts_exceeded|envoy_cluster_upstream_cx_connect_ms|envoy_cluster_upstream_cx_connect_timeout|envoy_cluster_upstream_cx_destroy_local_with_active_rq|envoy_cluster_upstream_cx_http1_total|envoy_cluster_upstream_cx_http2_total|envoy_cluster_upstream_cx_idle_timeout|envoy_cluster_upstream_cx_max_requests|envoy_cluster_upstream_cx_none_healthy|envoy_cluster_upstream_cx_pool_overflow|envoy_cluster_upstream_cx_protocol_error|envoy_cluster_upstream_cx_total|envoy_cluster_upstream_rq_4xx|envoy_cluster_upstream_rq_5xx|envoy_cluster_upstream_rq_active|envoy_cluster_upstream_rq_cancelled|envoy_cluster_upstream_rq_completed|envoy_cluster_upstream_rq_pending_active|envoy_cluster_upstream_rq_retry|envoy_cluster_upstream_rq_retry_limit_exceeded|envoy_cluster_upstream_rq_timeout|envoy_cluster_upstream_rq_tx_reset|envoy_cluster_upstream_rq_time|envoy_cluster_upstream_rq_xx|envoy_listener_downstream_cx_total|envoy_listener_ssl_versions_TLSv1_2|envoy_listener_ssl_versions_TLSv1_3|envoy_server_live|envoy_server_memory_allocated|envoy_server_memory_heap_size|envoy_server_total_connections|envoy_server_uptime|istio_mesh_connections_from_logs|istio_monitor_pods_without_sidecars|istio_request_bytes|istio_request_duration_milliseconds|istio_request_messages_total|istio_requests_total|istio_response_messages_total|istio_tcp_connections_closed_total|istio_tcp_connections_opened_total|istio_tcp_received_bytes_total|istio_tcp_response_bytes_total|pilot_conflict_inbound_listener|pilot_eds_no_instances|pilot_k8s_cfg_events|pilot_k8s_endpoints_pending_pod|pilot_k8s_endpoints_with_no_pods|pilot_no_ip|pilot_proxy_convergence_time|pilot_proxy_queue_time|pilot_services|pilot_xds_cds_reject|pilot_xds_eds_reject|pilot_xds_expired_nonce|pilot_xds_lds_reject|pilot_xds_push_context_errors|pilot_xds_push_time|pilot_xds_rds_reject|pilot_xds_send_time|pilot_xds_write_timeout)(?:_sum|_count|_bucket)?
+                    source_labels:
+                    - __name__
+                  metrics_path: '`"prometheus.io/path" in annotations ? annotations["prometheus.io/path"]
+                    : "/metrics"`'
+                  scrape_interval: 30s
+                  static_configs:
+                  - targets:
+                    - '`endpoint`:`"prometheus.io/port" in annotations ? annotations["prometheus.io/port"]
+                      : 9090`'
+            rule: type == "pod" && annotations["prometheus.io/scrape"] == "true" && ("istio.io/rev"
+              in labels or "istio.io/rev" in annotations or labels["istio"] == "pilot"
+              or name matches "istio.*")
+        watch_observers:
+        - k8s_observer
+    service:
+      extensions:
+      - health_check
+      - k8s_observer
+      pipelines:
+        logs:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          - k8sattributes
+          - transform/istio_service_name
+          receivers:
+          - otlp
+        metrics:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          - k8sattributes
+          - transform/prometheus
+          - attributes/istio
+          - transform/drop_server_attrs
+          receivers:
+          - prometheus
+          - receiver_creator
+          - otlp
+        traces:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          - k8sattributes
+          receivers:
+          - otlp
+      telemetry:
+        logs:
+          encoding: json
+        metrics:
+          readers:
+          - pull:
+              exporter:
+                prometheus:
+                  host: ${env:MY_POD_IP}
+                  port: 8888

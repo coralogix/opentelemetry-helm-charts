@@ -962,6 +962,15 @@ presets:
     observeServices: false
     enableServiceRule: false
 
+  # Configures the collector to autodetect Istio Prometheus targets.
+  # Best used with mode = daemonset.
+  istioAutodetect:
+    enabled: false
+    scrapeInterval: "30s"
+    dropHighCardinalityAttributes: true
+    # Requires the kubernetesAttributes preset to be useful for log correlation.
+    logServiceNameCorrelation: false
+
   # Configures the collector to receive Jaeger data in all supported protocols.
   # Adds the jaeger receiver to the traces pipeline with all protocols configured.
   jaegerReceiver:
