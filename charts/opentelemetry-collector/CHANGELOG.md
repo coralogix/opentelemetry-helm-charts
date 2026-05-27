@@ -2,7 +2,7 @@
 
 ## OpenTelemetry Collector
 
-### v0.132.0 / 2026-05-27
+### v0.131.9 / 2026-05-27
 
 - [Feat] Add first-class managed-K8s DNS metric discovery under `presets.kubernetesApiServerMetrics.dns`, with `auto` selection between `kubedns` on GKE and `coredns` elsewhere so DNS control-plane metrics can be enabled without custom Prometheus jobs.
 
