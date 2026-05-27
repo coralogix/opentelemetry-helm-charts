@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.132.0 / 2026-05-27
+
+- [Feat] Add first-class managed-K8s DNS metric discovery under `presets.kubernetesApiServerMetrics.dns`, with `auto` selection between `kubedns` on GKE and `coredns` elsewhere so DNS control-plane metrics can be enabled without custom Prometheus jobs.
+
 ### v0.131.8 / 2026-05-26
 
 - [Fix] Wrap the chart-managed `health_check` extension endpoint in IPv6 bracket notation when `networkMode: ipv6` is used, aligning it with the other IPv6-safe listener endpoints and allowing the collector to start and pass health probes on IPv6-only clusters.

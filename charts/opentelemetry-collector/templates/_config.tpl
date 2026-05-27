@@ -1559,11 +1559,30 @@ processors:
 {{- if not $scrapeAll }}
 {{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "filter/k8s_apiserver_metrics" | uniq)  }}
 {{- end }}
+{{- if .Values.Values.presets.kubernetesApiServerMetrics.dns.enabled }}
+{{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "receiver_creator" | uniq)  }}
+{{- if and (ne (include "opentelemetry-collector.kubernetesApiServerDnsImplementation" .Values.Values) "kubedns") (not $scrapeAll) }}
+{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "filter/k8s_dns_metrics" | uniq)  }}
+{{- end }}
+{{- end }}
 {{- $_ := set $config.service "extensions" (append $config.service.extensions "k8s_observer" | uniq)  }}
 {{- $config | toYaml }}
 {{- end }}
 
+{{- define "opentelemetry-collector.kubernetesApiServerDnsImplementation" -}}
+{{- $implementation := .presets.kubernetesApiServerMetrics.dns.implementation | default "auto" -}}
+{{- if ne $implementation "auto" -}}
+{{- $implementation -}}
+{{- else if eq .distribution "gke" -}}
+kubedns
+{{- else -}}
+coredns
+{{- end -}}
+{{- end }}
+
 {{- define "opentelemetry-collector.kubernetesApiServerMetricsConfig" -}}
+{{- $dnsImplementation := include "opentelemetry-collector.kubernetesApiServerDnsImplementation" .Values -}}
+{{- $scrapeAll := default false .scrapeAll -}}
 extensions:
   k8s_observer:
     auth_type: serviceAccount
@@ -1593,13 +1612,49 @@ receivers:
               ]
             action: keep
             regex: default;kubernetes;https
-{{- $scrapeAll := default false .scrapeAll }}
+{{- if .Values.presets.kubernetesApiServerMetrics.dns.enabled }}
+  receiver_creator:
+    watch_observers: [k8s_observer]
+    receivers:
+      prometheus/k8s_dns_metrics:
+{{- if eq .Values.distribution "openshift" }}
+        rule: type == "pod" && namespace == "openshift-dns" && name contains "dns"
+{{- else }}
+        rule: type == "pod" && labels["k8s-app"] == "kube-dns"
+{{- end }}
+        config:
+          config:
+            scrape_configs:
+              - job_name: {{ $dnsImplementation | quote }}
+{{- if eq .Values.distribution "openshift" }}
+                static_configs:
+                  - targets: ["`endpoint`:9154"]
+                scheme: https
+                bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+                tls_config:
+                  ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+                  insecure_skip_verify: true
+{{- else }}
+                static_configs:
+                  - targets: ['`endpoint`:`"prometheus.io/port" in annotations ? annotations["prometheus.io/port"] : 9153`']
+{{- end }}
+{{- end }}
 {{- if not $scrapeAll }}
 processors:
   filter/k8s_apiserver_metrics:
     metrics:
       metric:
         - 'resource.attributes["service.name"] == "kubernetes-apiserver" and metric.name != "kubernetes_build_info"'
+{{- if and .Values.presets.kubernetesApiServerMetrics.dns.enabled (ne $dnsImplementation "kubedns") }}
+  filter/k8s_dns_metrics:
+    metrics:
+      metric:
+        - 'resource.attributes["service.name"] == "coredns" and
+          (metric.name != "coredns_dns_request_duration_seconds" and metric.name != "coredns_cache_misses_total" and
+          metric.name != "coredns_cache_hits_total" and metric.name != "coredns_cache_entries" and
+          metric.name != "coredns_dns_responses_total" and metric.name != "coredns_dns_requests_total" and
+          metric.name != "rest_client_requests_total" and metric.name != "rest_client_request_duration_seconds")'
+{{- end }}
 {{- end }}
 {{- end }}
 
