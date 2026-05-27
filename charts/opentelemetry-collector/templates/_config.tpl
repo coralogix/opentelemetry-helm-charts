@@ -207,6 +207,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.prometheusAnnotationDiscovery.enabled }}
 {{- $config = (include "opentelemetry-collector.applyPrometheusAnnotationDiscoveryConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.istioAutodetect.enabled }}
+{{- $config = (include "opentelemetry-collector.applyIstioAutodetectConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.jaegerReceiver.enabled }}
 {{- $config = (include "opentelemetry-collector.applyJaegerReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -4113,6 +4116,22 @@ receivers:
 {{- $config | toYaml }}
 {{- end }}
 
+{{- define "opentelemetry-collector.applyIstioAutodetectConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.istioAutodetectConfig" .Values | fromYaml) .config }}
+{{- if $config.service.pipelines.metrics }}
+{{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "receiver_creator" | uniq)  }}
+{{- if .Values.Values.presets.istioAutodetect.dropHighCardinalityAttributes }}
+{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "attributes/istio" | uniq)  }}
+{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/drop_server_attrs" | uniq)  }}
+{{- end }}
+{{- end }}
+{{- if and $config.service.pipelines.logs .Values.Values.presets.istioAutodetect.logServiceNameCorrelation }}
+{{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "transform/istio_service_name" | uniq)  }}
+{{- end }}
+{{- $_ := set $config.service "extensions" (append $config.service.extensions "k8s_observer" | uniq)  }}
+{{- $config | toYaml }}
+{{- end }}
+
 {{- define "opentelemetry-collector.prometheusMultiConfig" -}}
 {{- $targets := .Values.presets.prometheusMulti.targets }}
 {{- $scrapeInterval := default "15s" .Values.presets.prometheusMulti.scrapeInterval }}
@@ -4171,6 +4190,64 @@ receivers:
           endpoint: '`endpoint`:`"prometheus.io/port" in annotations ? annotations["prometheus.io/port"] : 9090`'
           collection_interval: "{{ .Values.presets.prometheusAnnotationDiscovery.scrapeInterval | default "30s" }}"
       {{ end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.istioAutodetectConfig" -}}
+extensions:
+  k8s_observer:
+    auth_type: serviceAccount
+    observe_pods: true
+receivers:
+  receiver_creator:
+    watch_observers: [k8s_observer]
+    receivers:
+      prometheus/istio_autodetect:
+        rule: type == "pod" && annotations["prometheus.io/scrape"] == "true" && ("istio.io/rev" in labels or "istio.io/rev" in annotations or labels["istio"] == "pilot" or name matches "istio.*")
+        config:
+          config:
+            scrape_configs:
+              - job_name: "istio-autodetect"
+                metrics_path: '`"prometheus.io/path" in annotations ? annotations["prometheus.io/path"] : "/metrics"`'
+                scrape_interval: "{{ .Values.presets.istioAutodetect.scrapeInterval | default "30s" }}"
+                static_configs:
+                  - targets: ['`endpoint`:`"prometheus.io/port" in annotations ? annotations["prometheus.io/port"] : 9090`']
+                metric_relabel_configs:
+                  - source_labels: [__name__]
+                    action: keep
+                    regex: "(envoy_cluster_lb_healthy_panic|envoy_cluster_manager_warming_clusters|envoy_cluster_membership_healthy|envoy_cluster_membership_total|envoy_cluster_ssl_handshake|envoy_cluster_ssl_session_reused|envoy_cluster_ssl_versions_TLSv1_2|envoy_cluster_ssl_versions_TLSv1_3|envoy_cluster_upstream_cx_active|envoy_cluster_upstream_cx_close_notify|envoy_cluster_upstream_cx_connect_attempts_exceeded|envoy_cluster_upstream_cx_connect_ms|envoy_cluster_upstream_cx_connect_timeout|envoy_cluster_upstream_cx_destroy_local_with_active_rq|envoy_cluster_upstream_cx_http1_total|envoy_cluster_upstream_cx_http2_total|envoy_cluster_upstream_cx_idle_timeout|envoy_cluster_upstream_cx_max_requests|envoy_cluster_upstream_cx_none_healthy|envoy_cluster_upstream_cx_pool_overflow|envoy_cluster_upstream_cx_protocol_error|envoy_cluster_upstream_cx_total|envoy_cluster_upstream_rq_4xx|envoy_cluster_upstream_rq_5xx|envoy_cluster_upstream_rq_active|envoy_cluster_upstream_rq_cancelled|envoy_cluster_upstream_rq_completed|envoy_cluster_upstream_rq_pending_active|envoy_cluster_upstream_rq_retry|envoy_cluster_upstream_rq_retry_limit_exceeded|envoy_cluster_upstream_rq_timeout|envoy_cluster_upstream_rq_tx_reset|envoy_cluster_upstream_rq_time|envoy_cluster_upstream_rq_xx|envoy_listener_downstream_cx_total|envoy_listener_ssl_versions_TLSv1_2|envoy_listener_ssl_versions_TLSv1_3|envoy_server_live|envoy_server_memory_allocated|envoy_server_memory_heap_size|envoy_server_total_connections|envoy_server_uptime|istio_mesh_connections_from_logs|istio_monitor_pods_without_sidecars|istio_request_bytes|istio_request_duration_milliseconds|istio_request_messages_total|istio_requests_total|istio_response_messages_total|istio_tcp_connections_closed_total|istio_tcp_connections_opened_total|istio_tcp_received_bytes_total|istio_tcp_response_bytes_total|pilot_conflict_inbound_listener|pilot_eds_no_instances|pilot_k8s_cfg_events|pilot_k8s_endpoints_pending_pod|pilot_k8s_endpoints_with_no_pods|pilot_no_ip|pilot_proxy_convergence_time|pilot_proxy_queue_time|pilot_services|pilot_xds_cds_reject|pilot_xds_eds_reject|pilot_xds_expired_nonce|pilot_xds_lds_reject|pilot_xds_push_context_errors|pilot_xds_push_time|pilot_xds_rds_reject|pilot_xds_send_time|pilot_xds_write_timeout)(?:_sum|_count|_bucket)?"
+processors:
+  attributes/istio:
+    include:
+      match_type: regexp
+      metric_names:
+        - istio_.*
+    actions:
+      - action: delete
+        key: source_cluster
+      - action: delete
+        key: destination_cluster
+      - action: delete
+        key: source_canonical_service
+      - action: delete
+        key: destination_canonical_service
+      - action: delete
+        key: source_canonical_revision
+      - action: delete
+        key: destination_canonical_revision
+  transform/drop_server_attrs:
+    error_mode: ignore
+    metric_statements:
+      - delete_key(resource.attributes, "server.address") where scope.name == "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver"
+      - delete_key(resource.attributes, "server.port") where scope.name == "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/prometheusreceiver"
+  transform/istio_service_name:
+    error_mode: ignore
+    log_statements:
+      - context: resource
+        statements:
+          - set(attributes["service.name"], Concat([attributes["k8s.pod.labels.app"], attributes["k8s.namespace.name"]], ".")) where attributes["service.name"] == nil and attributes["k8s.pod.labels.app"] != nil and attributes["k8s.namespace.name"] != nil
+          - set(cache["owner_name"], attributes["k8s.pod.name"]) where attributes["service.name"] == nil and attributes["k8s.pod.name"] != nil
+          - replace_pattern(cache["owner_name"], "^(.+?)-(?:(?:[0-9bcdf]+-)?[bcdfghjklmnpqrstvwxz2456789]{5}|[0-9]+)$$", "$$1") where attributes["service.name"] == nil and cache["owner_name"] != nil
+          - set(attributes["service.name"], Concat([cache["owner_name"], attributes["k8s.namespace.name"]], ".")) where attributes["service.name"] == nil and cache["owner_name"] != nil and attributes["k8s.namespace.name"] != nil
 {{- end }}
 
 {{- define "opentelemetry-collector.statsdReceiverConfig" -}}

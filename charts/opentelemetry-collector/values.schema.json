@@ -2138,6 +2138,28 @@
             }
           }
         },
+        "istioAutodetect": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Specifies whether the collector should autodetect Istio Prometheus targets."
+            },
+            "scrapeInterval": {
+              "type": "string",
+              "description": "Scrape interval for Istio autodetect."
+            },
+            "dropHighCardinalityAttributes": {
+              "type": "boolean",
+              "description": "Specifies whether to drop high-cardinality Istio and Prometheus scrape attributes."
+            },
+            "logServiceNameCorrelation": {
+              "type": "boolean",
+              "description": "Specifies whether to derive service.name for logs in Istio environments."
+            }
+          }
+        },
         "jaegerReceiver": {
           "type": "object",
           "additionalProperties": false,
