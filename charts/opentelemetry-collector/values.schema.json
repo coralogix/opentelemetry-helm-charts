@@ -1214,6 +1214,11 @@
               "type": "boolean",
               "default": false
             },
+            "inheritConnectorCompatibilityDefaults": {
+              "description": "When true, spanmetrics/default and routed spanmetrics connectors inherit single spanMetrics compatibility defaults: add_resource_attributes=true and histogram.unit=ms. Defaults to false to preserve prior spanMetricsMulti connector behavior.",
+              "type": "boolean",
+              "default": false
+            },
             "namespace": {
               "description": "Defines the namespace of the generated metrics. If namespace provided, generated metric name will be added namespace. prefix.",
               "type": "string"

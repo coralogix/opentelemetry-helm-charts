@@ -454,6 +454,11 @@ presets:
     # errorTracking/serviceVersion dimension rules as spanmetrics/default (including spanMetrics
     # fallback). Defaults to false to preserve prior routed connector behavior on upgrade.
     # inheritDefaultDimensions: false
+    # inheritConnectorCompatibilityDefaults: when true, spanmetrics/default and routed
+    # spanmetrics/<index> connectors add add_resource_attributes=true and histogram.unit=ms,
+    # matching the single spanMetrics preset compatibility defaults. Defaults to false to
+    # preserve prior spanMetricsMulti connector behavior on upgrade.
+    # inheritConnectorCompatibilityDefaults: false
     # dbMetrics:
     #   enabled: false
     # compactMetrics:

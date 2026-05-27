@@ -2493,6 +2493,7 @@ extraDimensions plus errorTracking/serviceVersion only when explicitly enabled o
 
 {{- define "opentelemetry-collector.spanMetricsMultiConfig" -}}
 {{- $sm := mergeOverwrite (dict "dbMetrics" (dict "enabled" false "compactMetrics" (dict "enabled" false)) "compactMetrics" (dict "enabled" false)) .Values.presets.spanMetricsMulti }}
+{{- $inheritConnectorCompatibilityDefaults := eq (dig "inheritConnectorCompatibilityDefaults" nil .Values.presets.spanMetricsMulti) true }}
 connectors:
   routing:
     default_pipelines: [traces/default]
@@ -2511,7 +2512,13 @@ connectors:
     namespace: ""
 {{- end }}
     aggregation_cardinality_limit: {{ .Values.presets.spanMetricsMulti.aggregationCardinalityLimit }}
+    {{- if $inheritConnectorCompatibilityDefaults }}
+    add_resource_attributes: true
+    {{- end }}
     histogram:
+      {{- if $inheritConnectorCompatibilityDefaults }}
+      unit: ms
+      {{- end }}
       explicit:
         buckets: {{ .Values.presets.spanMetricsMulti.defaultHistogramBuckets | toYaml | nindent 12 }}
     {{- if .Values.presets.spanMetricsMulti.collectionInterval }}
@@ -2538,7 +2545,13 @@ connectors:
     namespace: ""
     {{- end }}
     aggregation_cardinality_limit: {{ $root.Values.presets.spanMetricsMulti.aggregationCardinalityLimit }}
+    {{- if $inheritConnectorCompatibilityDefaults }}
+    add_resource_attributes: true
+    {{- end }}
     histogram:
+      {{- if $inheritConnectorCompatibilityDefaults }}
+      unit: ms
+      {{- end }}
       explicit:
         buckets: {{ $cfg.histogramBuckets | toYaml | nindent 12 }}
     {{- if $root.Values.presets.spanMetricsMulti.collectionInterval }}
