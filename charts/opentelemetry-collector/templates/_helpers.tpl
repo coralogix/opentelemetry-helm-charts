@@ -101,6 +101,54 @@ Create the name of the service account to use
 {{- end }}
 {{- end }}
 
+{{/*
+Create the name of the OpenShift SCC to use.
+*/}}
+{{- define "opentelemetry-collector.securityContextConstraintsName" -}}
+{{- default (include "opentelemetry-collector.fullname" .) .Values.securityContextConstraints.name }}
+{{- end }}
+
+{{/*
+Whether the collector needs privileged SCC permissions.
+*/}}
+{{- define "opentelemetry-collector.openshiftNeedsPrivilegedScc" -}}
+{{- if or .Values.presets.hostMetrics.process.enabled .Values.presets.ebpfProfiler.enabled ((.Values.securityContext).privileged) -}}
+true
+{{- end -}}
+{{- end }}
+
+{{/*
+Whether the collector needs host network access in its SCC.
+*/}}
+{{- define "opentelemetry-collector.openshiftNeedsHostNetworkScc" -}}
+{{- if .Values.hostNetwork -}}
+true
+{{- end -}}
+{{- end }}
+
+{{/*
+Whether the collector needs host PID access in its SCC.
+*/}}
+{{- define "opentelemetry-collector.openshiftNeedsHostPidScc" -}}
+{{- if .Values.presets.ebpfProfiler.enabled -}}
+true
+{{- end -}}
+{{- end }}
+
+{{/*
+Whether the collector needs host port access in its SCC.
+*/}}
+{{- define "opentelemetry-collector.openshiftNeedsHostPortsScc" -}}
+{{- if and (eq .Values.mode "daemonset") (ne .Values.distribution "gke/autopilot") -}}
+  {{- range $port := values .Values.ports -}}
+    {{- if and $port.enabled $port.hostPort -}}
+true
+      {{- break -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- end }}
+
 
 {{/*
 Create the name of the clusterRole to use

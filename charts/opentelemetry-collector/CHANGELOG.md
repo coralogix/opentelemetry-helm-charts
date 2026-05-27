@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.131.12 / 2026-05-27
+
+- [Feat] Add chart-managed OpenShift `SecurityContextConstraints` support for the collector service account, covering the host ports, host path access, host networking, host PID access, and privileged container modes already rendered by the chart when `distribution: openshift` is used.
+
 ### v0.131.8 / 2026-05-26
 
 - [Fix] Wrap the chart-managed `health_check` extension endpoint in IPv6 bracket notation when `networkMode: ipv6` is used, aligning it with the other IPv6-safe listener endpoints and allowing the collector to start and pass health probes on IPv6-only clusters.

@@ -1,0 +1,22 @@
+distribution: openshift
+
+presets:
+  logsCollection:
+    enabled: true
+  hostMetrics:
+    enabled: true
+    process:
+      enabled: true
+
+config:
+  exporters:
+    debug:
+      verbosity: normal
+  service:
+    pipelines:
+      logs:
+        exporters:
+          - debug
+      metrics:
+        exporters:
+          - debug
