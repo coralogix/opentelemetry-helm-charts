@@ -2,7 +2,7 @@
 
 ## OpenTelemetry Collector
 
-### v0.133.0 / 2026-05-27
+### v0.131.10 / 2026-05-27
 
 - [Feat] Add the `presets.istioAutodetect` preset to discover Istio Prometheus scrape targets, keep a curated Istio metric set, optionally drop high-cardinality attributes, and optionally derive `service.name` for logs to improve correlation in Istio environments.
 
