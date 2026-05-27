@@ -2,7 +2,7 @@
 
 ## OpenTelemetry Collector
 
-### v0.135.0 / 2026-05-27
+### v0.131.12 / 2026-05-27
 
 - [Feat] Add chart-managed OpenShift `SecurityContextConstraints` support for the collector service account, covering the host ports, host path access, host networking, host PID access, and privileged container modes already rendered by the chart when `distribution: openshift` is used.
 
