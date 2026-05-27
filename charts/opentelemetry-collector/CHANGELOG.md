@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.131.11 / 2026-05-27
+
+- [Feat] Extend `presets.kubernetesApiServerMetrics` with first-class managed control-plane metric discovery for kube-controller-manager, kube-scheduler, kube-proxy, and etcd, with per-component toggles and curated default metric sets.
+
 ### v0.131.8 / 2026-05-26
 
 - [Fix] Wrap the chart-managed `health_check` extension endpoint in IPv6 bracket notation when `networkMode: ipv6` is used, aligning it with the other IPv6-safe listener endpoints and allowing the collector to start and pass health probes on IPv6-only clusters.

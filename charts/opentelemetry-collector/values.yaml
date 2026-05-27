@@ -381,12 +381,22 @@ presets:
     scrapeAll: false
 
   # Configures the collector to collect Kubernetes API server metrics.
-  # Best used with mode = deployment or statefulset (cluster-collector).
-  # This preset only scrapes the API server.
+  # Best used with mode = daemonset for control-plane autodiscovery.
   kubernetesApiServerMetrics:
     enabled: false
     # When false (default), collects only kubernetes_build_info metric. When true, collect all API server metrics.
     scrapeAll: false
+    scrapeInterval: "30s"
+    controllerManager:
+      enabled: false
+    scheduler:
+      enabled: false
+    proxy:
+      enabled: false
+    etcd:
+      enabled: false
+      # Override the default insecure metrics port (2381).
+      port: ""
 
   # Configures the collector to add k8s.cluster.name and cx.otel_integration.name
   # to metrics

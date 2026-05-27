@@ -961,6 +961,54 @@
             "scrapeAll": {
               "description": "When false (default), collects only kubernetes_build_info metric. When true, collect all API server metrics.",
               "type": "boolean"
+            },
+            "scrapeInterval": {
+              "description": "Scrape interval for managed control-plane metrics discovery.",
+              "type": "string"
+            },
+            "controllerManager": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Specifies whether the collector should discover kube-controller-manager metrics.",
+                  "type": "boolean"
+                }
+              }
+            },
+            "scheduler": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Specifies whether the collector should discover kube-scheduler metrics.",
+                  "type": "boolean"
+                }
+              }
+            },
+            "proxy": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Specifies whether the collector should discover kube-proxy metrics.",
+                  "type": "boolean"
+                }
+              }
+            },
+            "etcd": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Specifies whether the collector should discover etcd metrics.",
+                  "type": "boolean"
+                },
+                "port": {
+                  "description": "Overrides the default etcd metrics port.",
+                  "type": "string"
+                }
+              }
             }
           }
         },
