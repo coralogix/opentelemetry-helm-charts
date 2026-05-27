@@ -2,10 +2,6 @@
 
 ## OpenTelemetry Collector
 
-### v0.132.0 / 2026-05-27
-
-- [Feat] Add a macOS MicroShift helper script under `charts/opentelemetry-collector/scripts/microshift-macos.sh` to standardize local OpenShift start, stop, status, and in-container `kubectl` workflows for chart testing.
-
 ### v0.131.8 / 2026-05-26
 
 - [Fix] Wrap the chart-managed `health_check` extension endpoint in IPv6 bracket notation when `networkMode: ipv6` is used, aligning it with the other IPv6-safe listener endpoints and allowing the collector to start and pass health probes on IPv6-only clusters.

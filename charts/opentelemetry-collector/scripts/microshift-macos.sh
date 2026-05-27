@@ -15,7 +15,7 @@ usage() {
 Usage: $(basename "$0") <command> [args...]
 
 Commands:
-  start           Configure/start the Podman machine and bootstrap MicroShift
+  start           Configure/start the Podman machine and bootstrap or reuse MicroShift
   stop            Remove the MicroShift container and cluster resources
   shutdown        Stop MicroShift and then stop the Podman machine
   status          Show Podman machine state and MicroShift cluster status
@@ -112,7 +112,11 @@ cmd_start() {
 
   if container_running; then
     echo "MicroShift container '${CONTAINER_NAME}' is already running."
+  elif container_exists; then
+    echo "Reusing existing MicroShift container '${CONTAINER_NAME}'."
+    sudo podman start "${CONTAINER_NAME}" >/dev/null
   else
+    echo "Bootstrapping a new MicroShift container '${CONTAINER_NAME}'."
     run_quickstart
   fi
 
