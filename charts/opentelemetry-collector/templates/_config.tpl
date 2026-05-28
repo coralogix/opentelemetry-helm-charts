@@ -2381,11 +2381,11 @@ service:
 {{- define "opentelemetry-collector.spanMetricsMulti.buildExtraDimensions" -}}
 {{- $values := .Values -}}
 {{- $inheritSpanMetricsPreset := .inheritSpanMetricsPreset | default false -}}
-{{- $extra := $values.presets.spanMetricsMulti.extraDimensions | default list }}
-{{- $seen := dict }}
-{{- range $extra }}
-{{- $_ := set $seen .name true }}
-{{- end }}
+{{- $extra := $values.presets.spanMetricsMulti.extraDimensions | default list -}}
+{{- $extraNames := list -}}
+{{- range $extra -}}
+{{- $extraNames = append $extraNames .name -}}
+{{- end -}}
 {{- if $extra }}
 {{- $extra | toYaml }}
 {{- end }}
@@ -2396,20 +2396,17 @@ service:
 {{- else if $inheritSpanMetricsPreset -}}
 {{- $errorTrackingEnabled = $values.presets.spanMetrics.errorTracking.enabled -}}
 {{- end -}}
+{{- $generatedNames := list -}}
 {{- if $errorTrackingEnabled }}
-{{- if not (hasKey $seen "http.response.status_code") }}
-- name: http.response.status_code
-{{- $_ := set $seen "http.response.status_code" true }}
-{{- end }}
-{{- if not (hasKey $seen "rpc.grpc.status_code") }}
-- name: rpc.grpc.status_code
-{{- $_ := set $seen "rpc.grpc.status_code" true }}
-{{- end }}
+{{- $generatedNames = concat $generatedNames (list "http.response.status_code" "rpc.grpc.status_code") -}}
 {{- end }}
 {{- $multiServiceVersion := $values.presets.spanMetricsMulti.serviceVersion -}}
 {{- if and $multiServiceVersion $multiServiceVersion.enabled }}
-{{- if not (hasKey $seen "service.version") }}
-- name: service.version
+{{- $generatedNames = append $generatedNames "service.version" -}}
+{{- end }}
+{{- range ($generatedNames | uniq) }}
+{{- if not (has . $extraNames) }}
+- name: {{ . }}
 {{- end }}
 {{- end }}
 {{- end}}
