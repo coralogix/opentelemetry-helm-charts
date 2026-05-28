@@ -7,6 +7,7 @@ set -euo pipefail
 BASE_BRANCH="main"
 CHART_PATH="charts/opentelemetry-collector"
 CHART_FILE="${CHART_PATH}/Chart.yaml"
+CHANGELOG_FILE="${CHART_PATH}/CHANGELOG.md"
 
 echo "Validating chart version bump..."
 
@@ -41,6 +42,25 @@ fi
 echo "Base chart version: ${BASE_CHART_VERSION}"
 echo "Base appVersion: ${BASE_APP_VERSION}"
 
+validate_changelog_entry() {
+    local version="$1"
+
+    if ! git diff --quiet "origin/${BASE_BRANCH}" -- "${CHANGELOG_FILE}"; then
+        :
+    else
+        echo "VALIDATION FAILED"
+        echo "Chart version changed but ${CHANGELOG_FILE} was not updated."
+        exit 1
+    fi
+
+    if ! grep -Eq "^### v${version} / [0-9]{4}-[0-9]{2}-[0-9]{2}$" "${CHANGELOG_FILE}"; then
+        echo "VALIDATION FAILED"
+        echo "Missing changelog heading for v${version} in ${CHANGELOG_FILE}."
+        echo "Expected format: ### v${version} / YYYY-MM-DD"
+        exit 1
+    fi
+}
+
 # Function to parse semantic version and return major, minor, patch
 parse_version() {
     local version=$1
@@ -71,6 +91,8 @@ echo ""
 
 # Validation: Chart version bumped without appVersion change
 if [[ "${CHART_VERSION_CHANGED}" == "true" ]] && [[ "${APP_VERSION_CHANGED}" == "false" ]]; then
+    validate_changelog_entry "${CURRENT_CHART_VERSION}"
+
     # Determine chart version bump type
     CHART_BUMP_TYPE=""
     if [[ "${CURRENT_CHART_MAJOR}" -gt "${BASE_CHART_MAJOR}" ]]; then
@@ -108,6 +130,8 @@ fi
 
 # Both versions changed - validate bump type matches
 if [[ "${CHART_VERSION_CHANGED}" == "true" ]] && [[ "${APP_VERSION_CHANGED}" == "true" ]]; then
+    validate_changelog_entry "${CURRENT_CHART_VERSION}"
+
     # Determine appVersion bump type
     APP_BUMP_TYPE=""
     if [[ "${CURRENT_APP_MAJOR}" -gt "${BASE_APP_MAJOR}" ]]; then

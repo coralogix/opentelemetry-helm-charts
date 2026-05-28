@@ -7,6 +7,10 @@
 - [Fix] Deduplicate `spanMetricsMulti` status code dimensions on `spanmetrics/default` when they are already listed in `extraDimensions`. Add opt-in `presets.spanMetricsMulti.inheritDefaultDimensions` to apply the same dimension rules (including `presets.spanMetrics.errorTracking` fallback) to routed `spanmetrics/<index>` connectors; defaults to `false` to preserve existing routed connector behavior on upgrade.
 - [Fix] Add opt-in `presets.spanMetricsMulti.inheritConnectorCompatibilityDefaults` so `spanmetrics/default` and routed `spanmetrics/<index>` connectors can match single `spanMetrics` compatibility defaults by setting `add_resource_attributes: true` and `histogram.unit: ms`, while keeping existing `spanMetricsMulti` behavior unchanged by default.
 
+### v0.131.8 / 2026-05-26
+
+- [Fix] Wrap the chart-managed `health_check` extension endpoint in IPv6 bracket notation when `networkMode: ipv6` is used, aligning it with the other IPv6-safe listener endpoints and allowing the collector to start and pass health probes on IPv6-only clusters.
+
 ### v0.131.7 / 2026-05-18
 
 - [Feat] Add optional `transformStatements`, `spanNameReplacePattern`, `dbMetrics`, and `compactMetrics` to the `spanMetricsMulti` preset, matching the single `spanMetrics` preset capabilities. All are opt-in (`dbMetrics` / `compactMetrics` default to off; dimension helpers preserve prior `spanMetricsMulti` behavior unless explicitly configured).
