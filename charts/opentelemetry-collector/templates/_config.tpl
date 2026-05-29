@@ -2378,10 +2378,8 @@ service:
 {{- end }}
 {{- end }}
 
-{{- define "opentelemetry-collector.spanMetricsMulti.buildExtraDimensions" -}}
-{{- $values := .Values -}}
-{{- $inheritSpanMetricsPreset := .inheritSpanMetricsPreset | default false -}}
-{{- $extra := $values.presets.spanMetricsMulti.extraDimensions | default list -}}
+{{- define "opentelemetry-collector.spanMetricsMulti.extraDimensions" -}}
+{{- $extra := .Values.presets.spanMetricsMulti.extraDimensions | default list -}}
 {{- $extraNames := list -}}
 {{- range $extra -}}
 {{- $extraNames = append $extraNames .name -}}
@@ -2389,18 +2387,18 @@ service:
 {{- if $extra }}
 {{- $extra | toYaml }}
 {{- end }}
-{{- $multiErrorTracking := $values.presets.spanMetricsMulti.errorTracking -}}
+{{- $multiErrorTracking := .Values.presets.spanMetricsMulti.errorTracking -}}
 {{- $errorTrackingEnabled := false -}}
 {{- if and $multiErrorTracking (hasKey $multiErrorTracking "enabled") -}}
 {{- $errorTrackingEnabled = $multiErrorTracking.enabled -}}
-{{- else if $inheritSpanMetricsPreset -}}
-{{- $errorTrackingEnabled = $values.presets.spanMetrics.errorTracking.enabled -}}
+{{- else -}}
+{{- $errorTrackingEnabled = .Values.presets.spanMetrics.errorTracking.enabled -}}
 {{- end -}}
 {{- $generatedNames := list -}}
 {{- if $errorTrackingEnabled }}
 {{- $generatedNames = concat $generatedNames (list "http.response.status_code" "rpc.grpc.status_code") -}}
 {{- end }}
-{{- $multiServiceVersion := $values.presets.spanMetricsMulti.serviceVersion -}}
+{{- $multiServiceVersion := .Values.presets.spanMetricsMulti.serviceVersion -}}
 {{- if and $multiServiceVersion $multiServiceVersion.enabled }}
 {{- $generatedNames = append $generatedNames "service.version" -}}
 {{- end }}
@@ -2409,21 +2407,6 @@ service:
 - name: {{ . }}
 {{- end }}
 {{- end }}
-{{- end}}
-
-{{- define "opentelemetry-collector.spanMetricsMulti.extraDimensions" -}}
-{{- include "opentelemetry-collector.spanMetricsMulti.buildExtraDimensions" (dict "Values" .Values "inheritSpanMetricsPreset" true) -}}
-{{- end}}
-
-{{/*
-Routed spanmetrics/<index> use the same dimension builder as spanmetrics/default only when
-presets.spanMetricsMulti.inheritDefaultDimensions is true. Otherwise they keep prior behavior:
-extraDimensions plus errorTracking/serviceVersion only when explicitly enabled on spanMetricsMulti
-(without presets.spanMetrics fallback).
-*/}}
-{{- define "opentelemetry-collector.spanMetricsMulti.routedExtraDimensions" -}}
-{{- $inheritSpanMetricsPreset := eq (dig "inheritDefaultDimensions" nil .Values.presets.spanMetricsMulti) true -}}
-{{- include "opentelemetry-collector.spanMetricsMulti.buildExtraDimensions" (dict "Values" .Values "inheritSpanMetricsPreset" $inheritSpanMetricsPreset) -}}
 {{- end}}
 
 {{- define "opentelemetry-collector.applySpanMetricsMultiConfig" -}}
@@ -2490,7 +2473,6 @@ extraDimensions plus errorTracking/serviceVersion only when explicitly enabled o
 
 {{- define "opentelemetry-collector.spanMetricsMultiConfig" -}}
 {{- $sm := mergeOverwrite (dict "dbMetrics" (dict "enabled" false "compactMetrics" (dict "enabled" false)) "compactMetrics" (dict "enabled" false)) .Values.presets.spanMetricsMulti }}
-{{- $inheritConnectorCompatibilityDefaults := eq (dig "inheritConnectorCompatibilityDefaults" nil .Values.presets.spanMetricsMulti) true }}
 connectors:
   routing:
     default_pipelines: [traces/default]
@@ -2509,13 +2491,9 @@ connectors:
     namespace: ""
 {{- end }}
     aggregation_cardinality_limit: {{ .Values.presets.spanMetricsMulti.aggregationCardinalityLimit }}
-    {{- if $inheritConnectorCompatibilityDefaults }}
     add_resource_attributes: true
-    {{- end }}
     histogram:
-      {{- if $inheritConnectorCompatibilityDefaults }}
       unit: ms
-      {{- end }}
       explicit:
         buckets: {{ .Values.presets.spanMetricsMulti.defaultHistogramBuckets | toYaml | nindent 12 }}
     {{- if .Values.presets.spanMetricsMulti.collectionInterval }}
@@ -2542,13 +2520,9 @@ connectors:
     namespace: ""
     {{- end }}
     aggregation_cardinality_limit: {{ $root.Values.presets.spanMetricsMulti.aggregationCardinalityLimit }}
-    {{- if $inheritConnectorCompatibilityDefaults }}
     add_resource_attributes: true
-    {{- end }}
     histogram:
-      {{- if $inheritConnectorCompatibilityDefaults }}
       unit: ms
-      {{- end }}
       explicit:
         buckets: {{ $cfg.histogramBuckets | toYaml | nindent 12 }}
     {{- if $root.Values.presets.spanMetricsMulti.collectionInterval }}
@@ -2561,10 +2535,10 @@ connectors:
     {{- else }}
     metrics_expiration: 0
     {{- end }}
-    {{- $routedExtraDimensions := include "opentelemetry-collector.spanMetricsMulti.routedExtraDimensions" $root }}
-    {{- if and $routedExtraDimensions (gt (len $routedExtraDimensions) 0) }}
+    {{- $extraDimensions := include "opentelemetry-collector.spanMetricsMulti.extraDimensions" $root }}
+    {{- if and $extraDimensions (gt (len $extraDimensions) 0) }}
     dimensions:
-    {{- $routedExtraDimensions | nindent 10 }}
+    {{- $extraDimensions | nindent 10 }}
     {{- end }}
   {{- end }}
 {{- include "opentelemetry-collector.spanMetricsMultiExtras.connectors" (dict "preset" $sm "histogramBuckets" .Values.presets.spanMetricsMulti.defaultHistogramBuckets) }}

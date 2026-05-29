@@ -4,8 +4,8 @@
 
 ### v0.131.9 / 2026-05-26
 
-- [Fix] Deduplicate `spanMetricsMulti` status code dimensions on `spanmetrics/default` when they are already listed in `extraDimensions`. Add opt-in `presets.spanMetricsMulti.inheritDefaultDimensions` to apply the same dimension rules (including `presets.spanMetrics.errorTracking` fallback) to routed `spanmetrics/<index>` connectors; defaults to `false` to preserve existing routed connector behavior on upgrade.
-- [Fix] Add opt-in `presets.spanMetricsMulti.inheritConnectorCompatibilityDefaults` so `spanmetrics/default` and routed `spanmetrics/<index>` connectors can match single `spanMetrics` compatibility defaults by setting `add_resource_attributes: true` and `histogram.unit: ms`, while keeping existing `spanMetricsMulti` behavior unchanged by default.
+- [Breaking] Fix `spanMetricsMulti` to apply the same extra dimensions (including `errorTracking` fallback from `presets.spanMetrics`) to all spanmetrics connectors, and skip auto-added status code dimensions when they are already listed in `extraDimensions`.
+- [Breaking] Fix `spanmetrics/default` and routed `spanmetrics/<index>` connectors to match single `spanMetrics` compatibility defaults by setting `add_resource_attributes: true` and `histogram.unit: ms`, required for APM span metrics.
 
 ### v0.131.8 / 2026-05-26
 
