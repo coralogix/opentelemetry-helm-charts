@@ -234,7 +234,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.profilesCollection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyProfilesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if or .Values.presets.pprofReceiver.pull.enabled .Values.presets.pprofReceiver.self.enabled }}
+{{- if or .Values.presets.pprofReceiver.pull.enabled .Values.presets.pprofReceiver.push.enabled .Values.presets.pprofReceiver.self.enabled }}
 {{- $config = (include "opentelemetry-collector.applyPprofReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.ebpfProfiler.enabled }}
@@ -348,7 +348,7 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.profilesCollection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyProfilesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if or .Values.presets.pprofReceiver.pull.enabled .Values.presets.pprofReceiver.self.enabled }}
+{{- if or .Values.presets.pprofReceiver.pull.enabled .Values.presets.pprofReceiver.push.enabled .Values.presets.pprofReceiver.self.enabled }}
 {{- $config = (include "opentelemetry-collector.applyPprofReceiverConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.ebpfProfiler.enabled }}
@@ -3636,6 +3636,11 @@ processors:
 {{/* Build the list of port for service */}}
 {{- define "opentelemetry-collector.servicePortsConfig" -}}
 {{- $ports := deepCopy .Values.ports }}
+{{- if and .Values.presets.pprofReceiver.push.enabled .Values.presets.pprofReceiver.push.service.enabled }}
+  {{- if not (hasKey $ports "pprof-push") }}
+  {{- $_ := set $ports "pprof-push" (dict "enabled" true "containerPort" (int .Values.presets.pprofReceiver.push.port) "servicePort" (int .Values.presets.pprofReceiver.push.port) "protocol" "TCP") }}
+  {{- end }}
+{{- end }}
 {{- range $key, $port := $ports }}
 {{- if $port.enabled }}
 - name: {{ $key }}
@@ -3690,6 +3695,11 @@ processors:
   {{- end }}
   {{- if not (hasKey $ports "otlp-http") }}
   {{- $_ := set $ports "otlp-http" (dict "enabled" true "containerPort" 4318 "servicePort" 4318 "hostPort" 4318 "protocol" "TCP") }}
+  {{- end }}
+{{- end }}
+{{- if .Values.presets.pprofReceiver.push.enabled }}
+  {{- if not (hasKey $ports "pprof-push") }}
+  {{- $_ := set $ports "pprof-push" (dict "enabled" true "containerPort" (int .Values.presets.pprofReceiver.push.port) "servicePort" (int .Values.presets.pprofReceiver.push.port) "hostPort" (int .Values.presets.pprofReceiver.push.port) "protocol" "TCP") }}
   {{- end }}
 {{- end }}
 {{- range $key, $port := $ports }}
@@ -4284,16 +4294,9 @@ extensions:
 {{- end }}
 
 {{/*
-pprofReceiver — two independent modes (pull / self) feeding the profiles
-pipeline. The pipeline itself is created by `profilesCollection`, which is a
-hard dependency.
-
-NOTE on the receiver API: the bundled `pprofreceiver` (collector v0.151.0)
-exposes a *flat* config (Endpoint/Include/BlockProfileFraction/MutexProfileFraction
-squashed into one struct), not the `remote:`/`file:`/`self:`/`server:` sub-blocks
-present in newer upstream main. The `server` (push) mode does not exist in this
-version and is intentionally omitted from this preset until the distro bumps to
-a contrib version that includes it.
+pprofReceiver — three independent modes (pull / push / self) feeding the
+profiles pipeline. The pipeline itself is created by `profilesCollection`,
+which is a hard dependency.
 */}}
 {{- define "opentelemetry-collector.applyPprofReceiverConfig" -}}
 {{- $values := .Values -}}
@@ -4303,6 +4306,9 @@ a contrib version that includes it.
 {{- end }}
 {{- if $values.Values.presets.pprofReceiver.pull.enabled }}
 {{- $config = (include "opentelemetry-collector.applyPprofReceiverPullConfig" (dict "Values" $values "config" $config) | fromYaml) }}
+{{- end }}
+{{- if $values.Values.presets.pprofReceiver.push.enabled }}
+{{- $config = (include "opentelemetry-collector.applyPprofReceiverPushConfig" (dict "Values" $values "config" $config) | fromYaml) }}
 {{- end }}
 {{- if $values.Values.presets.pprofReceiver.self.enabled }}
 {{- $config = (include "opentelemetry-collector.applyPprofReceiverSelfConfig" (dict "Values" $values "config" $config) | fromYaml) }}
@@ -4353,10 +4359,11 @@ receivers:
       {{- $emitSeconds := or $required (hasKey $entry "seconds") }}
       {{- $defaultSeconds := $entry.seconds | default 30 }}
       pprof/{{ $type }}:
-        rule: type == "pod" && annotations["{{ $prefix }}/scrape"] == "true" && ("{{ $prefix }}/types" not in annotations || annotations["{{ $prefix }}/types"] contains "{{ $type }}")
+        rule: type == "pod" && annotations["{{ $prefix }}/scrape"] == "true" && ("{{ $prefix }}/types" not in annotations || contains(annotations["{{ $prefix }}/types"], "{{ $type }}"))
         config:
-          endpoint: 'http://`endpoint`:`"{{ $prefix }}/port" in annotations ? annotations["{{ $prefix }}/port"] : "6060"``"{{ $prefix }}/path" in annotations ? annotations["{{ $prefix }}/path"] : "/debug/pprof"`/{{ $type }}{{- if $emitSeconds }}?seconds=`"{{ $prefix }}/profile-seconds" in annotations ? annotations["{{ $prefix }}/profile-seconds"] : "{{ $defaultSeconds }}"`{{- end }}'
-          collection_interval: {{ $interval | quote }}
+          remote:
+            endpoint: 'http://`endpoint`:`"{{ $prefix }}/port" in annotations ? annotations["{{ $prefix }}/port"] : "6060"``"{{ $prefix }}/path" in annotations ? annotations["{{ $prefix }}/path"] : "/debug/pprof"`/{{ $type }}{{- if $emitSeconds }}?seconds=`"{{ $prefix }}/profile-seconds" in annotations ? annotations["{{ $prefix }}/profile-seconds"] : "{{ $defaultSeconds }}"`{{- end }}'
+            collection_interval: {{ $interval | quote }}
         resource_attributes:
           k8s.pod.uid: '`uid`'
           pprof.profile.type: {{ $type | quote }}
@@ -4364,8 +4371,25 @@ receivers:
 {{- end }}
 
 {{/*
-Self mode: pprofreceiver in self-scrape configuration. With no `endpoint` or
-`include` set, the receiver profiles the collector process itself.
+Push mode: pprofreceiver.server accepting POST /v1/pprof.
+*/}}
+{{- define "opentelemetry-collector.applyPprofReceiverPushConfig" -}}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.pprofReceiverPushConfig" .Values | fromYaml) .config }}
+{{- if and ($config.service.pipelines.profiles) (not (has "pprof/server" $config.service.pipelines.profiles.receivers)) }}
+{{- $_ := set $config.service.pipelines.profiles "receivers" (append $config.service.pipelines.profiles.receivers "pprof/server" | uniq) }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.pprofReceiverPushConfig" -}}
+receivers:
+  pprof/server:
+    server:
+      endpoint: {{ include "opentelemetry-collector.envEndpoint" (dict "env" "MY_POD_IP" "port" (.Values.presets.pprofReceiver.push.port | toString) "context" $) | quote }}
+{{- end }}
+
+{{/*
+Self mode: pprofreceiver.self profiles the collector in-process.
 */}}
 {{- define "opentelemetry-collector.applyPprofReceiverSelfConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.pprofReceiverSelfConfig" .Values | fromYaml) .config }}
@@ -4378,9 +4402,10 @@ Self mode: pprofreceiver in self-scrape configuration. With no `endpoint` or
 {{- define "opentelemetry-collector.pprofReceiverSelfConfig" -}}
 receivers:
   pprof/self:
-    collection_interval: {{ .Values.presets.pprofReceiver.self.collectionInterval | quote }}
-    block_profile_fraction: {{ .Values.presets.pprofReceiver.self.blockProfileFraction }}
-    mutex_profile_fraction: {{ .Values.presets.pprofReceiver.self.mutexProfileFraction }}
+    self:
+      collection_interval: {{ .Values.presets.pprofReceiver.self.collectionInterval | quote }}
+      block_profile_fraction: {{ .Values.presets.pprofReceiver.self.blockProfileFraction }}
+      mutex_profile_fraction: {{ .Values.presets.pprofReceiver.self.mutexProfileFraction }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyTransactionsConfig" -}}

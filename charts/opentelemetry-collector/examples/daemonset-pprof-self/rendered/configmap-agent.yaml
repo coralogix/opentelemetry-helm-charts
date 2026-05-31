@@ -194,9 +194,10 @@ data:
           http:
             endpoint: ${env:MY_POD_IP}:4318
       pprof/self:
-        block_profile_fraction: 0
-        collection_interval: 30s
-        mutex_profile_fraction: 0
+        self:
+          block_profile_fraction: 0
+          collection_interval: 30s
+          mutex_profile_fraction: 0
       prometheus:
         config:
           scrape_configs:

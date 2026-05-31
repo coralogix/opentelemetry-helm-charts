@@ -2502,6 +2502,24 @@
                 }
               }
             },
+            "push": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "port": { "type": "integer" },
+                "service": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "description": "Publish the push port on the chart-managed Service.",
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            },
             "self": {
               "type": "object",
               "additionalProperties": false,

@@ -63,10 +63,6 @@ data:
     extensions:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
-      k8s_observer:
-        auth_type: serviceAccount
-        observe_pods: true
-        observe_services: false
     processors:
       k8sattributes/profiles:
         extract:
@@ -195,6 +191,9 @@ data:
             max_recv_msg_size_mib: 20
           http:
             endpoint: ${env:MY_POD_IP}:4318
+      pprof/server:
+        server:
+          endpoint: ${env:MY_POD_IP}:4040
       prometheus:
         config:
           scrape_configs:
@@ -203,57 +202,9 @@ data:
             static_configs:
             - targets:
               - ${env:MY_POD_IP}:8888
-      receiver_creator/pprof:
-        receivers:
-          pprof/allocs:
-            config:
-              remote:
-                collection_interval: 60s
-                endpoint: 'http://`endpoint`:`"pprof.coralogix.com/port" in annotations
-                  ? annotations["pprof.coralogix.com/port"] : "6060"``"pprof.coralogix.com/path"
-                  in annotations ? annotations["pprof.coralogix.com/path"] : "/debug/pprof"`/allocs?seconds=`"pprof.coralogix.com/profile-seconds"
-                  in annotations ? annotations["pprof.coralogix.com/profile-seconds"]
-                  : "30"`'
-            resource_attributes:
-              k8s.pod.uid: '`uid`'
-              pprof.profile.type: allocs
-            rule: type == "pod" && annotations["pprof.coralogix.com/scrape"] == "true"
-              && ("pprof.coralogix.com/types" not in annotations || contains(annotations["pprof.coralogix.com/types"],
-              "allocs"))
-          pprof/heap:
-            config:
-              remote:
-                collection_interval: 60s
-                endpoint: 'http://`endpoint`:`"pprof.coralogix.com/port" in annotations
-                  ? annotations["pprof.coralogix.com/port"] : "6060"``"pprof.coralogix.com/path"
-                  in annotations ? annotations["pprof.coralogix.com/path"] : "/debug/pprof"`/heap'
-            resource_attributes:
-              k8s.pod.uid: '`uid`'
-              pprof.profile.type: heap
-            rule: type == "pod" && annotations["pprof.coralogix.com/scrape"] == "true"
-              && ("pprof.coralogix.com/types" not in annotations || contains(annotations["pprof.coralogix.com/types"],
-              "heap"))
-          pprof/profile:
-            config:
-              remote:
-                collection_interval: 60s
-                endpoint: 'http://`endpoint`:`"pprof.coralogix.com/port" in annotations
-                  ? annotations["pprof.coralogix.com/port"] : "6060"``"pprof.coralogix.com/path"
-                  in annotations ? annotations["pprof.coralogix.com/path"] : "/debug/pprof"`/profile?seconds=`"pprof.coralogix.com/profile-seconds"
-                  in annotations ? annotations["pprof.coralogix.com/profile-seconds"]
-                  : "30"`'
-            resource_attributes:
-              k8s.pod.uid: '`uid`'
-              pprof.profile.type: profile
-            rule: type == "pod" && annotations["pprof.coralogix.com/scrape"] == "true"
-              && ("pprof.coralogix.com/types" not in annotations || contains(annotations["pprof.coralogix.com/types"],
-              "profile"))
-        watch_observers:
-        - k8s_observer
     service:
       extensions:
       - health_check
-      - k8s_observer
       pipelines:
         logs:
           exporters:
@@ -282,7 +233,7 @@ data:
           - resource/metadata
           - transform/profiles
           receivers:
-          - receiver_creator/pprof
+          - pprof/server
           - otlp
         traces:
           exporters:

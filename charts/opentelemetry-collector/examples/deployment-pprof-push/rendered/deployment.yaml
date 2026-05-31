@@ -25,7 +25,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 3872c1e06ca3425f4f3cecaf912e51bb929545152ed9e97337ef777082fb74aa
+        checksum/config: 71d240e7cb74fc7d6cd681df45ed22308839f170a67b31d703b48708892d8edc
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -53,6 +53,9 @@ spec:
               protocol: TCP
             - name: otlp-http
               containerPort: 4318
+              protocol: TCP
+            - name: pprof-push
+              containerPort: 4040
               protocol: TCP
           env:
             - name: MY_POD_IP
