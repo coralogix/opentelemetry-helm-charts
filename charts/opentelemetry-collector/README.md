@@ -533,7 +533,7 @@ The HTTP endpoint can be configured via `presets.pprof.endpoint`.
 
 The `presets.pprofReceiver` preset wraps the upstream contrib
 [`pprofreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/pprofreceiver)
-(alpha) and ingests pprof profiles into the profiles pipeline. Three independent
+(alpha) and ingests pprof profiles into the profiles pipeline. Two independent
 modes can be enabled together:
 
 - `pull` — discover pods annotated with `pprof.coralogix.com/scrape: "true"`
@@ -541,11 +541,12 @@ modes can be enabled together:
   default `nodeLocal: true`, so each daemonset pod scrapes only its
   co-located pods; set `nodeLocal: false` and run as deployment/statefulset
   for cluster-wide discovery.
-- `push` — expose an HTTP server accepting `POST /v1/pprof`. When
-  `push.service.enabled` is true the port is added to the chart-managed
-  Service so the listener is reachable inside the cluster.
 - `self` — profile the collector process itself and ship profiles through
   the profiles pipeline.
+
+> Push (`server`) mode is not exposed yet. The bundled `pprofreceiver`
+> (collector v0.151.0) does not include the push sub-config; it will be added
+> once the distro bumps to a newer contrib version.
 
 Requires `presets.profilesCollection.enabled: true`, which sets up the
 profiles pipeline, `k8sattributes/profiles` enrichment, and the
@@ -566,8 +567,6 @@ presets:
         - type: profile
           seconds: 30
         - type: heap
-    push:
-      enabled: true
     self:
       enabled: true
 ```

@@ -207,47 +207,44 @@ data:
         receivers:
           pprof/allocs:
             config:
-              remote:
-                collection_interval: 60s
-                endpoint: 'http://`endpoint`:`"pprof.coralogix.com/port" in annotations
-                  ? annotations["pprof.coralogix.com/port"] : "6060"``"pprof.coralogix.com/path"
-                  in annotations ? annotations["pprof.coralogix.com/path"] : "/debug/pprof"`/allocs?seconds=`"pprof.coralogix.com/profile-seconds"
-                  in annotations ? annotations["pprof.coralogix.com/profile-seconds"]
-                  : "30"`'
+              collection_interval: 60s
+              endpoint: 'http://`endpoint`:`"pprof.coralogix.com/port" in annotations
+                ? annotations["pprof.coralogix.com/port"] : "6060"``"pprof.coralogix.com/path"
+                in annotations ? annotations["pprof.coralogix.com/path"] : "/debug/pprof"`/allocs?seconds=`"pprof.coralogix.com/profile-seconds"
+                in annotations ? annotations["pprof.coralogix.com/profile-seconds"] :
+                "30"`'
             resource_attributes:
               k8s.pod.uid: '`uid`'
               pprof.profile.type: allocs
             rule: type == "pod" && annotations["pprof.coralogix.com/scrape"] == "true"
-              && ("pprof.coralogix.com/types" not in annotations || contains(annotations["pprof.coralogix.com/types"],
-              "allocs"))
+              && ("pprof.coralogix.com/types" not in annotations || annotations["pprof.coralogix.com/types"]
+              contains "allocs")
           pprof/heap:
             config:
-              remote:
-                collection_interval: 60s
-                endpoint: 'http://`endpoint`:`"pprof.coralogix.com/port" in annotations
-                  ? annotations["pprof.coralogix.com/port"] : "6060"``"pprof.coralogix.com/path"
-                  in annotations ? annotations["pprof.coralogix.com/path"] : "/debug/pprof"`/heap'
+              collection_interval: 60s
+              endpoint: 'http://`endpoint`:`"pprof.coralogix.com/port" in annotations
+                ? annotations["pprof.coralogix.com/port"] : "6060"``"pprof.coralogix.com/path"
+                in annotations ? annotations["pprof.coralogix.com/path"] : "/debug/pprof"`/heap'
             resource_attributes:
               k8s.pod.uid: '`uid`'
               pprof.profile.type: heap
             rule: type == "pod" && annotations["pprof.coralogix.com/scrape"] == "true"
-              && ("pprof.coralogix.com/types" not in annotations || contains(annotations["pprof.coralogix.com/types"],
-              "heap"))
+              && ("pprof.coralogix.com/types" not in annotations || annotations["pprof.coralogix.com/types"]
+              contains "heap")
           pprof/profile:
             config:
-              remote:
-                collection_interval: 60s
-                endpoint: 'http://`endpoint`:`"pprof.coralogix.com/port" in annotations
-                  ? annotations["pprof.coralogix.com/port"] : "6060"``"pprof.coralogix.com/path"
-                  in annotations ? annotations["pprof.coralogix.com/path"] : "/debug/pprof"`/profile?seconds=`"pprof.coralogix.com/profile-seconds"
-                  in annotations ? annotations["pprof.coralogix.com/profile-seconds"]
-                  : "30"`'
+              collection_interval: 60s
+              endpoint: 'http://`endpoint`:`"pprof.coralogix.com/port" in annotations
+                ? annotations["pprof.coralogix.com/port"] : "6060"``"pprof.coralogix.com/path"
+                in annotations ? annotations["pprof.coralogix.com/path"] : "/debug/pprof"`/profile?seconds=`"pprof.coralogix.com/profile-seconds"
+                in annotations ? annotations["pprof.coralogix.com/profile-seconds"] :
+                "30"`'
             resource_attributes:
               k8s.pod.uid: '`uid`'
               pprof.profile.type: profile
             rule: type == "pod" && annotations["pprof.coralogix.com/scrape"] == "true"
-              && ("pprof.coralogix.com/types" not in annotations || contains(annotations["pprof.coralogix.com/types"],
-              "profile"))
+              && ("pprof.coralogix.com/types" not in annotations || annotations["pprof.coralogix.com/types"]
+              contains "profile")
         watch_observers:
         - k8s_observer
     service:

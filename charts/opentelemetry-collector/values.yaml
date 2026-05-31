@@ -1049,13 +1049,15 @@ presets:
     endpoint: localhost:1777
 
   # Configures the collector to ingest pprof profiles via the upstream `pprofreceiver`
-  # contrib component. Three independent modes:
+  # contrib component. Two independent modes:
   #   - pull: discover pods by annotation and scrape `/debug/pprof/*` endpoints
-  #   - push: expose a server accepting pushed pprof at `POST /v1/pprof`
   #   - self: profile the collector process itself and send profiles through the pipeline
   # See https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/pprofreceiver
   # Requires `presets.profilesCollection.enabled = true` (provides the profiles pipeline,
   # k8sattributes/profiles enrichment, and the service.name fallback chain).
+  # NOTE: push (server) mode is intentionally omitted because the bundled pprofreceiver
+  # (collector v0.151.0) does not yet expose it; it will be added once the distro bumps to
+  # a contrib version that includes the push sub-config.
   pprofReceiver:
     # Annotation-based pull from pods that opt in.
     # k8s only; uses `receiver_creator` + `k8s_observer`.
@@ -1082,14 +1084,6 @@ presets:
         - type: heap
         - type: allocs
           seconds: 30
-    # Server accepting pushed pprof at `POST /v1/pprof`.
-    push:
-      enabled: false
-      port: 4040
-      service:
-        # When true, the chart-managed Service publishes `port` so the listener
-        # is reachable from inside the cluster.
-        enabled: true
     # In-process self-profiling of the collector. Profiles flow through the
     # profiles pipeline like any other profile data.
     self:
