@@ -1048,6 +1048,57 @@ presets:
     enabled: false
     endpoint: localhost:1777
 
+  # Configures the collector to ingest pprof profiles via the upstream `pprofreceiver`
+  # contrib component. Three independent modes:
+  #   - pull: discover pods by annotation and scrape `/debug/pprof/*` endpoints
+  #   - push: expose a server accepting pushed pprof at `POST /v1/pprof`
+  #   - self: profile the collector process itself and send profiles through the pipeline
+  # See https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/pprofreceiver
+  # Requires `presets.profilesCollection.enabled = true` (provides the profiles pipeline,
+  # k8sattributes/profiles enrichment, and the service.name fallback chain).
+  pprofReceiver:
+    # Annotation-based pull from pods that opt in.
+    # k8s only; uses `receiver_creator` + `k8s_observer`.
+    # Targets are matched by `<annotationPrefix>/scrape: "true"`.
+    # Per-pod overrides: `<annotationPrefix>/port`, `/path`, `/types` (CSV),
+    # `/profile-seconds` (CPU/trace duration).
+    pull:
+      enabled: false
+      # When true, k8s_observer constrains discovery to pods on the same node
+      # (`spec.nodeName == $K8S_NODE_NAME`). Pairs with `mode: daemonset`.
+      # Set false to do cluster-wide discovery from a single deployment/statefulset.
+      nodeLocal: true
+      annotationPrefix: pprof.coralogix.com
+      # Scrape interval applied to every receiver_creator-templated receiver.
+      collectionInterval: 60s
+      # Profile types scraped from each matching pod when its
+      # `<annotationPrefix>/types` annotation is absent.
+      # `seconds` is required for `profile`/`trace` (sampled profiles); for other
+      # types it is optional and switches the endpoint to a delta over the interval
+      # (e.g. `/debug/pprof/allocs?seconds=30` returns delta allocations).
+      defaultProfileTypes:
+        - type: profile
+          seconds: 30
+        - type: heap
+        - type: allocs
+          seconds: 30
+    # Server accepting pushed pprof at `POST /v1/pprof`.
+    push:
+      enabled: false
+      port: 4040
+      service:
+        # When true, the chart-managed Service publishes `port` so the listener
+        # is reachable from inside the cluster.
+        enabled: true
+    # In-process self-profiling of the collector. Profiles flow through the
+    # profiles pipeline like any other profile data.
+    self:
+      enabled: false
+      collectionInterval: 30s
+      # Go runtime knobs; 0 disables.
+      blockProfileFraction: 0
+      mutexProfileFraction: 0
+
   # Configuration for the batch processor.
   batch:
     enabled: false

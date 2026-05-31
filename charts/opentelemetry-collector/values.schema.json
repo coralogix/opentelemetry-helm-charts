@@ -2459,6 +2459,79 @@
             }
           }
         },
+        "pprofReceiver": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Configures the upstream contrib `pprofreceiver` (alpha). Requires presets.profilesCollection.enabled = true.",
+          "properties": {
+            "pull": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "nodeLocal": {
+                  "description": "When true, k8s_observer restricts discovery to pods on the same node (pairs with mode: daemonset).",
+                  "type": "boolean"
+                },
+                "annotationPrefix": {
+                  "description": "Annotation key prefix used to opt pods in to scraping (e.g. `<prefix>/scrape`).",
+                  "type": "string"
+                },
+                "collectionInterval": {
+                  "description": "Scrape interval applied to every templated remote receiver.",
+                  "type": "string"
+                },
+                "defaultProfileTypes": {
+                  "description": "Profile types scraped when a pod has no `<prefix>/types` annotation.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["type"],
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": ["profile", "heap", "goroutine", "allocs", "block", "mutex", "threadcreate", "trace"]
+                      },
+                      "seconds": {
+                        "description": "Sampling/delta interval in seconds. Required for `profile` and `trace`. Optional for other types; when set, the endpoint is scraped as a delta over the interval (e.g. `/debug/pprof/allocs?seconds=30`).",
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "push": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "port": { "type": "integer" },
+                "service": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "description": "Publish the push port on the chart-managed Service.",
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            },
+            "self": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "collectionInterval": { "type": "string" },
+                "blockProfileFraction": { "type": "integer" },
+                "mutexProfileFraction": { "type": "integer" }
+              }
+            }
+          }
+        },
         "otlpReceiver": {
           "type": "object",
           "additionalProperties": false,
