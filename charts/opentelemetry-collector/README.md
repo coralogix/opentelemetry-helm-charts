@@ -529,6 +529,66 @@ presets:
 
 The HTTP endpoint can be configured via `presets.pprof.endpoint`.
 
+### Configuration for the pprof receiver preset
+
+The `presets.pprofReceiver` preset wraps the upstream contrib
+[`pprofreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/pprofreceiver)
+(alpha) and ingests pprof profiles into the profiles pipeline. Three independent
+modes can be enabled together:
+
+- `pull` — discover pods annotated with `pprof.coralogix.com/scrape: "true"`
+  via `k8s_observer` and scrape their `/debug/pprof/<type>` endpoints. By
+  default `nodeLocal: true`, so each daemonset pod scrapes only its
+  co-located pods; set `nodeLocal: false` and run as deployment/statefulset
+  for cluster-wide discovery.
+- `push` — expose an HTTP server accepting `POST /v1/pprof`. When
+  `push.service.enabled` is true the port is added to the chart-managed
+  Service so the listener is reachable inside the cluster.
+- `self` — profile the collector process itself and ship profiles through
+  the profiles pipeline.
+
+Requires `presets.profilesCollection.enabled: true`, which sets up the
+profiles pipeline, `k8sattributes/profiles` enrichment, and the
+`service.name` fallback chain.
+
+```yaml
+mode: daemonset
+presets:
+  profilesCollection:
+    enabled: true
+  coralogixExporter:
+    enabled: true
+    pipelines: ["all"]
+  pprofReceiver:
+    pull:
+      enabled: true
+      defaultProfileTypes:
+        - type: profile
+          seconds: 30
+        - type: heap
+    push:
+      enabled: true
+    self:
+      enabled: true
+```
+
+Pods opt in to scraping with annotations (all but `scrape` are optional and
+fall back to the preset defaults):
+
+```yaml
+metadata:
+  annotations:
+    pprof.coralogix.com/scrape: "true"
+    pprof.coralogix.com/port: "6060"
+    pprof.coralogix.com/path: "/debug/pprof"
+    pprof.coralogix.com/types: "heap,profile,goroutine"
+    pprof.coralogix.com/profile-seconds: "10"
+```
+
+The `annotationPrefix` value rewrites every annotation key consistently, so
+existing schemes like `pyroscope.io/*` or `parca.dev/*` can be reused
+without re-annotating workloads.
+
 ### Configuration for eBPF profiler preset
 
 Set `presets.ebpfProfiler.enabled` to `true` to use the eBPF profiler distribution.

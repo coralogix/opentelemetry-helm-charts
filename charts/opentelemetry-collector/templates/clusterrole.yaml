@@ -1,4 +1,4 @@
-{{- if or (.Values.clusterRole.create) (.Values.presets.kubernetesAttributes.enabled) (.Values.presets.clusterMetrics.enabled) (.Values.presets.kubeletMetrics.enabled) (.Values.presets.kubernetesEvents.enabled) (.Values.presets.mysql.metrics.enabled) (.Values.presets.kubernetesResources.enabled) (.Values.presets.profilesCollection.enabled) (.Values.presets.profilesK8sAttributes.enabled) (.Values.presets.loadBalancing.k8s.enabled) (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesApiServerMetrics.enabled) (.Values.presets.prometheusAnnotationDiscovery.enabled) (eq .Values.distribution "eks/fargate") -}}
+{{- if or (.Values.clusterRole.create) (.Values.presets.kubernetesAttributes.enabled) (.Values.presets.clusterMetrics.enabled) (.Values.presets.kubeletMetrics.enabled) (.Values.presets.kubernetesEvents.enabled) (.Values.presets.mysql.metrics.enabled) (.Values.presets.kubernetesResources.enabled) (.Values.presets.profilesCollection.enabled) (.Values.presets.profilesK8sAttributes.enabled) (.Values.presets.loadBalancing.k8s.enabled) (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesApiServerMetrics.enabled) (.Values.presets.prometheusAnnotationDiscovery.enabled) (.Values.presets.pprofReceiver.pull.enabled) (eq .Values.distribution "eks/fargate") -}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -29,6 +29,11 @@ rules:
   {{- if .Values.presets.prometheusAnnotationDiscovery.enabled }}
   - apiGroups: [""]
     resources: ["pods", "services", "endpoints", "namespaces"]
+    verbs: ["get", "watch", "list"]
+  {{- end }}
+  {{- if and (.Values.presets.pprofReceiver.pull.enabled) (not .Values.presets.prometheusAnnotationDiscovery.enabled) }}
+  - apiGroups: [""]
+    resources: ["pods"]
     verbs: ["get", "watch", "list"]
   {{- end }}
   {{- if .Values.presets.clusterMetrics.enabled}}
