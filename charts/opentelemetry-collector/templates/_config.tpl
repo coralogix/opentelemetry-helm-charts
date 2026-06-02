@@ -2106,6 +2106,8 @@ connectors:
 {{- end }}
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
     add_resource_attributes: true
+    exclude_dimensions:
+    - collector.instance.id
 {{- if .Values.presets.spanMetrics.histogramBuckets }}
     histogram:
       unit: ms
@@ -2132,6 +2134,8 @@ connectors:
     namespace: "db"
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
     add_resource_attributes: true
+    exclude_dimensions:
+    - collector.instance.id
     histogram:
       unit: ms
       explicit:
@@ -2165,6 +2169,7 @@ connectors:
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
     add_resource_attributes: true
     exclude_dimensions:
+    - collector.instance.id
     - span.name
 {{- if .Values.presets.spanMetrics.histogramBuckets }}
     histogram:
@@ -2193,6 +2198,7 @@ connectors:
       - name: db.namespace
       - name: db.system
     exclude_dimensions:
+    - collector.instance.id
     - span.name
     - span.kind
 {{- if .Values.presets.spanMetrics.histogramBuckets }}
@@ -3821,7 +3827,6 @@ processors:
         statements:
           - replace_pattern(metric.name, "_total$", "") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_process_cpu_seconds_seconds$", "otelcol_process_cpu_seconds") where resource.attributes["service.name"] == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_process_memory_rss_bytes$", "otelcol_process_memory_rss_bytes") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_process_runtime_heap_alloc_bytes_bytes$", "otelcol_process_runtime_heap_alloc_bytes") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_process_runtime_total_alloc_bytes_bytes$", "otelcol_process_runtime_total_alloc_bytes") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_process_runtime_total_sys_memory_bytes_bytes$", "otelcol_process_runtime_total_sys_memory_bytes") where resource.attributes["service.name"] == "opentelemetry-collector"
@@ -3829,7 +3834,6 @@ processors:
           - replace_pattern(metric.name, "^otelcol_fileconsumer_reading_files$", "otelcol_fileconsumer_reading_files_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_ip_lookup_miss$", "otelcol_otelsvc_k8s_ip_lookup_miss_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_added$", "otelcol_otelsvc_k8s_pod_added_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_table_size_ratio$", "otelcol_otelsvc_k8s_pod_table_size_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_updated$", "otelcol_otelsvc_k8s_pod_updated_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_deleted$", "otelcol_otelsvc_k8s_pod_deleted_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_processor_filter_spans\\.filtered$", "otelcol_processor_filter_spans.filtered_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
@@ -3852,6 +3856,9 @@ service:
               prometheus:
                 host: {{ include "opentelemetry-collector.envHost" (dict "env" "MY_POD_IP" "context" $) | quote }}
                 port: 8888
+                without_scope_info: false
+                without_type_suffix: false
+                without_units: false
 {{- end }}
 
 {{- define "opentelemetry-collector.applyJaegerReceiverConfig" -}}
@@ -4489,6 +4496,8 @@ receivers:
     namespace: "db"
     aggregation_cardinality_limit: {{ $p.aggregationCardinalityLimit }}
     add_resource_attributes: true
+    exclude_dimensions:
+    - collector.instance.id
     histogram:
       unit: ms
       explicit:
@@ -4523,6 +4532,7 @@ receivers:
     aggregation_cardinality_limit: {{ $p.aggregationCardinalityLimit }}
     add_resource_attributes: true
     exclude_dimensions:
+    - collector.instance.id
     - span.name
 {{- if $histogramBuckets }}
     histogram:
@@ -4551,6 +4561,7 @@ receivers:
       - name: db.namespace
       - name: db.system
     exclude_dimensions:
+    - collector.instance.id
     - span.name
     - span.kind
 {{- if $histogramBuckets }}

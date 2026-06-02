@@ -1,5 +1,9 @@
 # Changelog
 
+### v0.132.0 / 2026-06-02
+
+- [Feat] Bump OpenTelemetry Collector image to v0.152.1.
+
 ## OpenTelemetry Collector
 
 ### v0.131.8 / 2026-05-26
