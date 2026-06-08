@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.132.0 / 2026-06-08
+
+- [Feat] Bump the OpenTelemetry Collector image to v0.152.1.
+
 ### v0.131.9 / 2026-05-26
 
 - [Breaking] Fix `spanMetricsMulti` to apply the same extra dimensions (including `errorTracking` fallback from `presets.spanMetrics`) to all spanmetrics connectors, and skip auto-added status code dimensions when they are already listed in `extraDimensions`.

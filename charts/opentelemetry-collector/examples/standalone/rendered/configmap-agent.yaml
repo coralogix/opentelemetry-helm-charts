@@ -6,10 +6,10 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.131.9
+    helm.sh/chart: opentelemetry-collector-0.132.0
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "0.151.0"
+    app.kubernetes.io/version: "0.152.1"
     app.kubernetes.io/managed-by: Helm
     
 data:
@@ -151,3 +151,6 @@ data:
                 prometheus:
                   host: ${env:OTEL_LISTEN_INTERFACE:-127.0.0.1}
                   port: 8888
+                  without_scope_info: false
+                  without_type_suffix: false
+                  without_units: false
