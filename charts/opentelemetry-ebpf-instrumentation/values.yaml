@@ -61,6 +61,10 @@ podSecurityContext: {}
 # -- If set to false, deploys an unprivileged / less privileged setup.
 privileged: true
 
+# -- Enables stat metrics support (requires tracefs mount).
+stats:
+  enabled: false
+
 # -- Enables context propagation support.
 contextPropagation:
   enabled: true

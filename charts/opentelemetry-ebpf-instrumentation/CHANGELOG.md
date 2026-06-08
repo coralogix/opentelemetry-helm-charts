@@ -2,6 +2,10 @@
 
 ## OpenTelemetry eBPF Instrumentation
 
+### v0.1.17 / 2026-06-08
+
+- [Feature] Add Stat metrics option to OBI config, defaults false
+
 ### v0.1.16 / 2026-05-14
 
 - [Chore] Bump version to v0.1.15.
