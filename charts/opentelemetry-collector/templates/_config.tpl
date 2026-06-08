@@ -2379,39 +2379,33 @@ service:
 {{- end }}
 
 {{- define "opentelemetry-collector.spanMetricsMulti.extraDimensions" -}}
-{{- if .Values.presets.spanMetricsMulti.extraDimensions }}
-{{- .Values.presets.spanMetricsMulti.extraDimensions | toYaml }}
+{{- $extra := .Values.presets.spanMetricsMulti.extraDimensions | default list -}}
+{{- $extraNames := list -}}
+{{- range $extra -}}
+{{- $extraNames = append $extraNames .name -}}
+{{- end -}}
+{{- if $extra }}
+{{- $extra | toYaml }}
 {{- end }}
 {{- $multiErrorTracking := .Values.presets.spanMetricsMulti.errorTracking -}}
+{{- $errorTrackingEnabled := false -}}
 {{- if and $multiErrorTracking (hasKey $multiErrorTracking "enabled") -}}
-{{- if $multiErrorTracking.enabled }}
-- name: http.response.status_code
-- name: rpc.grpc.status_code
-{{- end }}
-{{- else if .Values.presets.spanMetrics.errorTracking.enabled }}
-- name: http.response.status_code
-- name: rpc.grpc.status_code
+{{- $errorTrackingEnabled = $multiErrorTracking.enabled -}}
+{{- else -}}
+{{- $errorTrackingEnabled = .Values.presets.spanMetrics.errorTracking.enabled -}}
+{{- end -}}
+{{- $generatedNames := list -}}
+{{- if $errorTrackingEnabled }}
+{{- $generatedNames = concat $generatedNames (list "http.response.status_code" "rpc.grpc.status_code") -}}
 {{- end }}
 {{- $multiServiceVersion := .Values.presets.spanMetricsMulti.serviceVersion -}}
 {{- if and $multiServiceVersion $multiServiceVersion.enabled }}
-- name: service.version
+{{- $generatedNames = append $generatedNames "service.version" -}}
 {{- end }}
-{{- end}}
-
-{{/*
-Routed spanmetrics/<index>: raw extraDimensions only; errorTracking/serviceVersion dims require
-explicit presets.spanMetricsMulti.errorTracking.enabled or serviceVersion.enabled (no spanMetrics fallback).
-*/}}
-{{- define "opentelemetry-collector.spanMetricsMulti.routedExtraDimensions" -}}
-{{- if .Values.presets.spanMetricsMulti.extraDimensions }}
-{{- .Values.presets.spanMetricsMulti.extraDimensions | toYaml }}
+{{- range ($generatedNames | uniq) }}
+{{- if not (has . $extraNames) }}
+- name: {{ . }}
 {{- end }}
-{{- if eq (dig "errorTracking" "enabled" nil .Values.presets.spanMetricsMulti) true }}
-- name: http.response.status_code
-- name: rpc.grpc.status_code
-{{- end }}
-{{- if eq (dig "serviceVersion" "enabled" nil .Values.presets.spanMetricsMulti) true }}
-- name: service.version
 {{- end }}
 {{- end}}
 
@@ -2497,7 +2491,9 @@ connectors:
     namespace: ""
 {{- end }}
     aggregation_cardinality_limit: {{ .Values.presets.spanMetricsMulti.aggregationCardinalityLimit }}
+    add_resource_attributes: true
     histogram:
+      unit: ms
       explicit:
         buckets: {{ .Values.presets.spanMetricsMulti.defaultHistogramBuckets | toYaml | nindent 12 }}
     {{- if .Values.presets.spanMetricsMulti.collectionInterval }}
@@ -2524,7 +2520,9 @@ connectors:
     namespace: ""
     {{- end }}
     aggregation_cardinality_limit: {{ $root.Values.presets.spanMetricsMulti.aggregationCardinalityLimit }}
+    add_resource_attributes: true
     histogram:
+      unit: ms
       explicit:
         buckets: {{ $cfg.histogramBuckets | toYaml | nindent 12 }}
     {{- if $root.Values.presets.spanMetricsMulti.collectionInterval }}
@@ -2537,10 +2535,10 @@ connectors:
     {{- else }}
     metrics_expiration: 0
     {{- end }}
-    {{- $routedExtraDimensions := include "opentelemetry-collector.spanMetricsMulti.routedExtraDimensions" $root }}
-    {{- if and $routedExtraDimensions (gt (len $routedExtraDimensions) 0) }}
+    {{- $extraDimensions := include "opentelemetry-collector.spanMetricsMulti.extraDimensions" $root }}
+    {{- if and $extraDimensions (gt (len $extraDimensions) 0) }}
     dimensions:
-    {{- $routedExtraDimensions | nindent 10 }}
+    {{- $extraDimensions | nindent 10 }}
     {{- end }}
   {{- end }}
 {{- include "opentelemetry-collector.spanMetricsMultiExtras.connectors" (dict "preset" $sm "histogramBuckets" .Values.presets.spanMetricsMulti.defaultHistogramBuckets) }}
