@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.132.0 / 2026-06-08
+
+- [Feat] Bump OpenTelemetry Collector image to v0.152.0. This release includes upstream fixes for `k8sattributes` metadata extraction ([opentelemetry-collector-contrib#44831](https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/44831)), replacing fragile regex-based deployment and CronJob name heuristics with more reliable owner-reference and `pod-template-hash` label lookups so `k8s.deployment.name` and related attributes are extracted consistently across workload types.
+
 ### v0.131.9 / 2026-05-26
 
 - [Breaking] Fix `spanMetricsMulti` to apply the same extra dimensions (including `errorTracking` fallback from `presets.spanMetrics`) to all spanmetrics connectors, and skip auto-added status code dimensions when they are already listed in `extraDimensions`.
