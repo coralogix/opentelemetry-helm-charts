@@ -1,0 +1,39 @@
+enabled: true
+
+admissionWebhooks:
+  autoGenerateCert:
+    enabled: false
+  cert_file: test-cert
+  key_file: test-key
+  ca_file: test-ca
+
+instrumentation:
+  spec:
+    exporter:
+      endpoint: http://otel-collector:4317
+    env:
+      - name: OTEL_EXPORTER_OTLP_PROTOCOL
+        value: grpc
+      - name: OTEL_TRACES_SAMPLER
+        value: always_on
+      - name: OTEL_LOGS_EXPORTER
+        value: none
+    propagators:
+      - tracecontext
+      - baggage
+    java:
+      env:
+        - name: OTEL_INSTRUMENTATION_JDBC_ENABLED
+          value: "false"
+    python:
+      env:
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: http://otel-collector:4318
+        - name: OTEL_EXPORTER_OTLP_PROTOCOL
+          value: http/protobuf
+    dotnet:
+      env:
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: http://otel-collector:4318
+        - name: OTEL_EXPORTER_OTLP_PROTOCOL
+          value: http/protobuf

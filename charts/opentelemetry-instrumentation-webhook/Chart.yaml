@@ -1,0 +1,16 @@
+apiVersion: v2
+name: opentelemetry-instrumentation-webhook
+description: OpenTelemetry Operator instrumentation webhook without CRDs
+type: application
+version: 0.1.0
+appVersion: "0.152.0"
+keywords:
+  - opentelemetry
+  - instrumentation
+  - webhook
+  - kubernetes
+home: https://opentelemetry.io/
+sources:
+  - https://github.com/open-telemetry/opentelemetry-operator
+maintainers:
+  - name: iblancasa

@@ -1,0 +1,295 @@
+---
+# Source: opentelemetry-instrumentation-webhook/templates/instrumentation-webhook.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: example-opentelemetry-instrumentation-webhook
+  namespace: default
+  labels:
+    helm.sh/chart: opentelemetry-instrumentation-webhook-0.1.0
+    app.kubernetes.io/name: opentelemetry-instrumentation-webhook
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.152.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: instrumentation-webhook-manager
+---
+# Source: opentelemetry-instrumentation-webhook/templates/instrumentation-webhook.yaml
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/tls
+metadata:
+  name: example-opentelemetry-instrumentation-webhook-controller-manager-service-cert
+  namespace: default
+  labels:
+    helm.sh/chart: opentelemetry-instrumentation-webhook-0.1.0
+    app.kubernetes.io/name: opentelemetry-instrumentation-webhook
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.152.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: instrumentation-webhook
+data:
+  tls.crt: dGVzdC1jZXJ0
+  tls.key: dGVzdC1rZXk=
+  ca.crt: dGVzdC1jYQ==
+---
+# Source: opentelemetry-instrumentation-webhook/templates/instrumentation-webhook.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-opentelemetry-instrumentation-webhook-manager-config
+  namespace: default
+  labels:
+    helm.sh/chart: opentelemetry-instrumentation-webhook-0.1.0
+    app.kubernetes.io/name: opentelemetry-instrumentation-webhook
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.152.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: instrumentation-webhook-manager
+data:
+  config.yaml: |
+    ignore-missing-collector-crds: true
+    enable-instrumentation-crds: false
+    enable-multi-instrumentation: false
+    instrumentations:
+      spec:
+        apachehttpd:
+          image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-apache-httpd:1.0.4
+        dotnet:
+          env:
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: http://otel-collector:4318
+          - name: OTEL_EXPORTER_OTLP_PROTOCOL
+            value: http/protobuf
+          image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-dotnet:1.15.0
+        env:
+        - name: OTEL_EXPORTER_OTLP_PROTOCOL
+          value: grpc
+        - name: OTEL_TRACES_SAMPLER
+          value: always_on
+        - name: OTEL_LOGS_EXPORTER
+          value: none
+        exporter:
+          endpoint: http://otel-collector:4317
+        java:
+          env:
+          - name: OTEL_INSTRUMENTATION_JDBC_ENABLED
+            value: "false"
+          image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.28.1
+        nginx:
+          image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-apache-httpd:1.0.4
+        nodejs:
+          image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-nodejs:0.76.0
+        propagators:
+        - tracecontext
+        - baggage
+        python:
+          env:
+          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+            value: http://otel-collector:4318
+          - name: OTEL_EXPORTER_OTLP_PROTOCOL
+            value: http/protobuf
+          image: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-python:0.63b1
+---
+# Source: opentelemetry-instrumentation-webhook/templates/instrumentation-webhook.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: example-opentelemetry-instrumentation-webhook-manager
+  labels:
+    helm.sh/chart: opentelemetry-instrumentation-webhook-0.1.0
+    app.kubernetes.io/name: opentelemetry-instrumentation-webhook
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.152.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: instrumentation-webhook-manager
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["opentelemetry.io"]
+    resources: ["opentelemetrycollectors", "instrumentations"]
+    verbs: ["get", "list", "watch"]
+---
+# Source: opentelemetry-instrumentation-webhook/templates/instrumentation-webhook.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: example-opentelemetry-instrumentation-webhook-manager
+  labels:
+    helm.sh/chart: opentelemetry-instrumentation-webhook-0.1.0
+    app.kubernetes.io/name: opentelemetry-instrumentation-webhook
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.152.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: instrumentation-webhook-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: example-opentelemetry-instrumentation-webhook-manager
+subjects:
+  - kind: ServiceAccount
+    name: example-opentelemetry-instrumentation-webhook
+    namespace: default
+---
+# Source: opentelemetry-instrumentation-webhook/templates/instrumentation-webhook.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: example-opentelemetry-instrumentation-webhook
+  namespace: default
+  labels:
+    helm.sh/chart: opentelemetry-instrumentation-webhook-0.1.0
+    app.kubernetes.io/name: opentelemetry-instrumentation-webhook
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.152.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: instrumentation-webhook-manager
+spec:
+  ports:
+    - port: 443
+      protocol: TCP
+      targetPort: webhook-server
+  selector:
+    app.kubernetes.io/name: opentelemetry-instrumentation-webhook
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/component: instrumentation-webhook-manager
+---
+# Source: opentelemetry-instrumentation-webhook/templates/instrumentation-webhook.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-opentelemetry-instrumentation-webhook
+  namespace: default
+  labels:
+    helm.sh/chart: opentelemetry-instrumentation-webhook-0.1.0
+    app.kubernetes.io/name: opentelemetry-instrumentation-webhook
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.152.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: instrumentation-webhook-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: opentelemetry-instrumentation-webhook
+      app.kubernetes.io/instance: example
+      app.kubernetes.io/component: instrumentation-webhook-manager
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+        checksum/config: 349cb60857c17c762dee232a85699e560ed3fa7e31740526801c3fdac268a842
+      labels:
+        app.kubernetes.io/name: opentelemetry-instrumentation-webhook
+        app.kubernetes.io/instance: example
+        app.kubernetes.io/component: instrumentation-webhook-manager
+    spec:
+      serviceAccountName: example-opentelemetry-instrumentation-webhook
+      containers:
+        - name: manager
+          image: "ghcr.io/open-telemetry/opentelemetry-operator/opentelemetry-operator:0.152.0"
+          imagePullPolicy: IfNotPresent
+          command:
+            - /manager
+          args:
+            - --config-file=/etc/config.yaml
+            - --metrics-addr=0.0.0.0:8080
+            - --metrics-secure=false
+            - --health-probe-addr=:8081
+            - --webhook-port=9443
+          env:
+            - name: ENABLE_WEBHOOKS
+              value: "true"
+          ports:
+            - containerPort: 8080
+              name: metrics
+              protocol: TCP
+            - containerPort: 9443
+              name: webhook-server
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 1
+            failureThreshold: 3
+          volumeMounts:
+            - mountPath: /tmp/k8s-webhook-server/serving-certs
+              name: cert
+              readOnly: true
+            - mountPath: /etc/config.yaml
+              name: config
+              subPath: config.yaml
+      nodeSelector:
+        kubernetes.io/os: linux
+      volumes:
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: example-opentelemetry-instrumentation-webhook-controller-manager-service-cert
+        - name: config
+          configMap:
+            name: example-opentelemetry-instrumentation-webhook-manager-config
+---
+# Source: opentelemetry-instrumentation-webhook/templates/instrumentation-webhook.yaml
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: example-opentelemetry-instrumentation-webhook-mutation
+  labels:
+    helm.sh/chart: opentelemetry-instrumentation-webhook-0.1.0
+    app.kubernetes.io/name: opentelemetry-instrumentation-webhook
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.152.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: instrumentation-webhook
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      caBundle: dGVzdC1jYQ==
+      service:
+        name: example-opentelemetry-instrumentation-webhook
+        namespace: default
+        path: /mutate-v1-pod
+        port: 443
+    failurePolicy: Ignore
+    name: mpod.example-opentelemetry-instrumentation-webhook.opentelemetry.io
+    rules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - pods
+        scope: Namespaced
+    sideEffects: None
+    timeoutSeconds: 10
