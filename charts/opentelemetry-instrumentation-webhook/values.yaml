@@ -1,0 +1,142 @@
+# Deploys a minimal OpenTelemetry Operator manager and instrumentation webhook
+# without Instrumentation CRDs. Do not enable this when the OpenTelemetry
+# Operator is already installed in the cluster.
+enabled: false
+
+# Overrides the chart name used in labels and resource names.
+nameOverride: ""
+# Overrides the full generated resource name.
+fullnameOverride: ""
+# Image pull secrets added to the webhook manager pod.
+imagePullSecrets: []
+
+# Enables the operator's multi-instrumentation injection mode.
+enableMultiInstrumentation: false
+
+# OpenTelemetry Operator manager deployment settings. This chart starts only the
+# manager features required for pod mutation and static instrumentation config.
+manager:
+  # Number of webhook manager replicas.
+  replicas: 1
+  # Minimum seconds a newly created pod should be ready before becoming available.
+  minReadySeconds: 0
+  # OpenTelemetry Operator manager image.
+  image:
+    repository: ghcr.io/open-telemetry/opentelemetry-operator/opentelemetry-operator
+    tag: "0.152.0"
+    # Optional image digest. If set and tag is empty, the template renders
+    # repository@digest.
+    digest: ""
+    pullPolicy: IfNotPresent
+  # Resource requests and limits for the manager container.
+  resources: {}
+  # Extra annotations added to the manager pod.
+  podAnnotations: {}
+  # Extra labels added to the manager pod.
+  podLabels: {}
+  # Node selector for the manager pod. Linux is required by the operator image.
+  nodeSelector:
+    kubernetes.io/os: linux
+  # Tolerations for the manager pod.
+  tolerations: []
+  # Affinity rules for the manager pod.
+  affinity: {}
+  # Security context for the manager container.
+  securityContext: {}
+  # Pod security context for the manager pod.
+  podSecurityContext: {}
+  # Enables controller-runtime leader election. Usually unnecessary with one replica.
+  leaderElection:
+    enabled: false
+  # Additional OpenTelemetry Operator manager config-file values.
+  # Example: enable-nginx-auto-instrumentation: true
+  config: {}
+  # Extra CLI args appended to the manager command.
+  extraArgs: []
+  # Extra volume mounts added to the manager container.
+  volumeMounts: []
+  # Extra volumes added to the manager pod.
+  volumes: []
+  # Service settings for the webhook service.
+  service:
+    # Annotations added to the webhook service.
+    annotations: {}
+  # ServiceAccount settings for the manager pod.
+  serviceAccount:
+    # Creates a ServiceAccount when true.
+    create: true
+    # ServiceAccount name. Defaults to the generated chart fullname.
+    name: ""
+    # Annotations added to the ServiceAccount.
+    annotations: {}
+  # PodDisruptionBudget settings for the manager deployment.
+  pdb:
+    create: false
+    maxUnavailable: 25%
+  # Liveness probe settings for the manager container.
+  livenessProbe:
+    initialDelaySeconds: 15
+    periodSeconds: 20
+    timeoutSeconds: 1
+    failureThreshold: 3
+  # Readiness probe settings for the manager container.
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 1
+    failureThreshold: 3
+
+# MutatingWebhookConfiguration and TLS certificate settings.
+admissionWebhooks:
+  # Kubernetes admission failure policy. Ignore avoids blocking pod creation if
+  # the webhook is unavailable.
+  failurePolicy: Ignore
+  # Namespace selector for pod mutation. Empty selector applies to all namespaces.
+  namespaceSelector: {}
+  # Object selector for pod mutation. Empty selector applies to all pods.
+  objectSelector: {}
+  # Admission request timeout in seconds.
+  timeoutSeconds: 10
+  # Optional prefix added to the MutatingWebhookConfiguration name.
+  namePrefix: ""
+  # Existing or generated TLS secret name. Defaults to
+  # <fullname>-controller-manager-service-cert.
+  secretName: ""
+  # Self-signed certificate generation. Disable this when supplying cert_file,
+  # key_file, and ca_file.
+  autoGenerateCert:
+    enabled: true
+    # Recreate generated certificates on each Helm render. Set false to reuse
+    # an existing secret when present.
+    recreate: true
+  # PEM-encoded serving certificate used when autoGenerateCert.enabled=false.
+  cert_file: ""
+  # PEM-encoded serving private key used when autoGenerateCert.enabled=false.
+  key_file: ""
+  # PEM-encoded CA bundle used when autoGenerateCert.enabled=false.
+  ca_file: ""
+
+# Static OpenTelemetry Operator Instrumentation.spec settings used by the
+# no-CRD webhook manager. Workloads still opt in with standard injection
+# annotations such as instrumentation.opentelemetry.io/inject-java: "true".
+instrumentation:
+  # Default auto-instrumentation images inserted into language-specific specs
+  # when instrumentation.spec does not set an image for that language.
+  images:
+    java: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-java:2.28.1
+    nodejs: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-nodejs:0.76.0
+    python: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-python:0.63b1
+    dotnet: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-dotnet:1.15.0
+    apacheHttpd: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-apache-httpd:1.0.4
+    nginx: ghcr.io/open-telemetry/opentelemetry-operator/autoinstrumentation-apache-httpd:1.0.4
+  # Raw OpenTelemetry Operator Instrumentation.spec content.
+  # Configure exporter endpoint, protocol, env, propagators, and language
+  # overrides here.
+  # Python and .NET often require OTLP/HTTP overrides, for example:
+  # spec:
+  #   exporter:
+  #     endpoint: http://$(OTEL_NODE_IP):4318
+  #   env:
+  #     - name: OTEL_EXPORTER_OTLP_PROTOCOL
+  #       value: http/protobuf
+  spec: {}

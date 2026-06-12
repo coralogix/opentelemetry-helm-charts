@@ -1,0 +1,358 @@
+{{- if .Values.enabled -}}
+{{- $name := include "opentelemetry-instrumentation-webhook.fullname" . -}}
+{{- $namespace := include "opentelemetry-instrumentation-webhook.namespace" . -}}
+{{- $webhook := fromYaml (include "opentelemetry-instrumentation-webhook.admissionWebhooks" .) -}}
+{{- $manager := .Values.manager -}}
+{{- $managerPorts := mustMergeOverwrite (dict "healthzPort" 8081 "metricsPort" 8080 "webhookPort" 9443) (deepCopy (default dict $manager.ports)) -}}
+{{- $managerEnv := mustMergeOverwrite (dict "ENABLE_WEBHOOKS" "true") (deepCopy (default dict $manager.env)) -}}
+{{- $cert := fromYaml (include "opentelemetry-instrumentation-webhook.webhookCert" .) -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}-manager-config
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "opentelemetry-instrumentation-webhook.labels" . | nindent 4 }}
+    app.kubernetes.io/component: instrumentation-webhook-manager
+data:
+  config.yaml: |
+    ignore-missing-collector-crds: true
+    enable-instrumentation-crds: false
+    enable-multi-instrumentation: {{ .Values.enableMultiInstrumentation }}
+    {{- with $manager.config }}
+    {{- tpl (toYaml .) $ | nindent 4 }}
+    {{- end }}
+    instrumentations:
+      spec:
+        {{- include "opentelemetry-instrumentation-webhook.instrumentationSpec" . | nindent 8 }}
+---
+{{- if $manager.serviceAccount.create }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "opentelemetry-instrumentation-webhook.serviceAccountName" . }}
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "opentelemetry-instrumentation-webhook.labels" . | nindent 4 }}
+    app.kubernetes.io/component: instrumentation-webhook-manager
+  {{- with $manager.serviceAccount.annotations }}
+  annotations:
+    {{- tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+---
+{{- end }}
+{{- if $manager.leaderElection.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $name }}-leader-election
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "opentelemetry-instrumentation-webhook.labels" . | nindent 4 }}
+    app.kubernetes.io/component: instrumentation-webhook-manager
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["configmaps/status"]
+    verbs: ["get", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $name }}-leader-election
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "opentelemetry-instrumentation-webhook.labels" . | nindent 4 }}
+    app.kubernetes.io/component: instrumentation-webhook-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $name }}-leader-election
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "opentelemetry-instrumentation-webhook.serviceAccountName" . }}
+    namespace: {{ $namespace }}
+---
+{{- end }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $name }}-manager
+  labels:
+    {{- include "opentelemetry-instrumentation-webhook.labels" . | nindent 4 }}
+    app.kubernetes.io/component: instrumentation-webhook-manager
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["opentelemetry.io"]
+    resources: ["opentelemetrycollectors", "instrumentations"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $name }}-manager
+  labels:
+    {{- include "opentelemetry-instrumentation-webhook.labels" . | nindent 4 }}
+    app.kubernetes.io/component: instrumentation-webhook-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $name }}-manager
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "opentelemetry-instrumentation-webhook.serviceAccountName" . }}
+    namespace: {{ $namespace }}
+---
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/tls
+metadata:
+  name: {{ default (printf "%s-controller-manager-service-cert" $name) $webhook.secretName }}
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "opentelemetry-instrumentation-webhook.labels" . | nindent 4 }}
+    app.kubernetes.io/component: instrumentation-webhook
+data:
+  tls.crt: {{ $cert.crt }}
+  tls.key: {{ $cert.key }}
+  ca.crt: {{ $cert.ca }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "opentelemetry-instrumentation-webhook.labels" . | nindent 4 }}
+    app.kubernetes.io/component: instrumentation-webhook-manager
+spec:
+  replicas: {{ $manager.replicas }}
+  {{- if $manager.minReadySeconds }}
+  minReadySeconds: {{ $manager.minReadySeconds }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "opentelemetry-instrumentation-webhook.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: instrumentation-webhook-manager
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+        checksum/config: {{ include "opentelemetry-instrumentation-webhook.instrumentationSpec" . | sha256sum }}
+        {{- with $manager.podAnnotations }}
+        {{- tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "opentelemetry-instrumentation-webhook.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: instrumentation-webhook-manager
+        {{- with $manager.podLabels }}
+        {{- tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "opentelemetry-instrumentation-webhook.serviceAccountName" . }}
+      {{- with $manager.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: manager
+          {{- if $manager.image.tag }}
+          image: "{{ $manager.image.repository }}:{{ $manager.image.tag }}"
+          {{- else if $manager.image.digest }}
+          image: "{{ $manager.image.repository }}@{{ $manager.image.digest }}"
+          {{- end }}
+          imagePullPolicy: {{ $manager.image.pullPolicy }}
+          command:
+            - /manager
+          args:
+            - --config-file=/etc/config.yaml
+            - --metrics-addr=0.0.0.0:{{ $managerPorts.metricsPort }}
+            - --metrics-secure=false
+            - --health-probe-addr=:{{ $managerPorts.healthzPort }}
+            - --webhook-port={{ $managerPorts.webhookPort }}
+            {{- if $manager.leaderElection.enabled }}
+            - --enable-leader-election
+            {{- end }}
+            {{- with $manager.extraArgs }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with $managerEnv }}
+          env:
+            {{- range $key, $value := . }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- end }}
+          ports:
+            - containerPort: {{ $managerPorts.metricsPort }}
+              name: metrics
+              protocol: TCP
+            - containerPort: {{ $managerPorts.webhookPort }}
+              name: webhook-server
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ $managerPorts.healthzPort }}
+            initialDelaySeconds: {{ $manager.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ $manager.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ $manager.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ $manager.livenessProbe.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: {{ $managerPorts.healthzPort }}
+            initialDelaySeconds: {{ $manager.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ $manager.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ $manager.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ $manager.readinessProbe.failureThreshold }}
+          {{- with $manager.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with $manager.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - mountPath: /tmp/k8s-webhook-server/serving-certs
+              name: cert
+              readOnly: true
+            - mountPath: /etc/config.yaml
+              name: config
+              subPath: config.yaml
+            {{- with $manager.volumeMounts }}
+            {{- tpl (toYaml .) $ | nindent 12 }}
+            {{- end }}
+      {{- with $manager.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $manager.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $manager.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: cert
+          secret:
+            defaultMode: 420
+            secretName: {{ default (printf "%s-controller-manager-service-cert" $name) $webhook.secretName }}
+        - name: config
+          configMap:
+            name: {{ $name }}-manager-config
+        {{- with $manager.volumes }}
+        {{- tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "opentelemetry-instrumentation-webhook.labels" . | nindent 4 }}
+    app.kubernetes.io/component: instrumentation-webhook-manager
+  {{- with $manager.service.annotations }}
+  annotations:
+    {{- tpl (toYaml .) $ | nindent 4 }}
+  {{- end }}
+spec:
+  ports:
+    - port: 443
+      protocol: TCP
+      targetPort: webhook-server
+  selector:
+    app.kubernetes.io/name: {{ include "opentelemetry-instrumentation-webhook.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: instrumentation-webhook-manager
+---
+{{- if $manager.pdb.create }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $name }}
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "opentelemetry-instrumentation-webhook.labels" . | nindent 4 }}
+    app.kubernetes.io/component: instrumentation-webhook-manager
+spec:
+  maxUnavailable: {{ $manager.pdb.maxUnavailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "opentelemetry-instrumentation-webhook.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: instrumentation-webhook-manager
+---
+{{- end }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: {{ include "opentelemetry-instrumentation-webhook.mutatingWebhookName" . }}-mutation
+  labels:
+    {{- include "opentelemetry-instrumentation-webhook.labels" . | nindent 4 }}
+    app.kubernetes.io/component: instrumentation-webhook
+webhooks:
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      caBundle: {{ $cert.ca }}
+      service:
+        name: {{ $name }}
+        namespace: {{ $namespace }}
+        path: /mutate-v1-pod
+        port: 443
+    failurePolicy: {{ $webhook.failurePolicy }}
+    name: {{ printf "mpod.%s.opentelemetry.io" $name }}
+    {{- with $webhook.namespaceSelector }}
+    namespaceSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with $webhook.objectSelector }}
+    objectSelector:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    rules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - pods
+        scope: Namespaced
+    sideEffects: None
+    timeoutSeconds: {{ $webhook.timeoutSeconds }}
+{{- end }}

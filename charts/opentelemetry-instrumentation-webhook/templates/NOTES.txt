@@ -1,0 +1,6 @@
+{{- if .Values.enabled }}
+The OpenTelemetry instrumentation webhook is enabled for this release.
+
+Do not enable this chart when the full OpenTelemetry Operator is already installed
+unless webhook names/selectors are configured to avoid collisions.
+{{- end }}
