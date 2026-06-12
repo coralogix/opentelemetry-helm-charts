@@ -13,4 +13,4 @@ home: https://opentelemetry.io/
 sources:
   - https://github.com/open-telemetry/opentelemetry-operator
 maintainers:
-  - name: Israel Blancas
+  - name: iblancasa
