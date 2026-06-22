@@ -297,6 +297,12 @@ presets:
     offCpuThreshold: 0
     # Comma-delimited list of tracers to enable (or "all").
     tracers: "all"
+    # OBI trace-profile correlation. When enabled, the profiler shares the
+    # `traces_ctx_v1` LRU map with the OBI eBPF instrumentation DaemonSet,
+    # pinned at `<bpf_fs_root>/otel/traces_ctx_v1`, so each profile sample
+    # is stitched to the active OBI trace/span IDs.
+    obi_correlation:
+      enabled: false
   # Configures the collector to collect host metrics.
   # Adds the hostmetrics receiver to the metrics pipeline
   # and adds the necessary volumes and volume mounts.

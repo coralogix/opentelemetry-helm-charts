@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.133.1 / 2026-06-22
+
+- [Feat] Add opt-in OBI trace-profile correlation under `presets.ebpfProfiler.obi_correlation.enabled` (default `false`). Sets `obi_process_ctx: true` on the profiling receiver and mounts `/sys/fs/bpf` Bidirectional so the profiler shares OBI's pinned `traces_ctx_v1` map at `<bpf_fs_root>/otel/traces_ctx_v1`.
+
 ### v0.133.0 / 2026-06-16
 
 - [Feat] Bump the OpenTelemetry Collector image to v0.153.0.
