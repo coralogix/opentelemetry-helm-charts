@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.133.0
+    helm.sh/chart: opentelemetry-collector-0.133.1
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.153.0"
@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 1642ada930329f4916f0138c28ad6950ac4748846d7d032814dd31f5481daa07
+        checksum/config: ccd3edff0929c028a487cb78041b486b6da0081ad9c6cb7e44347a0303823412
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -108,6 +108,9 @@ spec:
             - name: debug
               mountPath: /sys/kernel/debug
               readOnly: false
+            - name: bpffs
+              mountPath: /sys/fs/bpf
+              mountPropagation: Bidirectional
       volumes:
         - name: opentelemetry-collector-configmap
           configMap:
@@ -136,6 +139,10 @@ spec:
         - name: debug
           hostPath:
             path: /sys/kernel/debug
+        - name: bpffs
+          hostPath:
+            path: /sys/fs/bpf
+            type: Directory
       nodeSelector:
         kubernetes.io/os: linux
       hostNetwork: false

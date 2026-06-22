@@ -150,6 +150,14 @@ updateStrategy:
   # -- update strategy type
   type: RollingUpdate
 
+# -- Mount the host bpffs into the OBI container. Required for trace-profile
+# correlation: OBI pins `traces_ctx_v1` under `/sys/fs/bpf/otel/` and the
+# profiler reads it from the same path. `mountPropagation: Bidirectional`
+# makes the pin visible host-wide so sibling DaemonSets (profiler) see it.
+bpffs:
+  enabled: true
+  hostPath: /sys/fs/bpf
+
 # -- Additional volumes on the output daemonset definition.
 volumes: []
 # - name: foo

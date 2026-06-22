@@ -132,6 +132,11 @@ spec:
               name: tracefs
               readOnly: true
           {{- end }}
+          {{- if .Values.bpffs.enabled }}
+            - mountPath: /sys/fs/bpf
+              name: bpffs
+              mountPropagation: Bidirectional
+          {{- end }}
           {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -168,6 +173,12 @@ spec:
         - name: tracefs
           hostPath:
             path: /sys/kernel/tracing
+            type: Directory
+      {{- end }}
+      {{- if .Values.bpffs.enabled }}
+        - name: bpffs
+          hostPath:
+            path: {{ .Values.bpffs.hostPath }}
             type: Directory
       {{- end }}
       {{- with .Values.volumes }}

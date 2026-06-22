@@ -1,6 +1,8 @@
 presets:
   ebpfProfiler:
     enabled: true
+    obi_correlation:
+      enabled: true
   otlpExporter:
     enabled: true
     endpoint: ${env:K8S_NODE_IP}:4317
