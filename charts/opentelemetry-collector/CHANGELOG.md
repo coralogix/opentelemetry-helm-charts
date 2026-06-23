@@ -2,6 +2,11 @@
 
 ## OpenTelemetry Collector
 
+### v0.134.0 / 2026-06-23
+
+- [Feat] Bump the OpenTelemetry Collector image to v0.154.0.
+- [Feat] Upgrade Supervisor-based images to v0.9.0.
+
 ### v0.133.0 / 2026-06-16
 
 - [Feat] Bump the OpenTelemetry Collector image to v0.153.0.
