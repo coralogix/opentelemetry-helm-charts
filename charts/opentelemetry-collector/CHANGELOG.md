@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.134.1 / 2026-06-23
+
+- [Feat] Add per-object startup delays for Kubernetes resource catalog periodic collection to spread initial pull requests.
+
 ### v0.134.0 / 2026-06-23
 
 - [Feat] Bump the OpenTelemetry Collector image to v0.154.0.

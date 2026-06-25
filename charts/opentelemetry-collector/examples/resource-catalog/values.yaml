@@ -6,8 +6,6 @@ presets:
     enabled: true
     dropManagedFields:
       enabled: true
-    periodicCollection:
-      enabled: false
     filterStatements:
       - body["kind"] == "Service"
     transformStatements:
@@ -17,4 +15,3 @@ resources:
   limits:
     cpu: 2
     memory: 4Gi
-
