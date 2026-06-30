@@ -85,6 +85,24 @@ Returns the endpoint name if provided, otherwise sanitizes the domain.
 {{- end }}
 
 {{/*
+Build Coralogix distribution header value.
+Usage: {{ include "opentelemetry-collector.coralogixDistribution" (dict "distribution" .Values.distribution "version" .Values.global.version) }}
+*/}}
+{{- define "opentelemetry-collector.coralogixDistribution" -}}
+{{- $distribution := .distribution | default "" -}}
+{{- $version := .version | default "" -}}
+{{- $name := "helm-otel-integration" -}}
+{{- if eq $distribution "ecs" -}}
+  {{- $name = "ecs-ec2-integration" -}}
+{{- else if eq $distribution "standalone" -}}
+  {{- $name = "helm-otel-standalone" -}}
+{{- else if eq $distribution "macos" -}}
+  {{- $name = "helm-otel-macos" -}}
+{{- end -}}
+{{- printf "%s/%s" $name $version -}}
+{{- end }}
+
+{{/*
 Infer cloud provider from distribution.
 Returns: "aws", "azure", "gcp", "on-prem", or "" (empty string if no match)
 Resolution order: topLevelProvider → explicitProvider (preset) → inferred from distribution
@@ -2720,7 +2738,7 @@ exporters:
     subsystem_name: "catalog"
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq .Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq .Values.distribution "standalone" }}helm-otel-standalone{{ else if eq .Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ .Values.global.version }}"
+        X-Coralogix-Distribution: "{{ include "opentelemetry-collector.coralogixDistribution" (dict "distribution" .Values.distribution "version" .Values.global.version) }}"
         x-coralogix-ingress: "metadata-as-otlp-logs/v1"
     {{ include "opentelemetry-collector.coralogixSendingQueueConfig" .Values.presets.coralogixResourceCatalogExporter.sendingQueue | nindent 4 }}
 {{- if .Values.global.additionalEndpoints }}
@@ -2736,7 +2754,7 @@ exporters:
     subsystem_name: "{{ $endpoint.subsystemName | default "catalog" }}"
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $.Values.global.version }}"
+        X-Coralogix-Distribution: "{{ include "opentelemetry-collector.coralogixDistribution" (dict "distribution" $.Values.distribution "version" $.Values.global.version) }}"
         x-coralogix-ingress: "{{ $endpoint.ingress | default "metadata-as-otlp-logs/v1" }}"
     {{ include "opentelemetry-collector.coralogixSendingQueueConfig" $.Values.presets.coralogixResourceCatalogExporter.sendingQueue | nindent 4 }}
   {{- end }}
@@ -2969,7 +2987,7 @@ exporters:
     subsystem_name: "catalog"
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq .Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq .Values.distribution "standalone" }}helm-otel-standalone{{ else if eq .Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ .Values.global.version }}"
+        X-Coralogix-Distribution: "{{ include "opentelemetry-collector.coralogixDistribution" (dict "distribution" .Values.distribution "version" .Values.global.version) }}"
         x-coralogix-ingress: "metadata-as-otlp-logs/v1"
     {{ include "opentelemetry-collector.coralogixSendingQueueConfig" .Values.presets.coralogixResourceCatalogExporter.sendingQueue | nindent 4 }}
 {{- if .Values.global.additionalEndpoints }}
@@ -2985,7 +3003,7 @@ exporters:
     subsystem_name: "catalog"
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $.Values.global.version }}"
+        X-Coralogix-Distribution: "{{ include "opentelemetry-collector.coralogixDistribution" (dict "distribution" $.Values.distribution "version" $.Values.global.version) }}"
         x-coralogix-ingress: "metadata-as-otlp-logs/v1"
     {{ include "opentelemetry-collector.coralogixSendingQueueConfig" $.Values.presets.coralogixResourceCatalogExporter.sendingQueue | nindent 4 }}
   {{- end }}
@@ -3324,16 +3342,16 @@ exporters:
     {{- end }}
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
+        X-Coralogix-Distribution: "{{ include "opentelemetry-collector.coralogixDistribution" (dict "distribution" $.Values.distribution "version" $endpoint.version) }}"
     metrics:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
+        X-Coralogix-Distribution: "{{ include "opentelemetry-collector.coralogixDistribution" (dict "distribution" $.Values.distribution "version" $endpoint.version) }}"
     traces:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
+        X-Coralogix-Distribution: "{{ include "opentelemetry-collector.coralogixDistribution" (dict "distribution" $.Values.distribution "version" $endpoint.version) }}"
     profiles:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
+        X-Coralogix-Distribution: "{{ include "opentelemetry-collector.coralogixDistribution" (dict "distribution" $.Values.distribution "version" $endpoint.version) }}"
         x-coralogix-ingress: "otlp/v1.10.0"
     application_name: "{{ $endpoint.defaultApplicationName }}"
     subsystem_name: "{{ $endpoint.defaultSubsystemName }}"
