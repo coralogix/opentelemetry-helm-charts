@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.134.1
+    helm.sh/chart: opentelemetry-collector-0.134.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.154.0"
@@ -166,6 +166,86 @@ data:
     receivers:
       k8sobjects/resource_catalog:
         objects:
+        - group: ""
+          initial_delay: 0s
+          mode: pull
+          name: namespaces
+        - group: ""
+          initial_delay: 5s
+          mode: pull
+          name: nodes
+        - group: ""
+          initial_delay: 10s
+          mode: pull
+          name: persistentvolumeclaims
+        - group: ""
+          initial_delay: 15s
+          mode: pull
+          name: persistentvolumes
+        - group: ""
+          initial_delay: 20s
+          mode: pull
+          name: pods
+        - group: ""
+          initial_delay: 25s
+          mode: pull
+          name: services
+        - group: apps
+          initial_delay: 30s
+          mode: pull
+          name: daemonsets
+        - group: apps
+          initial_delay: 35s
+          mode: pull
+          name: deployments
+        - group: apps
+          initial_delay: 40s
+          mode: pull
+          name: replicasets
+        - group: apps
+          initial_delay: 45s
+          mode: pull
+          name: statefulsets
+        - group: autoscaling
+          initial_delay: 50s
+          mode: pull
+          name: horizontalpodautoscalers
+        - group: batch
+          initial_delay: 55s
+          mode: pull
+          name: cronjobs
+        - group: batch
+          initial_delay: 60s
+          mode: pull
+          name: jobs
+        - group: extensions
+          initial_delay: 65s
+          mode: pull
+          name: ingresses
+        - group: networking.k8s.io
+          initial_delay: 65s
+          mode: pull
+          name: ingresses
+        - group: policy
+          initial_delay: 70s
+          mode: pull
+          name: poddisruptionbudgets
+        - group: rbac.authorization.k8s.io
+          initial_delay: 75s
+          mode: pull
+          name: clusterrolebindings
+        - group: rbac.authorization.k8s.io
+          initial_delay: 80s
+          mode: pull
+          name: clusterroles
+        - group: rbac.authorization.k8s.io
+          initial_delay: 85s
+          mode: pull
+          name: rolebindings
+        - group: rbac.authorization.k8s.io
+          initial_delay: 90s
+          mode: pull
+          name: roles
         - exclude_watch_type:
           - BOOKMARK
           - ERROR
@@ -350,4 +430,3 @@ data:
                   without_scope_info: false
                   without_type_suffix: false
                   without_units: false
-

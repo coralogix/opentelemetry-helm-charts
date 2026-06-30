@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.134.2 / 2026-06-23
+
+- [Feat] Add per-object startup delays for Kubernetes resource catalog periodic collection to spread initial pull requests.
+
 ### v0.134.1 / 2026-06-29
 
 - [Fix] Use the ECS Coralogix distribution header for all ECS signals and centralize the header mapping in a shared template helper.

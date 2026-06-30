@@ -2768,63 +2768,83 @@ receivers:
       - name: namespaces
         mode: "pull"
         group: ""
+        initial_delay: "0s"
       - name: nodes
         mode: "pull"
         group: ""
+        initial_delay: "5s"
       - name: persistentvolumeclaims
         mode: "pull"
         group: ""
+        initial_delay: "10s"
       - name: persistentvolumes
         mode: "pull"
         group: ""
+        initial_delay: "15s"
       - name: pods
         mode: "pull"
         group: ""
+        initial_delay: "20s"
       - name: services
         mode: "pull"
         group: ""
+        initial_delay: "25s"
       - name: daemonsets
         mode: "pull"
         group: "apps"
+        initial_delay: "30s"
       - name: deployments
         mode: "pull"
         group: "apps"
+        initial_delay: "35s"
       - name: replicasets
         mode: "pull"
         group: "apps"
+        initial_delay: "40s"
       - name: statefulsets
         mode: "pull"
         group: "apps"
+        initial_delay: "45s"
       - name: horizontalpodautoscalers
         mode: "pull"
         group: "autoscaling"
+        initial_delay: "50s"
       - name: cronjobs
         mode: "pull"
         group: "batch"
+        initial_delay: "55s"
       - name: jobs
         mode: "pull"
         group: "batch"
+        initial_delay: "60s"
       - name: ingresses
         mode: "pull"
         group: "extensions"
+        initial_delay: "65s"
       - name: ingresses
         mode: "pull"
         group: "networking.k8s.io"
+        initial_delay: "65s"
       - name: poddisruptionbudgets
         mode: "pull"
         group: "policy"
+        initial_delay: "70s"
       - name: clusterrolebindings
         mode: "pull"
         group: "rbac.authorization.k8s.io"
+        initial_delay: "75s"
       - name: clusterroles
         mode: "pull"
         group: "rbac.authorization.k8s.io"
+        initial_delay: "80s"
       - name: rolebindings
         mode: "pull"
         group: "rbac.authorization.k8s.io"
+        initial_delay: "85s"
       - name: roles
         mode: "pull"
         group: "rbac.authorization.k8s.io"
+        initial_delay: "90s"
       {{- end }}
       - name: namespaces
         mode: "watch"
