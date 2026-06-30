@@ -7,3 +7,4 @@ metadata:
 value: 1000
 globalDefault: false
 description: "This priority class should be used for OpenTelemetry collector pods."
+

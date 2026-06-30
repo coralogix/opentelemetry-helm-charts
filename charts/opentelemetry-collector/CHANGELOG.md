@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.134.1 / 2026-06-29
+
+- [Fix] Use the ECS Coralogix distribution header for all ECS signals and centralize the header mapping in a shared template helper.
+
 ### v0.134.0 / 2026-06-23
 
 - [Feat] Bump the OpenTelemetry Collector image to v0.154.0.

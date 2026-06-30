@@ -5,7 +5,7 @@ kind: ClusterRole
 metadata:
   name: cx-otel-collector-monitor
   labels:
-    helm.sh/chart: opentelemetry-collector-0.134.0
+    helm.sh/chart: opentelemetry-collector-0.134.1
     app.kubernetes.io/name: cx-otel-collector-monitor
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.154.0"
@@ -31,3 +31,4 @@ rules:
   - nonResourceURLs:
     - "/metrics/cadvisor"
     verbs: ["get", "list", "watch"]
+
