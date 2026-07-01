@@ -468,7 +468,8 @@ presets:
     # collectionInterval: 30s
     # metricsExpiration: 5m
     aggregationCardinalityLimit: 100000
-    configs: []
+    configs:
+      []
       #  - selector: route() where attributes["service.name"] == "one"
       #    histogramBuckets: []
 
@@ -487,9 +488,10 @@ presets:
   #   database statements.
   # Additional redaction settings can be supplied via `extraConfig.processors.redaction`.
   spanMetricsSanitization:
-    enabled: auto # auto: enabled when spanMetrics or spanMetricsMulti presets are enabled
+    enabled: auto  # auto: enabled when spanMetrics or spanMetricsMulti presets are enabled
     sanitize_url: true
-    sanitizeDatabases: []
+    sanitizeDatabases:
+      []
 
   # Configures the collector to use loadbalancing exporter.
   loadBalancing:
@@ -559,13 +561,13 @@ presets:
     sendingQueue:
       enabled: true
       numConsumers: 20
-      sizer: bytes # requests | items | bytes
-      queueSize: 209715200 # 200 mib
+      sizer: bytes            # requests | items | bytes
+      queueSize: 209715200    # 200 mib
       batch:
         flushTimeout: 250ms
-        minSize: 1048576 # 1 mib
-        maxSize: 2097152 # 2 mib
-        sizer: bytes # requests | items | bytes
+        minSize: 1048576      # 1 mib
+        maxSize: 2097152      # 2 mib
+        sizer: bytes            # requests | items | bytes
     # Shared gRPC client settings for the Coralogix exporter.
     # Keepalive is enabled by default with the values below.
     # Set keepalive.enabled=false to force keepalive to stay disabled.
@@ -580,13 +582,13 @@ presets:
     sendingQueue:
       enabled: true
       numConsumers: 20
-      sizer: bytes # requests | items | bytes
-      queueSize: 209715200 # 200 mib
+      sizer: bytes            # requests | items | bytes
+      queueSize: 209715200    # 200 mib
       batch:
         flushTimeout: 250ms
-        minSize: 1048576 # 1 mib
-        maxSize: 2097152 # 2 mib
-        sizer: bytes # requests | items | bytes
+        minSize: 1048576      # 1 mib
+        maxSize: 2097152      # 2 mib
+        sizer: bytes            # requests | items | bytes
 
   # Configures the collector to export data with the OTLP exporter.
   otlpExporter:
@@ -1328,7 +1330,8 @@ lifecycleHooks: {}
 # startup probe configuration
 # Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
 ##
-startupProbe: {}
+startupProbe:
+  {}
   # Number of seconds after the container has started before startup probes are initiated.
   # initialDelaySeconds: 1
   # How often in seconds to perform the probe.
