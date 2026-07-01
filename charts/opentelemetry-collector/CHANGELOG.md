@@ -2,6 +2,11 @@
 
 ## OpenTelemetry Collector
 
+### v0.134.3 / 2026-07-01
+
+- [Breaking] The `profilesCollection` preset now does not add k8s specific transforms and metadata by default.
+To preserve the prior behavior, enable the `profilesK8sAttributes` preset.
+
 ### v0.134.2 / 2026-06-23
 
 - [Feat] Add per-object startup delays for Kubernetes resource catalog periodic collection to spread initial pull requests.
