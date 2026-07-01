@@ -6,10 +6,10 @@ metadata:
   name: example-opentelemetry-ebpf-instrumentation
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.16
+    helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.18
     app.kubernetes.io/name: opentelemetry-ebpf-instrumentation
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "v0.9.0"
+    app.kubernetes.io/version: "v0.10.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: obi
     app.kubernetes.io/component: config
@@ -52,7 +52,7 @@ data:
               enabled: true
             qwen:
               enabled: true
-            rereank:
+            rerank:
               enabled: true
             retrieval:
               enabled: true
@@ -70,6 +70,8 @@ data:
           not_match: '{kube*,*jaeger-agent*,*prometheus*,*promtail*,*grafana-agent*}'
         k8s_src_owner_name:
           not_match: '{kube*,*jaeger-agent*,*prometheus*,*promtail*,*grafana-agent*}'
+    health_check:
+      port: 0
     otel_metrics_export:
       endpoint: http://${HOST_IP}:4318
     otel_traces_export:

@@ -61,15 +61,32 @@ podSecurityContext: {}
 # -- If set to false, deploys an unprivileged / less privileged setup.
 privileged: true
 
-# -- Enables stat metrics support (requires tracefs mount).
+# -- Enables stat metrics support (requires tracefs mount). Adds "stats" (tcp_rtt,
+# tcp_failed_connections, tcp_retransmits, tcp_io) to the exported metrics features.
+# Note: tcp_io fires on every tcp_sendmsg/tcp_cleanup_rbuf call, so it has significantly
+# higher event volume/overhead than the other three stat metrics.
 stats:
   enabled: false
+
+# -- Enables collection of application runtime metrics (memory, GC, etc). Both are disabled by
+# default since they add eBPF uprobe/USDT instrumentation overhead.
+runtimeMetrics:
+  go:
+    # -- Enables Go runtime metrics (memory limits, completed GC cycles, GOMAXPROCS, GOGC).
+    # Adds "application_runtime" to the exported metrics features.
+    enabled: false
+  jvm:
+    # -- Enables HotSpot JVM runtime metrics (heap used/committed/limit) via GCTracer uprobe and
+    # USDT probes. Adds "application_jvm" to the exported metrics features.
+    enabled: false
+    # -- (string) Sampling interval for JVM runtime metrics collection.
+    samplingInterval: 1s
 
 # -- Enables context propagation support.
 contextPropagation:
   enabled: true
-  # -- Mode of context propagation: either "all" or a list containing the following values: "http", "headers", "tcp", "ip
-  mode: "http,tcp"
+  # -- Mode of context propagation: either "all", "disabled", or a comma-separated list containing the following values: "headers", "tcp"
+  mode: "headers,tcp"
 
 # -- Extra capabilities for unprivileged / less privileged setup.
 extraCapabilities: []
@@ -243,7 +260,7 @@ config:
               enabled: true
             qwen:
               enabled: true
-            rereank:
+            rerank:
               enabled: true
             retrieval:
               enabled: true
@@ -277,6 +294,9 @@ config:
     #   prometheus:
     #     port: 6060
     #     path: /metrics
+    ## port 0 disables the health-check endpoint; set a non-zero port to enable it
+    health_check:
+      port: 0
 
 ## Env variables that will override configmap values
 ## For example:

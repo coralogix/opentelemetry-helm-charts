@@ -2,6 +2,15 @@
 
 ## OpenTelemetry eBPF Instrumentation
 
+### v0.1.18 / 2026-07-01
+
+- [Change] Bump OBI image to v0.10.0
+- [Fix] Update default `contextPropagation.mode` from "http,tcp" to "headers,tcp" (the "http" alias was removed upstream and now causes a startup error)
+- [Fix] Fix typo in default config: `payload_extraction.http.genai.rerank` (was `rereank`)
+- [Feature] Add `runtimeMetrics.go.enabled` and `runtimeMetrics.jvm.enabled` options (both default `false`) to opt in to the new Go and JVM application runtime metrics
+- [Feature] Add `health_check.port` (default `0`/disabled) to the default OBI config to surface the new pipeline health-check endpoint
+- [Fix] `stats.enabled: true` now also adds the "stats" metrics feature to `otel_metrics_export.features`; previously it only mounted tracefs, so stat probes loaded as no-op stubs and no stats metrics were ever exported
+
 ### v0.1.17 / 2026-06-08
 
 - [Feature] Add Stat metrics option to OBI config, defaults false
