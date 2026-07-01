@@ -27,24 +27,24 @@ data:
     {{- if eq .Values.preset "application" }}
     {{- if not .Values.config.data.discovery }}
     discovery:
-      services:
-        - k8s_namespace: .
-      exclude_services:
-        - exe_path: ".*ebpf-instrument.*|.*otelcol.*"
+      instrument:
+        - k8s_namespace: ".*"
+      exclude_instrument:
+        - exe_path: "*ebpf-instrument*"
+        - exe_path: "*otelcol*"
     {{- end }}
     {{- end }}
   {{- $configData := deepCopy .Values.config.data }}
   {{- if or .Values.runtimeMetrics.go.enabled .Values.runtimeMetrics.jvm.enabled .Values.stats.enabled }}
-    {{- $otelMetricsExport := default dict $configData.otel_metrics_export }}
-    {{- $features := index $otelMetricsExport "features" }}
-    {{- if not $features }}
-      {{- $features = list "application" }}
+    {{- if not (hasKey $configData "otel_metrics_export") }}
+      {{- $_ := set $configData "otel_metrics_export" dict }}
     {{- end }}
+    {{- $otelMetricsExport := index $configData "otel_metrics_export" }}
+    {{- $features := index $otelMetricsExport "features" | default list }}
     {{- if and .Values.runtimeMetrics.go.enabled (not (has "application_runtime" $features)) }}{{ $features = append $features "application_runtime" }}{{- end }}
     {{- if and .Values.runtimeMetrics.jvm.enabled (not (has "application_jvm" $features)) }}{{ $features = append $features "application_jvm" }}{{- end }}
     {{- if and .Values.stats.enabled (not (has "stats" $features)) }}{{ $features = append $features "stats" }}{{- end }}
     {{- $_ := set $otelMetricsExport "features" $features }}
-    {{- $_ := set $configData "otel_metrics_export" $otelMetricsExport }}
   {{- end }}
   {{- if .Values.runtimeMetrics.jvm.enabled }}
     {{- if not (hasKey $configData "jvm_runtime_metrics") }}

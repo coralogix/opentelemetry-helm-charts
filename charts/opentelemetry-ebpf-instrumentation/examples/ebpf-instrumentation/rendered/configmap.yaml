@@ -16,10 +16,11 @@ metadata:
 data:
   ebpf-instrument-config.yml: |
     discovery:
-      services:
-        - k8s_namespace: .
-      exclude_services:
-        - exe_path: ".*ebpf-instrument.*|.*otelcol.*"
+      instrument:
+        - k8s_namespace: ".*"
+      exclude_instrument:
+        - exe_path: "*ebpf-instrument*"
+        - exe_path: "*otelcol*"
     attributes:
       kubernetes:
         enable: true

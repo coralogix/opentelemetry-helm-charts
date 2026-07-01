@@ -10,6 +10,8 @@
 - [Feature] Add `runtimeMetrics.go.enabled` and `runtimeMetrics.jvm.enabled` options (both default `false`) to opt in to the new Go and JVM application runtime metrics
 - [Feature] Add `health_check.port` (default `0`/disabled) to the default OBI config to surface the new pipeline health-check endpoint
 - [Fix] `stats.enabled: true` now also adds the "stats" metrics feature to `otel_metrics_export.features`; previously it only mounted tracefs, so stat probes loaded as no-op stubs and no stats metrics were ever exported
+- [Fix] Migrate default discovery config from deprecated `services`/`exclude_services` to `instrument`/`exclude_instrument` with glob syntax
+- [Fix] Fix default `k8s_namespace` pattern from `.` (matches any single character) to `".*"` (matches any namespace)
 
 ### v0.1.17 / 2026-06-08
 
