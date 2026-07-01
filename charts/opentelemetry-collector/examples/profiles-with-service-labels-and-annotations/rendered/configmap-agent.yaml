@@ -243,8 +243,8 @@ data:
           - coralogix
           processors:
           - memory_limiter
-          - k8sattributes/profiles
           - resource/metadata
+          - k8sattributes/profiles
           - transform/profiles
           receivers:
           - otlp

@@ -12,5 +12,5 @@ presets:
     enabled: true
   profilesCollection:
     enabled: true
-
-    
+  profilesK8sAttributes:
+    enabled: true

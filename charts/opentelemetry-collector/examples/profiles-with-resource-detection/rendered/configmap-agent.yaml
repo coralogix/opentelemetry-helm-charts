@@ -256,8 +256,8 @@ data:
           - memory_limiter
           - resourcedetection/region
           - resourcedetection/env
-          - k8sattributes/profiles
           - resource/metadata
+          - k8sattributes/profiles
           - transform/profiles
           receivers:
           - otlp

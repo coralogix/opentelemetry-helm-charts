@@ -2,6 +2,8 @@ mode: daemonset
 presets:
   profilesCollection:
     enabled: true
+  profilesK8sAttributes:
+    enabled: true
     serviceAnnotations:
       - tag_name: "k8s.annotations.annotation_key"
         key: "annotation_key"
