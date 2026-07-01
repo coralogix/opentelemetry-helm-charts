@@ -3044,9 +3044,6 @@ processors:
         - from: node
           key: topology.kubernetes.io/region
           tag_name: k8s.node.labels.topology.kubernetes.io/region
-        - from: node
-          key: topology.kubernetes.io/zone
-          tag_name: k8s.node.labels.topology.kubernetes.io/zone
     pod_association:
       - sources:
           - from: resource_attribute
@@ -3104,7 +3101,6 @@ processors:
         statements:
           - set(resource.attributes["host.type"], resource.attributes["k8s.node.labels.node.kubernetes.io/instance-type"]) where resource.attributes["host.type"] == nil
           - set(resource.attributes["cloud.region"], resource.attributes["k8s.node.labels.topology.kubernetes.io/region"]) where resource.attributes["cloud.region"] == nil
-          - set(resource.attributes["cloud.availability_zone"], resource.attributes["k8s.node.labels.topology.kubernetes.io/zone"]) where resource.attributes["cloud.availability_zone"] == nil
 {{- end }}
   transform/entity-event:
     error_mode: silent
