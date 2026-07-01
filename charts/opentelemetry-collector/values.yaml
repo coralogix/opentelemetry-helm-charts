@@ -271,7 +271,7 @@ presets:
     enabled: false
   # Configures Kubernetes attributes and service.name mapping for profiles.
   profilesK8sAttributes:
-    enabled: false
+    enabled: true
     serviceLabels: []
     serviceAnnotations: []
   # Configures the collector to run the eBPF profiler distribution.

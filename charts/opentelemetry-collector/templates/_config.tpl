@@ -258,7 +258,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.ecsAttributesContainerLogs.enabled }}
 {{- $config = (include "opentelemetry-collector.applyEcsAttributesContainerLogsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if .Values.presets.profilesK8sAttributes.enabled }}
+{{- if and (.Values.presets.profilesK8sAttributes.enabled) (.Values.presets.profilesCollection.enabled) }}
 {{- $config = (include "opentelemetry-collector.applyProfilesK8sAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.resourceDetection.enabled }}
@@ -363,7 +363,7 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.ebpfProfiler.enabled }}
 {{- $config = (include "opentelemetry-collector.applyEbpfProfilerConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if .Values.presets.profilesK8sAttributes.enabled }}
+{{- if and (.Values.presets.profilesK8sAttributes.enabled) (.Values.presets.profilesCollection.enabled) }}
 {{- $config = (include "opentelemetry-collector.applyProfilesK8sAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.resourceDetection.enabled }}
@@ -1290,110 +1290,13 @@ processors:
 {{- end }}
 
 {{- define "opentelemetry-collector.profilesCollectionConfig" -}}
-processors:
-  transform/profiles:
-    profile_statements:
-    # prioritized by
-    # https://opentelemetry.io/docs/specs/semconv/non-normative/k8s-attributes/#how-servicename-should-be-calculated
-     {{- range $index, $serviceAnnotation := .Values.presets.profilesCollection.serviceAnnotations }}
-      - set(resource.attributes["service.name"], resource.attributes[{{ $serviceAnnotation.tag_name | quote }}])
-        where resource.attributes["service.name"] == nil and resource.attributes[{{ $serviceAnnotation.tag_name | quote }}] != nil
-
-    {{- end }}
-    {{- range $index, $serviceLabel := .Values.presets.profilesCollection.serviceLabels }}
-      - set(resource.attributes["service.name"], resource.attributes[{{ $serviceLabel.tag_name  | quote }}])
-        where resource.attributes["service.name"] == nil and resource.attributes[{{ $serviceLabel.tag_name | quote }}] != nil
-
-    {{- end }}
-      - set(resource.attributes["service.name"], resource.attributes["k8s.label.instance"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.label.instance"] != nil
-
-      - set(resource.attributes["service.name"], resource.attributes["k8s.label.name"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.label.name"] != nil
-
-      - set(resource.attributes["service.name"], resource.attributes["k8s.deployment.name"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.deployment.name"] != nil
-
-      - set(resource.attributes["service.name"], resource.attributes["k8s.replicaset.name"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.replicaset.name"] != nil
-
-      - set(resource.attributes["service.name"], resource.attributes["k8s.statefulset.name"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.statefulset.name"] != nil
-
-      - set(resource.attributes["service.name"], resource.attributes["k8s.daemonset.name"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.daemonset.name"] != nil
-
-      - set(resource.attributes["service.name"], resource.attributes["k8s.cronjob.name"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.cronjob.name"] != nil
-
-      - set(resource.attributes["service.name"], resource.attributes["k8s.job.name"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.job.name"] != nil
-
-      - set(resource.attributes["service.name"], resource.attributes["k8s.pod.name"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.pod.name"] != nil
-
-      - set(resource.attributes["service.name"], resource.attributes["k8s.container.name"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.container.name"] != nil
-
-  k8sattributes/profiles:
-    {{- if or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled }}
-    filter:
-      node_from_env_var: K8S_NODE_NAME
-    {{- end }}
-    extract:
-      metadata:
-        - k8s.namespace.name
-        - k8s.replicaset.name
-        - k8s.statefulset.name
-        - k8s.daemonset.name
-        - k8s.deployment.name
-        - k8s.cronjob.name
-        - k8s.job.name
-        - k8s.pod.name
-        - k8s.node.name
-        - container.id
-        - k8s.container.name
-        - service.version
-      labels:
-        - tag_name: k8s.label.name
-          key: app.kubernetes.io/name
-          from: pod
-        - tag_name: k8s.label.instance
-          key: app.kubernetes.io/instance
-          from: pod
-      {{- range $index, $serviceLabel := .Values.presets.profilesCollection.serviceLabels }}
-        - tag_name: {{ $serviceLabel.tag_name | quote }}
-          key: {{ $serviceLabel.key | quote }}
-          from: {{ $serviceLabel.from | default "pod" | quote }}
-      {{- end }}
-
-      {{- if .Values.presets.profilesCollection.serviceAnnotations }}
-      annotations:
-          {{- range $index, $serviceAnnotation := .Values.presets.profilesCollection.serviceAnnotations }}
-        - tag_name: {{ $serviceAnnotation.tag_name | quote }}
-          key: {{ $serviceAnnotation.key | quote }}
-          from:  {{ $serviceAnnotation.from | default "pod" | quote }}
-          {{- end }}
-      {{- end }}
-      otel_annotations: true
-
-    passthrough: false
-    pod_association:
-      - sources:
-          - from: resource_attribute
-            name: container.id
-      - sources:
-          - from: connection
-
 service:
   pipelines:
     profiles:
       receivers: []
       processors:
         - memory_limiter
-        - k8sattributes/profiles
         - resource/metadata
-        - transform/profiles
       exporters: []
 {{- end }}
 
