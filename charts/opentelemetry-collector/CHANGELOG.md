@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.134.3 / 2026-07-01
+
+- [Fix] Run Windows collectors with the logs collection preset as `NT AUTHORITY\SYSTEM` by default so they can read pod log files.
+
 ### v0.134.2 / 2026-06-23
 
 - [Feat] Add per-object startup delays for Kubernetes resource catalog periodic collection to spread initial pull requests.
