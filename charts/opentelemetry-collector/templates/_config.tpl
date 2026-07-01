@@ -134,6 +134,17 @@ Usage: {{ include "opentelemetry-collector.inferProvider" (dict "distribution" .
 {{- end }}
 
 {{/*
+Whether GCP Kubernetes host entity events should use node labels for enrichment.
+*/}}
+{{- define "opentelemetry-collector.useGcpHostEntityLabels" -}}
+{{- $distribution := .Values.distribution | default "" -}}
+{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "topLevelProvider" .Values.provider "explicitProvider" .Values.presets.resourceDetection.provider) -}}
+{{- if and .Values.presets.hostEntityEvents.enabled (eq $provider "gcp") (ne $distribution "standalone") (ne $distribution "ecs") (ne $distribution "macos") -}}
+true
+{{- end -}}
+{{- end }}
+
+{{/*
 Build config file for daemonset OpenTelemetry Collector
 */}}
 {{- define "opentelemetry-collector.daemonsetConfig" -}}
@@ -2978,6 +2989,7 @@ service:
 {{- /* Determine if cloud tags should be collected for infra explorer */ -}}
 {{- $useEc2 := and (eq $provider "aws") (ne $distribution "eks/fargate") }}
 {{- $useAzure := eq $provider "azure" }}
+{{- $useGcpK8s := eq (include "opentelemetry-collector.useGcpHostEntityLabels" .) "true" }}
 exporters:
   coralogix/resource_catalog:
     timeout: "30s"
@@ -3011,6 +3023,32 @@ exporters:
 {{- end }}
 
 processors:
+{{- if $useGcpK8s }}
+  resource/host-entity-pod-uid:
+    attributes:
+      - action: upsert
+        key: k8s.pod.uid
+        value: ${env:K8S_POD_UID}
+  k8sattributes/host-entity:
+    wait_for_metadata: true
+    wait_for_metadata_timeout: 30s
+    filter:
+      node_from_env_var: K8S_NODE_NAME
+    extract:
+      metadata:
+        - k8s.node.name
+      labels:
+        - from: node
+          key: node.kubernetes.io/instance-type
+          tag_name: k8s.node.labels.node.kubernetes.io/instance-type
+        - from: node
+          key: topology.kubernetes.io/region
+          tag_name: k8s.node.labels.topology.kubernetes.io/region
+    pod_association:
+      - sources:
+          - from: resource_attribute
+            name: k8s.pod.uid
+{{- end }}
   resourcedetection/entity:
     detectors:
       - system
@@ -3055,12 +3093,24 @@ processors:
       tags:
         - ".*"
 {{- end }}
+{{- if $useGcpK8s }}
+  transform/gcp-host-entity-attributes:
+    error_mode: ignore
+    log_statements:
+      - context: resource
+        statements:
+          - set(resource.attributes["host.type"], resource.attributes["k8s.node.labels.node.kubernetes.io/instance-type"]) where resource.attributes["host.type"] == nil
+          - set(resource.attributes["cloud.region"], resource.attributes["k8s.node.labels.topology.kubernetes.io/region"]) where resource.attributes["cloud.region"] == nil
+{{- end }}
   transform/entity-event:
     error_mode: silent
     log_statements:
       - context: log
         statements:
           - set(log.attributes["otel.entity.id"]["host.id"], resource.attributes["host.id"])
+{{- if $useGcpK8s }}
+          - set(log.attributes["otel.entity.id"]["k8s.node.name"], resource.attributes["k8s.node.name"]) where resource.attributes["k8s.node.name"] != nil
+{{- end }}
           - merge_maps(log.attributes, resource.attributes, "insert")
       - context: resource
         statements:
@@ -3092,6 +3142,10 @@ service:
         {{- if .Values.presets.metadata.enabled }}
         - resource/metadata
         {{- end }}
+        {{- if $useGcpK8s }}
+        - resource/host-entity-pod-uid
+        - k8sattributes/host-entity
+        {{- end }}
         {{- if .Values.presets.kubernetesAttributes.enabled }}
         - k8sattributes
         {{- end}}
@@ -3101,6 +3155,9 @@ service:
         {{- end }}
         {{- if eq $provider "azure" }}
         - transform/azure-host-attributes
+        {{- end }}
+        {{- if $useGcpK8s }}
+        - transform/gcp-host-entity-attributes
         {{- end }}
         - transform/entity-event
       receivers:

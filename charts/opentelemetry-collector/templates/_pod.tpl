@@ -61,6 +61,12 @@ containers:
           fieldRef:
             fieldPath: spec.nodeName
       {{- end }}
+      {{- if eq (include "opentelemetry-collector.useGcpHostEntityLabels" .) "true" }}
+      - name: K8S_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      {{- end }}
       {{- if .Values.presets.k8sResourceAttributes.enabled }}
       - name: KUBE_POD_NAME
         valueFrom:

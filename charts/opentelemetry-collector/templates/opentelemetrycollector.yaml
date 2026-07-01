@@ -95,11 +95,18 @@ spec:
         fieldRef:
           fieldPath: metadata.name
     {{- end }}
-    {{- if and .Values.presets.kubernetesAttributes.enabled (or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled) }}
+    {{- $useGcpHostEntityLabels := eq (include "opentelemetry-collector.useGcpHostEntityLabels" .) "true" -}}
+    {{- if or (and .Values.presets.kubernetesAttributes.enabled (or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled)) $useGcpHostEntityLabels }}
     - name: K8S_NODE_NAME
       valueFrom:
         fieldRef:
           fieldPath: spec.nodeName
+    {{- end }}
+    {{- if $useGcpHostEntityLabels }}
+    - name: K8S_POD_UID
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.uid
     {{- end }}
     {{- if .Values.presets.kubeletMetrics.enabled }}
     - name: K8S_NODE_IP
