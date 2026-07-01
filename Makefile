@@ -65,6 +65,8 @@ generate-examples:
 				fi; \
 				rm -rf $${EXAMPLES_DIR}/$${example}/rendered/$${chart_name}; \
 			done; \
+			find "$${EXAMPLES_DIR}/$${example}/rendered" -type f \( -name '*.yaml' -o -name '*.yml' \) -exec sed -i.bak -e :a -e '/^[[:space:]]*$$/{$$d;N;ba' -e '}' {} +; \
+			find "$${EXAMPLES_DIR}/$${example}/rendered" -type f \( -name '*.yaml.bak' -o -name '*.yml.bak' \) -exec rm -f {} +; \
 			printf "Completed example: $${example}\n" \
 		); \
 		echo "Completed chart: $${chart_name}"; \
@@ -92,6 +94,8 @@ check-examples:
 					done; \
 				fi; \
 			done; \
+			find "$${EXAMPLE_TMP}/$${chart_name}/templates" -type f \( -name '*.yaml' -o -name '*.yml' \) -exec sed -i.bak -e :a -e '/^[[:space:]]*$$/{$$d;N;ba' -e '}' {} +; \
+			find "$${EXAMPLE_TMP}/$${chart_name}/templates" -type f \( -name '*.yaml.bak' -o -name '*.yml.bak' \) -exec rm -f {} +; \
 			if diff -r "$${EXAMPLES_DIR}/$${example}/rendered" "$${EXAMPLE_TMP}/$${chart_name}/templates" > /dev/null 2>&1; then \
 				printf "Passed $${example}\n"; \
 			else \
