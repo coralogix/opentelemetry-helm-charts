@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.134.3 / 2026-07-01
+
+- [Fix] Enrich GCP Kubernetes host entity events with node label metadata so `host.type`, `cloud.region`, and the Kubernetes node entity identifier are present for GKE nodes.
+
 ### v0.134.2 / 2026-06-23
 
 - [Feat] Add per-object startup delays for Kubernetes resource catalog periodic collection to spread initial pull requests.
