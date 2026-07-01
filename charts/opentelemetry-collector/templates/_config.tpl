@@ -258,7 +258,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.ecsAttributesContainerLogs.enabled }}
 {{- $config = (include "opentelemetry-collector.applyEcsAttributesContainerLogsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if .Values.presets.profilesK8sAttributes.enabled }}
+{{- if and (.Values.presets.profilesK8sAttributes.enabled) (.Values.presets.profilesCollection.enabled) }}
 {{- $config = (include "opentelemetry-collector.applyProfilesK8sAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.resourceDetection.enabled }}
@@ -363,7 +363,7 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.ebpfProfiler.enabled }}
 {{- $config = (include "opentelemetry-collector.applyEbpfProfilerConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if .Values.presets.profilesK8sAttributes.enabled }}
+{{- if and (.Values.presets.profilesK8sAttributes.enabled) (.Values.presets.profilesCollection.enabled) }}
 {{- $config = (include "opentelemetry-collector.applyProfilesK8sAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.resourceDetection.enabled }}

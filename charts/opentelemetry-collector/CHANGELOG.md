@@ -4,8 +4,7 @@
 
 ### v0.134.3 / 2026-07-01
 
-- [Breaking] The `profilesCollection` preset now does not add k8s specific transforms and metadata by default.
-To preserve the prior behavior, enable the `profilesK8sAttributes` preset.
+- [Fix] The `profilesK8sAttributes` preset now is enabled by default.
 
 ### v0.134.2 / 2026-06-23
 
