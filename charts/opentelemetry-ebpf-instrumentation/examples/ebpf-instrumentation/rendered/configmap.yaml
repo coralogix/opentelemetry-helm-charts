@@ -17,7 +17,7 @@ data:
   ebpf-instrument-config.yml: |
     discovery:
       instrument:
-        - k8s_namespace: ".*"
+        - k8s_namespace: "*"
       exclude_instrument:
         - exe_path: "*ebpf-instrument*"
         - exe_path: "*otelcol*"
