@@ -2,9 +2,13 @@
 
 ## OpenTelemetry Collector
 
-### v0.134.3 / 2026-07-01
+### v0.134.4 / 2026-07-03
 
 - [Fix] Run Windows collectors with the logs collection preset as `NT AUTHORITY\SYSTEM` by default so they can read pod log files.
+
+### v0.134.3 / 2026-07-01
+
+- [Fix] The `profilesK8sAttributes` preset now is enabled by default.
 
 ### v0.134.2 / 2026-06-23
 
