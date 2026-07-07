@@ -3775,6 +3775,12 @@ processors:
           - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_added$", "otelcol_otelsvc_k8s_pod_added_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_updated$", "otelcol_otelsvc_k8s_pod_updated_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_deleted$", "otelcol_otelsvc_k8s_pod_deleted_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_log_records$", "otelcol_processor_accepted_log_records") where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_metric_points$", "otelcol_processor_accepted_metric_points") where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_spans$", "otelcol_processor_accepted_spans") where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_log_records$", "otelcol_processor_refused_log_records") where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_metric_points$", "otelcol_processor_refused_metric_points") where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_spans$", "otelcol_processor_refused_spans") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_processor_filter_spans\\.filtered$", "otelcol_processor_filter_spans.filtered_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
       - context: resource
         statements:

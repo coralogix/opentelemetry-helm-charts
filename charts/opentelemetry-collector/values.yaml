@@ -827,7 +827,7 @@ presets:
     # Support will be provided only when it reaches a stable release.
     supervisor:
       # Version of the Supervised Collector image to use when the Supervisor preset is enabled.
-      imageVersion: 0.9.0
+      imageVersion: 0.10.0
       enabled: false
       # Specifies whether to use a minimal Collector config.
       # When enabled, the Collector configuration will not include any other
