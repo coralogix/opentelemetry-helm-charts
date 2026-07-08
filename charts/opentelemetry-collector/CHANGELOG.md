@@ -2,6 +2,12 @@
 
 ## OpenTelemetry Collector
 
+### v0.135.0 / 2026-07-07
+
+- [Feat] Bump the OpenTelemetry Collector image to v0.155.0.
+- [Feat] Upgrade Supervisor-based images to v0.10.0.
+- [Fix] Restore legacy memory limiter metric names in the rendered collector pipeline for backward compatibility.
+
 ### v0.134.4 / 2026-07-03
 
 - [Fix] Run Windows collectors with the logs collection preset as `NT AUTHORITY\SYSTEM` by default so they can read pod log files.
