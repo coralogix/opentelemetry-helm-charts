@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.135.1
+    helm.sh/chart: opentelemetry-collector-0.135.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.155.0"
@@ -87,7 +87,7 @@ data:
           non_identifying_attributes:
             cx.agent.type: agent
             cx.cluster.name: 'ecs'
-            helm.chart.opentelemetry-collector.version: 0.135.1
+            helm.chart.opentelemetry-collector.version: 0.135.2
         server:
           http:
             endpoint: https://ingress./opamp/v1
@@ -247,6 +247,9 @@ data:
           statements:
           - set(span.attributes["http.method"], span.attributes["http.request.method"])
             where span.attributes["http.request.method"] != nil
+          - set(span.attributes["http.response.status_code"], span.attributes["http.status_code"])
+            where span.attributes["http.response.status_code"] == nil and span.attributes["http.status_code"]
+            != nil
     receivers:
       awsecscontainermetricsd: {}
       filelog:

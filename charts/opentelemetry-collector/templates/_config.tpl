@@ -1859,6 +1859,7 @@ processors:
       - context: span
         statements:
           - set(span.attributes["http.method"], span.attributes["http.request.method"]) where span.attributes["http.request.method"] != nil
+          - set(span.attributes["http.response.status_code"], span.attributes["http.status_code"]) where span.attributes["http.response.status_code"] == nil and span.attributes["http.status_code"] != nil
 {{- end }}
 
 {{- define "opentelemetry-collector.applyFleetManagementConfig" -}}

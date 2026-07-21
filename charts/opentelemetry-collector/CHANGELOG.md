@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.135.2 / 2026-07-21
+
+- [Fix] The `semconv` preset now maps the legacy `http.status_code` attribute to `http.response.status_code` so span metrics carry the status code for spans using the old HTTP semantic convention.
+
 ### v0.135.1 / 2026-07-15
 
 - [Feat] Upgrade Supervisor-based images to v0.11.0.
