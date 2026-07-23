@@ -1086,6 +1086,10 @@
               "description": "Specifies the duration after which metrics will no longer be produced, if no new spans are received.",
               "type": "string"
             },
+            "seriesExpiration": {
+              "description": "Specifies the duration after which individual stale metric series expire and free aggregation slots.",
+              "type": "string"
+            },
             "aggregationCardinalityLimit": {
               "description": "Sets the maximum number of aggregation keys kept in memory. 0 means unlimited.",
               "type": "integer"
@@ -1219,6 +1223,10 @@
             },
             "metricsExpiration": {
               "description": "Specifies the duration after which metrics will no longer be produced, if no new spans are received.",
+              "type": "string"
+            },
+            "seriesExpiration": {
+              "description": "Specifies the duration after which individual stale metric series expire and free aggregation slots.",
               "type": "string"
             },
             "aggregationCardinalityLimit": {
