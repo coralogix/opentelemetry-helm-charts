@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.135.3 / 2026-07-21
+
+- [Feat] Add `graphql.operation.type` (query/mutation/subscription) as a span-metrics dimension so GraphQL traffic can be aggregated by operation type.
+
 ### v0.135.2 / 2026-07-21
 
 - [Fix] The `semconv` preset now maps the legacy `http.status_code` attribute to `http.response.status_code` so span metrics carry the status code for spans using the old HTTP semantic convention.

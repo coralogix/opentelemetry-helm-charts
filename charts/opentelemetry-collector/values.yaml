@@ -425,6 +425,7 @@ presets:
       - name: db.operation.name
       - name: db.collection.name
       - name: db.system
+      - name: graphql.operation.type
     histogramBuckets:
       [1ms, 4ms, 10ms, 20ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s]
 
@@ -463,6 +464,7 @@ presets:
       - name: db.operation.name
       - name: db.collection.name
       - name: db.system
+      - name: graphql.operation.type
     defaultHistogramBuckets:
       [1ms, 4ms, 10ms, 20ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s]
     # collectionInterval: 30s
