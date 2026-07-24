@@ -2051,6 +2051,9 @@ connectors:
 {{- else }}
     metrics_expiration: 0
 {{- end }}
+{{- if .Values.presets.spanMetrics.seriesExpiration }}
+    series_expiration: "{{ .Values.presets.spanMetrics.seriesExpiration }}"
+{{- end }}
 {{- if .Values.presets.spanMetrics.dbMetrics.enabled }}
   spanmetrics/db:
     namespace: "db"
@@ -2078,6 +2081,9 @@ connectors:
 {{- else }}
     metrics_expiration: 0
 {{- end }}
+{{- if .Values.presets.spanMetrics.seriesExpiration }}
+    series_expiration: "{{ .Values.presets.spanMetrics.seriesExpiration }}"
+{{- end }}
 {{- if .Values.presets.spanMetrics.collectionInterval }}
     metrics_flush_interval: "{{ .Values.presets.spanMetrics.collectionInterval }}"
 {{- else }}
@@ -2103,6 +2109,9 @@ connectors:
     metrics_expiration: "{{ .Values.presets.spanMetrics.metricsExpiration }}"
 {{- else }}
     metrics_expiration: 0
+{{- end }}
+{{- if .Values.presets.spanMetrics.seriesExpiration }}
+    series_expiration: "{{ .Values.presets.spanMetrics.seriesExpiration }}"
 {{- end }}
 {{- if .Values.presets.spanMetrics.collectionInterval }}
     metrics_flush_interval: "{{ .Values.presets.spanMetrics.collectionInterval }}"
@@ -2133,6 +2142,9 @@ connectors:
     metrics_expiration: "{{ .Values.presets.spanMetrics.metricsExpiration }}"
 {{- else }}
     metrics_expiration: 0
+{{- end }}
+{{- if .Values.presets.spanMetrics.seriesExpiration }}
+    series_expiration: "{{ .Values.presets.spanMetrics.seriesExpiration }}"
 {{- end }}
 {{- if .Values.presets.spanMetrics.collectionInterval }}
     metrics_flush_interval: "{{ .Values.presets.spanMetrics.collectionInterval }}"
@@ -2434,6 +2446,9 @@ connectors:
     {{- else }}
     metrics_expiration: 0
     {{- end }}
+    {{- if .Values.presets.spanMetricsMulti.seriesExpiration }}
+    series_expiration: "{{ .Values.presets.spanMetricsMulti.seriesExpiration }}"
+    {{- end }}
     {{- $extraDimensions := include "opentelemetry-collector.spanMetricsMulti.extraDimensions" . }}
     {{- if and $extraDimensions (gt (len $extraDimensions) 0) }}
     dimensions:
@@ -2462,6 +2477,9 @@ connectors:
     metrics_expiration: "{{ $root.Values.presets.spanMetricsMulti.metricsExpiration }}"
     {{- else }}
     metrics_expiration: 0
+    {{- end }}
+    {{- if $root.Values.presets.spanMetricsMulti.seriesExpiration }}
+    series_expiration: "{{ $root.Values.presets.spanMetricsMulti.seriesExpiration }}"
     {{- end }}
     {{- $extraDimensions := include "opentelemetry-collector.spanMetricsMulti.extraDimensions" $root }}
     {{- if and $extraDimensions (gt (len $extraDimensions) 0) }}
@@ -4465,6 +4483,9 @@ receivers:
 {{- else }}
     metrics_expiration: 0
 {{- end }}
+{{- if $p.seriesExpiration }}
+    series_expiration: "{{ $p.seriesExpiration }}"
+{{- end }}
 {{- if $p.collectionInterval }}
     metrics_flush_interval: "{{ $p.collectionInterval }}"
 {{- else }}
@@ -4490,6 +4511,9 @@ receivers:
     metrics_expiration: "{{ $p.metricsExpiration }}"
 {{- else }}
     metrics_expiration: 0
+{{- end }}
+{{- if $p.seriesExpiration }}
+    series_expiration: "{{ $p.seriesExpiration }}"
 {{- end }}
 {{- if $p.collectionInterval }}
     metrics_flush_interval: "{{ $p.collectionInterval }}"
@@ -4520,6 +4544,9 @@ receivers:
     metrics_expiration: "{{ $p.metricsExpiration }}"
 {{- else }}
     metrics_expiration: 0
+{{- end }}
+{{- if $p.seriesExpiration }}
+    series_expiration: "{{ $p.seriesExpiration }}"
 {{- end }}
 {{- if $p.collectionInterval }}
     metrics_flush_interval: "{{ $p.collectionInterval }}"

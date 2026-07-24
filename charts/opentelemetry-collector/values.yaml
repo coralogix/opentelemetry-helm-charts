@@ -431,6 +431,9 @@ presets:
 
     # collectionInterval: 30s
     # metricsExpiration: 5m
+    # seriesExpiration expires individual stale aggregation series (not the whole resource).
+    # Keeps aggregation_cardinality_limit slots from filling permanently after a transient spike.
+    seriesExpiration: 5m
     # aggregationCardinalityLimit sets the maximum amount of aggregation keys
     # kept in memory. 0 means unlimited.
     aggregationCardinalityLimit: 100000
@@ -469,6 +472,8 @@ presets:
       [1ms, 4ms, 10ms, 20ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s]
     # collectionInterval: 30s
     # metricsExpiration: 5m
+    # seriesExpiration expires individual stale aggregation series (not the whole resource).
+    seriesExpiration: 5m
     aggregationCardinalityLimit: 100000
     configs:
       []

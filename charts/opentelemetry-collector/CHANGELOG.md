@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.135.4 / 2026-07-23
+
+- [Feat] Default spanMetrics and spanMetricsMulti `seriesExpiration` to `5m` so stale per-dimension series expire and free aggregation slots after a transient cardinality spike.
+
 ### v0.135.3 / 2026-07-21
 
 - [Feat] Add `graphql.operation.type` (query/mutation/subscription) as a span-metrics dimension so GraphQL traffic can be aggregated by operation type.
