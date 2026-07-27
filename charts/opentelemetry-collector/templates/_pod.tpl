@@ -33,6 +33,9 @@ containers:
       {{- if or .Values.presets.hostMetrics.process.enabled .Values.presets.ebpfProfiler.enabled }}
       privileged: true
       {{- end }}
+      {{- else if and (not (.Values.securityContext)) (.Values.isWindows) (.Values.presets.logsCollection.enabled) }}
+      windowsOptions:
+        runAsUserName: "NT AUTHORITY\\SYSTEM"
       {{- else -}}
       {{- toYaml .Values.securityContext | nindent 6 }}
       {{- end }}

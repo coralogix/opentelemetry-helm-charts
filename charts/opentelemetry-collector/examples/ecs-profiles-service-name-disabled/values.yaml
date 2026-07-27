@@ -3,6 +3,8 @@ mode: daemonset
 presets:
   profilesCollection:
     enabled: true
+  profilesK8sAttributes:
+    enabled: false
   ecsAttributesContainerLogs:
     enabled: true
 

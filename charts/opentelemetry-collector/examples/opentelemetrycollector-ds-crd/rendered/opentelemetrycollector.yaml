@@ -5,10 +5,10 @@ kind: OpenTelemetryCollector
 metadata:
   name: example-opentelemetry-collector
   labels:
-    helm.sh/chart: opentelemetry-collector-0.131.9
+    helm.sh/chart: opentelemetry-collector-0.135.5
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "0.151.0"
+    app.kubernetes.io/version: "0.155.0"
     app.kubernetes.io/managed-by: Helm
     
 spec:
@@ -19,7 +19,7 @@ spec:
     runAsGroup: 0
   securityContext:
     privileged: true
-  image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.151.0"
+  image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.155.0"
   imagePullPolicy: IfNotPresent
   ports:
     - name: otlp
@@ -93,8 +93,6 @@ spec:
             == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_process_cpu_seconds_seconds$", "otelcol_process_cpu_seconds")
             where resource.attributes["service.name"] == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_process_memory_rss_bytes$", "otelcol_process_memory_rss_bytes")
-            where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_process_runtime_heap_alloc_bytes_bytes$",
             "otelcol_process_runtime_heap_alloc_bytes") where resource.attributes["service.name"]
             == "opentelemetry-collector"
@@ -112,13 +110,28 @@ spec:
             where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_added$", "otelcol_otelsvc_k8s_pod_added_ratio")
             where resource.attributes["service.name"] == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_table_size_ratio$",
-            "otelcol_otelsvc_k8s_pod_table_size_ratio") where resource.attributes["service.name"]
-            == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_updated$", "otelcol_otelsvc_k8s_pod_updated_ratio")
             where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_deleted$", "otelcol_otelsvc_k8s_pod_deleted_ratio")
             where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_log_records$",
+            "otelcol_processor_accepted_log_records") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_metric_points$",
+            "otelcol_processor_accepted_metric_points") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_spans$",
+            "otelcol_processor_accepted_spans") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_log_records$",
+            "otelcol_processor_refused_log_records") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_metric_points$",
+            "otelcol_processor_refused_metric_points") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_spans$",
+            "otelcol_processor_refused_spans") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_processor_filter_spans\\.filtered$",
             "otelcol_processor_filter_spans.filtered_ratio") where resource.attributes["service.name"]
             == "opentelemetry-collector"
@@ -401,3 +414,6 @@ spec:
                 prometheus:
                   host: ${env:MY_POD_IP}
                   port: 8888
+                  without_scope_info: false
+                  without_type_suffix: false
+                  without_units: false

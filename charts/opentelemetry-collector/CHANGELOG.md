@@ -2,11 +2,68 @@
 
 ## OpenTelemetry Collector
 
-### v0.131.9 / 2026-05-28
+### v0.135.5 / 2026-07-27
 
 - [Feat] Add `presets.pprofReceiver` preset wrapping the upstream contrib `pprofreceiver` (alpha). Three independent modes: `pull` (annotation-based discovery via `receiver_creator` + `k8s_observer`, scraping `/debug/pprof/*` endpoints on pods opted in with `pprof.coralogix.com/scrape: "true"`), `push` (HTTP server accepting `POST /v1/pprof`, port auto-published on the chart-managed Service), and `self` (in-process self-profiling of the collector). Requires `presets.profilesCollection.enabled = true`.
 - [Feat] Apply `presets.profilesCollection` in deployment/statefulset modes as well as daemonset, so the profiles pipeline (and the new pprofReceiver preset) work in cluster-collector deployments. Previously profilesCollection only took effect in daemonset mode.
 - [Feat] Add `k8s.pod.uid` as a third `pod_association` source on `k8sattributes/profiles` so pull-mode pprof profiles (where there is no inbound connection IP) can still be enriched with Kubernetes metadata.
+
+### v0.135.4 / 2026-07-23
+
+- [Feat] Default spanMetrics and spanMetricsMulti `seriesExpiration` to `5m` so stale per-dimension series expire and free aggregation slots after a transient cardinality spike.
+
+### v0.135.3 / 2026-07-21
+
+- [Feat] Add `graphql.operation.type` (query/mutation/subscription) as a span-metrics dimension so GraphQL traffic can be aggregated by operation type.
+
+### v0.135.2 / 2026-07-21
+
+- [Fix] The `semconv` preset now maps the legacy `http.status_code` attribute to `http.response.status_code` so span metrics carry the status code for spans using the old HTTP semantic convention.
+
+### v0.135.1 / 2026-07-15
+
+- [Feat] Upgrade Supervisor-based images to v0.11.0.
+
+### v0.135.0 / 2026-07-07
+
+- [Feat] Bump the OpenTelemetry Collector image to v0.155.0.
+- [Feat] Upgrade Supervisor-based images to v0.10.0.
+- [Fix] Restore legacy memory limiter metric names in the rendered collector pipeline for backward compatibility.
+
+### v0.134.4 / 2026-07-03
+
+- [Fix] Run Windows collectors with the logs collection preset as `NT AUTHORITY\SYSTEM` by default so they can read pod log files.
+
+### v0.134.3 / 2026-07-01
+
+- [Fix] The `profilesK8sAttributes` preset now is enabled by default.
+
+### v0.134.2 / 2026-06-23
+
+- [Feat] Add per-object startup delays for Kubernetes resource catalog periodic collection to spread initial pull requests.
+
+### v0.134.1 / 2026-06-29
+
+- [Fix] Use the ECS Coralogix distribution header for all ECS signals and centralize the header mapping in a shared template helper.
+
+### v0.134.0 / 2026-06-23
+
+- [Feat] Bump the OpenTelemetry Collector image to v0.154.0.
+- [Feat] Upgrade Supervisor-based images to v0.9.0.
+
+### v0.133.0 / 2026-06-16
+
+- [Feat] Bump the OpenTelemetry Collector image to v0.153.0.
+- [Feat] Upgrade Supervisor-based images to v0.8.0.
+
+### v0.132.0 / 2026-06-08
+
+- [Feat] Bump the OpenTelemetry Collector image to v0.152.1.
+
+### v0.131.9 / 2026-05-26
+
+- [Breaking] Fix `spanMetricsMulti` to apply the same extra dimensions (including `errorTracking` fallback from `presets.spanMetrics`) to all spanmetrics connectors, and skip auto-added status code dimensions when they are already listed in `extraDimensions`.
+- [Breaking] Fix `spanmetrics/default` and routed `spanmetrics/<index>` connectors to match single `spanMetrics` compatibility defaults by setting `add_resource_attributes: true` and `histogram.unit: ms`, required for APM span metrics.
 
 ### v0.131.8 / 2026-05-26
 

@@ -1,6 +1,8 @@
 presets:
   profilesCollection:
     enabled: true
+  profilesK8sAttributes:
+    enabled: true
   metadata:
     enabled: true
     clusterName: "production"

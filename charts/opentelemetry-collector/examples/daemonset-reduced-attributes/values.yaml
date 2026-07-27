@@ -19,6 +19,8 @@ config:
 presets:
   profilesCollection:
     enabled: true
+  profilesK8sAttributes:
+    enabled: true
   k8sResourceAttributes:
     enabled: true
   batch:

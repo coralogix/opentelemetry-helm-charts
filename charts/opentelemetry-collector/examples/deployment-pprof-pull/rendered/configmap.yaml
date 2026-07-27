@@ -6,10 +6,10 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.131.9
+    helm.sh/chart: opentelemetry-collector-0.135.5
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "0.151.0"
+    app.kubernetes.io/version: "0.155.0"
     app.kubernetes.io/managed-by: Helm
     
 data:
@@ -146,8 +146,6 @@ data:
             == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_process_cpu_seconds_seconds$", "otelcol_process_cpu_seconds")
             where resource.attributes["service.name"] == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_process_memory_rss_bytes$", "otelcol_process_memory_rss_bytes")
-            where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_process_runtime_heap_alloc_bytes_bytes$",
             "otelcol_process_runtime_heap_alloc_bytes") where resource.attributes["service.name"]
             == "opentelemetry-collector"
@@ -165,13 +163,28 @@ data:
             where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_added$", "otelcol_otelsvc_k8s_pod_added_ratio")
             where resource.attributes["service.name"] == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_table_size_ratio$",
-            "otelcol_otelsvc_k8s_pod_table_size_ratio") where resource.attributes["service.name"]
-            == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_updated$", "otelcol_otelsvc_k8s_pod_updated_ratio")
             where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_deleted$", "otelcol_otelsvc_k8s_pod_deleted_ratio")
             where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_log_records$",
+            "otelcol_processor_accepted_log_records") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_metric_points$",
+            "otelcol_processor_accepted_metric_points") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_spans$",
+            "otelcol_processor_accepted_spans") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_log_records$",
+            "otelcol_processor_refused_log_records") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_metric_points$",
+            "otelcol_processor_refused_metric_points") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_spans$",
+            "otelcol_processor_refused_spans") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_processor_filter_spans\\.filtered$",
             "otelcol_processor_filter_spans.filtered_ratio") where resource.attributes["service.name"]
             == "opentelemetry-collector"
@@ -218,8 +231,8 @@ data:
               k8s.pod.uid: '`uid`'
               pprof.profile.type: allocs
             rule: type == "pod" && annotations["pprof.coralogix.com/scrape"] == "true"
-              && ("pprof.coralogix.com/types" not in annotations || contains(annotations["pprof.coralogix.com/types"],
-              "allocs"))
+              && ("pprof.coralogix.com/types" not in annotations || annotations["pprof.coralogix.com/types"]
+              contains "allocs")
           pprof/heap:
             config:
               remote:
@@ -231,8 +244,8 @@ data:
               k8s.pod.uid: '`uid`'
               pprof.profile.type: heap
             rule: type == "pod" && annotations["pprof.coralogix.com/scrape"] == "true"
-              && ("pprof.coralogix.com/types" not in annotations || contains(annotations["pprof.coralogix.com/types"],
-              "heap"))
+              && ("pprof.coralogix.com/types" not in annotations || annotations["pprof.coralogix.com/types"]
+              contains "heap")
           pprof/profile:
             config:
               remote:
@@ -246,8 +259,8 @@ data:
               k8s.pod.uid: '`uid`'
               pprof.profile.type: profile
             rule: type == "pod" && annotations["pprof.coralogix.com/scrape"] == "true"
-              && ("pprof.coralogix.com/types" not in annotations || contains(annotations["pprof.coralogix.com/types"],
-              "profile"))
+              && ("pprof.coralogix.com/types" not in annotations || annotations["pprof.coralogix.com/types"]
+              contains "profile")
         watch_observers:
         - k8s_observer
     service:
@@ -278,8 +291,8 @@ data:
           - coralogix
           processors:
           - memory_limiter
-          - k8sattributes/profiles
           - resource/metadata
+          - k8sattributes/profiles
           - transform/profiles
           receivers:
           - receiver_creator/pprof
@@ -302,3 +315,6 @@ data:
                 prometheus:
                   host: ${env:MY_POD_IP}
                   port: 8888
+                  without_scope_info: false
+                  without_type_suffix: false
+                  without_units: false

@@ -1,6 +1,8 @@
 presets:
   profilesCollection:
     enabled: true
+  profilesK8sAttributes:
+    enabled: true
   resourceDetection:
     enabled: true
   metadata:

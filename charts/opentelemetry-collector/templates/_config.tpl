@@ -85,6 +85,24 @@ Returns the endpoint name if provided, otherwise sanitizes the domain.
 {{- end }}
 
 {{/*
+Build Coralogix distribution header value.
+Usage: {{ include "opentelemetry-collector.coralogixDistribution" (dict "distribution" .Values.distribution "version" .Values.global.version) }}
+*/}}
+{{- define "opentelemetry-collector.coralogixDistribution" -}}
+{{- $distribution := .distribution | default "" -}}
+{{- $version := .version | default "" -}}
+{{- $name := "helm-otel-integration" -}}
+{{- if eq $distribution "ecs" -}}
+  {{- $name = "ecs-ec2-integration" -}}
+{{- else if eq $distribution "standalone" -}}
+  {{- $name = "helm-otel-standalone" -}}
+{{- else if eq $distribution "macos" -}}
+  {{- $name = "helm-otel-macos" -}}
+{{- end -}}
+{{- printf "%s/%s" $name $version -}}
+{{- end }}
+
+{{/*
 Infer cloud provider from distribution.
 Returns: "aws", "azure", "gcp", "on-prem", or "" (empty string if no match)
 Resolution order: topLevelProvider → explicitProvider (preset) → inferred from distribution
@@ -243,7 +261,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.ecsAttributesContainerLogs.enabled }}
 {{- $config = (include "opentelemetry-collector.applyEcsAttributesContainerLogsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if .Values.presets.profilesK8sAttributes.enabled }}
+{{- if and (.Values.presets.profilesK8sAttributes.enabled) (.Values.presets.profilesCollection.enabled) }}
 {{- $config = (include "opentelemetry-collector.applyProfilesK8sAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.resourceDetection.enabled }}
@@ -354,7 +372,7 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.ebpfProfiler.enabled }}
 {{- $config = (include "opentelemetry-collector.applyEbpfProfilerConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if .Values.presets.profilesK8sAttributes.enabled }}
+{{- if and (.Values.presets.profilesK8sAttributes.enabled) (.Values.presets.profilesCollection.enabled) }}
 {{- $config = (include "opentelemetry-collector.applyProfilesK8sAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.resourceDetection.enabled }}
@@ -1281,113 +1299,13 @@ processors:
 {{- end }}
 
 {{- define "opentelemetry-collector.profilesCollectionConfig" -}}
-processors:
-  transform/profiles:
-    profile_statements:
-    # prioritized by
-    # https://opentelemetry.io/docs/specs/semconv/non-normative/k8s-attributes/#how-servicename-should-be-calculated
-     {{- range $index, $serviceAnnotation := .Values.presets.profilesCollection.serviceAnnotations }}
-      - set(resource.attributes["service.name"], resource.attributes[{{ $serviceAnnotation.tag_name | quote }}])
-        where resource.attributes["service.name"] == nil and resource.attributes[{{ $serviceAnnotation.tag_name | quote }}] != nil
-
-    {{- end }}
-    {{- range $index, $serviceLabel := .Values.presets.profilesCollection.serviceLabels }}
-      - set(resource.attributes["service.name"], resource.attributes[{{ $serviceLabel.tag_name  | quote }}])
-        where resource.attributes["service.name"] == nil and resource.attributes[{{ $serviceLabel.tag_name | quote }}] != nil
-
-    {{- end }}
-      - set(resource.attributes["service.name"], resource.attributes["k8s.label.instance"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.label.instance"] != nil
-
-      - set(resource.attributes["service.name"], resource.attributes["k8s.label.name"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.label.name"] != nil
-
-      - set(resource.attributes["service.name"], resource.attributes["k8s.deployment.name"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.deployment.name"] != nil
-
-      - set(resource.attributes["service.name"], resource.attributes["k8s.replicaset.name"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.replicaset.name"] != nil
-
-      - set(resource.attributes["service.name"], resource.attributes["k8s.statefulset.name"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.statefulset.name"] != nil
-
-      - set(resource.attributes["service.name"], resource.attributes["k8s.daemonset.name"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.daemonset.name"] != nil
-
-      - set(resource.attributes["service.name"], resource.attributes["k8s.cronjob.name"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.cronjob.name"] != nil
-
-      - set(resource.attributes["service.name"], resource.attributes["k8s.job.name"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.job.name"] != nil
-
-      - set(resource.attributes["service.name"], resource.attributes["k8s.pod.name"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.pod.name"] != nil
-
-      - set(resource.attributes["service.name"], resource.attributes["k8s.container.name"])
-        where resource.attributes["service.name"] == nil and resource.attributes["k8s.container.name"] != nil
-
-  k8sattributes/profiles:
-    {{- if or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled }}
-    filter:
-      node_from_env_var: K8S_NODE_NAME
-    {{- end }}
-    extract:
-      metadata:
-        - k8s.namespace.name
-        - k8s.replicaset.name
-        - k8s.statefulset.name
-        - k8s.daemonset.name
-        - k8s.deployment.name
-        - k8s.cronjob.name
-        - k8s.job.name
-        - k8s.pod.name
-        - k8s.node.name
-        - container.id
-        - k8s.container.name
-        - service.version
-      labels:
-        - tag_name: k8s.label.name
-          key: app.kubernetes.io/name
-          from: pod
-        - tag_name: k8s.label.instance
-          key: app.kubernetes.io/instance
-          from: pod
-      {{- range $index, $serviceLabel := .Values.presets.profilesCollection.serviceLabels }}
-        - tag_name: {{ $serviceLabel.tag_name | quote }}
-          key: {{ $serviceLabel.key | quote }}
-          from: {{ $serviceLabel.from | default "pod" | quote }}
-      {{- end }}
-
-      {{- if .Values.presets.profilesCollection.serviceAnnotations }}
-      annotations:
-          {{- range $index, $serviceAnnotation := .Values.presets.profilesCollection.serviceAnnotations }}
-        - tag_name: {{ $serviceAnnotation.tag_name | quote }}
-          key: {{ $serviceAnnotation.key | quote }}
-          from:  {{ $serviceAnnotation.from | default "pod" | quote }}
-          {{- end }}
-      {{- end }}
-      otel_annotations: true
-
-    passthrough: false
-    pod_association:
-      - sources:
-          - from: resource_attribute
-            name: container.id
-      - sources:
-          - from: resource_attribute
-            name: k8s.pod.uid
-      - sources:
-          - from: connection
-
 service:
   pipelines:
     profiles:
       receivers: []
       processors:
         - memory_limiter
-        - k8sattributes/profiles
         - resource/metadata
-        - transform/profiles
       exporters: []
 {{- end }}
 
@@ -1484,6 +1402,9 @@ processors:
       - sources:
           - from: resource_attribute
             name: container.id
+      - sources:
+          - from: resource_attribute
+            name: k8s.pod.uid
       - sources:
           - from: connection
 {{- end }}
@@ -1950,6 +1871,7 @@ processors:
       - context: span
         statements:
           - set(span.attributes["http.method"], span.attributes["http.request.method"]) where span.attributes["http.request.method"] != nil
+          - set(span.attributes["http.response.status_code"], span.attributes["http.status_code"]) where span.attributes["http.response.status_code"] == nil and span.attributes["http.status_code"] != nil
 {{- end }}
 
 {{- define "opentelemetry-collector.applyFleetManagementConfig" -}}
@@ -2118,6 +2040,8 @@ connectors:
 {{- end }}
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
     add_resource_attributes: true
+    exclude_dimensions:
+    - collector.instance.id
 {{- if .Values.presets.spanMetrics.histogramBuckets }}
     histogram:
       unit: ms
@@ -2139,11 +2063,16 @@ connectors:
 {{- else }}
     metrics_expiration: 0
 {{- end }}
+{{- if .Values.presets.spanMetrics.seriesExpiration }}
+    series_expiration: "{{ .Values.presets.spanMetrics.seriesExpiration }}"
+{{- end }}
 {{- if .Values.presets.spanMetrics.dbMetrics.enabled }}
   spanmetrics/db:
     namespace: "db"
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
     add_resource_attributes: true
+    exclude_dimensions:
+    - collector.instance.id
     histogram:
       unit: ms
       explicit:
@@ -2164,6 +2093,9 @@ connectors:
 {{- else }}
     metrics_expiration: 0
 {{- end }}
+{{- if .Values.presets.spanMetrics.seriesExpiration }}
+    series_expiration: "{{ .Values.presets.spanMetrics.seriesExpiration }}"
+{{- end }}
 {{- if .Values.presets.spanMetrics.collectionInterval }}
     metrics_flush_interval: "{{ .Values.presets.spanMetrics.collectionInterval }}"
 {{- else }}
@@ -2177,6 +2109,7 @@ connectors:
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
     add_resource_attributes: true
     exclude_dimensions:
+    - collector.instance.id
     - span.name
 {{- if .Values.presets.spanMetrics.histogramBuckets }}
     histogram:
@@ -2188,6 +2121,9 @@ connectors:
     metrics_expiration: "{{ .Values.presets.spanMetrics.metricsExpiration }}"
 {{- else }}
     metrics_expiration: 0
+{{- end }}
+{{- if .Values.presets.spanMetrics.seriesExpiration }}
+    series_expiration: "{{ .Values.presets.spanMetrics.seriesExpiration }}"
 {{- end }}
 {{- if .Values.presets.spanMetrics.collectionInterval }}
     metrics_flush_interval: "{{ .Values.presets.spanMetrics.collectionInterval }}"
@@ -2205,6 +2141,7 @@ connectors:
       - name: db.namespace
       - name: db.system
     exclude_dimensions:
+    - collector.instance.id
     - span.name
     - span.kind
 {{- if .Values.presets.spanMetrics.histogramBuckets }}
@@ -2217,6 +2154,9 @@ connectors:
     metrics_expiration: "{{ .Values.presets.spanMetrics.metricsExpiration }}"
 {{- else }}
     metrics_expiration: 0
+{{- end }}
+{{- if .Values.presets.spanMetrics.seriesExpiration }}
+    series_expiration: "{{ .Values.presets.spanMetrics.seriesExpiration }}"
 {{- end }}
 {{- if .Values.presets.spanMetrics.collectionInterval }}
     metrics_flush_interval: "{{ .Values.presets.spanMetrics.collectionInterval }}"
@@ -2391,39 +2331,33 @@ service:
 {{- end }}
 
 {{- define "opentelemetry-collector.spanMetricsMulti.extraDimensions" -}}
-{{- if .Values.presets.spanMetricsMulti.extraDimensions }}
-{{- .Values.presets.spanMetricsMulti.extraDimensions | toYaml }}
+{{- $extra := .Values.presets.spanMetricsMulti.extraDimensions | default list -}}
+{{- $extraNames := list -}}
+{{- range $extra -}}
+{{- $extraNames = append $extraNames .name -}}
+{{- end -}}
+{{- if $extra }}
+{{- $extra | toYaml }}
 {{- end }}
 {{- $multiErrorTracking := .Values.presets.spanMetricsMulti.errorTracking -}}
+{{- $errorTrackingEnabled := false -}}
 {{- if and $multiErrorTracking (hasKey $multiErrorTracking "enabled") -}}
-{{- if $multiErrorTracking.enabled }}
-- name: http.response.status_code
-- name: rpc.grpc.status_code
-{{- end }}
-{{- else if .Values.presets.spanMetrics.errorTracking.enabled }}
-- name: http.response.status_code
-- name: rpc.grpc.status_code
+{{- $errorTrackingEnabled = $multiErrorTracking.enabled -}}
+{{- else -}}
+{{- $errorTrackingEnabled = .Values.presets.spanMetrics.errorTracking.enabled -}}
+{{- end -}}
+{{- $generatedNames := list -}}
+{{- if $errorTrackingEnabled }}
+{{- $generatedNames = concat $generatedNames (list "http.response.status_code" "rpc.grpc.status_code") -}}
 {{- end }}
 {{- $multiServiceVersion := .Values.presets.spanMetricsMulti.serviceVersion -}}
 {{- if and $multiServiceVersion $multiServiceVersion.enabled }}
-- name: service.version
+{{- $generatedNames = append $generatedNames "service.version" -}}
 {{- end }}
-{{- end}}
-
-{{/*
-Routed spanmetrics/<index>: raw extraDimensions only; errorTracking/serviceVersion dims require
-explicit presets.spanMetricsMulti.errorTracking.enabled or serviceVersion.enabled (no spanMetrics fallback).
-*/}}
-{{- define "opentelemetry-collector.spanMetricsMulti.routedExtraDimensions" -}}
-{{- if .Values.presets.spanMetricsMulti.extraDimensions }}
-{{- .Values.presets.spanMetricsMulti.extraDimensions | toYaml }}
+{{- range ($generatedNames | uniq) }}
+{{- if not (has . $extraNames) }}
+- name: {{ . }}
 {{- end }}
-{{- if eq (dig "errorTracking" "enabled" nil .Values.presets.spanMetricsMulti) true }}
-- name: http.response.status_code
-- name: rpc.grpc.status_code
-{{- end }}
-{{- if eq (dig "serviceVersion" "enabled" nil .Values.presets.spanMetricsMulti) true }}
-- name: service.version
 {{- end }}
 {{- end}}
 
@@ -2509,7 +2443,9 @@ connectors:
     namespace: ""
 {{- end }}
     aggregation_cardinality_limit: {{ .Values.presets.spanMetricsMulti.aggregationCardinalityLimit }}
+    add_resource_attributes: true
     histogram:
+      unit: ms
       explicit:
         buckets: {{ .Values.presets.spanMetricsMulti.defaultHistogramBuckets | toYaml | nindent 12 }}
     {{- if .Values.presets.spanMetricsMulti.collectionInterval }}
@@ -2521,6 +2457,9 @@ connectors:
     metrics_expiration: "{{ .Values.presets.spanMetricsMulti.metricsExpiration }}"
     {{- else }}
     metrics_expiration: 0
+    {{- end }}
+    {{- if .Values.presets.spanMetricsMulti.seriesExpiration }}
+    series_expiration: "{{ .Values.presets.spanMetricsMulti.seriesExpiration }}"
     {{- end }}
     {{- $extraDimensions := include "opentelemetry-collector.spanMetricsMulti.extraDimensions" . }}
     {{- if and $extraDimensions (gt (len $extraDimensions) 0) }}
@@ -2536,7 +2475,9 @@ connectors:
     namespace: ""
     {{- end }}
     aggregation_cardinality_limit: {{ $root.Values.presets.spanMetricsMulti.aggregationCardinalityLimit }}
+    add_resource_attributes: true
     histogram:
+      unit: ms
       explicit:
         buckets: {{ $cfg.histogramBuckets | toYaml | nindent 12 }}
     {{- if $root.Values.presets.spanMetricsMulti.collectionInterval }}
@@ -2549,10 +2490,13 @@ connectors:
     {{- else }}
     metrics_expiration: 0
     {{- end }}
-    {{- $routedExtraDimensions := include "opentelemetry-collector.spanMetricsMulti.routedExtraDimensions" $root }}
-    {{- if and $routedExtraDimensions (gt (len $routedExtraDimensions) 0) }}
+    {{- if $root.Values.presets.spanMetricsMulti.seriesExpiration }}
+    series_expiration: "{{ $root.Values.presets.spanMetricsMulti.seriesExpiration }}"
+    {{- end }}
+    {{- $extraDimensions := include "opentelemetry-collector.spanMetricsMulti.extraDimensions" $root }}
+    {{- if and $extraDimensions (gt (len $extraDimensions) 0) }}
     dimensions:
-    {{- $routedExtraDimensions | nindent 10 }}
+    {{- $extraDimensions | nindent 10 }}
     {{- end }}
   {{- end }}
 {{- include "opentelemetry-collector.spanMetricsMultiExtras.connectors" (dict "preset" $sm "histogramBuckets" .Values.presets.spanMetricsMulti.defaultHistogramBuckets) }}
@@ -2728,7 +2672,7 @@ exporters:
     subsystem_name: "catalog"
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq .Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq .Values.distribution "standalone" }}helm-otel-standalone{{ else if eq .Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ .Values.global.version }}"
+        X-Coralogix-Distribution: "{{ include "opentelemetry-collector.coralogixDistribution" (dict "distribution" .Values.distribution "version" .Values.global.version) }}"
         x-coralogix-ingress: "metadata-as-otlp-logs/v1"
     {{ include "opentelemetry-collector.coralogixSendingQueueConfig" .Values.presets.coralogixResourceCatalogExporter.sendingQueue | nindent 4 }}
 {{- if .Values.global.additionalEndpoints }}
@@ -2744,7 +2688,7 @@ exporters:
     subsystem_name: "{{ $endpoint.subsystemName | default "catalog" }}"
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $.Values.global.version }}"
+        X-Coralogix-Distribution: "{{ include "opentelemetry-collector.coralogixDistribution" (dict "distribution" $.Values.distribution "version" $.Values.global.version) }}"
         x-coralogix-ingress: "{{ $endpoint.ingress | default "metadata-as-otlp-logs/v1" }}"
     {{ include "opentelemetry-collector.coralogixSendingQueueConfig" $.Values.presets.coralogixResourceCatalogExporter.sendingQueue | nindent 4 }}
   {{- end }}
@@ -2758,63 +2702,83 @@ receivers:
       - name: namespaces
         mode: "pull"
         group: ""
+        initial_delay: "0s"
       - name: nodes
         mode: "pull"
         group: ""
+        initial_delay: "5s"
       - name: persistentvolumeclaims
         mode: "pull"
         group: ""
+        initial_delay: "10s"
       - name: persistentvolumes
         mode: "pull"
         group: ""
+        initial_delay: "15s"
       - name: pods
         mode: "pull"
         group: ""
+        initial_delay: "20s"
       - name: services
         mode: "pull"
         group: ""
+        initial_delay: "25s"
       - name: daemonsets
         mode: "pull"
         group: "apps"
+        initial_delay: "30s"
       - name: deployments
         mode: "pull"
         group: "apps"
+        initial_delay: "35s"
       - name: replicasets
         mode: "pull"
         group: "apps"
+        initial_delay: "40s"
       - name: statefulsets
         mode: "pull"
         group: "apps"
+        initial_delay: "45s"
       - name: horizontalpodautoscalers
         mode: "pull"
         group: "autoscaling"
+        initial_delay: "50s"
       - name: cronjobs
         mode: "pull"
         group: "batch"
+        initial_delay: "55s"
       - name: jobs
         mode: "pull"
         group: "batch"
+        initial_delay: "60s"
       - name: ingresses
         mode: "pull"
         group: "extensions"
+        initial_delay: "65s"
       - name: ingresses
         mode: "pull"
         group: "networking.k8s.io"
+        initial_delay: "65s"
       - name: poddisruptionbudgets
         mode: "pull"
         group: "policy"
+        initial_delay: "70s"
       - name: clusterrolebindings
         mode: "pull"
         group: "rbac.authorization.k8s.io"
+        initial_delay: "75s"
       - name: clusterroles
         mode: "pull"
         group: "rbac.authorization.k8s.io"
+        initial_delay: "80s"
       - name: rolebindings
         mode: "pull"
         group: "rbac.authorization.k8s.io"
+        initial_delay: "85s"
       - name: roles
         mode: "pull"
         group: "rbac.authorization.k8s.io"
+        initial_delay: "90s"
       {{- end }}
       - name: namespaces
         mode: "watch"
@@ -2957,7 +2921,7 @@ exporters:
     subsystem_name: "catalog"
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq .Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq .Values.distribution "standalone" }}helm-otel-standalone{{ else if eq .Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ .Values.global.version }}"
+        X-Coralogix-Distribution: "{{ include "opentelemetry-collector.coralogixDistribution" (dict "distribution" .Values.distribution "version" .Values.global.version) }}"
         x-coralogix-ingress: "metadata-as-otlp-logs/v1"
     {{ include "opentelemetry-collector.coralogixSendingQueueConfig" .Values.presets.coralogixResourceCatalogExporter.sendingQueue | nindent 4 }}
 {{- if .Values.global.additionalEndpoints }}
@@ -2973,7 +2937,7 @@ exporters:
     subsystem_name: "catalog"
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $.Values.global.version }}"
+        X-Coralogix-Distribution: "{{ include "opentelemetry-collector.coralogixDistribution" (dict "distribution" $.Values.distribution "version" $.Values.global.version) }}"
         x-coralogix-ingress: "metadata-as-otlp-logs/v1"
     {{ include "opentelemetry-collector.coralogixSendingQueueConfig" $.Values.presets.coralogixResourceCatalogExporter.sendingQueue | nindent 4 }}
   {{- end }}
@@ -3312,16 +3276,16 @@ exporters:
     {{- end }}
     logs:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "ecs" }}ecs-ec2-integration{{ else if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
+        X-Coralogix-Distribution: "{{ include "opentelemetry-collector.coralogixDistribution" (dict "distribution" $.Values.distribution "version" $endpoint.version) }}"
     metrics:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
+        X-Coralogix-Distribution: "{{ include "opentelemetry-collector.coralogixDistribution" (dict "distribution" $.Values.distribution "version" $endpoint.version) }}"
     traces:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
+        X-Coralogix-Distribution: "{{ include "opentelemetry-collector.coralogixDistribution" (dict "distribution" $.Values.distribution "version" $endpoint.version) }}"
     profiles:
       headers:
-        X-Coralogix-Distribution: "{{ if eq $.Values.distribution "standalone" }}helm-otel-standalone{{ else if eq $.Values.distribution "macos" }}helm-otel-macos{{ else }}helm-otel-integration{{ end }}/{{ $endpoint.version }}"
+        X-Coralogix-Distribution: "{{ include "opentelemetry-collector.coralogixDistribution" (dict "distribution" $.Values.distribution "version" $endpoint.version) }}"
         x-coralogix-ingress: "otlp/v1.10.0"
     application_name: "{{ $endpoint.defaultApplicationName }}"
     subsystem_name: "{{ $endpoint.defaultSubsystemName }}"
@@ -3843,7 +3807,6 @@ processors:
         statements:
           - replace_pattern(metric.name, "_total$", "") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_process_cpu_seconds_seconds$", "otelcol_process_cpu_seconds") where resource.attributes["service.name"] == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_process_memory_rss_bytes$", "otelcol_process_memory_rss_bytes") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_process_runtime_heap_alloc_bytes_bytes$", "otelcol_process_runtime_heap_alloc_bytes") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_process_runtime_total_alloc_bytes_bytes$", "otelcol_process_runtime_total_alloc_bytes") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_process_runtime_total_sys_memory_bytes_bytes$", "otelcol_process_runtime_total_sys_memory_bytes") where resource.attributes["service.name"] == "opentelemetry-collector"
@@ -3851,9 +3814,14 @@ processors:
           - replace_pattern(metric.name, "^otelcol_fileconsumer_reading_files$", "otelcol_fileconsumer_reading_files_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_ip_lookup_miss$", "otelcol_otelsvc_k8s_ip_lookup_miss_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_added$", "otelcol_otelsvc_k8s_pod_added_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
-          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_table_size_ratio$", "otelcol_otelsvc_k8s_pod_table_size_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_updated$", "otelcol_otelsvc_k8s_pod_updated_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_deleted$", "otelcol_otelsvc_k8s_pod_deleted_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_log_records$", "otelcol_processor_accepted_log_records") where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_metric_points$", "otelcol_processor_accepted_metric_points") where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_spans$", "otelcol_processor_accepted_spans") where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_log_records$", "otelcol_processor_refused_log_records") where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_metric_points$", "otelcol_processor_refused_metric_points") where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_spans$", "otelcol_processor_refused_spans") where resource.attributes["service.name"] == "opentelemetry-collector"
           - replace_pattern(metric.name, "^otelcol_processor_filter_spans\\.filtered$", "otelcol_processor_filter_spans.filtered_ratio") where resource.attributes["service.name"] == "opentelemetry-collector"
       - context: resource
         statements:
@@ -3874,6 +3842,9 @@ service:
               prometheus:
                 host: {{ include "opentelemetry-collector.envHost" (dict "env" "MY_POD_IP" "context" $) | quote }}
                 port: 8888
+                without_scope_info: false
+                without_type_suffix: false
+                without_units: false
 {{- end }}
 
 {{- define "opentelemetry-collector.applyJaegerReceiverConfig" -}}
@@ -4359,7 +4330,7 @@ receivers:
       {{- $emitSeconds := or $required (hasKey $entry "seconds") }}
       {{- $defaultSeconds := $entry.seconds | default 30 }}
       pprof/{{ $type }}:
-        rule: type == "pod" && annotations["{{ $prefix }}/scrape"] == "true" && ("{{ $prefix }}/types" not in annotations || contains(annotations["{{ $prefix }}/types"], "{{ $type }}"))
+        rule: type == "pod" && annotations["{{ $prefix }}/scrape"] == "true" && ("{{ $prefix }}/types" not in annotations || annotations["{{ $prefix }}/types"] contains "{{ $type }}")
         config:
           remote:
             endpoint: 'http://`endpoint`:`"{{ $prefix }}/port" in annotations ? annotations["{{ $prefix }}/port"] : "6060"``"{{ $prefix }}/path" in annotations ? annotations["{{ $prefix }}/path"] : "/debug/pprof"`/{{ $type }}{{- if $emitSeconds }}?seconds=`"{{ $prefix }}/profile-seconds" in annotations ? annotations["{{ $prefix }}/profile-seconds"] : "{{ $defaultSeconds }}"`{{- end }}'
@@ -4626,6 +4597,8 @@ receivers:
     namespace: "db"
     aggregation_cardinality_limit: {{ $p.aggregationCardinalityLimit }}
     add_resource_attributes: true
+    exclude_dimensions:
+    - collector.instance.id
     histogram:
       unit: ms
       explicit:
@@ -4647,6 +4620,9 @@ receivers:
 {{- else }}
     metrics_expiration: 0
 {{- end }}
+{{- if $p.seriesExpiration }}
+    series_expiration: "{{ $p.seriesExpiration }}"
+{{- end }}
 {{- if $p.collectionInterval }}
     metrics_flush_interval: "{{ $p.collectionInterval }}"
 {{- else }}
@@ -4660,6 +4636,7 @@ receivers:
     aggregation_cardinality_limit: {{ $p.aggregationCardinalityLimit }}
     add_resource_attributes: true
     exclude_dimensions:
+    - collector.instance.id
     - span.name
 {{- if $histogramBuckets }}
     histogram:
@@ -4671,6 +4648,9 @@ receivers:
     metrics_expiration: "{{ $p.metricsExpiration }}"
 {{- else }}
     metrics_expiration: 0
+{{- end }}
+{{- if $p.seriesExpiration }}
+    series_expiration: "{{ $p.seriesExpiration }}"
 {{- end }}
 {{- if $p.collectionInterval }}
     metrics_flush_interval: "{{ $p.collectionInterval }}"
@@ -4688,6 +4668,7 @@ receivers:
       - name: db.namespace
       - name: db.system
     exclude_dimensions:
+    - collector.instance.id
     - span.name
     - span.kind
 {{- if $histogramBuckets }}
@@ -4700,6 +4681,9 @@ receivers:
     metrics_expiration: "{{ $p.metricsExpiration }}"
 {{- else }}
     metrics_expiration: 0
+{{- end }}
+{{- if $p.seriesExpiration }}
+    series_expiration: "{{ $p.seriesExpiration }}"
 {{- end }}
 {{- if $p.collectionInterval }}
     metrics_flush_interval: "{{ $p.collectionInterval }}"
