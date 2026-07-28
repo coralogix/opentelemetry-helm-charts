@@ -1058,13 +1058,15 @@ presets:
   # k8sattributes/profiles enrichment, and the service.name fallback chain).
   pprofReceiver:
     # Annotation-based pull from pods that opt in.
-    # k8s only; uses `receiver_creator` + `k8s_observer`.
+    # k8s only; uses a dedicated `receiver_creator/pprof` + `k8s_observer/pprof`
+    # pair, so discovery scope here never affects other presets that share the
+    # default `k8s_observer` (e.g. `prometheusAnnotationDiscovery`).
     # Targets are matched by `<annotationPrefix>/scrape: "true"`.
     # Per-pod overrides: `<annotationPrefix>/port`, `/path`, `/types` (CSV),
     # `/profile-seconds` (CPU/trace duration).
     pull:
       enabled: false
-      # When true, k8s_observer constrains discovery to pods on the same node
+      # When true, k8s_observer/pprof constrains discovery to pods on the same node
       # (`spec.nodeName == $K8S_NODE_NAME`). Pairs with `mode: daemonset`.
       # Set false to do cluster-wide discovery from a single deployment/statefulset.
       nodeLocal: true

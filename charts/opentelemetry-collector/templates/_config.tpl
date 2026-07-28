@@ -4317,7 +4317,7 @@ which is a hard dependency.
 {{- end }}
 
 {{/*
-Pull mode: receiver_creator + k8s_observer.
+Pull mode: receiver_creator/pprof + a dedicated k8s_observer/pprof instance.
 One rule per profile type in defaultProfileTypes. Each rule fires for any pod
 annotated `<prefix>/scrape: "true"` whose `<prefix>/types` annotation either
 is absent or contains the rule's profile type.
@@ -4327,8 +4327,8 @@ is absent or contains the rule's profile type.
 {{- if and ($config.service.pipelines.profiles) (not (has "receiver_creator/pprof" $config.service.pipelines.profiles.receivers)) }}
 {{- $_ := set $config.service.pipelines.profiles "receivers" (append $config.service.pipelines.profiles.receivers "receiver_creator/pprof" | uniq) }}
 {{- end }}
-{{- if not (has "k8s_observer" $config.service.extensions) }}
-{{- $_ := set $config.service "extensions" (append $config.service.extensions "k8s_observer" | uniq) }}
+{{- if not (has "k8s_observer/pprof" $config.service.extensions) }}
+{{- $_ := set $config.service "extensions" (append $config.service.extensions "k8s_observer/pprof" | uniq) }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
@@ -4342,7 +4342,7 @@ is absent or contains the rule's profile type.
        the query when the user opts in. */ -}}
 {{- $secondsRequired := list "profile" "trace" -}}
 extensions:
-  k8s_observer:
+  k8s_observer/pprof:
     auth_type: serviceAccount
     observe_pods: true
     observe_services: false
@@ -4351,7 +4351,7 @@ extensions:
     {{- end }}
 receivers:
   receiver_creator/pprof:
-    watch_observers: [k8s_observer]
+    watch_observers: [k8s_observer/pprof]
     receivers:
       {{- range $entry := .Values.presets.pprofReceiver.pull.defaultProfileTypes }}
       {{- $type := $entry.type }}

@@ -1,9 +1,9 @@
 ---
-# Source: opentelemetry-collector/templates/deployment.yaml
+# Source: opentelemetry-collector/templates/daemonset.yaml
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
-  name: example-opentelemetry-collector
+  name: example-opentelemetry-collector-agent
   namespace: default
   labels:
     helm.sh/chart: opentelemetry-collector-0.131.9
@@ -13,24 +13,22 @@ metadata:
     app.kubernetes.io/managed-by: Helm
     
 spec:
-  replicas: 1
-  revisionHistoryLimit: 10
   selector:
     matchLabels:
       app.kubernetes.io/name: opentelemetry-collector
       app.kubernetes.io/instance: example
-      component: standalone-collector
-  strategy:
+      component: agent-collector
+  updateStrategy:
     type: RollingUpdate
   template:
     metadata:
       annotations:
-        checksum/config: b716ad22bb57f98a5c4452cd1091733294f99fadcae72ed06650e84302b90dd3
+        checksum/config: ffd30a1ebfb9533c1e961ddf23e19a32d64716287bd6be71e68f1f9e9cd56d6f
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
         app.kubernetes.io/instance: example
-        component: standalone-collector
+        component: agent-collector
         
     spec:
       
@@ -51,9 +49,11 @@ spec:
             - name: otlp
               containerPort: 4317
               protocol: TCP
+              hostPort: 4317
             - name: otlp-http
               containerPort: 4318
               protocol: TCP
+              hostPort: 4318
           env:
             - name: MY_POD_IP
               valueFrom:
@@ -84,7 +84,7 @@ spec:
       volumes:
         - name: opentelemetry-collector-configmap
           configMap:
-            name: example-opentelemetry-collector
+            name: example-opentelemetry-collector-agent
             items:
               - key: relay
                 path: relay.yaml
