@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.135.4
+    helm.sh/chart: opentelemetry-collector-0.135.5
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.155.0"
@@ -100,6 +100,9 @@ data:
         - sources:
           - from: resource_attribute
             name: container.id
+        - sources:
+          - from: resource_attribute
+            name: k8s.pod.uid
         - sources:
           - from: connection
       memory_limiter:

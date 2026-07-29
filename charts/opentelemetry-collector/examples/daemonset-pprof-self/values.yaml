@@ -1,0 +1,21 @@
+mode: daemonset
+
+presets:
+  profilesCollection:
+    enabled: true
+  coralogixExporter:
+    enabled: true
+    pipelines: ["all"]
+    privateKey: ${env:CORALOGIX_PRIVATE_KEY}
+  pprofReceiver:
+    self:
+      enabled: true
+      collectionInterval: 30s
+
+command:
+  extraArgs: ["--feature-gates=+service.profilesSupport"]
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 200M

@@ -2,6 +2,12 @@
 
 ## OpenTelemetry Collector
 
+### v0.135.5 / 2026-07-27
+
+- [Feat] Add `presets.pprofReceiver` preset wrapping the upstream contrib `pprofreceiver` (alpha). Three independent modes: `pull` (annotation-based discovery via `receiver_creator` + `k8s_observer`, scraping `/debug/pprof/*` endpoints on pods opted in with `pprof.coralogix.com/scrape: "true"`), `push` (HTTP server accepting `POST /v1/pprof`, port auto-published on the chart-managed Service), and `self` (in-process self-profiling of the collector). Requires `presets.profilesCollection.enabled = true`.
+- [Feat] Apply `presets.profilesCollection` in deployment/statefulset modes as well as daemonset, so the profiles pipeline (and the new pprofReceiver preset) work in cluster-collector deployments. Previously profilesCollection only took effect in daemonset mode.
+- [Feat] Add `k8s.pod.uid` as a third `pod_association` source on `k8sattributes/profiles` so pull-mode pprof profiles (where there is no inbound connection IP) can still be enriched with Kubernetes metadata.
+
 ### v0.135.4 / 2026-07-23
 
 - [Feat] Default spanMetrics and spanMetricsMulti `seriesExpiration` to `5m` so stale per-dimension series expire and free aggregation slots after a transient cardinality spike.
