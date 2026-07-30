@@ -6,10 +6,10 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.135.5
+    helm.sh/chart: opentelemetry-collector-0.136.0
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "0.155.0"
+    app.kubernetes.io/version: "0.156.0"
     app.kubernetes.io/managed-by: Helm
     
 spec:
@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 921d7cc41a15e347fac844d2e1f3fac236e20a838d248de40c7d164cab9a271b
+        checksum/config: baaa997ef6f66542cf32df4e4242c83492c04b32d120f77a9606187ae34bcc65
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -44,7 +44,7 @@ spec:
             runAsUser: 0
             runAsGroup: 0
             privileged: true
-          image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.155.0"
+          image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.156.0"
           imagePullPolicy: IfNotPresent
           ports:
             - name: otlp

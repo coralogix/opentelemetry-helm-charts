@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.136.0 / 2026-07-30
+
+- [Feat] Bump the OpenTelemetry Collector image to v0.156.0.
+
 ### v0.135.5 / 2026-07-27
 
 - [Feat] Add `presets.pprofReceiver` preset wrapping the upstream contrib `pprofreceiver` (alpha). Three independent modes: `pull` (annotation-based discovery via `receiver_creator` + `k8s_observer`, scraping `/debug/pprof/*` endpoints on pods opted in with `pprof.coralogix.com/scrape: "true"`), `push` (HTTP server accepting `POST /v1/pprof`, port auto-published on the chart-managed Service), and `self` (in-process self-profiling of the collector). Requires `presets.profilesCollection.enabled = true`.
