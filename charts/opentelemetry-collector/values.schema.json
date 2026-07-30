@@ -24,12 +24,78 @@
       "description": "Cloud provider. When empty, inferred from distribution. For self-managed K8s (distribution=\"\"), set explicitly: aws, gcp, azure, on-prem.",
       "type": "string"
     },
+    "integration": {
+      "description": "Integration settings used to expand global Coralogix features for this collector.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "description": "Role of this collector when global Coralogix features are used.",
+          "type": "string",
+          "enum": [
+            "",
+            "agent",
+            "cluster",
+            "gateway",
+            "profiler"
+          ]
+        }
+      }
+    },
     "enabled": {
       "description": "Usually used when using Opentelemetry-collector as a subchart.",
       "type": "boolean"
     },
     "global": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "coralogix": {
+          "type": "object",
+          "properties": {
+            "features": {
+              "type": "object",
+              "properties": {
+                "resourceCatalog": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "tailSampling": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "gatewayEndpoint": {
+                      "type": "string"
+                    },
+                    "policies": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                },
+                "profiling": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "nameOverride": {
       "description": "Override name of the chart used in Kubernetes object names.",

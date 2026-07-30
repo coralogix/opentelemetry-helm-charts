@@ -1,3 +1,4 @@
+{{- $_ := set . "Values" (include "opentelemetry-collector.effectiveValues" . | fromYaml) -}}
 {{- if .Values.collectorCRD.generate -}}
 apiVersion: opentelemetry.io/v1beta1
 kind: OpenTelemetryCollector

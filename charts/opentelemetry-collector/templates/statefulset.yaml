@@ -1,3 +1,4 @@
+{{- $_ := set . "Values" (include "opentelemetry-collector.effectiveValues" . | fromYaml) -}}
 {{- if not .Values.collectorCRD.generate -}}
 {{- if eq .Values.mode "statefulset" -}}
 apiVersion: apps/v1

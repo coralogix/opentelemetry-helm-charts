@@ -1,3 +1,4 @@
+{{- $_ := set . "Values" (include "opentelemetry-collector.effectiveValues" . | fromYaml) -}}
 {{- if (and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled)) }}
 apiVersion: v1
 kind: ConfigMap
