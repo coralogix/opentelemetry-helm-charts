@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.136.0
+    helm.sh/chart: opentelemetry-collector-0.136.1
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.156.0"
@@ -23,7 +23,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 7e3316ab83e76dd37994624beda9f5609d0fca60229e951914c962d81508c1be
+        checksum/config: 90c57244ac8f8dea2ed3a828a25ada9ce87689b8ba1504500239b4b06e858aaf
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector

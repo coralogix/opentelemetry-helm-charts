@@ -2181,13 +2181,13 @@ processors:
   filter/db_spanmetrics:
     traces:
       span:
-        - 'span.attributes["db.system"] == nil'
+        - 'span.attributes["db.system"] == nil and span.attributes["db.system.name"] == nil'
 {{- end }}
 {{- if .Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled }}
   filter/db_compact_spanmetrics:
     traces:
       span:
-        - 'span.kind != SPAN_KIND_CLIENT or span.attributes["db.namespace"] == nil or span.attributes["db.system"] == nil'
+        - 'span.kind != SPAN_KIND_CLIENT or span.attributes["db.namespace"] == nil or (span.attributes["db.system"] == nil and span.attributes["db.system.name"] == nil)'
 {{- end }}
 {{- if .Values.presets.spanMetrics.enabled }}
   transform/spanmetrics:
@@ -2205,12 +2205,13 @@ processors:
         {{- end}}
     {{- end }}
 {{- end }}
-{{- if .Values.presets.spanMetrics.dbMetrics.transformStatements }}
+{{- if .Values.presets.spanMetrics.dbMetrics.enabled }}
   transform/db:
     error_mode: silent
     trace_statements:
       - context: span
         statements:
+        - set(attributes["db.system"], attributes["db.system.name"]) where attributes["db.system.name"] != nil and attributes["db.system"] == nil
         {{- range $index, $pattern := .Values.presets.spanMetrics.dbMetrics.transformStatements }}
         - {{ $pattern }}
         {{- end}}
@@ -2230,6 +2231,7 @@ processors:
           - keep_keys(resource.attributes, ["service.name", "k8s.cluster.name", "host.name", "deployment.environment.name"])
       - context: span
         statements:
+          - set(attributes["db.system"], attributes["db.system.name"]) where attributes["db.system.name"] != nil and attributes["db.system"] == nil
           - keep_keys(span.attributes, ["db.namespace", "db.system"])
 {{- end }}
 {{- if and (.Values.presets.spanMetrics.compactMetrics.enabled) (.Values.presets.spanMetrics.compactMetrics.dropHistogram) }}
@@ -2273,9 +2275,7 @@ service:
       - spanmetrics/db
       processors:
       - filter/db_spanmetrics
-      {{- if .Values.presets.spanMetrics.dbMetrics.transformStatements }}
       - transform/db
-      {{- end }}
       - batch
       receivers:
       - forward/db
@@ -4712,20 +4712,21 @@ receivers:
   filter/db_spanmetrics:
     traces:
       span:
-        - 'span.attributes["db.system"] == nil'
+        - 'span.attributes["db.system"] == nil and span.attributes["db.system.name"] == nil'
 {{- end }}
 {{- if $dbCompactMetrics.enabled }}
   filter/db_compact_spanmetrics:
     traces:
       span:
-        - 'span.kind != SPAN_KIND_CLIENT or span.attributes["db.namespace"] == nil or span.attributes["db.system"] == nil'
+        - 'span.kind != SPAN_KIND_CLIENT or span.attributes["db.namespace"] == nil or (span.attributes["db.system"] == nil and span.attributes["db.system.name"] == nil)'
 {{- end }}
-{{- if and $dbMetrics.transformStatements (gt (len $dbMetrics.transformStatements) 0) }}
+{{- if $dbMetrics.enabled }}
   transform/db:
     error_mode: silent
     trace_statements:
       - context: span
         statements:
+        - set(attributes["db.system"], attributes["db.system.name"]) where attributes["db.system.name"] != nil and attributes["db.system"] == nil
         {{- range $index, $pattern := $dbMetrics.transformStatements }}
         - {{ $pattern }}
         {{- end}}
@@ -4745,6 +4746,7 @@ receivers:
           - keep_keys(resource.attributes, ["service.name", "k8s.cluster.name", "host.name", "deployment.environment.name"])
       - context: span
         statements:
+          - set(attributes["db.system"], attributes["db.system.name"]) where attributes["db.system.name"] != nil and attributes["db.system"] == nil
           - keep_keys(span.attributes, ["db.namespace", "db.system"])
 {{- end }}
 {{- if and ($compactMetrics.enabled) ($compactMetrics.dropHistogram) }}
@@ -4797,9 +4799,7 @@ service:
       - spanmetrics/db
       processors:
       - filter/db_spanmetrics
-      {{- if and $dbMetrics.transformStatements (gt (len $dbMetrics.transformStatements) 0) }}
       - transform/db
-      {{- end }}
       - batch
       receivers:
       - forward/db
