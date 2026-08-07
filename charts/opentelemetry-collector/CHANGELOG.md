@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.136.3 / 2026-08-06
+
+- [Fix] Remove trailing whitespace from Helm 4 rendered manifests.
+
 ### v0.136.2 / 2026-08-06
 
 - [Feat] Report allocatable pods when the `clusterMetrics` preset is enabled.

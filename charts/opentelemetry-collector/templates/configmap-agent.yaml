@@ -9,4 +9,4 @@ metadata:
 data:
   relay: |
     {{- include "opentelemetry-collector.daemonsetConfig" . | nindent 4 -}}
-{{- end }}
+{{- end -}}
