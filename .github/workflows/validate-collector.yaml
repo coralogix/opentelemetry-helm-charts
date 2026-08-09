@@ -30,3 +30,12 @@ jobs:
 
       - name: Check rendered OpenTelemetry Collector examples
         run: make check-examples CHARTS=opentelemetry-collector
+
+      - name: TEMP debug runner state
+        if: always()
+        run: |
+          echo "--- disk"; df -h / /home/runner
+          echo "--- memory"; free -m
+          echo "--- processes"; ps -eo pid,ppid,stat,etime,rss,comm --sort=-rss | head -40
+          echo "--- otelcol procs"; ps -eo pid,ppid,stat,comm,args | grep -i otelcol | grep -v grep || echo none
+          echo "--- workspace"; ls -la charts/opentelemetry-collector | head -20
