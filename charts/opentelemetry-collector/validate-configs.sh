@@ -55,60 +55,67 @@ extract_config() {
     sed -n '/^  relay: |/,/^  [^ ]/p' "$configmap_file" | sed '1d;$d' | sed 's/^    //'
 }
 
-# Download collector binary if not present
+# Download a collector distribution binary if not present.
+# $1 = distribution name (otelcol-contrib | otelcol-ebpf-profiler), $2 = version
 ensure_collector_binary() {
-    local version="$1"
-    local collector_binary="${SCRIPT_DIR}/otelcol-contrib"
-    
+    local distro="$1"
+    local version="$2"
+    local collector_binary="${SCRIPT_DIR}/${distro}"
+
     if [[ -f "$collector_binary" ]]; then
         log "Using existing collector binary: $collector_binary" >&2
         echo "$collector_binary"
         return
     fi
-    
+
     # Determine OS and architecture
     local os arch
     os=$(uname -s | tr '[:upper:]' '[:lower:]')
     arch=$(uname -m)
-    
+
     # Map architecture names
     case "$arch" in
         x86_64) arch="amd64" ;;
         aarch64|arm64) arch="arm64" ;;
-        *) 
+        *)
             error "Unsupported architecture: $arch" >&2
             exit 1
             ;;
     esac
-    
-    local download_url="https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${version}/otelcol-contrib_${version}_${os}_${arch}.tar.gz"
+
+    # The eBPF profiler distribution is only released for Linux.
+    if [[ "$distro" == "otelcol-ebpf-profiler" && "$os" != "linux" ]]; then
+        return 1
+    fi
+
+    local download_url="https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${version}/${distro}_${version}_${os}_${arch}.tar.gz"
     local temp_dir
     temp_dir=$(mktemp -d)
-    
-    log "Downloading OpenTelemetry Collector v${version} for ${os}/${arch}..." >&2
-    
-    if ! curl -L -s -o "${temp_dir}/otelcol-contrib.tar.gz" "$download_url"; then
+
+    log "Downloading ${distro} v${version} for ${os}/${arch}..." >&2
+
+    if ! curl -L -sf -o "${temp_dir}/${distro}.tar.gz" "$download_url"; then
         error "Failed to download collector from: $download_url" >&2
         rm -rf "$temp_dir"
         exit 1
     fi
-    
+
     log "Extracting collector binary..." >&2
-    if ! tar -xzf "${temp_dir}/otelcol-contrib.tar.gz" -C "$temp_dir"; then
+    if ! tar -xzf "${temp_dir}/${distro}.tar.gz" -C "$temp_dir"; then
         error "Failed to extract collector binary" >&2
         rm -rf "$temp_dir"
         exit 1
     fi
-    
-    if ! mv "${temp_dir}/otelcol-contrib" "$collector_binary"; then
+
+    if ! mv "${temp_dir}/${distro}" "$collector_binary"; then
         error "Failed to move collector binary" >&2
         rm -rf "$temp_dir"
         exit 1
     fi
-    
+
     chmod +x "$collector_binary"
     rm -rf "$temp_dir"
-    
+
     log "Collector binary downloaded successfully: $collector_binary" >&2
     echo "$collector_binary"
 }
@@ -139,9 +146,6 @@ should_ignore_errors() {
         "unknown type.*ecsattributes"
         "receivers.*unknown type.*awsecscontainermetricsd.*for id.*awsecscontainermetricsd"
         "unknown type.*awsecscontainermetricsd"
-        # eBPF profiler receiver is only available in otelcol-ebpf-profiler distribution
-        "receivers.*unknown type.*profiling.*for id.*profiling"
-        "unknown type: \"profiling\""
         # Windows-only receivers when validating on Linux
         "windows perf counters receiver is only supported on Windows"
         "windows eventlog receiver is only supported on Windows"
@@ -184,17 +188,22 @@ validate_config() {
     local collector_binary="$1"
     local config_content="$2"
     local example_name="$3"
-    
+    local feature_gates="${4:-}"
+
     # Create temporary config file
     local temp_config
     temp_config=$(mktemp)
     echo "$config_content" > "$temp_config"
-    
-    log "Validating configuration for: $example_name"
-    
+
+    log "Validating configuration for: $example_name (${collector_binary##*/})"
+
     # Run validation using collector binary
     local validation_output
-    validation_output=$("$collector_binary" validate --config="$temp_config" 2>&1)
+    if [[ -n "$feature_gates" ]]; then
+        validation_output=$("$collector_binary" validate --config="$temp_config" --feature-gates="$feature_gates" 2>&1)
+    else
+        validation_output=$("$collector_binary" validate --config="$temp_config" 2>&1)
+    fi
     local exit_code=$?
     
     if [[ $exit_code -eq 0 ]]; then
@@ -238,10 +247,16 @@ main() {
     version=$(get_collector_version)
     log "Found collector version: $version"
     
-    # Ensure collector binary is available
-    local collector_binary
-    collector_binary=$(ensure_collector_binary "$version")
-    
+    # Ensure collector binaries are available. Configs that wire the `profiling`
+    # receiver must be validated with the eBPF profiler distribution — otelcol-contrib
+    # does not know that receiver, so any of its config keys would go unchecked.
+    local collector_binary profiler_binary
+    collector_binary=$(ensure_collector_binary "otelcol-contrib" "$version")
+    profiler_binary=$(ensure_collector_binary "otelcol-ebpf-profiler" "$version") || profiler_binary=""
+    if [[ -z "$profiler_binary" ]]; then
+        warn "otelcol-ebpf-profiler is published for Linux only; eBPF profiler examples will be skipped on this host"
+    fi
+
     # Initialize counters
     local total=0
     local valid=0
@@ -287,8 +302,22 @@ main() {
             continue
         fi
         
+        # Pick the distribution that actually owns the components in this config
+        local binary="$collector_binary"
+        local feature_gates=""
+        if grep -qE '^[[:space:]]{2}profiling:' <<< "$config_content"; then
+            if [[ -z "$profiler_binary" ]]; then
+                warn "Skipping $example_name: needs otelcol-ebpf-profiler (Linux only)"
+                skipped=$((skipped + 1))
+                total=$((total - 1))
+                continue
+            fi
+            binary="$profiler_binary"
+            feature_gates="+service.profilesSupport"
+        fi
+
         # Validate configuration
-        if validate_config "$collector_binary" "$config_content" "$example_name"; then
+        if validate_config "$binary" "$config_content" "$example_name" "$feature_gates"; then
             valid=$((valid + 1))
         else
             invalid=$((invalid + 1))

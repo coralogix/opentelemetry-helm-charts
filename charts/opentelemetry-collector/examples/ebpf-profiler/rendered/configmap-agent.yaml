@@ -34,7 +34,6 @@ data:
         probabilistic_threshold: 100
         reporter_interval: 5s
         samples_per_second: 77
-        tracers: all
         verbose_mode: false
     service:
       extensions:

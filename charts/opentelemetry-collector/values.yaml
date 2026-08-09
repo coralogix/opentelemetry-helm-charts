@@ -295,8 +295,15 @@ presets:
     verboseMode: false
     # Enable off-CPU profiling (0 disables, range 0..1).
     offCpuThreshold: 0
-    # Comma-delimited list of tracers to enable (or "all").
-    tracers: "all"
+    # Per-interpreter (unwinder) configuration, passed through to the profiling
+    # receiver. All unwinders are enabled by default; set an entry to disable one.
+    # Replaces the `tracers` option, removed from the receiver in profiler 0.156.0.
+    # interpreters:
+    #   php:
+    #     disabled: true
+    #   hotspot:
+    #     disabled: true
+    interpreters: {}
   # Configures the collector to collect host metrics.
   # Adds the hostmetrics receiver to the metrics pipeline
   # and adds the necessary volumes and volume mounts.
