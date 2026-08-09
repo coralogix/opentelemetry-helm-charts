@@ -197,13 +197,20 @@ validate_config() {
 
     log "Validating configuration for: $example_name (${collector_binary##*/})"
 
-    # Run validation using collector binary
+    # Run validation using collector binary.
+    # `setsid` detaches it from our process group and stdin/stdout/stderr are
+    # fully redirected, so a component that leaves a child behind (the eBPF
+    # profiler distribution does) cannot keep the CI job's pipes open and hang
+    # post-job cleanup. `timeout` bounds a validate that refuses to exit.
     local validation_output
+    local args=(validate --config="$temp_config")
     if [[ -n "$feature_gates" ]]; then
-        validation_output=$("$collector_binary" validate --config="$temp_config" --feature-gates="$feature_gates" 2>&1)
-    else
-        validation_output=$("$collector_binary" validate --config="$temp_config" 2>&1)
+        args+=(--feature-gates="$feature_gates")
     fi
+    local runner=()
+    command -v setsid >/dev/null 2>&1 && runner+=(setsid) || true
+    command -v timeout >/dev/null 2>&1 && runner+=(timeout 60) || true
+    validation_output=$("${runner[@]}" "$collector_binary" "${args[@]}" </dev/null 2>&1)
     local exit_code=$?
     
     if [[ $exit_code -eq 0 ]]; then
@@ -326,6 +333,10 @@ main() {
         echo ""
     done
     
+    # Reap anything the collector binaries left running. On CI a stray child
+    # holding the job's stdout keeps post-job cleanup hanging until it times out.
+    pkill -f "${SCRIPT_DIR}/otelcol-" >/dev/null 2>&1 || true
+
     # Summary
     echo "============================================"
     log "Validation Summary:"
