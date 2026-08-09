@@ -56,7 +56,7 @@ extract_config() {
 }
 
 # Download a collector distribution binary if not present.
-# $1 = distribution name (otelcol-contrib | otelcol-ebpf-profiler), $2 = version
+# $1 = distribution name (otelcol-contrib), $2 = version
 ensure_collector_binary() {
     local distro="$1"
     local version="$2"
@@ -82,11 +82,6 @@ ensure_collector_binary() {
             exit 1
             ;;
     esac
-
-    # The eBPF profiler distribution is only released for Linux.
-    if [[ "$distro" == "otelcol-ebpf-profiler" && "$os" != "linux" ]]; then
-        return 1
-    fi
 
     local download_url="https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${version}/${distro}_${version}_${os}_${arch}.tar.gz"
     local temp_dir
@@ -118,6 +113,16 @@ ensure_collector_binary() {
 
     log "Collector binary downloaded successfully: $collector_binary" >&2
     echo "$collector_binary"
+}
+
+# The eBPF profiler distribution is validated through its published image rather
+# than a downloaded binary: it is released for Linux only (so a binary cannot run
+# on a developer's macOS host), and running it directly on a CI runner leaves the
+# job's post-cleanup steps hanging. A container is torn down with --rm.
+PROFILER_IMAGE="ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-ebpf-profiler"
+
+profiler_validation_available() {
+    command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1
 }
 
 # Check if validation errors should be ignored
@@ -197,21 +202,22 @@ validate_config() {
 
     log "Validating configuration for: $example_name (${collector_binary##*/})"
 
-    # Run validation using collector binary.
-    # `setsid` detaches it from our process group and stdin/stdout/stderr are
-    # fully redirected, so a component that leaves a child behind (the eBPF
-    # profiler distribution does) cannot keep the CI job's pipes open and hang
-    # post-job cleanup. `timeout` bounds a validate that refuses to exit.
-    local validation_output
-    local args=(validate --config="$temp_config")
-    if [[ -n "$feature_gates" ]]; then
-        args+=(--feature-gates="$feature_gates")
+    local validation_output exit_code
+    if [[ "$collector_binary" == docker:* ]]; then
+        # eBPF profiler distribution: validate inside its published image.
+        local image="${collector_binary#docker:}"
+        local args=(validate --config=/tmp/config.yaml)
+        [[ -n "$feature_gates" ]] && args+=(--feature-gates="$feature_gates")
+        validation_output=$(docker run --rm --network none \
+            -v "${temp_config}:/tmp/config.yaml:ro" \
+            "$image" "${args[@]}" </dev/null 2>&1)
+        exit_code=$?
+    else
+        local args=(validate --config="$temp_config")
+        [[ -n "$feature_gates" ]] && args+=(--feature-gates="$feature_gates")
+        validation_output=$("$collector_binary" "${args[@]}" </dev/null 2>&1)
+        exit_code=$?
     fi
-    local runner=()
-    command -v setsid >/dev/null 2>&1 && runner+=(setsid) || true
-    command -v timeout >/dev/null 2>&1 && runner+=(timeout 60) || true
-    validation_output=$("${runner[@]}" "$collector_binary" "${args[@]}" </dev/null 2>&1)
-    local exit_code=$?
     
     if [[ $exit_code -eq 0 ]]; then
         log "✓ Configuration valid for: $example_name"
@@ -259,9 +265,12 @@ main() {
     # does not know that receiver, so any of its config keys would go unchecked.
     local collector_binary profiler_binary
     collector_binary=$(ensure_collector_binary "otelcol-contrib" "$version")
-    profiler_binary=$(ensure_collector_binary "otelcol-ebpf-profiler" "$version") || profiler_binary=""
-    if [[ -z "$profiler_binary" ]]; then
-        warn "otelcol-ebpf-profiler is published for Linux only; eBPF profiler examples will be skipped on this host"
+    if profiler_validation_available; then
+        profiler_binary="docker:${PROFILER_IMAGE}:${version}"
+        log "Validating eBPF profiler configs with ${PROFILER_IMAGE}:${version}"
+    else
+        profiler_binary=""
+        warn "Docker is unavailable; eBPF profiler examples will be skipped on this host"
     fi
 
     # Initialize counters
@@ -314,7 +323,7 @@ main() {
         local feature_gates=""
         if grep -qE '^[[:space:]]{2}profiling:' <<< "$config_content"; then
             if [[ -z "$profiler_binary" ]]; then
-                warn "Skipping $example_name: needs otelcol-ebpf-profiler (Linux only)"
+                warn "Skipping $example_name: needs Docker to run the eBPF profiler image"
                 skipped=$((skipped + 1))
                 total=$((total - 1))
                 continue
@@ -333,10 +342,6 @@ main() {
         echo ""
     done
     
-    # Reap anything the collector binaries left running. On CI a stray child
-    # holding the job's stdout keeps post-job cleanup hanging until it times out.
-    pkill -f "${SCRIPT_DIR}/otelcol-" >/dev/null 2>&1 || true
-
     # Summary
     echo "============================================"
     log "Validation Summary:"
