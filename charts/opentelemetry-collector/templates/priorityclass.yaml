@@ -4,6 +4,7 @@ kind: PriorityClass
 metadata:
   name: {{ include "opentelemetry-collector.priorityClassName" . }}
 value: {{ .Values.priorityClass.priorityValue }}
+preemptionPolicy: {{ .Values.priorityClass.preemptionPolicy | quote }}
 globalDefault: false
 description: "This priority class should be used for OpenTelemetry collector pods."
 {{- end }}

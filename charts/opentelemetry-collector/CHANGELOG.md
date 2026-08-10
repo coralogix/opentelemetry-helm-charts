@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.136.5 / 2026-08-10
+
+- [Feat] Add `priorityClass.preemptionPolicy` support, allowing created PriorityClasses to use either Kubernetes preemption behavior: `PreemptLowerPriority` or `Never`.
+
 ### v0.136.4 / 2026-08-09
 
 - [Fix] `presets.ebpfProfiler`: stop rendering `tracers` on the `profiling` receiver. The option was removed from the receiver in profiler v0.156.0 ([open-telemetry/opentelemetry-ebpf-profiler#1436](https://github.com/open-telemetry/opentelemetry-ebpf-profiler/pull/1436)), so every profiler pod on appVersion 0.156.0 crash-looped with `'config.Config' has invalid keys: tracers`. The key was rendered unconditionally, so it could not be removed via values either.
