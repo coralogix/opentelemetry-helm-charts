@@ -1417,9 +1417,12 @@ receivers:
     probabilistic_threshold: {{ .Values.presets.ebpfProfiler.probabilisticThreshold }}
     verbose_mode: {{ .Values.presets.ebpfProfiler.verboseMode }}
     off_cpu_threshold: {{ .Values.presets.ebpfProfiler.offCpuThreshold }}
-    tracers: {{ .Values.presets.ebpfProfiler.tracers | quote }}
     {{- with .Values.presets.ebpfProfiler.samplesPerSecond }}
     samples_per_second: {{ . }}
+    {{- end }}
+    {{- with .Values.presets.ebpfProfiler.interpreters }}
+    interpreters:
+      {{- toYaml . | nindent 6 }}
     {{- end }}
 service:
   pipelines:

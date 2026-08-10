@@ -44,7 +44,6 @@ data:
         probabilistic_interval: 1m
         probabilistic_threshold: 100
         reporter_interval: 5s
-        tracers: all
         verbose_mode: false
     service:
       extensions:
