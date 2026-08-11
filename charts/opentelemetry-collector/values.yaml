@@ -1280,6 +1280,7 @@ priorityClass:
   priorityValue: 1000000000
   # Sets whether this priority class can preempt lower-priority pods.
   # Supported values are PreemptLowerPriority and Never.
+  # preemptionPolicy: Never
 
 extraEnvs: []
 extraEnvsFrom: []
