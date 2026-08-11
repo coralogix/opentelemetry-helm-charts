@@ -4,7 +4,7 @@
 
 ### v0.136.5 / 2026-08-10
 
-- [Feat] Add `priorityClass.preemptionPolicy` support, allowing created PriorityClasses to use either Kubernetes preemption behavior: `PreemptLowerPriority` or `Never`.
+- [Feat] Add optional `priorityClass.preemptionPolicy` support, allowing created PriorityClasses to use either Kubernetes preemption behavior: `PreemptLowerPriority` or `Never` when explicitly configured.
 
 ### v0.136.4 / 2026-08-09
 
