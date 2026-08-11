@@ -1121,12 +1121,27 @@ presets:
       blockProfileFraction: 0
       mutexProfileFraction: 0
 
-  # Configuration for the batch processor.
+  # Configuration for the batch processor. Adds a single "batch" processor, shared by every
+  # logs/metrics/traces pipeline that doesn't already batch, matching upstream's behavior.
   batch:
     enabled: false
     sendBatchSize: 1024
     sendBatchMaxSize: 2048
     timeout: "1s"
+    # Opt-in: give every pipeline that batches its own "batch/<pipeline>" processor id (e.g.
+    # "batch/traces", "batch/traces_db_compact") instead of sharing the single "batch" id above,
+    # so otelcol_processor_batch_* metrics and tuning can be scoped per pipeline. This also picks
+    # up pipelines that reference "batch" outside of this preset (spanMetrics, headSampling,
+    # kubernetesResources, or a user's own custom pipeline).
+    perPipeline:
+      enabled: false
+      # Per-pipeline overrides, keyed by pipeline name (the same names used under
+      # service.pipelines, e.g. "traces", "traces/db_compact", "metrics/compact"). Any field
+      # omitted here falls back to sendBatchSize/sendBatchMaxSize/timeout above.
+      overrides: {}
+      # overrides:
+      #   traces/db_compact:
+      #     sendBatchSize: 256
 
   # Configures resource detection processors to add system and environment information.
   # Also configures volumes and volume mounts for the collector.

@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.137.0
+    helm.sh/chart: opentelemetry-collector-0.137.1
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.159.0"
@@ -97,7 +97,27 @@ data:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
     processors:
-      batch:
+      batch/logs:
+        send_batch_max_size: 2048
+        send_batch_size: 1024
+        timeout: 1s
+      batch/metrics:
+        send_batch_max_size: 2048
+        send_batch_size: 1024
+        timeout: 1s
+      batch/traces:
+        send_batch_max_size: 2048
+        send_batch_size: 1024
+        timeout: 1s
+      batch/traces_0:
+        send_batch_max_size: 2048
+        send_batch_size: 256
+        timeout: 1s
+      batch/traces_1:
+        send_batch_max_size: 2048
+        send_batch_size: 1024
+        timeout: 1s
+      batch/traces_default:
         send_batch_max_size: 2048
         send_batch_size: 1024
         timeout: 1s
@@ -212,7 +232,7 @@ data:
           - debug
           processors:
           - memory_limiter
-          - batch
+          - batch/logs
           receivers:
           - otlp
         metrics:
@@ -222,7 +242,7 @@ data:
           - memory_limiter
           - transform/spanmetricsmulti
           - transform/prometheus
-          - batch
+          - batch/metrics
           receivers:
           - spanmetrics/0
           - spanmetrics/1
@@ -235,7 +255,7 @@ data:
           processors:
           - memory_limiter
           - redaction/spanname
-          - batch
+          - batch/traces
           receivers:
           - otlp
         traces/0:
@@ -243,7 +263,7 @@ data:
           - debug
           - spanmetrics/0
           processors:
-          - batch
+          - batch/traces_0
           receivers:
           - routing
         traces/1:
@@ -251,7 +271,7 @@ data:
           - debug
           - spanmetrics/1
           processors:
-          - batch
+          - batch/traces_1
           receivers:
           - routing
         traces/default:
@@ -259,7 +279,7 @@ data:
           - debug
           - spanmetrics/default
           processors:
-          - batch
+          - batch/traces_default
           receivers:
           - routing
       telemetry:

@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.137.1 / 2026-08-27
+
+- [Feat] New opt-in `presets.batch.perPipeline.enabled`: when set, every pipeline that batches gets its own `batch/<pipeline>` processor id (e.g. `batch/traces`, `batch/traces_db_compact`) instead of sharing the single `batch` id across `logs`/`metrics`/`traces` and every `spanMetrics`/`spanMetricsMulti`-derived pipeline. `otelcol_processor_batch_*` metrics are then scoped per pipeline, and `presets.batch.perPipeline.overrides.<pipelineName>` lets you tune `sendBatchSize`/`sendBatchMaxSize`/`timeout` for one pipeline without redeclaring it. `presets.batch` on its own is unchanged and keeps sharing the single `batch` id, matching upstream. Enabling `perPipeline` also picks up (and defines a processor for) any pipeline that references `batch` outside of `presets.batch` — e.g. `presets.kubernetesResources`'s `logs/resource_catalog` pipeline, which otherwise references `batch` even when `presets.batch.enabled` is `false` (its default), rendering a dangling reference.
+
 ### v0.137.0 / 2026-08-27
 
 - [Feat] Bump the OpenTelemetry Collector image to v0.159.0.
