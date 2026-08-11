@@ -2,7 +2,7 @@
 
 ## OpenTelemetry Collector
 
-### v0.136.5 / 2026-08-10
+### v0.136.5 / 2026-08-11
 
 - [Feat] Add optional `priorityClass.preemptionPolicy` support, allowing created PriorityClasses to use either Kubernetes preemption behavior: `PreemptLowerPriority` or `Never` when explicitly configured.
 
