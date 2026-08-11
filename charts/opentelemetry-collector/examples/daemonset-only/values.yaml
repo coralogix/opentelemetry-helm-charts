@@ -11,3 +11,4 @@ priorityClass:
   create: true
   name: ""
   priorityValue: 1000
+  preemptionPolicy: Never

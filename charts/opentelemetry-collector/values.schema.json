@@ -2730,6 +2730,13 @@
         },
         "priorityValue": {
           "type": "integer"
+        },
+        "preemptionPolicy": {
+          "type": "string",
+          "enum": [
+            "PreemptLowerPriority",
+            "Never"
+          ]
         }
       }
     },

@@ -29,3 +29,8 @@ Whenever you make a change that will ship with the chart, you **must** perform t
 
 * Write a single consolidated changelog entry covering all changes included in the version.
 * Only bump the chart version once per PR/branch to avoid duplicate changelog entries.
+
+## Shippers repository changes
+
+* Do not create a separate PR in the `telemetry-shippers` repository for chart version bumps; shippers receives those updates automatically.
+* Create a shippers PR only when the change also requires modifying shippers-specific `values.yaml` or other YAML configuration.
