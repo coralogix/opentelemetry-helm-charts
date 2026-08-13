@@ -2,6 +2,10 @@
 
 ## OpenTelemetry eBPF Instrumentation
 
+### v0.1.19 / 2026-08-13
+
+- [Feature] Add a `presets.annotationFilter` preset, restricting the instrumented workloads by Kubernetes Pod annotation. Enabling it instruments only the Pods annotated `instrumentation.opentelemetry.io/enabled: "true"`; `mode: exclude` instead skips the Pods annotated `instrumentation.opentelemetry.io/enabled: "false"`
+
 ### v0.1.18 / 2026-07-01
 
 - [Change] Bump OBI image to v0.10.0

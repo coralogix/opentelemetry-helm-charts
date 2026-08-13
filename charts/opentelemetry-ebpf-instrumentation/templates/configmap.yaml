@@ -18,23 +18,50 @@ metadata:
   {{- end }}
 data:
   ebpf-instrument-config.yml: |
-    {{- if eq .Values.preset "network" }}
-    {{- if not .Values.config.data.network }}
-    network:
-      enable: true
-    {{- end }}
-    {{- end }}
-    {{- if eq .Values.preset "application" }}
-    {{- if not .Values.config.data.discovery }}
-    discovery:
-      instrument:
-        - k8s_namespace: "*"
-      exclude_instrument:
-        - exe_path: "*ebpf-instrument*"
-        - exe_path: "*otelcol*"
-    {{- end }}
-    {{- end }}
   {{- $configData := deepCopy .Values.config.data }}
+  {{- if eq .Values.preset "network" }}
+    {{- if not $configData.network }}
+      {{- $_ := set $configData "network" (dict "enable" true) }}
+    {{- end }}
+  {{- end }}
+  {{- if eq .Values.preset "application" }}
+    {{- if not $configData.discovery }}
+      {{- $_ := set $configData "discovery" (dict
+        "instrument" (list (dict "k8s_namespace" "*"))
+        "exclude_instrument" (list (dict "exe_path" "*ebpf-instrument*") (dict "exe_path" "*otelcol*"))) }}
+    {{- end }}
+  {{- end }}
+  {{- $annotationFilter := .Values.presets.annotationFilter }}
+  {{- if $annotationFilter.enabled }}
+    {{- if ne .Values.preset "application" }}
+      {{- fail "presets.annotationFilter requires preset to be \"application\"" }}
+    {{- end }}
+    {{- if not (has $annotationFilter.mode (list "include" "exclude")) }}
+      {{- fail (printf "presets.annotationFilter.mode must be \"include\" or \"exclude\", got %q" $annotationFilter.mode) }}
+    {{- end }}
+    {{- $filterAnnotations := $annotationFilter.annotations }}
+    {{- if empty $filterAnnotations }}
+      {{- $filterAnnotations = dict "instrumentation.opentelemetry.io/enabled" (ternary "true" "false" (eq $annotationFilter.mode "include")) }}
+    {{- end }}
+    {{- $discovery := $configData.discovery }}
+    {{- if eq $annotationFilter.mode "include" }}
+      {{- $instrument := list }}
+      {{- range $selector := ($discovery.instrument | default (list (dict "k8s_namespace" "*"))) }}
+        {{- $selector = deepCopy $selector }}
+        {{- $selectorAnnotations := (index $selector "k8s_pod_annotations") | default dict }}
+        {{- $_ := set $selector "k8s_pod_annotations" (merge (deepCopy $selectorAnnotations) $filterAnnotations) }}
+        {{- $instrument = append $instrument $selector }}
+      {{- end }}
+      {{- $_ := set $discovery "instrument" $instrument }}
+    {{- else }}
+      {{- $excludeInstrument := $discovery.exclude_instrument | default list }}
+      {{- range $key, $value := $filterAnnotations }}
+        {{- $excludeInstrument = append $excludeInstrument (dict "k8s_pod_annotations" (dict $key $value)) }}
+      {{- end }}
+      {{- $_ := set $discovery "exclude_instrument" $excludeInstrument }}
+    {{- end }}
+    {{- $_ := set $configData "discovery" $discovery }}
+  {{- end }}
   {{- if or .Values.runtimeMetrics.go.enabled .Values.runtimeMetrics.jvm.enabled .Values.stats.enabled }}
     {{- if not (hasKey $configData "otel_metrics_export") }}
       {{- $_ := set $configData "otel_metrics_export" dict }}

@@ -26,6 +26,8 @@ data:
       exclude_instrument:
       - exe_path: '*ebpf-instrument*'
       - exe_path: '*otelcol*'
+      - k8s_pod_annotations:
+          instrumentation.opentelemetry.io/enabled: "false"
       instrument:
       - k8s_namespace: '*'
     ebpf:
