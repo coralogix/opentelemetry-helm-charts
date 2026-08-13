@@ -772,6 +772,8 @@ receivers:
     metrics:
       k8s.pod.status_reason:
         enabled: true
+      k8s.container.status.reason:
+        enabled: true
     {{- end }}
 processors:
   {{- if  .Values.presets.clusterMetrics.customMetrics.enabled }}
