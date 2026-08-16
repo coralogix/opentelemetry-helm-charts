@@ -264,6 +264,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if and (.Values.presets.profilesK8sAttributes.enabled) (.Values.presets.profilesCollection.enabled) }}
 {{- $config = (include "opentelemetry-collector.applyProfilesK8sAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if and (.Values.presets.profilesAnnotationFilter.enabled) (.Values.presets.profilesCollection.enabled) }}
+{{- $config = (include "opentelemetry-collector.applyProfilesAnnotationFilterConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.resourceDetection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyResourceDetectionConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -374,6 +377,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- if and (.Values.presets.profilesK8sAttributes.enabled) (.Values.presets.profilesCollection.enabled) }}
 {{- $config = (include "opentelemetry-collector.applyProfilesK8sAttributesConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if and (.Values.presets.profilesAnnotationFilter.enabled) (.Values.presets.profilesCollection.enabled) }}
+{{- $config = (include "opentelemetry-collector.applyProfilesAnnotationFilterConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.resourceDetection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyResourceDetectionConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -908,6 +914,62 @@ processors:
 {{- $profilesProcessors = append $profilesProcessors "transform/profiles" }}
 {{- end }}
 {{- $_ := set $config.service.pipelines.profiles "processors" ($profilesProcessors | uniq) }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{/*
+Resolves the annotations the profiles annotation filter matches on, defaulting per mode.
+*/}}
+{{- define "opentelemetry-collector.profilesAnnotationFilterAnnotations" -}}
+{{- $filter := .presets.profilesAnnotationFilter }}
+{{- if $filter.annotations }}
+{{- $filter.annotations | toYaml }}
+{{- else }}
+instrumentation.opentelemetry.io/enabled: {{ ternary "true" "false" (eq $filter.mode "include") | quote }}
+{{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.profilesAnnotationFilterConfig" -}}
+{{- $filter := .Values.presets.profilesAnnotationFilter }}
+{{- $annotations := include "opentelemetry-collector.profilesAnnotationFilterAnnotations" .Values | fromYaml }}
+processors:
+  filter/profiles_annotations:
+    error_mode: ignore
+    profiles:
+      profile:
+        {{- range $key, $value := $annotations }}
+        {{- $attribute := printf "k8s.annotation.%s" $key }}
+        {{- if eq $filter.mode "include" }}
+        - instrumentation_scope.name == {{ $filter.scopeName | quote }} and resource.attributes[{{ $attribute | quote }}] != {{ $value | quote }}
+        {{- else }}
+        - instrumentation_scope.name == {{ $filter.scopeName | quote }} and resource.attributes[{{ $attribute | quote }}] == {{ $value | quote }}
+        {{- end }}
+        {{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyProfilesAnnotationFilterConfig" -}}
+{{- $filter := .Values.Values.presets.profilesAnnotationFilter }}
+{{- if not (has $filter.mode (list "include" "exclude")) }}
+{{- fail (printf "presets.profilesAnnotationFilter.mode must be \"include\" or \"exclude\", got %q" $filter.mode) }}
+{{- end }}
+{{- if not .Values.Values.presets.profilesK8sAttributes.enabled }}
+{{- fail "presets.profilesAnnotationFilter requires presets.profilesK8sAttributes.enabled, which extracts the Pod annotations it matches on" }}
+{{- end }}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.profilesAnnotationFilterConfig" .Values | fromYaml) .config }}
+{{- $annotations := include "opentelemetry-collector.profilesAnnotationFilterAnnotations" .Values.Values | fromYaml }}
+{{- $k8sattributes := index $config.processors "k8sattributes/profiles" }}
+{{- $extract := $k8sattributes.extract }}
+{{- $extractAnnotations := $extract.annotations | default (list) }}
+{{- range $key, $value := $annotations }}
+{{- $extractAnnotations = append $extractAnnotations (dict "tag_name" (printf "k8s.annotation.%s" $key) "key" $key "from" "pod") }}
+{{- end }}
+{{- $_ := set $extract "annotations" $extractAnnotations }}
+{{- if $config.service.pipelines.profiles }}
+{{- $profilesProcessors := $config.service.pipelines.profiles.processors | default (list) }}
+{{- if not (has "filter/profiles_annotations" $profilesProcessors) }}
+{{- $_ := set $config.service.pipelines.profiles "processors" (append $profilesProcessors "filter/profiles_annotations" | uniq) }}
+{{- end }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}

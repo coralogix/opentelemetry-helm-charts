@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.136.6 / 2026-08-13
+
+- [Feat] `presets.profilesAnnotationFilter`: select which workloads are profiled by Kubernetes Pod annotation. Enabling it keeps only the Pods annotated `instrumentation.opentelemetry.io/enabled: "true"`; `mode: exclude` instead drops the Pods annotated `"false"`. Every condition is scoped to the eBPF profiler's instrumentation scope, so profiles from SDK profilers on the same pipeline are never filtered.
+
 ### v0.136.5 / 2026-08-11
 
 - [Feat] Add optional `priorityClass.preemptionPolicy` support, allowing created PriorityClasses to use either Kubernetes preemption behavior: `PreemptLowerPriority` or `Never` when explicitly configured.
