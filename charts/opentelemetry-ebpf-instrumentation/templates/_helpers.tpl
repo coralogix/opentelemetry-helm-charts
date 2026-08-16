@@ -133,3 +133,12 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{ toYaml . }}
 {{- end }}
 {{- end }}
+
+{{/*
+Pod annotations, rendered through tpl so they can reference release values
+*/}}
+{{- define "obi.podAnnotations" -}}
+{{- if .Values.podAnnotations }}
+{{- tpl (.Values.podAnnotations | toYaml) . }}
+{{- end }}
+{{- end }}

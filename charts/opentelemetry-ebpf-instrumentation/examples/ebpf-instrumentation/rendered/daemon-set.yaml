@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-ebpf-instrumentation
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.18
+    helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.20
     app.kubernetes.io/name: opentelemetry-ebpf-instrumentation
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "v0.10.0"
@@ -23,9 +23,9 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 8fe65c72eb3768dc98ebe1bd6650622773b1cf26f4e29cc9bd9b3a351b2fa1a9
+        checksum/config: 508ce350d96996ead26c6efe775de03ac5951268835ed68fce19e368bf326dcb
       labels:
-        helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.18
+        helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.20
         app.kubernetes.io/name: opentelemetry-ebpf-instrumentation
         app.kubernetes.io/instance: example
         app.kubernetes.io/version: "v0.10.0"
@@ -65,6 +65,9 @@ spec:
               name: ebpf-instrument-config
             - mountPath: /sys/fs/cgroup
               name: cgroup
+            - mountPath: /sys/kernel/tracing
+              name: tracefs
+              readOnly: true
       volumes:
         - name: ebpf-instrument-config
           configMap:
@@ -72,3 +75,8 @@ spec:
         - name: cgroup
           hostPath:
             path: /sys/fs/cgroup
+            type: Directory
+        - name: tracefs
+          hostPath:
+            path: /sys/kernel/tracing
+            type: Directory

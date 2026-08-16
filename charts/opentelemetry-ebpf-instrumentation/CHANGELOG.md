@@ -2,6 +2,15 @@
 
 ## OpenTelemetry eBPF Instrumentation
 
+### v0.1.20 / 2026-08-13
+
+- [Fix] ServiceMonitor now honours `serviceMonitor.metrics.endpoint`; the template read `serviceMonitor.endpoint`, so the scrape settings were silently dropped
+- [Fix] Mount `/sys/kernel/tracing` whenever context propagation is enabled, not only when `stats.enabled` — the default deployment mounted no tracefs at all
+- [Fix] Grant `NET_ADMIN` and mount `/sys/fs/cgroup` for the `network` preset, not only when context propagation is enabled
+- [Fix] Container ports no longer render empty or duplicated when `prometheus_export.port` / `internal_metrics.prometheus.port` are unset or equal to the service target ports
+- [Feature] Render `podAnnotations` through `tpl`, so they can reference release values
+- [Chore] Exclude `tests/` and `examples/` from the packaged chart, and document the `annotations`, `initContainers`, `service.nodePort`, `service.externalIPs`, `service.externalTrafficPolicy` and `service.internalMetrics.nodePort` values the templates already support
+
 ### v0.1.18 / 2026-07-01
 
 - [Change] Bump OBI image to v0.10.0
