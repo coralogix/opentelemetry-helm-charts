@@ -2,9 +2,13 @@
 
 ## OpenTelemetry Collector
 
-### v0.136.6 / 2026-08-13
+### v0.136.7 / 2026-08-16
 
 - [Feat] `presets.profilesAnnotationFilter`: select which workloads are profiled by Kubernetes Pod annotation. Enabling it keeps only the Pods annotated `instrumentation.opentelemetry.io/enabled: "true"`; `mode: exclude` instead drops the Pods annotated `"false"`. Every condition is scoped to the eBPF profiler's instrumentation scope, so profiles from SDK profilers on the same pipeline are never filtered.
+
+### v0.136.6 / 2026-08-13
+
+- [Feat] `presets.clusterMetrics.customMetrics`: enable the `k8s.container.status.reason` metric on the `k8s_cluster` receiver. Container state is reported on two independent axes — `waiting` (`CrashLoopBackOff`, `CreateContainerConfigError`, `ImagePullBackOff`) and `terminated` (`Error`, `OOMKilled`, `Completed`) — and only the terminated axis was previously collected, via the `k8s.container.status.last_terminated_reason` resource attribute. Nothing in the emitted data could therefore contradict `k8s.pod.phase`, which reports `Running` for a crash-looping pod by construction: the `Failed` phase requires that no container will be restarted, and `restartPolicy: Always` is mandatory for Deployment/StatefulSet/DaemonSet pods. The existing `k8s.pod.status_reason` metric does not close the gap either — it covers only pod-level terminal reasons (`Evicted`, `NodeAffinity`, `NodeLost`, `Shutdown`, `UnexpectedAdmissionError`). Consumers can now read the live container-level reason directly. Note that the metric is one-hot encoded: every container emits a series for each possible reason at all times, valued `1` for the current reason and `0` for the others, so cardinality is a fixed multiple of container count.
 
 ### v0.136.5 / 2026-08-11
 
