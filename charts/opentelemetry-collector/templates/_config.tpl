@@ -928,7 +928,7 @@ Resolves the annotations the profiles annotation filter matches on, defaulting p
 {{- if $filter.annotations }}
 {{- $filter.annotations | toYaml }}
 {{- else }}
-instrumentation.opentelemetry.io/enabled: {{ ternary "true" "false" (eq $filter.mode "include") | quote }}
+profiling.coralogix.com/enabled: {{ ternary "true" "false" (eq $filter.mode "include") | quote }}
 {{- end }}
 {{- end }}
 

@@ -287,8 +287,8 @@ presets:
     # "exclude" profiles everything but the Pods carrying any of them (opt-out).
     mode: include
     # Annotations selecting the Pods. Defaults to
-    # `instrumentation.opentelemetry.io/enabled: "true"` in "include" mode, and to
-    # `instrumentation.opentelemetry.io/enabled: "false"` in "exclude" mode.
+    # `profiling.coralogix.com/enabled: "true"` in "include" mode, and to
+    # `profiling.coralogix.com/enabled: "false"` in "exclude" mode.
     annotations: {}
     # Instrumentation scope name identifying eBPF profiler output. The profiler sets this
     # on every scope it emits; profiles from any other scope are never filtered.

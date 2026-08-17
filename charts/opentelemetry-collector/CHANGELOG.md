@@ -4,7 +4,7 @@
 
 ### v0.136.7 / 2026-08-16
 
-- [Feat] `presets.profilesAnnotationFilter`: select which workloads are profiled by Kubernetes Pod annotation. Enabling it keeps only the Pods annotated `instrumentation.opentelemetry.io/enabled: "true"`; `mode: exclude` instead drops the Pods annotated `"false"`. Every condition is scoped to the eBPF profiler's instrumentation scope, so profiles from SDK profilers on the same pipeline are never filtered.
+- [Feat] `presets.profilesAnnotationFilter`: select which workloads are profiled by Kubernetes Pod annotation. Enabling it keeps only the Pods annotated `profiling.coralogix.com/enabled: "true"`; `mode: exclude` instead drops the Pods annotated `"false"`. Every condition is scoped to the eBPF profiler's instrumentation scope, so profiles from SDK profilers on the same pipeline are never filtered.
 
 ### v0.136.6 / 2026-08-13
 
