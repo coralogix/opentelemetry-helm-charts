@@ -16,20 +16,22 @@ metadata:
     {{- tpl (toYaml . | nindent 4) $root }}
   {{- end }}
 spec:
+  {{- $metricsPort := int (.Values.service.targetPort | default ((.Values.config.data).prometheus_export).port | default 0) }}
+  {{- $internalMetricsPort := int (.Values.service.internalMetrics.targetPort | default ((.Values.config.data.internal_metrics).prometheus).port | default 0) }}
   endpoints:
-    {{- if or (.Values.service.targetPort) (.Values.config.data.prometheus_export) }}
+    {{- if $metricsPort }}
     - port: {{ .Values.service.portName }}
-      path: {{ .Values.config.data.prometheus_export.path }}
+      path: {{ ((.Values.config.data).prometheus_export).path }}
       scheme: http
-      {{- with .Values.serviceMonitor.metrics.endpoint }}
+      {{- with ((.Values.serviceMonitor).metrics).endpoint }}
       {{- toYaml . | nindent 6 }}
       {{- end }}
     {{- end }}
-    {{- if (and (or (.Values.service.internalMetrics.targetPort) (.Values.config.data.internal_metrics)) (not (eq .Values.config.data.prometheus_export.port .Values.config.data.internal_metrics.prometheus.port))) }}
+    {{- if and $internalMetricsPort (ne $internalMetricsPort $metricsPort) }}
     - port: {{ .Values.service.internalMetrics.portName }}
-      path: {{ .Values.config.data.internal_metrics.prometheus.path }}
+      path: {{ ((.Values.config.data.internal_metrics).prometheus).path }}
       scheme: http
-      {{- with .Values.serviceMonitor.internalMetrics.endpoint }}
+      {{- with ((.Values.serviceMonitor).internalMetrics).endpoint }}
       {{- toYaml . | nindent 6 }}
       {{- end }}
     {{- end }}

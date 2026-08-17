@@ -7,7 +7,8 @@
 - [Fix] ServiceMonitor now honours `serviceMonitor.metrics.endpoint`; the template read `serviceMonitor.endpoint`, so the scrape settings were silently dropped
 - [Fix] Mount `/sys/kernel/tracing` whenever context propagation is enabled, not only when `stats.enabled` — the default deployment mounted no tracefs at all
 - [Fix] Grant `NET_ADMIN` and mount `/sys/fs/cgroup` for the `network` preset, not only when context propagation is enabled
-- [Fix] Container ports no longer render empty or duplicated when `prometheus_export.port` / `internal_metrics.prometheus.port` are unset or equal to the service target ports
+- [Fix] Container ports no longer render empty or duplicated when `prometheus_export.port` / `internal_metrics.prometheus.port` are unset or equal to the service target ports. The Service, ServiceMonitor and DaemonSet now resolve the effective metrics / internal-metrics ports the same way before comparing them, which also fixes the internal-metrics port being dropped whenever neither `targetPort` override was set
+- [Change] The `cgroup` and `tracefs` hostPath volumes now declare `type: Directory`; on a node where the path does not exist the Pod stays `Pending` with a clear event instead of starting with a silently empty mount
 - [Feature] Render `podAnnotations` through `tpl`, so they can reference release values
 - [Chore] Exclude `tests/` and `examples/` from the packaged chart, and document the `annotations`, `initContainers`, `service.nodePort`, `service.externalIPs`, `service.externalTrafficPolicy` and `service.internalMetrics.nodePort` values the templates already support
 
