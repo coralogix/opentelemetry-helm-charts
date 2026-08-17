@@ -29,7 +29,7 @@ data:
       instrument:
       - k8s_namespace: '*'
         k8s_pod_annotations:
-          instrumentation.opentelemetry.io/enabled: "true"
+          obi.coralogix.com/enabled: "true"
     ebpf:
       buffer_sizes:
         http: 2048

@@ -331,8 +331,8 @@ presets:
     # "exclude" instruments everything but the Pods carrying any of them (opt-out).
     mode: include
     # -- (map) Annotations selecting the Pods. Defaults to
-    # `instrumentation.opentelemetry.io/enabled: "true"` in "include" mode, and to
-    # `instrumentation.opentelemetry.io/enabled: "false"` in "exclude" mode.
+    # `obi.coralogix.com/enabled: "true"` in "include" mode, and to
+    # `obi.coralogix.com/enabled: "false"` in "exclude" mode.
     annotations: {}
 
 # -- Enable creation of ServiceMonitor for scraping of prometheus HTTP endpoint

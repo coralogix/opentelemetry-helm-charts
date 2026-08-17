@@ -41,7 +41,7 @@ data:
     {{- end }}
     {{- $filterAnnotations := $annotationFilter.annotations }}
     {{- if empty $filterAnnotations }}
-      {{- $filterAnnotations = dict "instrumentation.opentelemetry.io/enabled" (ternary "true" "false" (eq $annotationFilter.mode "include")) }}
+      {{- $filterAnnotations = dict "obi.coralogix.com/enabled" (ternary "true" "false" (eq $annotationFilter.mode "include")) }}
     {{- end }}
     {{- $discovery := $configData.discovery }}
     {{- if eq $annotationFilter.mode "include" }}
