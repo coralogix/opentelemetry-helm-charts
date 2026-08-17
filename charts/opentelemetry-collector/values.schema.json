@@ -2248,6 +2248,32 @@
             }
           }
         },
+        "profilesAnnotationFilter": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether to filter eBPF profiler output by Kubernetes Pod annotation.",
+              "type": "boolean"
+            },
+            "mode": {
+              "description": "Whether the annotations select the Pods to profile (\"include\") or the Pods to skip (\"exclude\").",
+              "type": "string",
+              "enum": ["include", "exclude"]
+            },
+            "annotations": {
+              "description": "Annotations selecting the Pods. Defaults per mode when empty.",
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "scopeName": {
+              "description": "Instrumentation scope name identifying eBPF profiler output.",
+              "type": "string"
+            }
+          }
+        },
         "ebpfProfiler": {
           "type": "object",
           "additionalProperties": false,

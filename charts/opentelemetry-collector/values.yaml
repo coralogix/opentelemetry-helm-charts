@@ -274,6 +274,25 @@ presets:
     enabled: true
     serviceLabels: []
     serviceAnnotations: []
+  # Selects which workloads are profiled, by the annotations of their Kubernetes Pod.
+  # Only eBPF profiler output is filtered: every condition is scoped to the profiler's
+  # instrumentation scope, so profiles from SDK profilers pass through untouched.
+  # Requires `presets.profilesCollection.enabled` and `presets.profilesK8sAttributes.enabled`,
+  # which provide the profiles pipeline and the k8sattributes processor the annotations are
+  # extracted by. Annotation values are matched exactly, and a Pod missing the annotation
+  # never matches.
+  profilesAnnotationFilter:
+    enabled: false
+    # "include" profiles only the Pods carrying every annotation in `annotations` (opt-in).
+    # "exclude" profiles everything but the Pods carrying any of them (opt-out).
+    mode: include
+    # Annotations selecting the Pods. Defaults to
+    # `profiling.coralogix.com/enabled: "true"` in "include" mode, and to
+    # `profiling.coralogix.com/enabled: "false"` in "exclude" mode.
+    annotations: {}
+    # Instrumentation scope name identifying eBPF profiler output. The profiler sets this
+    # on every scope it emits; profiles from any other scope are never filtered.
+    scopeName: go.opentelemetry.io/ebpf-profiler
   # Configures the collector to run the eBPF profiler distribution.
   # Switches the image to otelcol-ebpf-profiler and wires a profiles pipeline
   # with the profiling receiver. Use the otlpExporter preset to forward profiles
