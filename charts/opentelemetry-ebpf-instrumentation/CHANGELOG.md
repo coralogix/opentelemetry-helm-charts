@@ -2,7 +2,7 @@
 
 ## OpenTelemetry eBPF Instrumentation
 
-### v0.1.19 / 2026-08-13
+### v0.1.19 / 2026-08-18
 
 - [Fix] ServiceMonitor now honours `serviceMonitor.metrics.endpoint`; the template read `serviceMonitor.endpoint`, so the scrape settings were silently dropped
 - [Fix] Mount `/sys/kernel/tracing` whenever context propagation is enabled, not only when `stats.enabled` — the default deployment mounted no tracefs at all
