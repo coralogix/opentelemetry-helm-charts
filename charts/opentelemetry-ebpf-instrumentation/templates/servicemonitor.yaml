@@ -21,7 +21,7 @@ spec:
   endpoints:
     {{- if $metricsPort }}
     - port: {{ .Values.service.portName }}
-      path: {{ ((.Values.config.data).prometheus_export).path }}
+      path: {{ ((.Values.config.data).prometheus_export).path | default "/metrics" }}
       scheme: http
       {{- with ((.Values.serviceMonitor).metrics).endpoint }}
       {{- toYaml . | nindent 6 }}
@@ -29,7 +29,7 @@ spec:
     {{- end }}
     {{- if and $internalMetricsPort (ne $internalMetricsPort $metricsPort) }}
     - port: {{ .Values.service.internalMetrics.portName }}
-      path: {{ ((.Values.config.data.internal_metrics).prometheus).path }}
+      path: {{ ((.Values.config.data.internal_metrics).prometheus).path | default "/metrics" }}
       scheme: http
       {{- with ((.Values.serviceMonitor).internalMetrics).endpoint }}
       {{- toYaml . | nindent 6 }}
