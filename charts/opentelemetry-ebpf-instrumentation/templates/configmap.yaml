@@ -35,6 +35,9 @@ data:
     {{- end }}
     {{- end }}
   {{- $configData := deepCopy .Values.config.data }}
+  {{- if not (include "obi.prometheusExportEnabled" .) }}
+    {{- $_ := unset $configData "prometheus_export" }}
+  {{- end }}
   {{- if or .Values.runtimeMetrics.go.enabled .Values.runtimeMetrics.jvm.enabled .Values.stats.enabled }}
     {{- if not (hasKey $configData "otel_metrics_export") }}
       {{- $_ := set $configData "otel_metrics_export" dict }}

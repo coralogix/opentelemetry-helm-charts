@@ -77,7 +77,11 @@ spec:
               drop:
                 - ALL
           {{- end }}
-          {{- $metricsPort := int (.Values.service.targetPort | default ((.Values.config.data).prometheus_export).port | default 0) }}
+          {{- $promExport := dict }}
+          {{- if include "obi.prometheusExportEnabled" . }}
+          {{- $promExport = ((.Values.config.data).prometheus_export) | default dict }}
+          {{- end }}
+          {{- $metricsPort := int (.Values.service.targetPort | default ($promExport).port | default 0) }}
           {{- $internalMetricsPort := int (.Values.service.internalMetrics.targetPort | default ((.Values.config.data.internal_metrics).prometheus).port | default 0) }}
           ports:
           {{- if $metricsPort }}

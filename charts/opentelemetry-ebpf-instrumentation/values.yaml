@@ -300,6 +300,12 @@ config:
     ## to enable network metrics
     # network:
     #   enable: true
+    # -- Prometheus scrape endpoint. Only rendered when `service.enabled` is
+    # true, since a ServiceMonitor cannot scrape without a Service.
+    # OBI expires Prometheus metric children
+    # only while serving a scrape, so an endpoint that nothing scrapes retains
+    # every series for the lifetime of the process. If you scrape via pod
+    # annotations rather than a Service, set `service.enabled: true`.
     prometheus_export:
       port: 9090
       path: /metrics
