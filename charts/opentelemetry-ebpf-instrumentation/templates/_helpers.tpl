@@ -142,3 +142,16 @@ Pod annotations, rendered through tpl so they can reference release values
 {{- tpl (.Values.podAnnotations | toYaml) . }}
 {{- end }}
 {{- end }}
+
+{{/*
+Whether the Prometheus export endpoint should be configured.
+
+OBI expires Prometheus metric children only while serving a scrape, so an
+endpoint that nothing scrapes accumulates series for the lifetime of the
+process. Only configure it when something can actually scrape it.
+*/}}
+{{- define "obi.prometheusExportEnabled" -}}
+{{- if or .Values.service.enabled .Values.serviceMonitor.enabled -}}
+true
+{{- end -}}
+{{- end }}

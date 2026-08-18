@@ -2,6 +2,10 @@
 
 ## OpenTelemetry eBPF Instrumentation
 
+### v0.1.20 / 2026-08-18
+
+- [Fix] Only configure `prometheus_export` when `service.enabled` or `serviceMonitor.enabled` is set. OBI expires Prometheus metric children only while serving a scrape, so the previous default (endpoint configured, with no Service and no ServiceMonitor) retained every series for the lifetime of the process. The container port follows the same condition.
+
 ### v0.1.19 / 2026-08-18
 
 - [Fix] ServiceMonitor now honours `serviceMonitor.metrics.endpoint`; the template read `serviceMonitor.endpoint`, so the scrape settings were silently dropped
