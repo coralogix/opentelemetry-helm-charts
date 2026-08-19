@@ -1,0 +1,30 @@
+name: Validate OBI Configurations
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/validate-obi-config.yaml'
+      - 'charts/opentelemetry-ebpf-instrumentation/**'
+  workflow_dispatch:
+
+jobs:
+  validate-obi-config:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install validator dependencies
+        run: pip install -r charts/opentelemetry-ebpf-instrumentation/tests/requirements.txt
+
+      - name: Validate OBI configurations against schema
+        run: python charts/opentelemetry-ebpf-instrumentation/tests/validate_config.py
