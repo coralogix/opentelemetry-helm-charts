@@ -1,6 +1,10 @@
 import argparse
+import json
 import pathlib
 import sys
+import time
+import urllib.error
+import urllib.request
 
 import yaml
 from jsonschema import Draft202012Validator
@@ -8,6 +12,12 @@ from jsonschema import Draft202012Validator
 TEST_DIR = pathlib.Path(__file__).resolve().parent
 REPO_ROOT = TEST_DIR.parent.parent
 CHART_DIR = REPO_ROOT / "charts" / "opentelemetry-ebpf-instrumentation"
+SCHEMA_URL_TEMPLATE = (
+    "https://raw.githubusercontent.com/open-telemetry/"
+    "opentelemetry-ebpf-instrumentation/{version}/devdocs/config/config-schema.json"
+)
+FETCH_ATTEMPTS = 3
+FETCH_TIMEOUT = 30
 MAX_DEPTH = 40
 BOOL_AS_STRING = {True: "true", False: "false"}
 
@@ -17,8 +27,17 @@ def chart_app_version():
     return str(chart.get("appVersion", "")).strip()
 
 
-def pinned_schema_version():
-    return (TEST_DIR / "config-schema.version").read_text().strip()
+def fetch_schema(url):
+    last_error = None
+    for attempt in range(1, FETCH_ATTEMPTS + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=FETCH_TIMEOUT) as response:
+                return json.loads(response.read().decode())
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
+            last_error = error
+            if attempt < FETCH_ATTEMPTS:
+                time.sleep(2 * attempt)
+    raise SystemExit(f"could not fetch the OBI config schema from {url}: {last_error}")
 
 
 def resolve_ref(schema, root, depth=0):
@@ -90,31 +109,32 @@ def extract_obi_configs(configmap_path):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Validate every rendered OBI ConfigMap in the chart examples "
-        "against OBI's vendored JSON schema. YAML scalars are coerced the way "
-        "OBI's own yaml.v3 unmarshalling coerces them into string-typed fields, "
-        "so an unquoted 'enable: true' is accepted exactly as OBI accepts it."
+        description="Validate every rendered OBI ConfigMap in the chart examples against "
+        "OBI's JSON schema. The schema is fetched from the OBI release matching the "
+        "chart's appVersion, so it can never drift from the image the chart deploys. "
+        "YAML scalars are coerced the way OBI's own yaml.v3 unmarshalling coerces them "
+        "into string-typed fields, so an unquoted 'enable: true' is accepted exactly as "
+        "OBI accepts it."
     )
-    parser.add_argument("--schema", default=str(TEST_DIR / "config-schema.json"))
+    parser.add_argument(
+        "--schema",
+        help="path to a local schema file, bypassing the download (for offline runs)",
+    )
     args = parser.parse_args()
 
-    pinned = pinned_schema_version()
     app_version = chart_app_version()
-    if pinned != app_version:
-        print(
-            f"schema version drift: test/obi-config/config-schema.version is {pinned} but "
-            f"Chart.yaml appVersion is {app_version}.",
-            file=sys.stderr,
-        )
-        print(
-            f"re-vendor the schema from OBI {app_version}: go run ./cmd/obi-schema > "
-            f"test/obi-config/config-schema.json and update "
-            f"test/obi-config/config-schema.version.",
-            file=sys.stderr,
-        )
+    if not app_version:
+        print("could not read appVersion from the chart's Chart.yaml", file=sys.stderr)
         return 1
 
-    schema = yaml.safe_load(pathlib.Path(args.schema).read_text())
+    if args.schema:
+        schema = yaml.safe_load(pathlib.Path(args.schema).read_text())
+        print(f"schema: {args.schema}")
+    else:
+        url = SCHEMA_URL_TEMPLATE.format(version=app_version)
+        schema = fetch_schema(url)
+        print(f"schema: OBI {app_version}")
+
     validator = Draft202012Validator(schema)
 
     configmaps = sorted((CHART_DIR / "examples").glob("*/rendered/configmap.yaml"))
