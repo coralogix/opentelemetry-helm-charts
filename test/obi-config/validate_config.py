@@ -5,7 +5,9 @@ import sys
 import yaml
 from jsonschema import Draft202012Validator
 
-CHART_DIR = pathlib.Path(__file__).resolve().parent.parent
+TEST_DIR = pathlib.Path(__file__).resolve().parent
+REPO_ROOT = TEST_DIR.parent.parent
+CHART_DIR = REPO_ROOT / "charts" / "opentelemetry-ebpf-instrumentation"
 MAX_DEPTH = 40
 BOOL_AS_STRING = {True: "true", False: "false"}
 
@@ -16,7 +18,7 @@ def chart_app_version():
 
 
 def pinned_schema_version():
-    return (CHART_DIR / "tests" / "config-schema.version").read_text().strip()
+    return (TEST_DIR / "config-schema.version").read_text().strip()
 
 
 def resolve_ref(schema, root, depth=0):
@@ -93,21 +95,21 @@ def main():
         "OBI's own yaml.v3 unmarshalling coerces them into string-typed fields, "
         "so an unquoted 'enable: true' is accepted exactly as OBI accepts it."
     )
-    parser.add_argument("--schema", default=str(CHART_DIR / "tests" / "config-schema.json"))
+    parser.add_argument("--schema", default=str(TEST_DIR / "config-schema.json"))
     args = parser.parse_args()
 
     pinned = pinned_schema_version()
     app_version = chart_app_version()
     if pinned != app_version:
         print(
-            f"schema version drift: tests/config-schema.version is {pinned} but "
+            f"schema version drift: test/obi-config/config-schema.version is {pinned} but "
             f"Chart.yaml appVersion is {app_version}.",
             file=sys.stderr,
         )
         print(
             f"re-vendor the schema from OBI {app_version}: go run ./cmd/obi-schema > "
-            f"charts/opentelemetry-ebpf-instrumentation/tests/config-schema.json "
-            f"and update tests/config-schema.version.",
+            f"test/obi-config/config-schema.json and update "
+            f"test/obi-config/config-schema.version.",
             file=sys.stderr,
         )
         return 1
@@ -125,7 +127,7 @@ def main():
     for configmap_path in configmaps:
         for key, config in extract_obi_configs(configmap_path):
             checked += 1
-            rel = configmap_path.relative_to(CHART_DIR)
+            rel = configmap_path.relative_to(REPO_ROOT)
             normalized = coerce_yaml_scalars(config, schema, schema)
             errors = sorted(validator.iter_errors(normalized), key=lambda e: list(e.path))
             if errors:

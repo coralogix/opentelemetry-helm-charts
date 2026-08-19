@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/validate-obi-config.yaml'
       - 'charts/opentelemetry-ebpf-instrumentation/**'
+      - 'test/obi-config/**'
   workflow_dispatch:
 
 permissions:
@@ -27,7 +28,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install validator dependencies
-        run: pip install -r charts/opentelemetry-ebpf-instrumentation/tests/requirements.txt
+        run: pip install -r test/obi-config/requirements.txt
 
       - name: Validate OBI configurations against schema
-        run: python charts/opentelemetry-ebpf-instrumentation/tests/validate_config.py
+        run: python test/obi-config/validate_config.py
