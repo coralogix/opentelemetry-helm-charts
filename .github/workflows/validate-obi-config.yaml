@@ -9,6 +9,9 @@ on:
       - 'charts/opentelemetry-ebpf-instrumentation/**'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   validate-obi-config:
     runs-on: ubuntu-latest
