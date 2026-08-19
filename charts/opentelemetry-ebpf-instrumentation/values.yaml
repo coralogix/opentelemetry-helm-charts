@@ -288,9 +288,9 @@ config:
       kubernetes:
         enable: true
       select:
-        '*':
+        traces:
           include:
-            - 'gen_ai.*'
+            - '*'
     filter:
       network:
         k8s_dst_owner_name:
