@@ -43,12 +43,14 @@ spec:
   {{- with .Values.service.externalTrafficPolicy }}
   externalTrafficPolicy: {{ . }}
   {{- end }}
+  {{- $metricsPort := int (.Values.service.targetPort | default ((.Values.config.data).prometheus_export).port | default 0) }}
+  {{- $internalMetricsPort := int (.Values.service.internalMetrics.targetPort | default ((.Values.config.data.internal_metrics).prometheus).port | default 0) }}
   ports:
-    {{- if or (.Values.service.targetPort) (.Values.config.data.prometheus_export) }}
+    {{- if $metricsPort }}
     - name: {{ .Values.service.portName }}
       port: {{ .Values.service.port }}
       protocol: TCP
-      targetPort: {{ .Values.service.targetPort | default .Values.config.data.prometheus_export.port }}
+      targetPort: {{ $metricsPort }}
       {{- with .Values.service.appProtocol }}
       appProtocol: {{ . }}
       {{- end }}
@@ -56,11 +58,11 @@ spec:
       nodePort: {{ .Values.service.nodePort }}
       {{- end }}
     {{- end }}
-    {{- if (and (or (.Values.service.internalMetrics.targetPort) (.Values.config.data.internal_metrics)) (not (eq .Values.config.data.prometheus_export.port .Values.config.data.internal_metrics.prometheus.port))) }}
+    {{- if and $internalMetricsPort (ne $internalMetricsPort $metricsPort) }}
     - name: {{ .Values.service.internalMetrics.portName }}
       port: {{ .Values.service.internalMetrics.port }}
       protocol: TCP
-      targetPort: {{ .Values.service.internalMetrics.targetPort | default .Values.config.data.internal_metrics.prometheus.port }}
+      targetPort: {{ $internalMetricsPort }}
       {{- with .Values.service.internalMetrics.appProtocol }}
       appProtocol: {{ . }}
       {{- end }}

@@ -2,9 +2,27 @@
 
 ## OpenTelemetry eBPF Instrumentation
 
-### v0.1.19 / 2026-08-13
+### v0.1.22 / 2026-08-18
 
 - [Feature] Add a `presets.annotationFilter` preset, restricting the instrumented workloads by Kubernetes Pod annotation. Enabling it instruments only the Pods annotated `obi.coralogix.com/enabled: "true"`; `mode: exclude` instead skips the Pods annotated `obi.coralogix.com/enabled: "false"`
+
+### v0.1.21 / 2026-08-18
+
+- [Fix] Scope the attribute `select` to the `traces` section and include all attributes, instead of adding `gen_ai.*` under `'*'`. The previous `'*'` selector applied to metrics too and, being a non-empty include, replaced the default metric/span attribute set — dropping defaults such as `url.query` from spans. Spans now carry all optional attributes (GenAI payloads included) while metric attributes stay at their defaults.
+
+### v0.1.20 / 2026-08-18
+
+- [Fix] Only configure `prometheus_export` when `service.enabled` is set. OBI expires Prometheus metric children only while serving a scrape, so the previous default (endpoint configured, with no Service and no ServiceMonitor) retained every series for the lifetime of the process. The container port follows the same condition.
+
+### v0.1.19 / 2026-08-18
+
+- [Fix] ServiceMonitor now honours `serviceMonitor.metrics.endpoint`; the template read `serviceMonitor.endpoint`, so the scrape settings were silently dropped
+- [Fix] Mount `/sys/kernel/tracing` whenever context propagation is enabled, not only when `stats.enabled` — the default deployment mounted no tracefs at all
+- [Fix] Grant `NET_ADMIN` and mount `/sys/fs/cgroup` for the `network` preset, not only when context propagation is enabled
+- [Fix] Container ports no longer render empty or duplicated when `prometheus_export.port` / `internal_metrics.prometheus.port` are unset or equal to the service target ports. The Service, ServiceMonitor and DaemonSet now resolve the effective metrics / internal-metrics ports the same way before comparing them, which also fixes the internal-metrics port being dropped whenever neither `targetPort` override was set
+- [Change] The `cgroup` and `tracefs` hostPath volumes now declare `type: Directory`; on a node where the path does not exist the Pod stays `Pending` with a clear event instead of starting with a silently empty mount
+- [Feature] Render `podAnnotations` through `tpl`, so they can reference release values
+- [Chore] Exclude `tests/` and `examples/` from the packaged chart, and document the `annotations`, `initContainers`, `service.nodePort`, `service.externalIPs`, `service.externalTrafficPolicy` and `service.internalMetrics.nodePort` values the templates already support
 
 ### v0.1.18 / 2026-07-01
 

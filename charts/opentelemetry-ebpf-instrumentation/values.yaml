@@ -31,8 +31,14 @@ fullnameOverride: ""
 # -- Override the deployment namespace
 namespaceOverride: ""
 
-## DaemonSet annotations
-# annotations: {}
+# -- Annotations added to the DaemonSet, ConfigMap, ClusterRole and ClusterRoleBinding.
+annotations: {}
+
+# -- Additional init containers on the output daemonset definition.
+initContainers: []
+# - name: init-foo
+#   image: busybox:1.36
+#   command: ["sh", "-c", "echo hello"]
 
 rbac:
   # -- Whether to create RBAC resources for Opentelemetry eBPF Instrumentation
@@ -123,6 +129,12 @@ service:
   labels: {}
   # -- cluster IP
   clusterIP: ""
+  # -- external IPs to expose the service on
+  externalIPs: []
+  # -- how the service routes external traffic: "Cluster" or "Local"
+  externalTrafficPolicy: ""
+  # -- node port for the Prometheus metrics port. Only used when `service.type` is "NodePort".
+  nodePort: null
   # -- loadbalancer IP
   loadBalancerIP: ""
   # -- loadbalancer class name
@@ -148,6 +160,8 @@ service:
     portName: int-metrics
     # -- Adds the appProtocol field to the service. This allows to work with istio protocol selection. Ex: "http" or "tcp"
     appProtocol: ""
+    # -- node port for the internal metrics port. Only used when `service.type` is "NodePort".
+    nodePort: null
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
@@ -274,9 +288,9 @@ config:
       kubernetes:
         enable: true
       select:
-        '*':
+        traces:
           include:
-            - 'gen_ai.*'
+            - '*'
     filter:
       network:
         k8s_dst_owner_name:
@@ -286,6 +300,12 @@ config:
     ## to enable network metrics
     # network:
     #   enable: true
+    # -- Prometheus scrape endpoint. Only rendered when `service.enabled` is
+    # true, since a ServiceMonitor cannot scrape without a Service.
+    # OBI expires Prometheus metric children
+    # only while serving a scrape, so an endpoint that nothing scrapes retains
+    # every series for the lifetime of the process. If you scrape via pod
+    # annotations rather than a Service, set `service.enabled: true`.
     prometheus_export:
       port: 9090
       path: /metrics

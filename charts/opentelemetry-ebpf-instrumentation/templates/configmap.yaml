@@ -19,6 +19,9 @@ metadata:
 data:
   ebpf-instrument-config.yml: |
   {{- $configData := deepCopy .Values.config.data }}
+  {{- if not (include "obi.prometheusExportEnabled" .) }}
+    {{- $_ := unset $configData "prometheus_export" }}
+  {{- end }}
   {{- if eq .Values.preset "network" }}
     {{- if not $configData.network }}
       {{- $_ := set $configData "network" (dict "enable" true) }}
