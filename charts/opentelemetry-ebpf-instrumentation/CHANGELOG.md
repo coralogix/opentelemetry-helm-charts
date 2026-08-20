@@ -2,6 +2,10 @@
 
 ## OpenTelemetry eBPF Instrumentation
 
+### v0.1.22 / 2026-08-18
+
+- [Feature] Add a `presets.annotationFilter` preset, restricting the instrumented workloads by Kubernetes Pod annotation. Enabling it instruments only the Pods annotated `obi.coralogix.com/enabled: "true"`; `mode: exclude` instead skips the Pods annotated `obi.coralogix.com/enabled: "false"`
+
 ### v0.1.21 / 2026-08-18
 
 - [Fix] Scope the attribute `select` to the `traces` section and include all attributes, instead of adding `gen_ai.*` under `'*'`. The previous `'*'` selector applied to metrics too and, being a non-empty include, replaced the default metric/span attribute set — dropping defaults such as `url.query` from spans. Spans now carry all optional attributes (GenAI payloads included) while metric attributes stay at their defaults.

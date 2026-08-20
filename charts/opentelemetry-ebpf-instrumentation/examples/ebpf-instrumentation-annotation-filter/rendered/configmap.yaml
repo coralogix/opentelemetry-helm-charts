@@ -28,6 +28,8 @@ data:
       - exe_path: '*otelcol*'
       instrument:
       - k8s_namespace: '*'
+        k8s_pod_annotations:
+          obi.coralogix.com/enabled: "true"
     ebpf:
       buffer_sizes:
         http: 2048

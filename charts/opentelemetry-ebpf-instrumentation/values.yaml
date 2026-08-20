@@ -337,6 +337,24 @@ envValueFrom: {}
 # Accepted values are "network" or "application".
 preset: application
 
+presets:
+  ## Selects the instrumented workloads by the annotations of their Kubernetes Pod. Requires
+  ## `preset: application`, and composes with a `config.data.discovery` of your own: "include"
+  ## adds the annotations to every one of its `instrument` selectors, "exclude" appends them to
+  ## its `exclude_instrument` list.
+  ## Annotation values are glob patterns ("*" matches any value, including an empty one), and a Pod
+  ## missing the annotation never matches.
+  annotationFilter:
+    # -- Restricts the instrumented workloads to the Pods selected by `annotations`.
+    enabled: false
+    # -- "include" instruments only the Pods carrying every annotation in `annotations` (opt-in).
+    # "exclude" instruments everything but the Pods carrying any of them (opt-out).
+    mode: include
+    # -- (map) Annotations selecting the Pods. Defaults to
+    # `obi.coralogix.com/enabled: "true"` in "include" mode, and to
+    # `obi.coralogix.com/enabled: "false"` in "exclude" mode.
+    annotations: {}
+
 # -- Enable creation of ServiceMonitor for scraping of prometheus HTTP endpoint
 serviceMonitor:
   enabled: false
