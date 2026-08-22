@@ -2,6 +2,10 @@
 
 ## OpenTelemetry eBPF Instrumentation
 
+### v0.1.23 / 2026-08-22
+
+- [Change] Bump OBI image to v0.12.2
+
 ### v0.1.22 / 2026-08-18
 
 - [Feature] Add a `presets.annotationFilter` preset, restricting the instrumented workloads by Kubernetes Pod annotation. Enabling it instruments only the Pods annotated `obi.coralogix.com/enabled: "true"`; `mode: exclude` instead skips the Pods annotated `obi.coralogix.com/enabled: "false"`
