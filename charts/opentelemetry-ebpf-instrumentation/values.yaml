@@ -83,7 +83,7 @@ runtimeMetrics:
     enabled: false
   jvm:
     # -- Enables HotSpot JVM runtime metrics (heap used/committed/limit) via GCTracer uprobe and
-    # USDT probes. Adds "application_jvm" to the exported metrics features.
+    # USDT probes. Adds "application_runtime" to the exported metrics features.
     enabled: false
     # -- (string) Sampling interval for JVM runtime metrics collection.
     samplingInterval: 1s

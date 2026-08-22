@@ -71,8 +71,7 @@ data:
     {{- end }}
     {{- $otelMetricsExport := index $configData "otel_metrics_export" }}
     {{- $features := index $otelMetricsExport "features" | default list }}
-    {{- if and .Values.runtimeMetrics.go.enabled (not (has "application_runtime" $features)) }}{{ $features = append $features "application_runtime" }}{{- end }}
-    {{- if and .Values.runtimeMetrics.jvm.enabled (not (has "application_jvm" $features)) }}{{ $features = append $features "application_jvm" }}{{- end }}
+    {{- if and (or .Values.runtimeMetrics.go.enabled .Values.runtimeMetrics.jvm.enabled) (not (has "application_runtime" $features)) }}{{ $features = append $features "application_runtime" }}{{- end }}
     {{- if and .Values.stats.enabled (not (has "stats" $features)) }}{{ $features = append $features "stats" }}{{- end }}
     {{- $_ := set $otelMetricsExport "features" $features }}
   {{- end }}

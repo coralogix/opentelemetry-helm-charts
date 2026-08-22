@@ -2,6 +2,13 @@
 
 ## OpenTelemetry eBPF Instrumentation
 
+### v0.1.23 / 2026-08-22
+
+- [Change] Bump OBI image to v0.12.2
+- [Fix] `runtimeMetrics.jvm.enabled` now adds the `application_runtime` metrics feature instead of `application_jvm`. The `application_jvm` alias was removed in OBI v0.11.0, so on the new image the previous value produced an unknown feature
+- [Change] Note for upgraders: plain-text log enrichment is enabled by default in OBI v0.11.0 and later for every service the log enricher selects, appending space-separated `trace_id=` / `span_id=` fields to non-JSON writes. The chart does not enable the log enricher, so a default install is unaffected; installs that turn it on through `config` can restore the previous behavior with `ebpf.log_enricher.plain_text.enabled: false`
+- [Change] Note for upgraders: server-side Redis and Memcached measurements now report `db.server.operation.duration` instead of `db.client.operation.duration`
+
 ### v0.1.22 / 2026-08-18
 
 - [Feature] Add a `presets.annotationFilter` preset, restricting the instrumented workloads by Kubernetes Pod annotation. Enabling it instruments only the Pods annotated `obi.coralogix.com/enabled: "true"`; `mode: exclude` instead skips the Pods annotated `obi.coralogix.com/enabled: "false"`
