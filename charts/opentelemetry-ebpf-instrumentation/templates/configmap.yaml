@@ -65,19 +65,89 @@ data:
     {{- end }}
     {{- $_ := set $configData "discovery" $discovery }}
   {{- end }}
-  {{- if or .Values.runtimeMetrics.go.enabled .Values.runtimeMetrics.jvm.enabled .Values.stats.enabled }}
+  {{- $logEnricher := .Values.presets.logEnricher }}
+  {{- if $logEnricher.enabled }}
+    {{- if ne .Values.preset "application" }}
+      {{- fail "presets.logEnricher requires preset to be \"application\"" }}
+    {{- end }}
+    {{- $instrument := ($configData.discovery | default dict).instrument | default list }}
+    {{- if not $instrument }}
+      {{- fail "presets.logEnricher requires config.data.discovery.instrument to select the workloads to enrich" }}
+    {{- end }}
+    {{- $ebpf := $configData.ebpf | default dict }}
+    {{- $logEnricherConfig := (index $ebpf "log_enricher") | default dict }}
+    {{- if not (hasKey $logEnricherConfig "services") }}
+      {{- $_ := set $logEnricherConfig "services" (list (dict "service" $instrument)) }}
+    {{- end }}
+    {{- if not $logEnricher.plainText.enabled }}
+      {{- $plainText := deepCopy ((index $logEnricherConfig "plain_text") | default dict) }}
+      {{- $_ := set $plainText "enabled" false }}
+      {{- $_ := set $logEnricherConfig "plain_text" $plainText }}
+    {{- end }}
+    {{- $_ := set $ebpf "log_enricher" $logEnricherConfig }}
+    {{- $_ := set $configData "ebpf" $ebpf }}
+  {{- end }}
+  {{- $globalFeatures := (index ($configData.otel_metrics_export | default dict) "features") | default (list "application") }}
+  {{- if .Values.stats.enabled }}
     {{- if not (hasKey $configData "otel_metrics_export") }}
       {{- $_ := set $configData "otel_metrics_export" dict }}
     {{- end }}
     {{- $otelMetricsExport := index $configData "otel_metrics_export" }}
-    {{- $features := index $otelMetricsExport "features" | default list }}
-    {{- if and (or .Values.runtimeMetrics.go.enabled .Values.runtimeMetrics.jvm.enabled) (not (has "application_runtime" $features)) }}{{ $features = append $features "application_runtime" }}{{- end }}
-    {{- if and .Values.stats.enabled (not (has "stats" $features)) }}{{ $features = append $features "stats" }}{{- end }}
-    {{- $_ := set $otelMetricsExport "features" $features }}
+    {{- if not (has "stats" $globalFeatures) }}
+      {{- $globalFeatures = append $globalFeatures "stats" }}
+    {{- end }}
+    {{- $_ := set $otelMetricsExport "features" $globalFeatures }}
   {{- end }}
-  {{- if .Values.runtimeMetrics.jvm.enabled }}
-    {{- if not (hasKey $configData "jvm_runtime_metrics") }}
-      {{- $_ := set $configData "jvm_runtime_metrics" (dict "enabled" true "sampling_interval" .Values.runtimeMetrics.jvm.samplingInterval) }}
+  {{- $runtimeMetrics := .Values.presets.runtimeMetrics }}
+  {{- if and $runtimeMetrics.enabled (eq .Values.preset "application") }}
+    {{- $languages := $runtimeMetrics.languages | default list }}
+    {{- $knownLanguages := list "go" "java" "dotnet" "python" "ruby" "nodejs" "rust" "php" "cpp" "generic" }}
+    {{- range $language := $languages }}
+      {{- if not (has $language $knownLanguages) }}
+        {{- fail (printf "presets.runtimeMetrics.languages: unknown language %v, expected one of %s" $language (join ", " $knownLanguages)) }}
+      {{- end }}
+    {{- end }}
+    {{- $jvmSelected := or (empty $languages) (has "java" $languages) }}
+    {{- if empty $languages }}
+      {{- if not (hasKey $configData "otel_metrics_export") }}
+        {{- $_ := set $configData "otel_metrics_export" dict }}
+      {{- end }}
+      {{- $otelMetricsExport := index $configData "otel_metrics_export" }}
+      {{- if not (has "application_runtime" $globalFeatures) }}
+        {{- $globalFeatures = append $globalFeatures "application_runtime" }}
+      {{- end }}
+      {{- $_ := set $otelMetricsExport "features" $globalFeatures }}
+    {{- else }}
+      {{- $languageGlob := first $languages }}
+      {{- if gt (len $languages) 1 }}
+        {{- $languageGlob = printf "{%s}" (join "," $languages) }}
+      {{- end }}
+      {{- $discovery := $configData.discovery | default dict }}
+      {{- $instrument := $discovery.instrument | default list }}
+      {{- $languageSelectors := list }}
+      {{- range $selector := $instrument }}
+        {{- if not (hasKey $selector "languages") }}
+          {{- $languageSelector := deepCopy $selector }}
+          {{- $_ := set $languageSelector "languages" $languageGlob }}
+          {{- $metrics := deepCopy ((index $languageSelector "metrics") | default dict) }}
+          {{- $features := (index $metrics "features") | default $globalFeatures }}
+          {{- if not (has "application_runtime" $features) }}
+            {{- $features = append $features "application_runtime" }}
+          {{- end }}
+          {{- $_ := set $metrics "features" $features }}
+          {{- $_ := set $languageSelector "metrics" $metrics }}
+          {{- $languageSelectors = append $languageSelectors $languageSelector }}
+        {{- end }}
+      {{- end }}
+      {{- if $languageSelectors }}
+        {{- $_ := set $discovery "instrument" (concat $instrument $languageSelectors) }}
+        {{- $_ := set $configData "discovery" $discovery }}
+      {{- else }}
+        {{- $jvmSelected = false }}
+      {{- end }}
+    {{- end }}
+    {{- if and $jvmSelected (not (hasKey $configData "jvm_runtime_metrics")) }}
+      {{- $_ := set $configData "jvm_runtime_metrics" (dict "sampling_interval" $runtimeMetrics.jvm.samplingInterval) }}
     {{- end }}
   {{- end }}
   {{- toYaml $configData | nindent 4}}

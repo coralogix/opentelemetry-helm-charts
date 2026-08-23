@@ -23,11 +23,14 @@ data:
           include:
           - '*'
     discovery:
-      exclude_instrument:
-      - exe_path: '*ebpf-instrument*'
-      - exe_path: '*otelcol*'
       instrument:
-      - k8s_namespace: '*'
+      - k8s_namespace: prod
+      - k8s_namespace: prod
+        languages: '{go,java}'
+        metrics:
+          features:
+          - application
+          - application_runtime
     ebpf:
       buffer_sizes:
         http: 2048
@@ -77,8 +80,5 @@ data:
       sampling_interval: 1s
     otel_metrics_export:
       endpoint: http://${HOST_IP}:4318
-      features:
-      - application
-      - application_runtime
     otel_traces_export:
       endpoint: http://${HOST_IP}:4317

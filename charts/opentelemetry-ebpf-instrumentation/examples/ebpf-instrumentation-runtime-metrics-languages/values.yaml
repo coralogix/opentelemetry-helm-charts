@@ -1,0 +1,11 @@
+presets:
+  runtimeMetrics:
+    languages:
+      - go
+      - java
+
+config:
+  data:
+    discovery:
+      instrument:
+        - k8s_namespace: prod
