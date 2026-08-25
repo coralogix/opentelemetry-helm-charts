@@ -2,6 +2,10 @@
 
 ## OpenTelemetry eBPF Instrumentation
 
+### v0.1.25 / 2026-08-25
+
+- [Feature] Enable peer name resolution by default with `name_resolver.sources: [k8s, rdns]`: peer/host IPs resolve to names from the Kubernetes informer metadata and from the DNS answers OBI already captures. Both sources are in-memory and generate no lookups; the active `dns` source stays disabled since it issues blocking PTR queries from the span pipeline
+
 ### v0.1.24 / 2026-08-23
 
 - [Feature] Add a `presets.runtimeMetrics` preset, exporting application runtime metrics (Go memory limits, completed GC cycles, GOMAXPROCS and GOGC; HotSpot JVM heap used/committed/limit; Node.js event loop). It is enabled by default for every language OBI supports, adding the `application_runtime` metrics feature. `presets.runtimeMetrics.languages` narrows it to a list of detected languages, named as OBI names them, by giving every `discovery.instrument` selector a language-scoped copy carrying the feature, so it never widens the set of instrumented processes; a selector that already sets `languages` is left untouched. Note that Node.js runtime metrics are collected by injecting a JavaScript agent into every discovered Node.js process through the Node.js inspector, and that agent writes progress lines to the process' own stdout: `languages: [go, java]` leaves Node.js processes alone, and `nodejs.enabled: false` turns the injector off entirely

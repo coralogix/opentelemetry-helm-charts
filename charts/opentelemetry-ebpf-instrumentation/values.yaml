@@ -270,6 +270,8 @@ config:
       endpoint: "http://${HOST_IP}:4317"
     otel_metrics_export:
       endpoint: "http://${HOST_IP}:4318"
+    name_resolver:
+      sources: [k8s, rdns]
     attributes:
       kubernetes:
         enable: true
