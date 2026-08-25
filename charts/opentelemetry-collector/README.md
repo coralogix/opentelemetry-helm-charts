@@ -572,6 +572,52 @@ presets:
       enabled: true
 ```
 
+Every type is scraped at `pull.collectionInterval` unless it sets its own
+`interval`. The stored volume behind a flamegraph is the number of samples in a
+scrape times the number of scrapes times the number of instances times the length
+of the time range being viewed, so it grows linearly with the window, and the
+scrape interval is the most effective way to bound it.
+
+`heap` and `allocs` are the same Go profile and carry the same four sample types
+(`alloc_objects`, `alloc_space`, `inuse_objects`, `inuse_space`). They differ only
+in window: `allocs` is requested with `seconds`, so Go returns a delta bounded by
+that sampling window, while `heap` has no `seconds` and is served as the profile
+accumulated since process start, repeating every allocation site the process has
+touched rather than only those active in the last window, with `alloc_*` reported
+as running totals rather than a rate. On a small Go service a `heap` scrape
+carried about twice the samples and 2.3x the bytes of the matching `allocs` delta.
+
+`heap` therefore defaults to `interval: 300s` rather than the shared 60s: it is
+the larger and more redundant of the two, and it is the only source of the
+live-heap (`inuse`) sample types, which are a gauge, so a longer interval costs
+resolution rather than data:
+
+Each sample type in a scraped profile becomes its own OTLP profile carrying a
+full copy of every stack, so an endpoint reporting four sample types is stored
+four times over. Since `heap` and `allocs` are authoritative for one pair each,
+`sampleTypes` keeps only that pair from each scrape and drops the rest, which
+halves stored memory profile volume without losing anything:
+
+```yaml
+      defaultProfileTypes:
+        - type: profile
+          seconds: 30
+        - type: heap
+          interval: 300s
+          sampleTypes:
+            - inuse_objects
+            - inuse_space
+        - type: allocs
+          seconds: 30
+          sampleTypes:
+            - alloc_objects
+            - alloc_space
+```
+
+This renders a `filter/pprof` processor at the head of the profiles pipeline.
+Omit `sampleTypes` on an entry to keep everything that endpoint returns; when no
+entry sets it, no filter is rendered.
+
 Pods opt in to scraping with annotations (all but `scrape` are optional and
 fall back to the preset defaults):
 

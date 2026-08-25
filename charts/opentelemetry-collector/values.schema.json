@@ -2504,6 +2504,17 @@
                       "seconds": {
                         "description": "Sampling/delta interval in seconds. Required for `profile` and `trace`. Optional for other types; when set, the endpoint is scraped as a delta over the interval (e.g. `/debug/pprof/allocs?seconds=30`).",
                         "type": "integer"
+                      },
+                      "interval": {
+                        "description": "Scrape interval for this profile type, overriding `collectionInterval`. Use a longer interval for cumulative types such as `heap`, whose sample set grows for the lifetime of the process and is resent in full on every scrape.",
+                        "type": "string"
+                      },
+                      "sampleTypes": {
+                        "description": "Keep only these pprof sample types from this scrape and drop the rest (e.g. `[inuse_objects, inuse_space]` for `heap`). Each sample type becomes its own profile carrying a full copy of every stack, so dropping the ones an endpoint is not authoritative for removes redundant data. Omit to keep everything the endpoint returns.",
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
                       }
                     }
                   }

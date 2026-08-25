@@ -4304,6 +4304,9 @@ is absent or contains the rule's profile type.
 {{- if not (has "k8s_observer/pprof" $config.service.extensions) }}
 {{- $_ := set $config.service "extensions" (append $config.service.extensions "k8s_observer/pprof" | uniq) }}
 {{- end }}
+{{- if and (hasKey ($config.processors | default dict) "filter/pprof") ($config.service.pipelines.profiles) (not (has "filter/pprof" ($config.service.pipelines.profiles.processors | default list))) }}
+{{- $_ := set $config.service.pipelines.profiles "processors" (prepend ($config.service.pipelines.profiles.processors | default list) "filter/pprof") }}
+{{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
@@ -4332,16 +4335,37 @@ receivers:
       {{- $required := has $type $secondsRequired }}
       {{- $emitSeconds := or $required (hasKey $entry "seconds") }}
       {{- $defaultSeconds := $entry.seconds | default 30 }}
+      {{- $typeInterval := $entry.interval | default $interval }}
       pprof/{{ $type }}:
         rule: type == "pod" && annotations["{{ $prefix }}/scrape"] == "true" && ("{{ $prefix }}/types" not in annotations || annotations["{{ $prefix }}/types"] contains "{{ $type }}")
         config:
           remote:
             endpoint: 'http://`endpoint`:`"{{ $prefix }}/port" in annotations ? annotations["{{ $prefix }}/port"] : "6060"``"{{ $prefix }}/path" in annotations ? annotations["{{ $prefix }}/path"] : "/debug/pprof"`/{{ $type }}{{- if $emitSeconds }}?seconds=`"{{ $prefix }}/profile-seconds" in annotations ? annotations["{{ $prefix }}/profile-seconds"] : "{{ $defaultSeconds }}"`{{- end }}'
-            collection_interval: {{ $interval | quote }}
+            collection_interval: {{ $typeInterval | quote }}
         resource_attributes:
           k8s.pod.uid: '`uid`'
           pprof.profile.type: {{ $type | quote }}
       {{- end }}
+{{- $dropConditions := list }}
+{{- range $entry := .Values.presets.pprofReceiver.pull.defaultProfileTypes }}
+{{- if $entry.sampleTypes }}
+{{- $keep := list }}
+{{- range $sampleType := $entry.sampleTypes }}
+{{- $keep = append $keep (printf "profile.sample_type.type != %q" $sampleType) }}
+{{- end }}
+{{- $dropConditions = append $dropConditions (printf "resource.attributes[\"pprof.profile.type\"] == %q and %s" $entry.type (join " and " $keep)) }}
+{{- end }}
+{{- end }}
+{{- if $dropConditions }}
+processors:
+  filter/pprof:
+    error_mode: ignore
+    profiles:
+      profile:
+        {{- range $condition := $dropConditions }}
+        - {{ $condition | quote }}
+        {{- end }}
+{{- end }}
 {{- end }}
 
 {{/*
