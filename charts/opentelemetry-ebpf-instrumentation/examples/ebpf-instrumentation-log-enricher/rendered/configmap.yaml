@@ -34,6 +34,12 @@ data:
         kafka: 4096
         mysql: 4096
         postgres: 4096
+      log_enricher:
+        plain_text:
+          enabled: false
+        services:
+        - service:
+          - k8s_namespace: '*'
       payload_extraction:
         http:
           aws:

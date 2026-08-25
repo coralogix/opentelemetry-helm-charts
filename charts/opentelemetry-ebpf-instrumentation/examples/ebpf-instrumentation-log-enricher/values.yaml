@@ -1,0 +1,5 @@
+presets:
+  logEnricher:
+    enabled: true
+    plainText:
+      enabled: false

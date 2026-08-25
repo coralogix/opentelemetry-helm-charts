@@ -74,20 +74,6 @@ privileged: true
 stats:
   enabled: false
 
-# -- Enables collection of application runtime metrics (memory, GC, etc). Both are disabled by
-# default since they add eBPF uprobe/USDT instrumentation overhead.
-runtimeMetrics:
-  go:
-    # -- Enables Go runtime metrics (memory limits, completed GC cycles, GOMAXPROCS, GOGC).
-    # Adds "application_runtime" to the exported metrics features.
-    enabled: false
-  jvm:
-    # -- Enables HotSpot JVM runtime metrics (heap used/committed/limit) via GCTracer uprobe and
-    # USDT probes. Adds "application_runtime" to the exported metrics features.
-    enabled: false
-    # -- (string) Sampling interval for JVM runtime metrics collection.
-    samplingInterval: 1s
-
 # -- Enables context propagation support.
 contextPropagation:
   enabled: true
@@ -338,6 +324,44 @@ envValueFrom: {}
 preset: application
 
 presets:
+  ## Exports application runtime metrics (Go memory limits, completed GC cycles, GOMAXPROCS and
+  ## GOGC; HotSpot JVM heap used/committed/limit; Node.js event loop) for the instrumented
+  ## processes. Requires `preset: application`. By default it adds the `application_runtime`
+  ## metrics feature for every language; setting `languages` instead scopes the feature by giving
+  ## each `config.data.discovery.instrument` selector a language-scoped copy carrying it, so the
+  ## preset never widens the set of instrumented processes. A selector that already sets
+  ## `languages` is left untouched.
+  runtimeMetrics:
+    # -- Exports runtime metrics for every language OBI supports (`go`, `java` and `nodejs`).
+    enabled: true
+    # -- (list) Narrows the export to these detected languages, named as OBI names them: `go`,
+    # `java`, `dotnet`, `python`, `ruby`, `nodejs`, `rust`, `php`, `cpp`, `generic`. Empty (the
+    # default) exports runtime metrics for all of them, as the single `application_runtime`
+    # metrics feature; a non-empty list instead scopes the feature to the matching processes.
+    # Note that `nodejs` metrics are collected by injecting a JavaScript agent into every
+    # discovered Node.js process through the Node.js inspector, and that agent writes progress
+    # lines to the process' own stdout, which corrupts applications parsing their own stdout (a
+    # Playwright JSON reporter, for one). Set `languages: [go, java]` to leave Node.js processes
+    # alone, or turn the injector off entirely with `config.data.nodejs.enabled: false`.
+    languages: []
+    jvm:
+      # -- (string) Sampling interval of the JVM runtime metrics collection. Only used when
+      # `languages` is empty or lists `java`.
+      samplingInterval: 1s
+
+  ## Injects the active trace context into the logs written by the instrumented processes: OBI
+  ## preserves an existing `trace_id` / `span_id` field where the log line already carries one, and
+  ## adds it where it does not. Requires `preset: application`, and enriches the workloads selected
+  ## by the `config.data.discovery.instrument` selectors.
+  logEnricher:
+    # -- Enriches the logs of the instrumented processes with the active trace context.
+    enabled: false
+    plainText:
+      # -- Enriches non-JSON writes as well, adding space-separated `trace_id=` / `span_id=`
+      # fields to the first nonempty line of every write. Set to false to enrich only the
+      # processes' JSON logs, leaving plain-text output untouched.
+      enabled: true
+
   ## Selects the instrumented workloads by the annotations of their Kubernetes Pod. Requires
   ## `preset: application`, and composes with a `config.data.discovery` of your own: "include"
   ## adds the annotations to every one of its `instrument` selectors, "exclude" appends them to

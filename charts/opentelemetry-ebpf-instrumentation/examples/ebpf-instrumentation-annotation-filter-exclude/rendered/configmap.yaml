@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-ebpf-instrumentation
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.23
+    helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.24
     app.kubernetes.io/name: opentelemetry-ebpf-instrumentation
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "v0.12.2"
@@ -75,7 +75,12 @@ data:
           not_match: '{kube*,*jaeger-agent*,*prometheus*,*promtail*,*grafana-agent*}'
     health_check:
       port: 0
+    jvm_runtime_metrics:
+      sampling_interval: 1s
     otel_metrics_export:
       endpoint: http://${HOST_IP}:4318
+      features:
+      - application
+      - application_runtime
     otel_traces_export:
       endpoint: http://${HOST_IP}:4317
