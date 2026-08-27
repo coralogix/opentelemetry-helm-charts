@@ -311,6 +311,12 @@ presets:
   # See https://opentelemetry.io/docs/kubernetes/collector/components/#host-metrics-receiver for details on the receiver.
   hostMetrics:
     enabled: false
+    # Attributes to include on system.cpu.time and system.cpu.utilization.
+    # The default preserves per-logical-CPU metrics from Collector versions before 0.157.0.
+    # Set to [state] to aggregate metrics across logical CPUs without the cpu attribute.
+    cpuAttributes:
+      - cpu
+      - state
     # Enables process scraper for hostMetrics
     # This needs privileged security context
     process:
