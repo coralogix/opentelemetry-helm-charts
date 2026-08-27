@@ -317,6 +317,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- if .Values.presets.batch.perPipeline.enabled }}
+{{- $config = (include "opentelemetry-collector.applyBatchProcessorPerPipelineConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- $config = (include "opentelemetry-collector.applyMemoryLimiterProcessorAsFirst" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.removePipelinesWithoutExporters" (dict "config" $config) | fromYaml) }}
 {{- $supervisorEnabled := and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
@@ -485,6 +488,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- if .Values.presets.batch.perPipeline.enabled }}
+{{- $config = (include "opentelemetry-collector.applyBatchProcessorPerPipelineConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- $config = (include "opentelemetry-collector.applyMemoryLimiterProcessorAsFirst" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.removePipelinesWithoutExporters" (dict "config" $config) | fromYaml) }}
 {{- $supervisorEnabled := and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
@@ -508,6 +514,60 @@ Build config file for deployment OpenTelemetry Collector
     {{- $_ := unset $config.service.pipelines $pipelineName }}
   {{- end }}
 {{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{/*
+presets.batch.perPipeline: gives every pipeline that references the shared "batch" processor id
+its own "batch/<pipeline>" processor instead, so otelcol_processor_batch_* metrics and
+presets.batch.perPipeline.overrides can be scoped per pipeline. See
+opentelemetry-collector.batchProcessorName, opentelemetry-collector.batchProcessorSettings and
+opentelemetry-collector.applyBatchProcessorPerPipelineConfig.
+*/}}
+{{- define "opentelemetry-collector.batchProcessorName" -}}
+{{- printf "batch/%s" (. | replace "/" "_") -}}
+{{- end }}
+
+{{- define "opentelemetry-collector.batchProcessorSettings" -}}
+{{- $batch := .Values.presets.batch | default dict -}}
+{{- $settings := dict "send_batch_size" $batch.sendBatchSize "send_batch_max_size" $batch.sendBatchMaxSize "timeout" $batch.timeout -}}
+{{- $override := (($batch.perPipeline | default dict).overrides | default dict) | dig .pipelineName dict -}}
+{{- if hasKey $override "sendBatchSize" -}}
+{{- $_ := set $settings "send_batch_size" $override.sendBatchSize -}}
+{{- end -}}
+{{- if hasKey $override "sendBatchMaxSize" -}}
+{{- $_ := set $settings "send_batch_max_size" $override.sendBatchMaxSize -}}
+{{- end -}}
+{{- if hasKey $override "timeout" -}}
+{{- $_ := set $settings "timeout" $override.timeout -}}
+{{- end -}}
+{{- $settings | toYaml -}}
+{{- end }}
+
+{{/*
+Opt-in via presets.batch.perPipeline.enabled. Renames every pipeline's "batch" processor
+reference (added by presets.batch, spanMetrics, headSampling, kubernetesResources, or a user's
+own custom pipeline) to its own "batch/<pipeline>" id and defines that processor. Off by default:
+presets.batch on its own keeps the single shared "batch" id, matching upstream.
+*/}}
+{{- define "opentelemetry-collector.applyBatchProcessorPerPipelineConfig" -}}
+{{- $Values := .Values }}
+{{- $config := .config }}
+{{- if $config.service.pipelines }}
+{{- range $pipelineName, $pipeline := $config.service.pipelines }}
+{{- $processors := default (list) $pipeline.processors }}
+{{- if has "batch" $processors }}
+{{- $batchName := include "opentelemetry-collector.batchProcessorName" $pipelineName }}
+{{- $_ := set $pipeline "processors" (append (without $processors "batch") $batchName | uniq)  }}
+{{- $settings := include "opentelemetry-collector.batchProcessorSettings" (dict "Values" $Values.Values "pipelineName" $pipelineName) | fromYaml }}
+{{- $_ := set $config.processors $batchName $settings }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{/* Every pipeline that referenced "batch" was just renamed off it above, so it's now
+unreferenced (e.g. by presets.batch.enabled) - drop it, or the collector rejects the config
+for defining a processor no pipeline uses. */}}
+{{- $_ := unset $config.processors "batch" }}
 {{- $config | toYaml }}
 {{- end }}
 
