@@ -711,6 +711,19 @@
               "description": "Specifies whether the collector should collect host metrics.",
               "type": "boolean"
             },
+            "cpuAttributes": {
+              "description": "Specifies the attributes emitted on system.cpu.time and system.cpu.utilization. Use [state] to aggregate metrics across logical CPUs without the cpu attribute.",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "cpu",
+                  "state"
+                ]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
             "process": {
               "type": "object",
               "additionalProperties": false,

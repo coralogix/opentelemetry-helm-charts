@@ -385,6 +385,18 @@ presets:
     enabled: true
 ```
 
+By default, the preset includes the `cpu` and `state` attributes on `system.cpu.time` and
+`system.cpu.utilization`. This preserves one metric series per logical CPU. To use the
+Collector v0.157.0 and later default that aggregates metrics across logical CPUs, configure:
+
+```yaml
+presets:
+  hostMetrics:
+    enabled: true
+    cpuAttributes:
+      - state
+```
+
 ### Configuration for Prometheus Multi-Target Scraping
 
 The Prometheus multi-target preset lets the collector scrape metrics from a list of arbitrary endpoints using a single

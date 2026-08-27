@@ -2,6 +2,11 @@
 
 ## OpenTelemetry Collector
 
+### v0.137.0 / 2026-08-27
+
+- [Feat] Bump the OpenTelemetry Collector image to v0.159.0.
+- [Fix] Preserve the pre-v0.157.0 per-logical-CPU host metrics behavior by including the `cpu` attribute by default. Set `presets.hostMetrics.cpuAttributes: [state]` to use the new aggregated behavior without the `cpu` attribute.
+
 ### v0.136.7 / 2026-08-17
 
 - [Fix] `presets.clusterMetrics.customMetrics`: stop enabling the `k8s.container.status.reason` metric on the `k8s_cluster` receiver.

@@ -661,8 +661,11 @@ receivers:
     scrapers:
         cpu:
           metrics:
+            system.cpu.time:
+              attributes: {{ .Values.presets.hostMetrics.cpuAttributes | toJson }}
             system.cpu.utilization:
               enabled: true
+              attributes: {{ .Values.presets.hostMetrics.cpuAttributes | toJson }}
         {{- if not .Values.isWindows }}
         load:
         {{- end }}
