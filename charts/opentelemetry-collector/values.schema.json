@@ -63,6 +63,11 @@
         "enabled": {
           "type": "boolean"
         },
+        "collectionMode": {
+          "type": "string",
+          "enum": ["daemonset", "statefulset"],
+          "default": "daemonset"
+        },
         "nodeSelector": {
           "type": "object"
         },

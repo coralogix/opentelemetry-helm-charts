@@ -310,10 +310,9 @@ Get HPA kind from mode.
 The capitalization is important for StatefulSet.
 */}}
 {{- define "opentelemetry-collector.hpaKind" -}}
-{{- if eq .Values.mode "deployment" -}}
-{{- print "Deployment" -}}
-{{- end -}}
 {{- if eq .Values.mode "statefulset" -}}
 {{- print "StatefulSet" -}}
+{{- else -}}
+{{- print "Deployment" -}}
 {{- end -}}
 {{- end }}
