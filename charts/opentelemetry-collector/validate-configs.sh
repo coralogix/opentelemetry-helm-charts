@@ -196,8 +196,9 @@ validate_config() {
     local feature_gates="${4:-}"
 
     # Create temporary config file
-    local temp_config
-    temp_config=$(mktemp)
+    local temp_dir temp_config
+    temp_dir=$(mktemp -d "${SCRIPT_DIR}/.validate-config.XXXXXX")
+    temp_config="${temp_dir}/config.yaml"
     echo "$config_content" > "$temp_config"
 
     log "Validating configuration for: $example_name (${collector_binary##*/})"
@@ -206,10 +207,10 @@ validate_config() {
     if [[ "$collector_binary" == docker:* ]]; then
         # eBPF profiler distribution: validate inside its published image.
         local image="${collector_binary#docker:}"
-        local args=(validate --config=/tmp/config.yaml)
+        local args=(validate --config=/config/config.yaml)
         [[ -n "$feature_gates" ]] && args+=(--feature-gates="$feature_gates")
         validation_output=$(docker run --rm --network none \
-            -v "${temp_config}:/tmp/config.yaml:ro" \
+            -v "${temp_dir}:/config:ro" \
             "$image" "${args[@]}" </dev/null 2>&1)
         exit_code=$?
     else
@@ -221,20 +222,20 @@ validate_config() {
     
     if [[ $exit_code -eq 0 ]]; then
         log "✓ Configuration valid for: $example_name"
-        rm "$temp_config"
+        rm -rf "$temp_dir"
         return 0
     else
         # Check if errors should be ignored
         if should_ignore_errors "$validation_output"; then
             log "✓ Configuration valid for: $example_name (ignoring expected k8s environment errors)"
-            rm "$temp_config"
+            rm -rf "$temp_dir"
             return 0
         else
             error "✗ Configuration invalid for: $example_name"
             # Show the validation error (but limit output)
             echo "Validation errors:"
             echo "$validation_output" | head -10 | sed 's/^/  /'
-            rm "$temp_config"
+            rm -rf "$temp_dir"
             return 1
         fi
     fi

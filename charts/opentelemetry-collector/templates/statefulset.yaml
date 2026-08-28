@@ -1,5 +1,5 @@
 {{- if not .Values.collectorCRD.generate -}}
-{{- if eq .Values.mode "statefulset" -}}
+{{- if or (eq .Values.mode "statefulset") (and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset")) -}}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -22,7 +22,10 @@ spec:
   selector:
     matchLabels:
       {{- include "opentelemetry-collector.selectorLabels" . | nindent 6 }}
-      {{- include "opentelemetry-collector.component" . | nindent 6 }}
+      component: statefulset-collector
+      {{- if eq .Values.targetAllocator.collectionMode "statefulset" }}
+      opentelemetry.io/target-allocator-pool: "true"
+      {{- end }}
   updateStrategy:
     type: {{ .Values.rollout.strategy }}
   template:
@@ -32,7 +35,10 @@ spec:
         {{- include "opentelemetry-collector.podAnnotations" . | nindent 8 }}
       labels:
         {{- include "opentelemetry-collector.selectorLabels" . | nindent 8 }}
-        {{- include "opentelemetry-collector.component" . | nindent 8 }}
+        component: statefulset-collector
+        {{- if eq .Values.targetAllocator.collectionMode "statefulset" }}
+        opentelemetry.io/target-allocator-pool: "true"
+        {{- end }}
         {{- include "opentelemetry-collector.podLabels" . | nindent 8 }}
     spec:
       {{- with .Values.dnsPolicy }}
@@ -42,11 +48,10 @@ spec:
       dnsConfig:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- $podValues := deepCopy .Values }}
-      {{- $podData := dict "Values" $podValues "configmapSuffix" "-statefulset" "isAgent" false }}
+      {{- $podData := dict "Values" .Values "configmapSuffix" "-statefulset" "isAgent" false }}
       {{- include "opentelemetry-collector.pod" ($podData | mustMergeOverwrite (deepCopy .)) | nindent 6 }}
       {{- if not .Values.isWindows }}
-      hostNetwork: {{ .Values.hostNetwork }}
+      hostNetwork: {{ and .Values.hostNetwork (not (and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset"))) }}
       {{- if .Values.presets.ebpfProfiler.enabled }}
       hostPID: true
       {{- end }}

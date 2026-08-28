@@ -2,6 +2,31 @@
 {{ fail "[ERROR] 'mode' must be set. See https://github.com/open-telemetry/opentelemetry-helm-charts/blob/main/charts/opentelemetry-collector/UPGRADING.md for instructions." }}
 {{ end }}
 
+{{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") (ne .Values.mode "daemonset") }}
+{{- fail "[ERROR] targetAllocator.collectionMode: statefulset requires mode: daemonset. The StatefulSet is a dedicated scraping pool." }}
+{{- end }}
+
+{{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") .Values.collectorCRD.generate }}
+{{- fail "[ERROR] targetAllocator.collectionMode: statefulset does not support collectorCRD.generate: true." }}
+{{- end }}
+
+{{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") .Values.isWindows }}
+{{- fail "[ERROR] targetAllocator.collectionMode: statefulset does not support isWindows: true." }}
+{{- end }}
+
+{{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") (not .Values.configMap.create) }}
+{{- fail "[ERROR] targetAllocator.collectionMode: statefulset requires configMap.create: true for its pool configuration." }}
+{{- end }}
+
+{{- $resourceRequests := .Values.resources.requests | default dict }}
+{{- $targetAllocatorPoolHPA := and .Values.autoscaling.enabled .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") (eq .Values.autoscaling.mode "hpa") }}
+{{- if and $targetAllocatorPoolHPA .Values.autoscaling.targetCPUUtilizationPercentage (not $resourceRequests.cpu) }}
+{{- fail "[ERROR] targetAllocator.collectionMode: statefulset requires resources.requests.cpu for its HPA." }}
+{{- end }}
+{{- if and $targetAllocatorPoolHPA .Values.autoscaling.targetMemoryUtilizationPercentage (not $resourceRequests.memory) }}
+{{- fail "[ERROR] targetAllocator.collectionMode: statefulset requires resources.requests.memory for its HPA." }}
+{{- end }}
+
 {{- if and (eq .Values.dnsPolicy "None") (not .Values.dnsConfig) }}
 {{- fail "[ERROR] dnsConfig should be provided when dnsPolicy is None" }}
 {{ end }}
