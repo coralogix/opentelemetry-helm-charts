@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.137.1 / 2026-08-30
+
+- [Feat] Add `presets.spanMetricsSanitization.clientSpanNames`, which derives a low-cardinality `url.template` from the request URL on HTTP client spans and renames them from a bare `GET`/`POST` to `GET /api/products/*`. Disabled by default.
+
 ### v0.137.0 / 2026-08-27
 
 - [Feat] Bump the OpenTelemetry Collector image to v0.159.0.

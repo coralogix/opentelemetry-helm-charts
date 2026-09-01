@@ -1300,6 +1300,17 @@
               "description": "Enables URL sanitization for span names and HTTP attributes.",
               "type": "boolean"
             },
+            "clientSpanNames": {
+              "description": "Derives a low-cardinality url.template from the request URL on HTTP client spans and renames them from a bare method to GET /api/products/*. Changes existing client span names and span metric series.",
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "default": false
+                }
+              }
+            },
             "sanitizeDatabases": {
               "description": "Allowlist of database types whose statements should be sanitized. Available values: sql, redis, memcached, mongo, opensearch, es",
               "type": "array",

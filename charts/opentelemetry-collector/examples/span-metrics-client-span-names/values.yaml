@@ -1,0 +1,10 @@
+mode: daemonset
+
+presets:
+  batch:
+    enabled: true
+  spanMetricsSanitization:
+    enabled: true
+    sanitize_url: true
+    clientSpanNames:
+      enabled: true
