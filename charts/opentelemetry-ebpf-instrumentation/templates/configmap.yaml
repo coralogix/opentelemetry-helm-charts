@@ -87,16 +87,42 @@ data:
     {{- $_ := set $ebpf "log_enricher" $logEnricherConfig }}
     {{- $_ := set $configData "ebpf" $ebpf }}
   {{- end }}
-  {{- $globalFeatures := (index ($configData.otel_metrics_export | default dict) "features") | default (list "application") }}
-  {{- if .Values.stats.enabled }}
-    {{- if not (hasKey $configData "otel_metrics_export") }}
-      {{- $_ := set $configData "otel_metrics_export" dict }}
+  {{- $metricsFeatures := .Values.metrics.features }}
+  {{- $featuresSet := not (kindIs "invalid" $metricsFeatures) }}
+  {{- if and $featuresSet (not (kindIs "slice" $metricsFeatures)) }}
+    {{- fail "metrics.features must be a list of OBI metric feature names ([] disables all application metrics)" }}
+  {{- end }}
+  {{- /* OBI's modern key is the top-level metrics.features (applies to every metrics exporter);
+         the per-exporter otel_metrics_export.features is deprecated but overrides the modern key
+         in OBI when present, so the base list and the write target follow that precedence, and an
+         explicit metrics.features value drops the deprecated key from the passthrough. */ -}}
+  {{- $deprecatedExport := $configData.otel_metrics_export | default dict }}
+  {{- $modernMetrics := $configData.metrics | default dict }}
+  {{- $globalFeatures := list "application" }}
+  {{- $useModernFeaturesKey := false }}
+  {{- if hasKey $deprecatedExport "features" }}
+    {{- /* "default" swallows an explicit [] here, treating it as unset — kept for backwards
+           compatibility with how this passthrough always behaved; metrics.features is the
+           supported way to get an empty feature list */ -}}
+    {{- $globalFeatures = (index $deprecatedExport "features") | default (list "application") }}
+  {{- else if hasKey $modernMetrics "features" }}
+    {{- $globalFeatures = deepCopy (index $modernMetrics "features") }}
+    {{- $useModernFeaturesKey = true }}
+  {{- end }}
+  {{- if $featuresSet }}
+    {{- /* deepCopy also keeps an explicit [] as an empty base, which "default" would swallow */ -}}
+    {{- $globalFeatures = deepCopy $metricsFeatures }}
+    {{- $useModernFeaturesKey = true }}
+    {{- if hasKey $deprecatedExport "features" }}
+      {{- $_ := unset $deprecatedExport "features" }}
     {{- end }}
-    {{- $otelMetricsExport := index $configData "otel_metrics_export" }}
+  {{- end }}
+  {{- $writeGlobalFeatures := $featuresSet }}
+  {{- if .Values.stats.enabled }}
     {{- if not (has "stats" $globalFeatures) }}
       {{- $globalFeatures = append $globalFeatures "stats" }}
     {{- end }}
-    {{- $_ := set $otelMetricsExport "features" $globalFeatures }}
+    {{- $writeGlobalFeatures = true }}
   {{- end }}
   {{- $runtimeMetrics := .Values.presets.runtimeMetrics }}
   {{- if and $runtimeMetrics.enabled (eq .Values.preset "application") }}
@@ -109,14 +135,10 @@ data:
     {{- end }}
     {{- $jvmSelected := or (empty $languages) (has "java" $languages) }}
     {{- if empty $languages }}
-      {{- if not (hasKey $configData "otel_metrics_export") }}
-        {{- $_ := set $configData "otel_metrics_export" dict }}
-      {{- end }}
-      {{- $otelMetricsExport := index $configData "otel_metrics_export" }}
       {{- if not (has "application_runtime" $globalFeatures) }}
         {{- $globalFeatures = append $globalFeatures "application_runtime" }}
       {{- end }}
-      {{- $_ := set $otelMetricsExport "features" $globalFeatures }}
+      {{- $writeGlobalFeatures = true }}
     {{- else }}
       {{- $languageGlob := first $languages }}
       {{- if gt (len $languages) 1 }}
@@ -130,7 +152,7 @@ data:
           {{- $languageSelector := deepCopy $selector }}
           {{- $_ := set $languageSelector "languages" $languageGlob }}
           {{- $metrics := deepCopy ((index $languageSelector "metrics") | default dict) }}
-          {{- $features := (index $metrics "features") | default $globalFeatures }}
+          {{- $features := (index $metrics "features") | default (deepCopy $globalFeatures) }}
           {{- if not (has "application_runtime" $features) }}
             {{- $features = append $features "application_runtime" }}
           {{- end }}
@@ -148,6 +170,17 @@ data:
     {{- end }}
     {{- if and $jvmSelected (not (hasKey $configData "jvm_runtime_metrics")) }}
       {{- $_ := set $configData "jvm_runtime_metrics" (dict "sampling_interval" $runtimeMetrics.jvm.samplingInterval) }}
+    {{- end }}
+  {{- end }}
+  {{- if $writeGlobalFeatures }}
+    {{- if $useModernFeaturesKey }}
+      {{- $_ := set $modernMetrics "features" $globalFeatures }}
+      {{- $_ := set $configData "metrics" $modernMetrics }}
+    {{- else }}
+      {{- if not (hasKey $configData "otel_metrics_export") }}
+        {{- $_ := set $configData "otel_metrics_export" dict }}
+      {{- end }}
+      {{- $_ := set (index $configData "otel_metrics_export") "features" $globalFeatures }}
     {{- end }}
   {{- end }}
   {{- toYaml $configData | nindent 4}}

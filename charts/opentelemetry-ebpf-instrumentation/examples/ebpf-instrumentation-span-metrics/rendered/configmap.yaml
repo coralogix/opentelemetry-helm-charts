@@ -1,0 +1,88 @@
+---
+# Source: opentelemetry-ebpf-instrumentation/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-opentelemetry-ebpf-instrumentation
+  namespace: default
+  labels:
+    helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.26
+    app.kubernetes.io/name: opentelemetry-ebpf-instrumentation
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "v0.12.2"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: obi
+    app.kubernetes.io/component: config
+data:
+  ebpf-instrument-config.yml: |
+    attributes:
+      kubernetes:
+        enable: true
+      select:
+        traces:
+          include:
+          - '*'
+    discovery:
+      exclude_instrument:
+      - exe_path: '*ebpf-instrument*'
+      - exe_path: '*otelcol*'
+      instrument:
+      - k8s_namespace: '*'
+    ebpf:
+      buffer_sizes:
+        http: 2048
+        kafka: 4096
+        mysql: 4096
+        postgres: 4096
+      payload_extraction:
+        http:
+          aws:
+            enabled: true
+          elasticsearch:
+            enabled: true
+          genai:
+            anthropic:
+              enabled: true
+            embedding:
+              enabled: true
+            gemini:
+              enabled: true
+            mcp:
+              enabled: true
+            openai:
+              enabled: true
+            qwen:
+              enabled: true
+            rerank:
+              enabled: true
+            retrieval:
+              enabled: true
+          graphql:
+            enabled: true
+          jsonrpc:
+            enabled: true
+          sqlpp:
+            enabled: true
+      redis_db_cache:
+        enabled: true
+    filter:
+      network:
+        k8s_dst_owner_name:
+          not_match: '{kube*,*jaeger-agent*,*prometheus*,*promtail*,*grafana-agent*}'
+        k8s_src_owner_name:
+          not_match: '{kube*,*jaeger-agent*,*prometheus*,*promtail*,*grafana-agent*}'
+    health_check:
+      port: 0
+    jvm_runtime_metrics:
+      sampling_interval: 1s
+    metrics:
+      features:
+      - application_runtime
+    name_resolver:
+      sources:
+      - k8s
+      - rdns
+    otel_metrics_export:
+      endpoint: http://${HOST_IP}:4318
+    otel_traces_export:
+      endpoint: http://${HOST_IP}:4317

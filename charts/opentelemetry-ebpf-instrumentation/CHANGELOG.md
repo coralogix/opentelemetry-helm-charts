@@ -2,6 +2,11 @@
 
 ## OpenTelemetry eBPF Instrumentation
 
+### v0.1.26 / 2026-09-07
+
+- [Feature] Add a first-class `metrics.features` value, rendered as the top-level `metrics.features` in OBI's configuration (the modern key, applying to every metrics exporter — not the deprecated per-exporter `otel_metrics_export.features`). Unset (the default) keeps today's behavior. An explicit empty list (`features: []`) disables all OBI application metrics while leaving traces and context propagation untouched — the recommended setting when the collector's `presets.spanMetrics` is enabled, since the spanmetrics connector already derives RED metrics (`duration_ms`, `calls`) from the same OBI traces and the default `application` feature would measure every request twice. The `stats.enabled` and `presets.runtimeMetrics` toggles still append their features (`stats`, `application_runtime`) on top of the list. The value takes precedence over both `config.data` feature passthroughs, removing a deprecated `config.data.otel_metrics_export.features` from the rendered config since OBI would otherwise let it override the modern key
+- [Fix] The `stats.enabled` / `presets.runtimeMetrics` feature-merging now honors a `config.data.metrics.features` passthrough (OBI's modern key) as its base list and appends to that key; previously the merged list was always written to the deprecated `otel_metrics_export.features`, which OBI lets override the modern key, silently discarding such a passthrough. Configurations using the deprecated passthrough (or none) render exactly as before
+
 ### v0.1.26 / 2026-09-06
 
 - [Change] Bump OBI image to v0.13.0

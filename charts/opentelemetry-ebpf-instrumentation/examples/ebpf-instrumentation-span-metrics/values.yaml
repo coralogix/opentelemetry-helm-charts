@@ -1,0 +1,7 @@
+# Recommended OBI values when the collector's `presets.spanMetrics` is enabled: the spanmetrics
+# connector already derives RED metrics from the OBI traces, so `features: []` disables OBI's
+# duplicating application metrics. The default `presets.runtimeMetrics` stays enabled — runtime
+# metrics have no spanmetrics equivalent — so the rendered config carries the top-level
+# `metrics.features: [application_runtime]`.
+metrics:
+  features: []

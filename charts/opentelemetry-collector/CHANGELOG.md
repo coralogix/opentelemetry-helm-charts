@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.137.1 / 2026-09-02
+
+- [Chore] Document that enabling `presets.spanMetrics` alongside the opentelemetry-ebpf-instrumentation (OBI) chart produces two overlapping RED metric sets (the spanmetrics connector derives `duration_ms`/`calls` from the same OBI traces that already emit `http_*`/`rpc_*`/`db_client_*`/`messaging_*` metrics), and recommend setting `metrics.features: []` on the OBI chart to disable its application metrics. No template or rendered-output change.
+
 ### v0.137.0 / 2026-08-27
 
 - [Feat] Bump the OpenTelemetry Collector image to v0.159.0.

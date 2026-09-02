@@ -409,6 +409,12 @@ presets:
     integrationName: ""
 
   # Configures the collector to export span metrics.
+  # Note: when the opentelemetry-ebpf-instrumentation (OBI) chart feeds this collector, enabling
+  # this preset produces a second RED metric set on top of OBI's default application metrics
+  # (http_*, rpc_*, db_client_*, messaging_* and the http.*.body.size histograms) — the same
+  # requests measured twice. Set `metrics.features: []` on the OBI chart to disable its
+  # application metrics; traces (the input of this preset) are unaffected. See the OBI chart's
+  # README "Metric features" section.
   spanMetrics:
     enabled: false
     # Configures collector to add service.version to spanMetrics dimensions
