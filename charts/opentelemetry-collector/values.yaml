@@ -512,6 +512,11 @@ presets:
     sanitize_url: true
     sanitizeDatabases:
       []
+    # Derives a low-cardinality url.template from the request URL on HTTP client
+    # spans and renames them from a bare "GET"/"POST" to "GET /api/products/*".
+    # Changes existing client span names, and therefore span metric series.
+    clientSpanNames:
+      enabled: false
 
   # Configures the collector to use loadbalancing exporter.
   loadBalancing:
