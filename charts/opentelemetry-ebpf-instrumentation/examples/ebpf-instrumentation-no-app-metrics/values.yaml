@@ -1,8 +1,6 @@
-# Disables all OBI application metrics, keeping traces only. Recommended when the
-# collector's `presets.spanMetrics` is enabled, since the spanmetrics connector already
-# derives RED metrics from the OBI traces. `presets.runtimeMetrics` is disabled too so the
-# rendered config carries a literal `features: []`; leave it enabled to keep the (not
-# duplicated) runtime metrics, rendering `features: [application_runtime]` instead.
+# Renders a literal `metrics.features: []` — no OBI metrics at all, traces only. The chart
+# already defaults `metrics.features` to `[]`; disabling `presets.runtimeMetrics` on top stops
+# the preset from appending its `application_runtime` feature.
 metrics:
   features: []
 

@@ -94,30 +94,29 @@ data:
   {{- end }}
   {{- /* OBI's modern key is the top-level metrics.features (applies to every metrics exporter);
          the per-exporter otel_metrics_export.features is deprecated but overrides the modern key
-         in OBI when present, so the base list and the write target follow that precedence, and an
-         explicit metrics.features value drops the deprecated key from the passthrough. */ -}}
+         in OBI when present. The chart mirrors that precedence: a deprecated-key passthrough,
+         when present, wins over the metrics.features value (which defaults to []) and over a
+         modern-key passthrough, so installs customized before metrics.features existed keep
+         rendering exactly as they did. */ -}}
   {{- $deprecatedExport := $configData.otel_metrics_export | default dict }}
   {{- $modernMetrics := $configData.metrics | default dict }}
   {{- $globalFeatures := list "application" }}
   {{- $useModernFeaturesKey := false }}
+  {{- $writeGlobalFeatures := false }}
   {{- if hasKey $deprecatedExport "features" }}
     {{- /* "default" swallows an explicit [] here, treating it as unset — kept for backwards
            compatibility with how this passthrough always behaved; metrics.features is the
            supported way to get an empty feature list */ -}}
     {{- $globalFeatures = (index $deprecatedExport "features") | default (list "application") }}
+  {{- else if $featuresSet }}
+    {{- /* deepCopy also keeps an explicit [] as an empty base, which "default" would swallow */ -}}
+    {{- $globalFeatures = deepCopy $metricsFeatures }}
+    {{- $useModernFeaturesKey = true }}
+    {{- $writeGlobalFeatures = true }}
   {{- else if hasKey $modernMetrics "features" }}
     {{- $globalFeatures = deepCopy (index $modernMetrics "features") }}
     {{- $useModernFeaturesKey = true }}
   {{- end }}
-  {{- if $featuresSet }}
-    {{- /* deepCopy also keeps an explicit [] as an empty base, which "default" would swallow */ -}}
-    {{- $globalFeatures = deepCopy $metricsFeatures }}
-    {{- $useModernFeaturesKey = true }}
-    {{- if hasKey $deprecatedExport "features" }}
-      {{- $_ := unset $deprecatedExport "features" }}
-    {{- end }}
-  {{- end }}
-  {{- $writeGlobalFeatures := $featuresSet }}
   {{- if .Values.stats.enabled }}
     {{- if not (has "stats" $globalFeatures) }}
       {{- $globalFeatures = append $globalFeatures "stats" }}

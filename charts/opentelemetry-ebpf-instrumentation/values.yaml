@@ -71,29 +71,30 @@ privileged: true
 metrics:
   # -- (list) OBI metric features to export, rendered as the top-level `metrics.features` in
   # OBI's configuration, which applies to every metrics exporter (OTLP and Prometheus alike).
-  # Unset (the default) keeps OBI's built-in default of `[application]`: the HTTP/gRPC/database/
-  # messaging RED metrics (`http.server.request.duration`, `rpc.*`, `db.client.*`, `messaging.*`)
-  # plus the four `http.*.body.size` histograms — there is no feature-level way to keep the
+  # The default `[]` disables all OBI application metrics: OBI's own default `application`
+  # feature (the HTTP/gRPC/database/messaging RED metrics plus the four `http.*.body.size`
+  # histograms) duplicates the information the collector's `presets.spanMetrics` preset already
+  # derives from the very same OBI traces — the metric names and units differ, but the same
+  # requests would be measured and paid for twice. Traces and context propagation are unaffected,
+  # since features gate the metrics exporters only, and the `stats.enabled` /
+  # `presets.runtimeMetrics` toggles still append their own features (`stats`,
+  # `application_runtime`) on top of this list — so a default install exports
+  # `[application_runtime]`.
+  # Set `features: [application]` to export OBI's application metrics (do this when
+  # `presets.spanMetrics` is not enabled on the collector, or you want OBI's semconv metrics
+  # regardless of the duplicated ingestion). Note there is no feature-level way to keep the
   # latency histograms and drop the body sizes; filter the body-size metric names in the
-  # collector instead if you need that split.
-  # An explicit empty list (`features: []`) disables ALL OBI application metrics; traces and
-  # context propagation are unaffected, since features gate the metrics exporters only.
-  # Set `features: []` when the collector's `presets.spanMetrics` is enabled: the spanmetrics
-  # connector already derives RED metrics (`duration_ms`, `calls`) from the very same OBI traces,
-  # so keeping the default `application` feature measures every request twice.
-  # The `stats.enabled` and `presets.runtimeMetrics` toggles still append their own features
-  # (`stats`, `application_runtime`) on top of this list, so `features: []` with the default
-  # `presets.runtimeMetrics.enabled: true` renders `features: [application_runtime]`; disable
-  # those toggles too for a literal `features: []`.
-  # Takes precedence over the `config.data` passthroughs: it replaces
-  # `config.data.metrics.features`, and removes a `config.data.otel_metrics_export.features`
-  # (OBI's deprecated per-exporter key, which would otherwise override the modern one) from the
-  # rendered config. Note that an explicit `[]` in that deprecated passthrough is still treated
-  # as unset (its long-standing behavior); this value is the supported way to get an empty
-  # feature list. Unknown feature names are silently ignored by OBI. OBI logs the enabled
-  # features at startup — as a numeric bitmask up to and including v0.12.2, by name on newer
-  # images — which can be used to verify the rendered value took effect.
-  features: null
+  # collector if you need that split.
+  # Precedence: a `config.data.otel_metrics_export.features` passthrough (OBI's deprecated
+  # per-exporter key, the only customization path before this value existed), when present, wins
+  # over this value and renders exactly as it always did — migrate it here. This value replaces
+  # a `config.data.metrics.features` passthrough. An explicit `[]` in the deprecated passthrough
+  # is still treated as unset (its long-standing behavior); this value is the supported way to
+  # get an empty feature list.
+  # Unknown feature names are silently ignored by OBI. OBI logs the enabled features at startup
+  # — as a numeric bitmask up to and including v0.12.2, by name on newer images — which can be
+  # used to verify the rendered value took effect.
+  features: []
 
 # -- Enables stat metrics support (requires tracefs mount). Adds "stats" (tcp_rtt,
 # tcp_failed_connections, tcp_retransmits, tcp_io) to the exported metrics features.
