@@ -4885,29 +4885,32 @@ processors:
     trace_statements:
       - context: span
         conditions:
-          - span.kind == SPAN_KIND_CLIENT and (span.attributes["http.request.method"] != nil or span.attributes["http.method"] != nil)
+          - span.kind == SPAN_KIND_CLIENT and span.attributes["url.template"] == nil and (span.attributes["http.request.method"] != nil or span.attributes["http.method"] != nil)
         statements:
-          - set(span.attributes["url.template"], URL(span.attributes["url.full"])["url.path"]) where span.attributes["url.template"] == nil and span.attributes["url.full"] != nil
-          - set(span.attributes["url.template"], URL(span.attributes["http.url"])["url.path"]) where span.attributes["url.template"] == nil and span.attributes["http.url"] != nil
-          - set(span.attributes["url.template"], span.attributes["url.path"]) where span.attributes["url.template"] == nil and span.attributes["url.path"] != nil
-          - set(span.attributes["url.template"], URL(span.attributes["http.target"])["url.path"]) where span.attributes["url.template"] == nil and span.attributes["http.target"] != nil
-          - replace_pattern(span.attributes["url.template"], "(.)/$$", "$$1")
+          - set(span.attributes["cgx.tmp.url_template"], URL(span.attributes["url.full"])["url.path"]) where span.attributes["cgx.tmp.url_template"] == nil and span.attributes["url.full"] != nil
+          - set(span.attributes["cgx.tmp.url_template"], URL(span.attributes["http.url"])["url.path"]) where span.attributes["cgx.tmp.url_template"] == nil and span.attributes["http.url"] != nil
+          - set(span.attributes["cgx.tmp.url_template"], span.attributes["url.path"]) where span.attributes["cgx.tmp.url_template"] == nil and span.attributes["url.path"] != nil
+          - set(span.attributes["cgx.tmp.url_template"], URL(span.attributes["http.target"])["url.path"]) where span.attributes["cgx.tmp.url_template"] == nil and span.attributes["http.target"] != nil
+          - delete_key(span.attributes, "cgx.tmp.url_template") where span.attributes["cgx.tmp.url_template"] == ""
+          - replace_pattern(span.attributes["cgx.tmp.url_template"], "(.)/$$", "$$1")
   transform/client_span_name:
     error_mode: ignore
     trace_statements:
       - context: span
         conditions:
-          - span.kind == SPAN_KIND_CLIENT and span.attributes["url.template"] != nil
+          - span.kind == SPAN_KIND_CLIENT
         statements:
-          - replace_pattern(span.attributes["url.template"], "/[^/]+(\\.[A-Za-z0-9]{1,8})$$", "/*$$1") where IsMatch(span.attributes["url.template"], "^/[^/]+/")
-          - set_semconv_span_name("1.40.0") where (span.attributes["http.request.method"] != nil or span.attributes["http.method"] != nil) and not IsMatch(span.attributes["url.template"], "^\\*$$|^(/\\*)+/?$$")
+          - replace_pattern(span.attributes["cgx.tmp.url_template"], "/[^/]+(\\.[A-Za-z0-9]{1,8})$$", "/*$$1") where IsMatch(span.attributes["cgx.tmp.url_template"], "^/[^/]+/")
+          - set(span.attributes["url.template"], span.attributes["cgx.tmp.url_template"]) where span.attributes["cgx.tmp.url_template"] != nil and not IsMatch(span.attributes["cgx.tmp.url_template"], "^\\*$$|^(/\\*)+/?$$")
+          - delete_key(span.attributes, "cgx.tmp.url_template")
+          - set_semconv_span_name("1.40.0") where span.attributes["url.template"] != nil and (span.attributes["http.request.method"] != nil or span.attributes["http.method"] != nil)
 {{- end }}
   redaction/spanname:
     allow_all_keys: true
     url_sanitizer:
       enabled: {{ .Values.presets.spanMetricsSanitization.sanitize_url }}
 {{- if $clientSpanNames.enabled }}
-      attributes: ["url.template"]
+      attributes: ["cgx.tmp.url_template"]
 {{- end }}
     db_sanitizer:
 {{- $sanitizedDBs := .Values.presets.spanMetricsSanitization.sanitizeDatabases }}
