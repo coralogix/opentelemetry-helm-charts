@@ -2,6 +2,12 @@
 
 ## OpenTelemetry Collector
 
+### v0.138.0 / 2026-09-04
+
+- [Feat] Bump the OpenTelemetry Collector image to v0.160.0.
+- [Feat] Upgrade Supervisor-based images to v0.14.0.
+- [Fix] Remove the unsupported `k8sattributes.extract.deployment_name_from_replicaset` option to prevent Collector startup failures.
+
 ### v0.137.0 / 2026-08-27
 
 - [Feat] Bump the OpenTelemetry Collector image to v0.159.0.
