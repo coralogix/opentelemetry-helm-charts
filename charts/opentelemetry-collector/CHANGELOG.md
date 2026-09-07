@@ -2,9 +2,15 @@
 
 ## OpenTelemetry Collector
 
-### v0.137.1 / 2026-09-03
+### v0.138.1 / 2026-09-07
 
 - [Feat] Map `initContainers` values into the generated `OpenTelemetryCollector` CR so init containers are honored when `collectorCRD.generate=true`.
+
+### v0.138.0 / 2026-09-04
+
+- [Feat] Bump the OpenTelemetry Collector image to v0.160.0.
+- [Feat] Upgrade Supervisor-based images to v0.14.0.
+- [Fix] Remove the unsupported `k8sattributes.extract.deployment_name_from_replicaset` option to prevent Collector startup failures.
 
 ### v0.137.0 / 2026-08-27
 

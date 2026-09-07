@@ -253,9 +253,9 @@ spec:
     {{- if .Values.extraVolumes }}
     {{- toYaml .Values.extraVolumes | nindent 4 }}
     {{- end }}
-  {{- with .Values.initContainers }}
+  {{- if .Values.initContainers }}
   initContainers:
-    {{- toYaml . | nindent 4 }}
+    {{- tpl (toYaml .Values.initContainers) . | nindent 4 }}
   {{- end }}
   {{- with .Values.nodeSelector }}
   nodeSelector:
