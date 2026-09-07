@@ -3369,7 +3369,6 @@ processors:
       - from: resource_attribute
         name: k8s.job.name
     extract:
-      deployment_name_from_replicaset: true
       metadata:
         - "k8s.namespace.name"
         - "k8s.deployment.name"
