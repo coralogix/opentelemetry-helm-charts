@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.138.1 / 2026-09-07
+
+- [Feat] Map `initContainers` values into the generated `OpenTelemetryCollector` CR so init containers are honored when `collectorCRD.generate=true`.
+
 ### v0.138.0 / 2026-09-04
 
 - [Feat] Bump the OpenTelemetry Collector image to v0.160.0.
