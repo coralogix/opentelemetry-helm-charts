@@ -5,11 +5,13 @@ on:
     paths:
     - 'charts/opentelemetry-ebpf-profiler/**'
 
+permissions:
+  contents: read
+  id-token: write # OIDC token for the JFrog exchange
+
 env:
   CHART_VERSION: $(yq eval '.version' charts/opentelemetry-ebpf-profiler/Chart.yaml)
   CHART_NAME: opentelemetry-ebpf-profiler
-  ARTIFACTORY_URL: https://cgx.jfrog.io/artifactory/
-  ARTIFACTORY_USERNAME: integrations-actions
 
 jobs:
   build:
@@ -25,11 +27,14 @@ jobs:
           helm package .
       -
         name: Setup JFrog CLI
-        uses: jfrog/setup-jfrog-cli@v2.1.0
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JF_URL: https://cgx.jfrog.io
         with:
-          version: 2.12.1
+          oidc-provider-name: github
+          oidc-audience: jfrog-github
       -
         name: use-jfrog-cli
         run: |
           cd charts/opentelemetry-ebpf-profiler
-          jfrog rt upload --access-token ${{ secrets.ARTIFACTORY_NONUSER_ACCESS_TOKEN }} "${{ env.CHART_NAME }}-*.tgz" coralogix-charts --url ${{ env.ARTIFACTORY_URL }}
+          jf rt upload "${{ env.CHART_NAME }}-*.tgz" coralogix-charts
