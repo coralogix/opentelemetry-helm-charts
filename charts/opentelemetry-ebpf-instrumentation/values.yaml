@@ -67,6 +67,35 @@ podSecurityContext: {}
 # -- If set to false, deploys an unprivileged / less privileged setup.
 privileged: true
 
+## Controls which groups of metrics OBI exports.
+metrics:
+  # -- (list) OBI metric features to export, rendered as the top-level `metrics.features` in
+  # OBI's configuration, which applies to every metrics exporter (OTLP and Prometheus alike).
+  # The default `[]` disables all OBI application metrics: OBI's own default `application`
+  # feature (the HTTP/gRPC/database/messaging RED metrics plus the four `http.*.body.size`
+  # histograms) duplicates the information the collector's `presets.spanMetrics` preset already
+  # derives from the very same OBI traces — the metric names and units differ, but the same
+  # requests would be measured and paid for twice. Traces and context propagation are unaffected,
+  # since features gate the metrics exporters only, and the `stats.enabled` /
+  # `presets.runtimeMetrics` toggles still append their own features (`stats`,
+  # `application_runtime`) on top of this list — so a default install exports
+  # `[application_runtime]`.
+  # Set `features: [application]` to export OBI's application metrics (do this when
+  # `presets.spanMetrics` is not enabled on the collector, or you want OBI's semconv metrics
+  # regardless of the duplicated ingestion). Note there is no feature-level way to keep the
+  # latency histograms and drop the body sizes; filter the body-size metric names in the
+  # collector if you need that split.
+  # Precedence: a `config.data.otel_metrics_export.features` passthrough (OBI's deprecated
+  # per-exporter key, the only customization path before this value existed), when present, wins
+  # over this value and renders exactly as it always did — migrate it here. This value replaces
+  # a `config.data.metrics.features` passthrough. An explicit `[]` in the deprecated passthrough
+  # is still treated as unset (its long-standing behavior); this value is the supported way to
+  # get an empty feature list.
+  # Unknown feature names are silently ignored by OBI. OBI logs the enabled features at startup
+  # — as a numeric bitmask up to and including v0.12.2, by name on newer images — which can be
+  # used to verify the rendered value took effect.
+  features: []
+
 # -- Enables stat metrics support (requires tracefs mount). Adds "stats" (tcp_rtt,
 # tcp_failed_connections, tcp_retransmits, tcp_io) to the exported metrics features.
 # Note: tcp_io fires on every tcp_sendmsg/tcp_cleanup_rbuf call, so it has significantly

@@ -73,11 +73,8 @@ data:
           not_match: '{kube*,*jaeger-agent*,*prometheus*,*promtail*,*grafana-agent*}'
     health_check:
       port: 0
-    jvm_runtime_metrics:
-      sampling_interval: 1s
     metrics:
-      features:
-      - application_runtime
+      features: []
     name_resolver:
       sources:
       - k8s
