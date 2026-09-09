@@ -14,4 +14,4 @@
 #
 *  @oded-dd @coralogix/team-eco-system
 
-charts/opentelemetry-ebpf-instrumentation @coralogix/team-anemia
+charts/opentelemetry-ebpf-instrumentation @coralogix/team-anemia @zoharAh
