@@ -16,6 +16,10 @@
   "title": "Values",
   "additionalProperties": false,
   "properties": {
+    "rewriteDeprecatedComponentNames": {
+      "type": "boolean",
+      "description": "When true, deprecated component names are rewritten in the generated config."
+    },
     "distribution": {
       "description": "Specifies the distribution of the collector. Supported values include \"standalone\", \"macos\", \"ecs\", \"eks\", \"aks\", \"gke\", \"gke/autopilot\", and \"eks/fargate\".",
       "type": "string"
@@ -763,11 +767,11 @@
               "type": "boolean"
             },
             "extractAllPodLabels": {
-              "description": "Specifies whether the k8sattributes processor should extract all pod labels.",
+              "description": "Specifies whether the k8s_attributes processor should extract all pod labels.",
               "type": "boolean"
             },
             "extractAllPodAnnotations": {
-              "description": "Specifies whether the k8sattributes processor should extract all pod annotations.",
+              "description": "Specifies whether the k8s_attributes processor should extract all pod annotations.",
               "type": "boolean"
             },
             "podUid": {
@@ -837,7 +841,7 @@
               "additionalProperties": false,
               "properties": {
                 "env": {
-                  "description": "List of detectors to use with the resourcedetection/env processor. Leave null to use the chart default ([system, env], or [env, k8snode, system] for on-prem Kubernetes). Set explicitly (including []) to override.",
+                  "description": "List of detectors to use with the resourcedetection/env processor. Leave null to use the chart default ([system, env], or [env, k8s_api, system] for on-prem Kubernetes; k8snode when rewriting is disabled). Set explicitly (including []) to override.",
                   "type": ["array", "null"],
                   "items": {
                     "type": "string"

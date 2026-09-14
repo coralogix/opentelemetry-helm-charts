@@ -323,6 +323,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if and ($supervisorEnabled) (.Values.presets.fleetManagement.supervisor.minimalCollectorConfig) }}
 {{- $config = include "opentelemetry-collector.supervisorCollectorConfig" . | fromYaml }}
 {{- end }}
+{{- if .Values.rewriteDeprecatedComponentNames }}
+{{- $config = (include "opentelemetry-collector.rewriteDeprecatedComponentNames" (dict "config" $config) | fromYaml) }}
+{{- end }}
 {{- tpl (toYaml $config) . }}
 {{- end }}
 
@@ -490,6 +493,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- $supervisorEnabled := and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
 {{- if and ($supervisorEnabled) (.Values.presets.fleetManagement.supervisor.minimalCollectorConfig) }}
 {{- $config = include "opentelemetry-collector.supervisorCollectorConfig" .  | fromYaml }}
+{{- end }}
+{{- if .Values.rewriteDeprecatedComponentNames }}
+{{- $config = (include "opentelemetry-collector.rewriteDeprecatedComponentNames" (dict "config" $config) | fromYaml) }}
 {{- end }}
 {{- tpl (toYaml $config) . }}
 {{- end }}
@@ -865,8 +871,12 @@ processors:
 {{- end }}
 
 {{- define "opentelemetry-collector.applyLogsCollectionConfig" -}}
+{{- $receiverName := "filelog" }}
+{{- if .Values.Values.rewriteDeprecatedComponentNames }}
+{{- $receiverName = "file_log" }}
+{{- end }}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.logsCollectionConfig" .Values | fromYaml) .config }}
-{{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers "filelog" | uniq)  }}
+{{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers $receiverName | uniq)  }}
 {{- if and (.Values.Values.presets.logsCollection.includeCollectorLogs) (.Values.Values.presets.fleetManagement.enabled) (.Values.Values.presets.fleetManagement.supervisor.enabled) ($config.service.pipelines.logs) (not (has "transform/unwrap_supervisor_collector_logs" $config.service.pipelines.logs.processors)) }}
 {{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "transform/unwrap_supervisor_collector_logs" | uniq)  }}
 {{- end }}
@@ -877,18 +887,26 @@ processors:
 {{- end }}
 
 {{- define "opentelemetry-collector.applyMacosSystemLogsConfig" -}}
+{{- $receiverName := "filelog/macos-system-log" }}
+{{- if .Values.Values.rewriteDeprecatedComponentNames }}
+{{- $receiverName = "file_log/macos-system-log" }}
+{{- end }}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.macosSystemLogsConfig" .Values | fromYaml) .config }}
-{{- if and ($config.service.pipelines.logs) (not (has "filelog/macos-system-log" $config.service.pipelines.logs.receivers)) }}
-{{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers "filelog/macos-system-log" | uniq)  }}
+{{- if and ($config.service.pipelines.logs) (not (has $receiverName $config.service.pipelines.logs.receivers)) }}
+{{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers $receiverName | uniq)  }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyFilelogMultiConfig" -}}
+{{- $receiverType := "filelog" }}
+{{- if .Values.Values.rewriteDeprecatedComponentNames }}
+{{- $receiverType = "file_log" }}
+{{- end }}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.filelogMultiConfig" .Values | fromYaml) .config }}
 {{- if and ($config.service.pipelines.logs) (.Values.Values.presets.filelogMulti.receivers) }}
 {{- range .Values.Values.presets.filelogMulti.receivers }}
-{{- $receiverName := printf "filelog/%s" .name }}
+{{- $receiverName := printf "%s/%s" $receiverType .name }}
 {{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers $receiverName | uniq) }}
 {{- end }}
 {{- end }}
@@ -901,11 +919,15 @@ processors:
 {{- end }}
 
 {{- define "opentelemetry-collector.applyProfilesK8sAttributesConfig" -}}
+{{- $processorName := "k8sattributes/profiles" }}
+{{- if .Values.Values.rewriteDeprecatedComponentNames }}
+{{- $processorName = "k8s_attributes/profiles" }}
+{{- end }}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.profilesK8sAttributesConfig" .Values | fromYaml) .config }}
 {{- if $config.service.pipelines.profiles }}
 {{- $profilesProcessors := $config.service.pipelines.profiles.processors | default (list) }}
-{{- if not (has "k8sattributes/profiles" $profilesProcessors) }}
-{{- $profilesProcessors = append $profilesProcessors "k8sattributes/profiles" }}
+{{- if not (or (has "k8sattributes/profiles" $profilesProcessors) (has "k8s_attributes/profiles" $profilesProcessors)) }}
+{{- $profilesProcessors = append $profilesProcessors $processorName }}
 {{- end }}
 {{- if not (has "transform/profiles" $profilesProcessors) }}
 {{- $profilesProcessors = append $profilesProcessors "transform/profiles" }}
@@ -935,6 +957,10 @@ processors:
 {{- end }}
 
 {{- define "opentelemetry-collector.logsCollectionConfig" -}}
+{{- $receiverName := "filelog" }}
+{{- if .Values.rewriteDeprecatedComponentNames }}
+{{- $receiverName = "file_log" }}
+{{- end }}
 {{- if .Values.presets.logsCollection.storeCheckpoints }}
 extensions:
   file_storage:
@@ -942,7 +968,7 @@ extensions:
 {{- end }}
 
 receivers:
-  filelog:
+  {{ $receiverName }}:
     {{- if .Values.isWindows }}
     include: ["C:\\var\\log\\pods\\*\\*\\*.log"]
     {{- else }}
@@ -1183,8 +1209,12 @@ processors:
 {{- end }}
 
 {{- define "opentelemetry-collector.macosSystemLogsConfig" -}}
+{{- $receiverName := "filelog/macos-system-log" }}
+{{- if .Values.rewriteDeprecatedComponentNames }}
+{{- $receiverName = "file_log/macos-system-log" }}
+{{- end }}
 receivers:
-  filelog/macos-system-log:
+  {{ $receiverName }}:
     include:
 {{- range .Values.presets.macosSystemLogs.includePaths }}
       - {{ . | quote }}
@@ -1214,11 +1244,15 @@ receivers:
 {{- end }}
 
 {{- define "opentelemetry-collector.filelogMultiConfig" -}}
+{{- $receiverType := "filelog" }}
+{{- if .Values.rewriteDeprecatedComponentNames }}
+{{- $receiverType = "file_log" }}
+{{- end }}
 {{- $receivers := .Values.presets.filelogMulti.receivers }}
 {{- if $receivers }}
 receivers:
 {{- range $receiver := $receivers }}
-  filelog/{{ $receiver.name }}:
+  {{ $receiverType }}/{{ $receiver.name }}:
     {{- with $receiver.include }}
     include:
 {{ toYaml . | indent 6 }}
@@ -1313,6 +1347,10 @@ service:
 {{- end }}
 
 {{- define "opentelemetry-collector.profilesK8sAttributesConfig" -}}
+{{- $processorName := "k8sattributes/profiles" }}
+{{- if .Values.rewriteDeprecatedComponentNames }}
+{{- $processorName = "k8s_attributes/profiles" }}
+{{- end }}
 processors:
   transform/profiles:
     profile_statements:
@@ -1358,7 +1396,7 @@ processors:
       - set(resource.attributes["service.name"], resource.attributes["k8s.container.name"])
         where resource.attributes["service.name"] == nil and resource.attributes["k8s.container.name"] != nil
 
-  k8sattributes/profiles:
+  {{ $processorName }}:
     {{- if or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled }}
     filter:
       node_from_env_var: K8S_NODE_NAME
@@ -1597,15 +1635,19 @@ receivers:
 {{- end }}
 
 {{- define "opentelemetry-collector.applyKubernetesAttributesConfig" -}}
+{{- $processorName := "k8sattributes" }}
+{{- if .Values.Values.rewriteDeprecatedComponentNames }}
+{{- $processorName = "k8s_attributes" }}
+{{- end }}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.kubernetesAttributesConfig" .Values | fromYaml) .config }}
-{{- if and ($config.service.pipelines.logs) (not (has "k8sattributes" $config.service.pipelines.logs.processors)) }}
-{{- $_ := set $config.service.pipelines.logs "processors" (prepend $config.service.pipelines.logs.processors "k8sattributes" | uniq)  }}
+{{- if and ($config.service.pipelines.logs) (not (or (has "k8sattributes" $config.service.pipelines.logs.processors) (has "k8s_attributes" $config.service.pipelines.logs.processors))) }}
+{{- $_ := set $config.service.pipelines.logs "processors" (prepend $config.service.pipelines.logs.processors $processorName | uniq)  }}
 {{- end }}
-{{- if and ($config.service.pipelines.metrics) (not (has "k8sattributes" $config.service.pipelines.metrics.processors)) }}
-{{- $_ := set $config.service.pipelines.metrics "processors" (prepend $config.service.pipelines.metrics.processors "k8sattributes" | uniq)  }}
+{{- if and ($config.service.pipelines.metrics) (not (or (has "k8sattributes" $config.service.pipelines.metrics.processors) (has "k8s_attributes" $config.service.pipelines.metrics.processors))) }}
+{{- $_ := set $config.service.pipelines.metrics "processors" (prepend $config.service.pipelines.metrics.processors $processorName | uniq)  }}
 {{- end }}
-{{- if and ($config.service.pipelines.traces) (not (has "k8sattributes" $config.service.pipelines.traces.processors)) }}
-{{- $_ := set $config.service.pipelines.traces "processors" (prepend $config.service.pipelines.traces.processors "k8sattributes" | uniq)  }}
+{{- if and ($config.service.pipelines.traces) (not (or (has "k8sattributes" $config.service.pipelines.traces.processors) (has "k8s_attributes" $config.service.pipelines.traces.processors))) }}
+{{- $_ := set $config.service.pipelines.traces "processors" (prepend $config.service.pipelines.traces.processors $processorName | uniq)  }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
@@ -2904,7 +2946,7 @@ service:
 {{- fail "hostEntityEvents preset requires hostMetrics preset to be enabled" }}
 {{- end }}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.hostEntityEventsConfig" .Values | fromYaml) .config }}
-{{- if not (hasKey $config.processors "k8sattributes") }}
+{{- if not (or (hasKey $config.processors "k8sattributes") (hasKey $config.processors "k8s_attributes")) }}
 {{- $rcPipeline := index $config.service.pipelines "logs/resource_catalog" }}
 {{- $_ := set $rcPipeline "processors" (without $rcPipeline.processors "k8sattributes" | uniq) }}
 {{- end }}
@@ -3120,6 +3162,10 @@ exporters:
 {{- end }}
 
 {{- define "opentelemetry-collector.applyOtlpExporterConfig" -}}
+{{- $exporterName := "otlp" }}
+{{- if .Values.Values.rewriteDeprecatedComponentNames }}
+{{- $exporterName = "otlp_grpc" }}
+{{- end }}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.otlpExporterConfig" .Values | fromYaml) .config }}
 {{- $pipelines := list "all" }}
 {{- if .Values.Values.presets.otlpExporter.pipelines }}
@@ -3130,17 +3176,17 @@ exporters:
 {{- $includeTraces := or (has "all" $pipelines) (has "traces" $pipelines) }}
 {{- $includeProfiles := or (has "all" $pipelines) (has "profiles" $pipelines) }}
 
-{{- if and $includeLogs ($config.service.pipelines.logs) (not (has "otlp" $config.service.pipelines.logs.exporters)) }}
-{{- $_ := set $config.service.pipelines.logs "exporters" (append $config.service.pipelines.logs.exporters "otlp" | uniq)  }}
+{{- if and $includeLogs ($config.service.pipelines.logs) (not (has $exporterName $config.service.pipelines.logs.exporters)) }}
+{{- $_ := set $config.service.pipelines.logs "exporters" (append $config.service.pipelines.logs.exporters $exporterName | uniq)  }}
 {{- end }}
-{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has "otlp" $config.service.pipelines.metrics.exporters)) }}
-{{- $_ := set $config.service.pipelines.metrics "exporters" (append $config.service.pipelines.metrics.exporters "otlp" | uniq)  }}
+{{- if and $includeMetrics ($config.service.pipelines.metrics) (not (has $exporterName $config.service.pipelines.metrics.exporters)) }}
+{{- $_ := set $config.service.pipelines.metrics "exporters" (append $config.service.pipelines.metrics.exporters $exporterName | uniq)  }}
 {{- end }}
-{{- if and $includeTraces ($config.service.pipelines.traces) (not (has "otlp" $config.service.pipelines.traces.exporters)) }}
-{{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters "otlp" | uniq)  }}
+{{- if and $includeTraces ($config.service.pipelines.traces) (not (has $exporterName $config.service.pipelines.traces.exporters)) }}
+{{- $_ := set $config.service.pipelines.traces "exporters" (append $config.service.pipelines.traces.exporters $exporterName | uniq)  }}
 {{- end }}
-{{- if and $includeProfiles ($config.service.pipelines.profiles) (not (has "otlp" $config.service.pipelines.profiles.exporters)) }}
-{{- $_ := set $config.service.pipelines.profiles "exporters" (append $config.service.pipelines.profiles.exporters "otlp" | uniq)  }}
+{{- if and $includeProfiles ($config.service.pipelines.profiles) (not (has $exporterName $config.service.pipelines.profiles.exporters)) }}
+{{- $_ := set $config.service.pipelines.profiles "exporters" (append $config.service.pipelines.profiles.exporters $exporterName | uniq)  }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
@@ -3185,9 +3231,13 @@ sending_queue:
 {{- end }}
 
 {{- define "opentelemetry-collector.otlpExporterConfig" -}}
+{{- $exporterName := "otlp" }}
+{{- if .Values.rewriteDeprecatedComponentNames }}
+{{- $exporterName = "otlp_grpc" }}
+{{- end }}
 {{- $endpoint := required "presets.otlpExporter.endpoint must be set when the otlpExporter preset is enabled." .Values.presets.otlpExporter.endpoint }}
 exporters:
-  otlp:
+  {{ $exporterName }}:
     endpoint: {{ $endpoint | quote }}
     {{- with .Values.presets.otlpExporter.headers }}
     headers:
@@ -3349,8 +3399,12 @@ exporters:
 {{- end }}
 
 {{- define "opentelemetry-collector.kubernetesAttributesConfig" -}}
+{{- $processorName := "k8sattributes" }}
+{{- if .Values.rewriteDeprecatedComponentNames }}
+{{- $processorName = "k8s_attributes" }}
+{{- end }}
 processors:
-  k8sattributes:
+  {{ $processorName }}:
   {{- if or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled }}
     filter:
       node_from_env_var: K8S_NODE_NAME
@@ -3980,9 +4034,13 @@ receivers:
 {{- end }}
 
 {{- define "opentelemetry-collector.applyIisLogsConfig" -}}
+{{- $receiverName := "filelog/iis" }}
+{{- if .Values.Values.rewriteDeprecatedComponentNames }}
+{{- $receiverName = "file_log/iis" }}
+{{- end }}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.iisLogsConfig" .Values | fromYaml) .config }}
-{{- if and ($config.service.pipelines.logs) (not (has "filelog/iis" $config.service.pipelines.logs.receivers)) }}
-{{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers "filelog/iis" | uniq)  }}
+{{- if and ($config.service.pipelines.logs) (not (has $receiverName $config.service.pipelines.logs.receivers)) }}
+{{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers $receiverName | uniq)  }}
 {{- end }}
 {{- if and ($config.service.pipelines.logs) (not (has "transform/iis" $config.service.pipelines.logs.processors)) }}
 {{- $_ := set $config.service.pipelines.logs "processors" (append $config.service.pipelines.logs.processors "transform/iis" | uniq)  }}
@@ -3998,6 +4056,10 @@ receivers:
 {{- end }}
 
 {{- define "opentelemetry-collector.iisLogsConfig" -}}
+{{- $receiverName := "filelog/iis" }}
+{{- if .Values.rewriteDeprecatedComponentNames }}
+{{- $receiverName = "file_log/iis" }}
+{{- end }}
 {{- /* NOTE: This preset requires the feature gate: --feature-gates=filelog.allowHeaderMetadataParsing */ -}}
 {{- if .Values.presets.iisLogs.storeCheckpoints }}
 extensions:
@@ -4006,7 +4068,7 @@ extensions:
     create_directory: true
 {{- end }}
 receivers:
-  filelog/iis:
+  {{ $receiverName }}:
     {{- if .Values.presets.iisLogs.include }}
     include:
       {{- range .Values.presets.iisLogs.include }}
@@ -4482,14 +4544,22 @@ service:
 {{- end }}
 
 {{- define "opentelemetry-collector.applyEcsLogsCollectionConfig" -}}
+{{- $receiverName := "filelog" }}
+{{- if .Values.Values.rewriteDeprecatedComponentNames }}
+{{- $receiverName = "file_log" }}
+{{- end }}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.ecsLogsCollectionConfig" .Values | fromYaml) .config }}
-{{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers "filelog" | uniq)  }}
+{{- $_ := set $config.service.pipelines.logs "receivers" (append $config.service.pipelines.logs.receivers $receiverName | uniq)  }}
 {{- $config | toYaml }}
 {{- end }}
 
 {{- define "opentelemetry-collector.ecsLogsCollectionConfig" -}}
+{{- $receiverName := "filelog" }}
+{{- if .Values.rewriteDeprecatedComponentNames }}
+{{- $receiverName = "file_log" }}
+{{- end }}
 receivers:
-  filelog:
+  {{ $receiverName }}:
     include: [ /hostfs/var/lib/docker/containers/*/*.log ]
     include_file_name: false
     include_file_path: true
@@ -4905,4 +4975,62 @@ processors:
         enabled: true
         attributes: ["db.statement", "elasticsearch.body"]
 {{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.rewriteDeprecatedComponentNames" -}}
+{{- $config := .config }}
+{{- $renames := include "opentelemetry-collector.deprecatedComponentRenames" . | fromYaml }}
+{{- range $kind, $table := (dig "components" dict $renames) }}
+  {{- $section := index $config $kind }}
+  {{- range $old, $new := $table }}
+    {{- if $section }}
+      {{- range $key, $val := $section }}
+        {{- if or (eq $key $old) (hasPrefix (printf "%s/" $old) $key) }}
+          {{- $newKey := $new }}
+          {{- if hasPrefix (printf "%s/" $old) $key }}
+            {{- $newKey = $key | replace (printf "%s/" $old) (printf "%s/" $new) }}
+          {{- end }}
+          {{- $existing := index $section $newKey | default dict }}
+          {{- $_ := set $section $newKey (mustMergeOverwrite $existing $val) }}
+          {{- $_ := unset $section $key }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- range $signal, $pipeline := $config.service.pipelines }}
+      {{- $refs := index $pipeline $kind }}
+      {{- if and $pipeline $refs }}
+        {{- $newRefs := list }}
+        {{- range $refs }}
+          {{- if eq . $old }}
+            {{- $newRefs = append $newRefs $new }}
+          {{- else if hasPrefix (printf "%s/" $old) . }}
+            {{- $newRefs = append $newRefs (. | replace (printf "%s/" $old) (printf "%s/" $new)) }}
+          {{- else }}
+            {{- $newRefs = append $newRefs . }}
+          {{- end }}
+        {{- end }}
+        {{- $_ := set $pipeline $kind ($newRefs | uniq) }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- $detectorRenames := dig "detectors" dict $renames }}
+{{- if $detectorRenames }}
+  {{- range $key, $proc := (index $config "processors") }}
+    {{- if and $proc (or (eq $key "resourcedetection") (hasPrefix "resourcedetection/" $key)) (index $proc "detectors") }}
+      {{- $newDetectors := list }}
+      {{- range (index $proc "detectors") }}
+        {{- $name := . }}
+        {{- range $old, $new := $detectorRenames }}
+          {{- if eq $name $old }}
+            {{- $name = $new }}
+          {{- end }}
+        {{- end }}
+        {{- $newDetectors = append $newDetectors $name }}
+      {{- end }}
+      {{- $_ := set $proc "detectors" ($newDetectors | uniq) }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- $config | toYaml }}
 {{- end }}

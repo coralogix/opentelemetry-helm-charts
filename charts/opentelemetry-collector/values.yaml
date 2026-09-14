@@ -323,7 +323,7 @@ presets:
       enabled: false
     # collectionInterval: 30s
   # Configures the Kubernetes Processor to add Kubernetes metadata.
-  # Adds the k8sattributes processor to all the pipelines
+  # Adds the k8s_attributes processor to all the pipelines
   # and adds the necessary rules to ClusteRole.
   # Best used with mode = daemonset.
   # See https://opentelemetry.io/docs/kubernetes/collector/components/#kubernetes-attributes-processor for details on the receiver.
@@ -1075,7 +1075,7 @@ presets:
   #   - self: profile the collector process itself and send profiles through the pipeline
   # See https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/pprofreceiver
   # Requires `presets.profilesCollection.enabled = true` (provides the profiles pipeline,
-  # k8sattributes/profiles enrichment, and the service.name fallback chain).
+  # k8s_attributes/profiles enrichment, and the service.name fallback chain).
   pprofReceiver:
     # Annotation-based pull from pods that opt in.
     # k8s only; uses a dedicated `receiver_creator/pprof` + `k8s_observer/pprof`
@@ -1141,8 +1141,9 @@ presets:
     provider: ""
     detectors:
       # List of detectors for the resourcedetection/env processor. Leave unset
-      # (null) to use the chart default: [system, env], or [env, k8snode, system]
+      # (null) to use the chart default: [system, env], or [env, k8s_api, system]
       # for on-prem Kubernetes (`provider: on-prem` with a K8s distribution).
+      # With rewriting disabled, the latter uses k8snode instead of k8s_api.
       # Set explicitly (including [] to disable) to override.
       env:
       # Optional list of cloud detectors. When left empty the chart enables the
@@ -1162,6 +1163,11 @@ presets:
 configMap:
   # Specifies whether a configMap should be created (true by default)
   create: true
+
+# Rewrite deprecated component names in generated Collector configuration.
+# Set to false for Collector images that do not support the new names.
+# See UPGRADING.md for component versions and migration guidance.
+rewriteDeprecatedComponentNames: true
 
 # Base collector configuration.
 # Supports templating. To escape existing instances of {{ }}, use {{` <original content> `}}.
