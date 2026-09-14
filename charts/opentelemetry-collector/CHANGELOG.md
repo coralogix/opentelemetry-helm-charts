@@ -2,7 +2,7 @@
 
 ## OpenTelemetry Collector
 
-### v0.139.0 / 2026-09-14
+### v0.138.2 / 2026-09-14
 
 - [Feat] Port upstream component name rewriting and deprecation notices. The new `rewriteDeprecatedComponentNames` flag defaults to `true` and rewrites `filelog` to `file_log`, `k8sattributes` to `k8s_attributes`, `otlp`/`otlphttp` exporters to `otlp_grpc`/`otlp_http`, and the `k8snode` detector to `k8s_api`. Set the flag to `false` for legacy names. Preserve preset overrides and the chart's profiles and resource catalog wiring. See `UPGRADING.md` for image requirements and detector settings that need manual migration.
 

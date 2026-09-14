@@ -4,7 +4,7 @@ These upgrade guidelines only contain instructions for version upgrades which re
 If the version you want to upgrade to is not listed here, then there is nothing to do for you.
 Just upgrade and enjoy.
 
-## 0.138.1 to 0.139.0
+## 0.138.1 to 0.138.2
 
 The chart now uses upstream's `rewriteDeprecatedComponentNames` behavior, based
 on [upstream commit 92f9379](https://github.com/open-telemetry/opentelemetry-helm-charts/commit/92f9379d8c610b3a3ee3381f4f6aaddfe56ab761).
