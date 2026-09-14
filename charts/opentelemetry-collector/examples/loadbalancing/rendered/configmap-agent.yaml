@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.138.1
+    helm.sh/chart: opentelemetry-collector-0.139.0
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.160.0"
@@ -34,7 +34,7 @@ data:
         send_batch_max_size: 2048
         send_batch_size: 1024
         timeout: 1s
-      k8sattributes/profiles:
+      k8s_attributes/profiles:
         extract:
           labels:
           - from: pod
@@ -216,7 +216,7 @@ data:
           processors:
           - memory_limiter
           - resource/metadata
-          - k8sattributes/profiles
+          - k8s_attributes/profiles
           - transform/profiles
           receivers:
           - otlp

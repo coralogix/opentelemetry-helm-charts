@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.138.1
+    helm.sh/chart: opentelemetry-collector-0.139.0
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.160.0"
@@ -87,7 +87,7 @@ data:
           - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
             == "opentelemetry-collector"
     receivers:
-      filelog/macos-system-log:
+      file_log/macos-system-log:
         include:
         - /var/log/system.log
         multiline:
@@ -135,7 +135,7 @@ data:
           processors:
           - memory_limiter
           receivers:
-          - filelog/macos-system-log
+          - file_log/macos-system-log
           - otlp
         metrics:
           exporters:

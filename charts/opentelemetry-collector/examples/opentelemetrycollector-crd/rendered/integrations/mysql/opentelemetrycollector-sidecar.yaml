@@ -12,7 +12,7 @@ spec:
     name: data
   config: |
     receivers:
-      filelog:
+      file_log:
         include: [ /var/lib/mysql/*.log ]
         exclude: []
         start_at: beginning
@@ -21,7 +21,7 @@ spec:
     processors:
 
     exporters:
-      otlp:
+      otlp_grpc:
         endpoint: example-opentelemetry-collector-collector.default.svc.cluster.local:4317
         tls:
           insecure: true
@@ -32,6 +32,6 @@ spec:
           address: 0.0.0.0:8888
       pipelines:
         logs:
-          receivers: [filelog]
+          receivers: [file_log]
           processors: []
-          exporters: [otlp]
+          exporters: [otlp_grpc]

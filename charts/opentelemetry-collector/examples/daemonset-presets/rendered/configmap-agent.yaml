@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.138.1
+    helm.sh/chart: opentelemetry-collector-0.139.0
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.160.0"
@@ -40,7 +40,7 @@ data:
             and metric.name != "container_fs_writes_bytes_total" and metric.name != "container_fs_reads_bytes_total"
             and metric.name != "container_fs_usage_bytes" and metric.name != "container_cpu_cfs_throttled_periods_total"
             and metric.name != "container_cpu_cfs_periods_total")
-      k8sattributes:
+      k8s_attributes:
         extract:
           metadata:
           - k8s.namespace.name
@@ -273,7 +273,7 @@ data:
           - set(span.attributes["http.response.status_code"], span.attributes["http.status_code"])
             where span.attributes["http.response.status_code"] == nil
     receivers:
-      filelog:
+      file_log:
         exclude: []
         force_flush_period: 0
         include:
@@ -553,11 +553,11 @@ data:
           - memory_limiter
           - resourcedetection/region
           - resourcedetection/env
-          - k8sattributes
+          - k8s_attributes
           - transform/reduce
           - batch
           receivers:
-          - filelog
+          - file_log
           - otlp
         metrics:
           exporters:
@@ -566,7 +566,7 @@ data:
           - memory_limiter
           - resourcedetection/region
           - resourcedetection/env
-          - k8sattributes
+          - k8s_attributes
           - filter/k8s_extra_metrics
           - transform/reduce
           - batch
@@ -582,7 +582,7 @@ data:
           - memory_limiter
           - resourcedetection/region
           - resourcedetection/env
-          - k8sattributes
+          - k8s_attributes
           - transform/reduce
           - transform/test
           - batch

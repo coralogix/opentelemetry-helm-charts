@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.138.1
+    helm.sh/chart: opentelemetry-collector-0.139.0
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.160.0"
@@ -63,7 +63,7 @@ data:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
     processors:
-      k8sattributes/profiles:
+      k8s_attributes/profiles:
         extract:
           labels:
           - from: pod
@@ -277,7 +277,7 @@ data:
           - resourcedetection/region
           - resourcedetection/env
           - resource/metadata
-          - k8sattributes/profiles
+          - k8s_attributes/profiles
           - transform/profiles
           receivers:
           - otlp
