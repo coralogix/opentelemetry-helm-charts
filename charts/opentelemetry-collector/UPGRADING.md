@@ -4,6 +4,81 @@ These upgrade guidelines only contain instructions for version upgrades which re
 If the version you want to upgrade to is not listed here, then there is nothing to do for you.
 Just upgrade and enjoy.
 
+## 0.138.1 to 0.139.0
+
+The chart now uses upstream's `rewriteDeprecatedComponentNames` behavior, based
+on [upstream commit 92f9379](https://github.com/open-telemetry/opentelemetry-helm-charts/commit/92f9379d8c610b3a3ee3381f4f6aaddfe56ab761).
+The flag defaults to `true`.
+
+| Component | Old name | New name | Minimum Collector version |
+|---|---|---|---|
+| Receiver | `filelog` | `file_log` | `0.149.0` |
+| Processor | `k8sattributes` | `k8s_attributes` | `0.146.0` |
+| Exporter | `otlp` | `otlp_grpc` | `0.144.0` |
+| Exporter | `otlphttp` | `otlp_http` | `0.144.0` |
+| Resource detector | `k8snode` | `k8s_api` | `0.154.0` |
+
+The default Collector image remains `0.160.0`. Custom images must include the
+components they use. The `otlp` receiver and resource attribute names such as
+`k8s.node.name` are unchanged.
+
+Definitions and pipeline references in generated configuration are rewritten
+together. For example, `k8sattributes/custom` becomes `k8s_attributes/custom`.
+This includes components from `config`, `extraConfig`, and presets. The chart
+keeps its separate profiles processor and its service-name mapping order.
+The log presets select the receiver name before merging user configuration,
+following [upstream's override fix](https://github.com/open-telemetry/opentelemetry-helm-charts/pull/2363).
+
+For older images or a staged migration, preserve legacy names with:
+
+```yaml
+rewriteDeprecatedComponentNames: false
+```
+
+This disables rewriting and keeps legacy preset names. It does not convert
+explicitly configured modern names back to legacy names. Upstream recommends
+updating values to the new names directly because automatic rewriting will be
+removed in a future release. See the [upstream upgrade guide](https://github.com/open-telemetry/opentelemetry-helm-charts/blob/92f9379d8c610b3a3ee3381f4f6aaddfe56ab761/charts/opentelemetry-collector/UPGRADING.md).
+
+### Detector settings and other upstream limits
+
+The upstream rewrite changes detector list entries, but does not move a
+`k8snode:` settings block to `k8s_api:`. Collector reads these blocks separately.
+If you configured detector settings, migrate both the list and the block:
+
+```yaml
+presets:
+  resourceDetection:
+    detectors:
+      env: [env, k8s_api, system]
+config:
+  processors:
+    resourcedetection/env:
+      k8s_api:
+        node_from_env_var: K8S_NODE_NAME
+        # Move any existing authentication and resource_attributes settings here.
+```
+
+Apply the same change to custom resource detection processors and to
+`extraConfig` if used. Alternatively, keep rewriting disabled until the
+settings are migrated. This manual settings migration follows the Collector's
+[separate configuration fields](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.160.0/processor/resourcedetectionprocessor/config.go);
+the chart retains upstream's rewrite algorithm unchanged.
+
+Avoid configuring both old and new names for the same component instance.
+Upstream merges these definitions with old-name settings taking precedence and
+removes duplicate pipeline references. Keep one definition with the intended
+settings to avoid changes to enrichment or export behavior.
+
+Rewriting runs before the final Helm `tpl` evaluation, as it does upstream.
+Use modern names directly when generating component names with template
+expressions. Remote fleet-management configuration and separately mounted
+configuration files are not rewritten by Helm.
+
+The generated component IDs change. Review self-monitoring queries that match
+these IDs. Validate exported metadata and log continuity during rollout before
+enabling this change broadly.
+
 ## Feature Flags
 
 ### useGOMEMLIMIT
