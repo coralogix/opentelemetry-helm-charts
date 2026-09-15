@@ -639,6 +639,16 @@
             }
           }
         },
+        "hardenedMode": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Reduces Linux host filesystem access for the hostMetrics preset and limits the filesystem scraper to the root filesystem by default.",
+              "type": "boolean"
+            }
+          }
+        },
         "mysql": {
           "type": "object",
           "additionalProperties": false,

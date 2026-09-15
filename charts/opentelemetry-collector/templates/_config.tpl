@@ -681,6 +681,15 @@ receivers:
               - ""
             match_type: strict
           {{- else }}
+          {{- if .Values.presets.hardenedMode.enabled }}
+          # Collect the root filesystem by default. To collect other filesystems,
+          # mount them under /hostfs with extraVolumes and extraVolumeMounts, then
+          # add their host mount points through config.receivers.hostmetrics.scrapers.filesystem.
+          include_mount_points:
+            mount_points:
+              - /
+            match_type: strict
+          {{- end }}
           exclude_mount_points:
             mount_points:
               - /dev/*

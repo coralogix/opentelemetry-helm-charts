@@ -385,6 +385,61 @@ presets:
     enabled: true
 ```
 
+By default, the preset mounts the host root at `/hostfs`. This keeps the existing
+chart behavior. To reduce host access on Linux, enable hardened mode:
+
+```yaml
+mode: daemonset
+presets:
+  hostMetrics:
+    enabled: true
+  hardenedMode:
+    enabled: true
+```
+
+For a standard Linux Kubernetes deployment, hardened mode mounts only the host
+paths used by the configured scrapers: `/dev`, `/proc`, `/run/udev/data`, and
+`/sys`. It does not mount the host root or the host `/etc` directory.
+
+In hardened mode, the filesystem scraper collects the root filesystem by default.
+To collect another host filesystem, mount it at the same path below `/hostfs` and
+add its host mount point to `include_mount_points`. For example, to collect `/data`:
+
+```yaml
+mode: daemonset
+
+presets:
+  hostMetrics:
+    enabled: true
+  hardenedMode:
+    enabled: true
+
+extraVolumes:
+  - name: host-data
+    hostPath:
+      path: /data
+
+extraVolumeMounts:
+  - name: host-data
+    mountPath: /hostfs/data
+    readOnly: true
+
+config:
+  receivers:
+    hostmetrics:
+      scrapers:
+        filesystem:
+          include_mount_points:
+            match_type: strict
+            mount_points:
+              - /
+              - /data
+```
+
+The value under `extraVolumeMounts.mountPath` must be `/hostfs` followed by the
+host mount point. Add each extra host filesystem to both the volume configuration
+and `include_mount_points`.
+
 By default, the preset includes the `cpu` and `state` attributes on `system.cpu.time` and
 `system.cpu.utilization`. This preserves one metric series per logical CPU. To use the
 Collector v0.157.0 and later default that aggregates metrics across logical CPUs, configure:
