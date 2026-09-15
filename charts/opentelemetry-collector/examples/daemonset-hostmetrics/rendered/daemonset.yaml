@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.138.1
+    helm.sh/chart: opentelemetry-collector-0.138.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.160.0"
@@ -22,7 +22,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 0e120e4cdd718af7e1d161c80d0067b8a6258246122d35f3c4768462c129ba1f
+        checksum/config: 58300db1c176ed58cc3e953ef81d952ebec4a5c91cf7562d076e79a6624ae002
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -75,10 +75,18 @@ spec:
           volumeMounts:
             - mountPath: /conf
               name: opentelemetry-collector-configmap
-            - name: hostfs
-              mountPath: /hostfs
+            - name: host-dev
+              mountPath: /hostfs/dev
               readOnly: true
-              mountPropagation: HostToContainer
+            - name: host-proc
+              mountPath: /hostfs/proc
+              readOnly: true
+            - name: host-run-udev-data
+              mountPath: /hostfs/run/udev/data
+              readOnly: true
+            - name: host-sys
+              mountPath: /hostfs/sys
+              readOnly: true
       volumes:
         - name: opentelemetry-collector-configmap
           configMap:
@@ -86,9 +94,18 @@ spec:
             items:
               - key: relay
                 path: relay.yaml
-        - name: hostfs
+        - name: host-dev
           hostPath:
-            path: /
+            path: /dev
+        - name: host-proc
+          hostPath:
+            path: /proc
+        - name: host-run-udev-data
+          hostPath:
+            path: /run/udev/data
+        - name: host-sys
+          hostPath:
+            path: /sys
       nodeSelector:
         kubernetes.io/os: linux
       hostNetwork: false
