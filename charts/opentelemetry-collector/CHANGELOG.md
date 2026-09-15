@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.138.2 / 2026-09-15
+
+- [Feat] Add an opt-in `hardenedMode` preset. On Linux, it replaces the `hostMetrics` preset's full host root mount with specific read-only mounts for `/dev`, `/proc`, `/run/udev/data`, and `/sys`. It collects the root filesystem by default and supports other host filesystems through `extraVolumes` and `extraVolumeMounts`. Existing behavior remains the default.
+
 ### v0.138.1 / 2026-09-08
 
 - [Feat] Map `initContainers` values into the generated `OpenTelemetryCollector` CR so init containers are honored when `collectorCRD.generate=true`.
