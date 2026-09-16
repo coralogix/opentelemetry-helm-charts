@@ -5,32 +5,28 @@ MAX_PARALLEL_EXAMPLES ?= $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/n
 # Reusable parallel execution with ordered logging utility
 define run_parallel_with_logging
 	RUNNING_JOBS=0; \
-	RUNNING_PIDS=""; \
 	FAILED=0; \
 	EXAMPLE_ORDER=""; \
-	mkdir -p "$(TMP_DIRECTORY)/logs"; \
+	mkdir -p $(TMP_DIRECTORY)/logs; \
 	for example in $(1); do \
+		while [ $$RUNNING_JOBS -ge $(MAX_PARALLEL_EXAMPLES) ]; do \
+			if ! wait -n 2>/dev/null; then \
+				FAILED=1; \
+			fi; \
+			RUNNING_JOBS=$$(($$RUNNING_JOBS - 1)); \
+		done; \
 		EXAMPLE_ORDER="$${EXAMPLE_ORDER} $${example}"; \
 		{ \
 			LOG_FILE="$(TMP_DIRECTORY)/logs/$(2)-$${example}.log"; \
-			{ set -e; $(3); } > "$${LOG_FILE}" 2>&1; \
+			{ $(3); } > "$${LOG_FILE}" 2>&1; \
 		} & \
-		RUNNING_PIDS="$${RUNNING_PIDS} $$!"; \
 		RUNNING_JOBS=$$(($$RUNNING_JOBS + 1)); \
-		if [ $$RUNNING_JOBS -ge $(MAX_PARALLEL_EXAMPLES) ]; then \
-			for pid in $${RUNNING_PIDS}; do \
-				if ! wait "$${pid}"; then \
-					FAILED=1; \
-				fi; \
-			done; \
-			RUNNING_PIDS=""; \
-			RUNNING_JOBS=0; \
-		fi; \
 	done; \
-	for pid in $${RUNNING_PIDS}; do \
-		if ! wait "$${pid}"; then \
+	while [ $$RUNNING_JOBS -gt 0 ]; do \
+		if ! wait -n 2>/dev/null; then \
 			FAILED=1; \
 		fi; \
+		RUNNING_JOBS=$$(($$RUNNING_JOBS - 1)); \
 	done; \
 	for example in $${EXAMPLE_ORDER}; do \
 		LOG_FILE="$(TMP_DIRECTORY)/logs/$(2)-$${example}.log"; \
@@ -40,8 +36,8 @@ define run_parallel_with_logging
 			rm -f "$${LOG_FILE}"; \
 		fi; \
 	done; \
-	rm -rf "$(TMP_DIRECTORY)/logs"; \
-	if [ $$FAILED -ne 0 ]; then exit 1; fi
+	rm -rf $(TMP_DIRECTORY)/logs; \
+	test $$FAILED -eq 0
 endef
 
 .PHONY: generate-examples
@@ -50,30 +46,27 @@ generate-examples:
 		echo "Processing chart: $${chart_name} (max $(MAX_PARALLEL_EXAMPLES) parallel examples)"; \
 		EXAMPLES_DIR=charts/$${chart_name}/examples; \
 		EXAMPLES=$$(find $${EXAMPLES_DIR} -type d -maxdepth 1 -mindepth 1 -exec basename \{\} \;); \
-		helm dependency build charts/$${chart_name}; \
 		$(call run_parallel_with_logging,$${EXAMPLES},$${chart_name}, \
 			echo "Generating example: $${example}"; \
-			VALUES=$$(find $${EXAMPLES_DIR}/$${example} -name '*values.yaml' | sort); \
-			EXAMPLE_TMP="$(TMP_DIRECTORY)/generate-$${chart_name}-$${example}"; \
-			rm -rf "$${EXAMPLE_TMP}"; \
+			VALUES=$$(find $${EXAMPLES_DIR}/$${example} -name *values.yaml); \
+			rm -rf "$${EXAMPLES_DIR}/$${example}/rendered"; \
 			for value in $${VALUES}; do \
 				printf "Using values file: $${value}\n"; \
-				helm template example charts/$${chart_name} --namespace default --values $${value} --output-dir "$${EXAMPLE_TMP}"; \
-				mv $${EXAMPLE_TMP}/$${chart_name}/templates/* "$${EXAMPLE_TMP}"; \
-				SUBCHARTS_DIR=$${EXAMPLE_TMP}/$${chart_name}/charts; \
+				helm dependency build charts/$${chart_name}; \
+				helm template example charts/$${chart_name} --namespace default --values $${value} --output-dir "$${EXAMPLES_DIR}/$${example}/rendered" | sed '/^$$/d'; \
+				mv $${EXAMPLES_DIR}/$${example}/rendered/$${chart_name}/templates/* "$${EXAMPLES_DIR}/$${example}/rendered"; \
+				SUBCHARTS_DIR=$${EXAMPLES_DIR}/$${example}/rendered/$${chart_name}/charts; \
 				if [ -d "$${SUBCHARTS_DIR}" ]; then \
 					SUBCHARTS=$$(find $${SUBCHARTS_DIR} -type d -maxdepth 1 -mindepth 1 -exec basename \{\} \; 2>/dev/null || true); \
 					for subchart in $${SUBCHARTS}; do \
-						mkdir -p "$${EXAMPLE_TMP}/$${subchart}"; \
-						mv $${SUBCHARTS_DIR}/$${subchart}/templates/* "$${EXAMPLE_TMP}/$${subchart}" 2>/dev/null || true; \
+						mkdir -p "$${EXAMPLES_DIR}/$${example}/rendered/$${subchart}"; \
+						mv $${SUBCHARTS_DIR}/$${subchart}/templates/* "$${EXAMPLES_DIR}/$${example}/rendered/$${subchart}" 2>/dev/null || true; \
 					done; \
 				fi; \
-				rm -rf "$${EXAMPLE_TMP}/$${chart_name}"; \
+				rm -rf $${EXAMPLES_DIR}/$${example}/rendered/$${chart_name}; \
 			done; \
-			find "$${EXAMPLE_TMP}" -type f \( -name '*.yaml' -o -name '*.yml' \) -exec sed -i.bak -e :a -e '/^[[:space:]]*$$/{$$d;N;ba' -e '}' {} +; \
-			find "$${EXAMPLE_TMP}" -type f \( -name '*.yaml.bak' -o -name '*.yml.bak' \) -exec rm -f {} +; \
-			rm -rf "$${EXAMPLES_DIR}/$${example}/rendered"; \
-			mv "$${EXAMPLE_TMP}" "$${EXAMPLES_DIR}/$${example}/rendered"; \
+			find "$${EXAMPLES_DIR}/$${example}/rendered" -type f \( -name '*.yaml' -o -name '*.yml' \) -exec sed -i.bak -e :a -e '/^[[:space:]]*$$/{$$d;N;ba' -e '}' {} +; \
+			find "$${EXAMPLES_DIR}/$${example}/rendered" -type f \( -name '*.yaml.bak' -o -name '*.yml.bak' \) -exec rm -f {} +; \
 			printf "Completed example: $${example}\n" \
 		); \
 		echo "Completed chart: $${chart_name}"; \
@@ -88,11 +81,10 @@ check-examples:
 		helm dependency build charts/$${chart_name}; \
 		$(call run_parallel_with_logging,$${EXAMPLES},$${chart_name}, \
 			echo "Checking example: $${example}"; \
-			EXAMPLE_TMP="$(TMP_DIRECTORY)/check-$${chart_name}-$${example}"; \
-			rm -rf "$${EXAMPLE_TMP}"; \
-			VALUES=$$(find $${EXAMPLES_DIR}/$${example} -name '*values.yaml' | sort); \
+			EXAMPLE_TMP="${TMP_DIRECTORY}/check-$${chart_name}-$${example}"; \
+			VALUES=$$(find $${EXAMPLES_DIR}/$${example} -name *values.yaml); \
 			for value in $${VALUES}; do \
-				helm template example charts/$${chart_name} --namespace default --values $${value} --output-dir "$${EXAMPLE_TMP}"; \
+				helm template example charts/$${chart_name} --namespace default --values $${value} --output-dir "$${EXAMPLE_TMP}" | sed '/^$$/d'; \
 				SUBCHARTS_DIR=$${EXAMPLE_TMP}/$${chart_name}/charts; \
 				if [ -d "$${SUBCHARTS_DIR}" ]; then \
 					SUBCHARTS=$$(find $${SUBCHARTS_DIR} -type d -maxdepth 1 -mindepth 1 -exec basename \{\} \; 2>/dev/null || true); \
