@@ -644,6 +644,7 @@ connectors:
 {{- end }}
 
 {{- define "opentelemetry-collector.hostMetricsConfig" -}}
+{{- $usesSelectiveHostMounts := and .Values.presets.hardenedMode.enabled (not .Values.isWindows) (ne .Values.distribution "ecs") (ne .Values.distribution "standalone") (ne .Values.distribution "macos") -}}
 receivers:
   hostmetrics:
     {{- if and (not .Values.isWindows) (ne .Values.distribution "macos") }}
@@ -674,6 +675,7 @@ receivers:
             system.memory.utilization:
               enabled: true
         disk:
+        {{- if not $usesSelectiveHostMounts }}
         filesystem:
           {{- if .Values.isWindows }}
           exclude_mount_points:
@@ -681,15 +683,6 @@ receivers:
               - ""
             match_type: strict
           {{- else }}
-          {{- if .Values.presets.hardenedMode.enabled }}
-          # Collect the root filesystem by default. To collect other filesystems,
-          # mount them under /hostfs with extraVolumes and extraVolumeMounts, then
-          # add their host mount points through config.receivers.hostmetrics.scrapers.filesystem.
-          include_mount_points:
-            mount_points:
-              - /
-            match_type: strict
-          {{- end }}
           exclude_mount_points:
             mount_points:
               - /dev/*
@@ -728,6 +721,7 @@ receivers:
               - tracefs
             match_type: strict
           {{- end }}
+        {{- end }}
         network:
         {{- if .Values.isWindows }}
         paging:
