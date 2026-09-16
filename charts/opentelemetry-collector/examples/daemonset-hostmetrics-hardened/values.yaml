@@ -6,4 +6,4 @@ presets:
     process:
       enabled: true
   hardenedMode:
-    enabled: false
+    enabled: true
