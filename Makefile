@@ -53,7 +53,7 @@ generate-examples:
 		helm dependency build charts/$${chart_name}; \
 		$(call run_parallel_with_logging,$${EXAMPLES},$${chart_name}, \
 			echo "Generating example: $${example}"; \
-			VALUES=$$(find $${EXAMPLES_DIR}/$${example} -name '*values.yaml'); \
+			VALUES=$$(find $${EXAMPLES_DIR}/$${example} -name '*values.yaml' | sort); \
 			EXAMPLE_TMP="$(TMP_DIRECTORY)/generate-$${chart_name}-$${example}"; \
 			rm -rf "$${EXAMPLE_TMP}"; \
 			for value in $${VALUES}; do \
@@ -90,7 +90,7 @@ check-examples:
 			echo "Checking example: $${example}"; \
 			EXAMPLE_TMP="$(TMP_DIRECTORY)/check-$${chart_name}-$${example}"; \
 			rm -rf "$${EXAMPLE_TMP}"; \
-			VALUES=$$(find $${EXAMPLES_DIR}/$${example} -name '*values.yaml'); \
+			VALUES=$$(find $${EXAMPLES_DIR}/$${example} -name '*values.yaml' | sort); \
 			for value in $${VALUES}; do \
 				helm template example charts/$${chart_name} --namespace default --values $${value} --output-dir "$${EXAMPLE_TMP}"; \
 				SUBCHARTS_DIR=$${EXAMPLE_TMP}/$${chart_name}/charts; \
