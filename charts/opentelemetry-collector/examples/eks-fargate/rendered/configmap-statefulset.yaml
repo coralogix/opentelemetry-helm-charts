@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-statefulset
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.138.1
+    helm.sh/chart: opentelemetry-collector-0.138.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.160.0"
@@ -74,7 +74,7 @@ data:
         send_batch_max_size: 2048
         send_batch_size: 1024
         timeout: 60s
-      k8sattributes:
+      k8s_attributes:
         extract:
           metadata:
           - k8s.namespace.name
@@ -234,7 +234,7 @@ data:
           - resource/metadata
           - resourcedetection/region
           - resourcedetection/env
-          - k8sattributes
+          - k8s_attributes
           - batch
           receivers:
           - otlp
@@ -247,7 +247,7 @@ data:
           - resource/metadata
           - resourcedetection/region
           - resourcedetection/env
-          - k8sattributes
+          - k8s_attributes
           - transform/prometheus
           - batch
           receivers:
@@ -261,7 +261,7 @@ data:
           - resource/metadata
           - resourcedetection/region
           - resourcedetection/env
-          - k8sattributes
+          - k8s_attributes
           receivers:
           - receiver_creator
         metrics/kubeletstats:
@@ -272,7 +272,7 @@ data:
           - resource/metadata
           - resourcedetection/region
           - resourcedetection/env
-          - k8sattributes
+          - k8s_attributes
           receivers:
           - receiver_creator
         traces:
@@ -284,7 +284,7 @@ data:
           - resource/metadata
           - resourcedetection/region
           - resourcedetection/env
-          - k8sattributes
+          - k8s_attributes
           - batch
           receivers:
           - otlp

@@ -5,7 +5,7 @@ kind: OpenTelemetryCollector
 metadata:
   name: example-opentelemetry-collector
   labels:
-    helm.sh/chart: opentelemetry-collector-0.138.1
+    helm.sh/chart: opentelemetry-collector-0.138.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.160.0"
@@ -133,7 +133,7 @@ spec:
           - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
             == "opentelemetry-collector"
     receivers:
-      filelog:
+      file_log:
         exclude:
         - /var/log/pods/default_example-opentelemetry-collector*_*/opentelemetry-collector/*.log
         force_flush_period: 0
@@ -258,7 +258,7 @@ spec:
           processors:
           - memory_limiter
           receivers:
-          - filelog
+          - file_log
           - otlp
         metrics:
           exporters:

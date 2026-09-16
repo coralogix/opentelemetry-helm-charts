@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.138.1
+    helm.sh/chart: opentelemetry-collector-0.138.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.160.0"
@@ -20,7 +20,7 @@ data:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
     processors:
-      k8sattributes:
+      k8s_attributes:
         extract:
           metadata:
           - k8s.namespace.name
@@ -296,7 +296,7 @@ data:
           - delete_key(resource.attributes, "process.runtime.name")
           - delete_key(resource.attributes, "process.runtime.version")
     receivers:
-      filelog:
+      file_log:
         exclude:
         - /var/log/pods/default_example-opentelemetry-collector*_*/opentelemetry-collector/*.log
         force_flush_period: 0
@@ -420,10 +420,10 @@ data:
           - memory_limiter
           - resourcedetection/region
           - resourcedetection/env
-          - k8sattributes
+          - k8s_attributes
           - transform/reduce
           receivers:
-          - filelog
+          - file_log
           - otlp
         metrics:
           exporters:
@@ -432,7 +432,7 @@ data:
           - memory_limiter
           - resourcedetection/region
           - resourcedetection/env
-          - k8sattributes
+          - k8s_attributes
           - transform/reduce
           - transform/prometheus
           receivers:
@@ -445,7 +445,7 @@ data:
           - memory_limiter
           - resourcedetection/region
           - resourcedetection/env
-          - k8sattributes
+          - k8s_attributes
           - transform/reduce
           receivers:
           - otlp

@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.138.1
+    helm.sh/chart: opentelemetry-collector-0.138.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.160.0"
@@ -118,7 +118,7 @@ data:
           - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
             == "opentelemetry-collector"
     receivers:
-      filelog/iis:
+      file_log/iis:
         header:
           metadata_operators:
           - if: body matches "^#Fields:"
@@ -210,7 +210,7 @@ data:
           - windowseventlog/system
           - windowseventlog/application
           - windowseventlog/security
-          - filelog/iis
+          - file_log/iis
           - otlp
         metrics:
           exporters:

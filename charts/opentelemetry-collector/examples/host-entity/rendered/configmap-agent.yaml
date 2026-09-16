@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.138.1
+    helm.sh/chart: opentelemetry-collector-0.138.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.160.0"
@@ -45,7 +45,7 @@ data:
             cx.agent.type: agent
             cx.cluster.name: test
             cx.integrationID: test
-            helm.chart.opentelemetry-collector.version: 0.138.1
+            helm.chart.opentelemetry-collector.version: 0.138.2
         server:
           http:
             endpoint: https://ingress.coralogix.com/opamp/v1
@@ -53,7 +53,7 @@ data:
               Authorization: Bearer ${env:CORALOGIX_PRIVATE_KEY}
             polling_interval: 2m
     processors:
-      k8sattributes:
+      k8s_attributes:
         extract:
           metadata:
           - k8s.namespace.name
@@ -303,7 +303,7 @@ data:
           - resourcedetection/region
           - resourcedetection/env
           - resource/metadata
-          - k8sattributes
+          - k8s_attributes
           receivers:
           - otlp
         logs/resource_catalog:
@@ -312,7 +312,7 @@ data:
           processors:
           - memory_limiter
           - resource/metadata
-          - k8sattributes
+          - k8s_attributes
           - resourcedetection/entity
           - resourcedetection/region
           - transform/entity-event
@@ -326,7 +326,7 @@ data:
           - resourcedetection/region
           - resourcedetection/env
           - resource/metadata
-          - k8sattributes
+          - k8s_attributes
           - transform/prometheus
           receivers:
           - hostmetrics
@@ -340,7 +340,7 @@ data:
           - resourcedetection/region
           - resourcedetection/env
           - resource/metadata
-          - k8sattributes
+          - k8s_attributes
           receivers:
           - otlp
       telemetry:

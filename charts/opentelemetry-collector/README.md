@@ -43,6 +43,18 @@ By default the chart configures endpoints for IPv4 addresses. When deploying in 
 
 ## Configuration
 
+### Deprecated component names
+
+`rewriteDeprecatedComponentNames` defaults to `true`. It rewrites deprecated
+receiver, processor, exporter, and detector names in the generated Collector
+configuration, including named instances and pipeline references. The `otlp`
+receiver keeps its name.
+
+Set `rewriteDeprecatedComponentNames: false` when using an image that requires
+the old names. Update your values to use the new names directly; upstream plans
+to remove automatic rewriting in a future release. See [UPGRADING.md](UPGRADING.md)
+for the rename table, minimum image versions, and detector configuration limits.
+
 ### Default configuration
 
 By default this chart will deploy an OpenTelemetry Collector with three pipelines (logs, metrics and traces)
@@ -560,7 +572,7 @@ modes can be enabled together:
   the profiles pipeline.
 
 Requires `presets.profilesCollection.enabled: true`, which sets up the
-profiles pipeline, `k8sattributes/profiles` enrichment, and the
+profiles pipeline, `k8s_attributes/profiles` enrichment, and the
 `service.name` fallback chain.
 
 ```yaml

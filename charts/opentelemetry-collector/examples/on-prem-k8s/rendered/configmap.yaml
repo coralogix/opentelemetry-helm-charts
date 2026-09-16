@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.138.1
+    helm.sh/chart: opentelemetry-collector-0.138.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.160.0"
@@ -49,7 +49,7 @@ data:
             ".*StatefulSet.*|.*ReplicaSet.*|.*Job.*|.*DaemonSet.*")
           - log.body["kind"] == "Pod" and not IsMatch(String(log.body["metadata"]["ownerReferences"]),
             ".*StatefulSet.*|.*ReplicaSet.*|.*Job.*|.*DaemonSet.*")
-      k8sattributes:
+      k8s_attributes:
         extract:
           metadata:
           - k8s.namespace.name
@@ -82,7 +82,7 @@ data:
       resourcedetection/env:
         detectors:
         - env
-        - k8snode
+        - k8s_api
         - system
         k8snode:
           node_from_env_var: K8S_NODE_NAME
@@ -94,7 +94,7 @@ data:
         timeout: 2s
       resourcedetection/resource_catalog:
         detectors:
-        - k8snode
+        - k8s_api
         k8snode:
           node_from_env_var: K8S_NODE_NAME
         override: true
@@ -310,7 +310,7 @@ data:
           processors:
           - memory_limiter
           - resourcedetection/env
-          - k8sattributes
+          - k8s_attributes
           receivers:
           - otlp
         logs/resource_catalog:
@@ -331,7 +331,7 @@ data:
           processors:
           - memory_limiter
           - resourcedetection/env
-          - k8sattributes
+          - k8s_attributes
           - transform/prometheus
           receivers:
           - prometheus
@@ -342,7 +342,7 @@ data:
           processors:
           - memory_limiter
           - resourcedetection/env
-          - k8sattributes
+          - k8s_attributes
           receivers:
           - otlp
       telemetry:

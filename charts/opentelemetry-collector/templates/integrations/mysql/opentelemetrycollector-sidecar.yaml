@@ -1,4 +1,12 @@
 {{- if and (.Values.collectorCRD.generate) (.Values.presets.mysql.extraLogs.enabled) -}}
+{{- $receiverName := "filelog" }}
+{{- if .Values.rewriteDeprecatedComponentNames }}
+{{- $receiverName = "file_log" }}
+{{- end }}
+{{- $exporterName := "otlp" }}
+{{- if .Values.rewriteDeprecatedComponentNames }}
+{{- $exporterName = "otlp_grpc" }}
+{{- end }}
 apiVersion: opentelemetry.io/v1alpha1
 kind: OpenTelemetryCollector
 metadata:
@@ -11,7 +19,7 @@ spec:
     name: {{ .Values.presets.mysql.extraLogs.volumeMountName }}
   config: |
     receivers:
-      filelog:
+      {{ $receiverName }}:
         {{- if not (eq (.Values.presets.mysql.extraLogs.logFilesPath) "") }}
         include: [ {{ .Values.presets.mysql.extraLogs.logFilesPath }}/*{{ .Values.presets.mysql.extraLogs.logFilesExtension | default ".log" }} ]
         {{- else }}
@@ -24,7 +32,7 @@ spec:
     processors:
 
     exporters:
-      otlp:
+      {{ $exporterName }}:
         endpoint: {{ include "opentelemetry-collector.fullname" . }}-collector.{{ .Release.Namespace }}.svc.cluster.local:4317
         tls:
           insecure: true
@@ -35,7 +43,7 @@ spec:
           address: 0.0.0.0:8888
       pipelines:
         logs:
-          receivers: [filelog]
+          receivers: [{{ $receiverName }}]
           processors: []
-          exporters: [otlp]
+          exporters: [{{ $exporterName }}]
 {{- end}}
