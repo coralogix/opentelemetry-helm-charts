@@ -385,6 +385,8 @@ presets:
     enabled: true
 ```
 
+#### Hardened mode
+
 By default, the preset mounts the host root at `/hostfs`. This keeps the existing
 chart behavior. To reduce host access on Linux, enable hardened mode:
 
@@ -401,9 +403,13 @@ For a standard Linux Kubernetes deployment, hardened mode mounts only the host
 paths used by the configured scrapers: `/dev`, `/proc`, `/run/udev/data`, and
 `/sys`. It does not mount the host root or the host `/etc` directory.
 
-In hardened mode, the filesystem scraper collects the root filesystem by default.
-To collect another host filesystem, mount it at the same path below `/hostfs` and
-add its host mount point to `include_mount_points`. For example, to collect `/data`:
+In this mode the filesystem scraper is disabled by default. The `/hostfs`
+directory is not host-backed anymore. Only its children, like `/hostfs/proc`
+and so on are mounts. The filesystem scraper would end up getting container overlay
+filesystem information when trying to inspect `/hostfs` instead of the host filesystem.
+
+To collect a host filesystem, mount it at the same path below `/hostfs` and enable
+the filesystem scraper. For example, to collect `/data`:
 
 ```yaml
 mode: daemonset
@@ -432,7 +438,6 @@ config:
           include_mount_points:
             match_type: strict
             mount_points:
-              - /
               - /data
 ```
 
@@ -834,7 +839,7 @@ To enable this behavior, set `presets.fleetManagement.supervisor.initialFallback
 
 - Files: can be used with an explicit `file:` prefix (i.e. `file:/etc/otel/configs:prod.yaml`) or with the path directly (i.e. `/etc/otel/configs.prod.yaml` or `./config.prod.yaml`).
 - Environment variables: can be used with an explicit `env:` prefix (i.e. `env:CONFIG_PATH`).
-- S3: can be used with an explicit `s3://` prefix (i.e. `s3://my-bucket/configs/prod.yaml`). It uses the same environment variables as the AWS CLI to authenticate and access the bucket. 
+- S3: can be used with an explicit `s3://` prefix (i.e. `s3://my-bucket/configs/prod.yaml`). It uses the same environment variables as the AWS CLI to authenticate and access the bucket.
 - Objstore: a special provider created by Coralogix based on the Thanos Objstore. It offers access to many different object storage providers. It can be used with the explicit `objstore:` prefix (i.e. `objstore:my-config`). It accepts a `type` query parameter to specify the underlying object storage provider (i.e. `objstore:my-config?type=GCS`). Further configuration can be provided through a ConfigMap, as described in the next section.
 
 #### Objstore provider configuration

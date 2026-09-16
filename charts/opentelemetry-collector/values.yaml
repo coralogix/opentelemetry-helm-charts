@@ -307,9 +307,9 @@ presets:
   # Reduces the host filesystem access added by the hostMetrics preset on Linux.
   # For standard Linux Kubernetes deployments, it mounts only /dev, /proc,
   # /run/udev/data, and /sys.
-  # The filesystem scraper collects only the root filesystem by default.
-  # Use extraVolumes and extraVolumeMounts to expose other filesystems under /hostfs,
-  # then add their host mount points to config.receivers.hostmetrics.scrapers.filesystem.include_mount_points.
+  # The filesystem scraper is disabled by default because /hostfs is not the host root.
+  # To enable it, use extraVolumes and extraVolumeMounts to expose each filesystem
+  # under /hostfs, then configure config.receivers.hostmetrics.scrapers.filesystem.
   hardenedMode:
     enabled: false
   # Configures the collector to collect host metrics.
