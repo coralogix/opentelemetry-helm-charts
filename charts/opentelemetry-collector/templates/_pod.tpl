@@ -277,6 +277,22 @@ containers:
         readOnly: true
       {{- end }}
       {{- if .Values.presets.hostMetrics.enabled }}
+      {{- if and .Values.presets.hardenedMode.enabled (not .Values.isWindows) }}
+      {{- if and (ne .Values.distribution "ecs") (ne .Values.distribution "standalone") (ne .Values.distribution "macos") }}
+      - name: host-dev
+        mountPath: /hostfs/dev
+        readOnly: true
+      - name: host-proc
+        mountPath: /hostfs/proc
+        readOnly: true
+      - name: host-run-udev-data
+        mountPath: /hostfs/run/udev/data
+        readOnly: true
+      - name: host-sys
+        mountPath: /hostfs/sys
+        readOnly: true
+      {{- end }}
+      {{- else }}
       {{- if .Values.isWindows }}
       - mountPath: "C:\\hostfs"
         name: hostfs
@@ -287,6 +303,12 @@ containers:
         readOnly: true
         mountPropagation: HostToContainer
       {{- end }}
+      {{- end }}
+      {{- end }}
+      {{- if and .Values.presets.hardenedMode.enabled .Values.presets.ecsLogsCollection.enabled (not .Values.isWindows) }}
+      - name: hostfs-varlibdockercontainers
+        mountPath: /hostfs/var/lib/docker/containers
+        readOnly: true
       {{- end }}
       {{- if and .Values.presets.ebpfProfiler.enabled (not .Values.isWindows) }}
       - name: lsb-release
@@ -426,6 +448,22 @@ volumes:
       type: Directory
   {{- end }}
   {{- if .Values.presets.hostMetrics.enabled }}
+  {{- if and .Values.presets.hardenedMode.enabled (not .Values.isWindows) }}
+  {{- if and (ne .Values.distribution "ecs") (ne .Values.distribution "standalone") (ne .Values.distribution "macos") }}
+  - name: host-dev
+    hostPath:
+      path: /dev
+  - name: host-proc
+    hostPath:
+      path: /proc
+  - name: host-run-udev-data
+    hostPath:
+      path: /run/udev/data
+  - name: host-sys
+    hostPath:
+      path: /sys
+  {{- end }}
+  {{- else }}
   {{- if .Values.isWindows }}
   - name: hostfs
     hostPath:
@@ -435,6 +473,12 @@ volumes:
     hostPath:
       path: /
   {{- end }}
+  {{- end }}
+  {{- end }}
+  {{- if and .Values.presets.hardenedMode.enabled .Values.presets.ecsLogsCollection.enabled (not .Values.isWindows) }}
+  - name: hostfs-varlibdockercontainers
+    hostPath:
+      path: /var/lib/docker/containers
   {{- end }}
   {{- if and .Values.presets.ebpfProfiler.enabled (not .Values.isWindows) }}
   - name: lsb-release

@@ -5,4 +5,5 @@ presets:
     enabled: true
     process:
       enabled: true
-
+  hardenedMode:
+    enabled: false

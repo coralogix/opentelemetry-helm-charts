@@ -1,0 +1,9 @@
+mode: daemonset
+
+presets:
+  hostMetrics:
+    enabled: true
+    process:
+      enabled: true
+  hardenedMode:
+    enabled: true

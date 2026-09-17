@@ -639,6 +639,16 @@
             }
           }
         },
+        "hardenedMode": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Reduces Linux host filesystem access for the hostMetrics preset and disables the filesystem scraper by default when selective host mounts are used.",
+              "type": "boolean"
+            }
+          }
+        },
         "mysql": {
           "type": "object",
           "additionalProperties": false,
