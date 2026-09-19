@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-ebpf-instrumentation
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.26
+    helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.27
     app.kubernetes.io/name: opentelemetry-ebpf-instrumentation
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "v0.13.0"
@@ -81,14 +81,14 @@ data:
       port: 0
     jvm_runtime_metrics:
       sampling_interval: 1s
+    metrics:
+      features:
+      - application_runtime
     name_resolver:
       sources:
       - k8s
       - rdns
     otel_metrics_export:
       endpoint: http://${HOST_IP}:4318
-      features:
-      - application
-      - application_runtime
     otel_traces_export:
       endpoint: http://${HOST_IP}:4317
