@@ -1,0 +1,9 @@
+# Renders a literal `metrics.features: []` — no OBI metrics at all, traces only. The chart
+# already defaults `metrics.features` to `[]`; disabling `presets.runtimeMetrics` on top stops
+# the preset from appending its `application_runtime` feature.
+metrics:
+  features: []
+
+presets:
+  runtimeMetrics:
+    enabled: false
