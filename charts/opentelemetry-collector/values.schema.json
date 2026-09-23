@@ -2305,7 +2305,7 @@
               "type": "boolean"
             },
             "offCpuThreshold": {
-              "description": "Enable off-CPU profiling (0 disables).",
+              "description": "Deprecated compatibility setting. It is accepted but not rendered until the released profiler image includes the offcpu extension.",
               "type": "number"
             },
             "interpreters": {

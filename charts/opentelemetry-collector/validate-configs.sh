@@ -197,7 +197,8 @@ validate_config() {
 
     # Create temporary config file
     local temp_config
-    temp_config=$(mktemp)
+    # Keep it under the checkout: Docker Desktop/Colima may not share $TMPDIR.
+    temp_config=$(mktemp "${SCRIPT_DIR}/.validate-config.XXXXXX")
     echo "$config_content" > "$temp_config"
 
     log "Validating configuration for: $example_name (${collector_binary##*/})"
@@ -206,10 +207,10 @@ validate_config() {
     if [[ "$collector_binary" == docker:* ]]; then
         # eBPF profiler distribution: validate inside its published image.
         local image="${collector_binary#docker:}"
-        local args=(validate --config=/tmp/config.yaml)
+        local args=(validate --config=/tmp/otel-config.yaml)
         [[ -n "$feature_gates" ]] && args+=(--feature-gates="$feature_gates")
         validation_output=$(docker run --rm --network none \
-            -v "${temp_config}:/tmp/config.yaml:ro" \
+            -v "${temp_config}:/tmp/otel-config.yaml:ro" \
             "$image" "${args[@]}" </dev/null 2>&1)
         exit_code=$?
     else

@@ -1422,7 +1422,6 @@ receivers:
     probabilistic_interval: {{ .Values.presets.ebpfProfiler.probabilisticInterval | quote }}
     probabilistic_threshold: {{ .Values.presets.ebpfProfiler.probabilisticThreshold }}
     verbose_mode: {{ .Values.presets.ebpfProfiler.verboseMode }}
-    off_cpu_threshold: {{ .Values.presets.ebpfProfiler.offCpuThreshold }}
     {{- with .Values.presets.ebpfProfiler.samplesPerSecond }}
     samples_per_second: {{ . }}
     {{- end }}

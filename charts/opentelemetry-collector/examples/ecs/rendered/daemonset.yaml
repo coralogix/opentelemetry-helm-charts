@@ -6,10 +6,10 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.138.3
+    helm.sh/chart: opentelemetry-collector-0.139.0
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "0.160.0"
+    app.kubernetes.io/version: "0.161.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   selector:
@@ -22,7 +22,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 92946dffe797fd58cf19a4d2eb0bae3b56d03729a6cef2eef50f048d3eae50df
+        checksum/config: 5201b8d50dbc617ed01771872f0644784d0757acfde33d145ff344c555ab6796
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -43,7 +43,7 @@ spec:
             runAsUser: 0
             runAsGroup: 0
             privileged: true
-          image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.160.0"
+          image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.161.0"
           imagePullPolicy: IfNotPresent
           ports:
             - name: jaeger-binary

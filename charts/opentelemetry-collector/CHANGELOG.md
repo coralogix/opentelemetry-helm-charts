@@ -2,6 +2,12 @@
 
 ## OpenTelemetry Collector
 
+### v0.139.0 / 2026-09-24
+
+- [Feat] Bump the OpenTelemetry Collector image to v0.161.0.
+- [Feat] Upgrade Supervisor-based images to v0.15.0.
+- [Fix] Keep `presets.ebpfProfiler.offCpuThreshold` accepted for compatibility with existing values files. It currently has no effect because the released profiler image does not include the required `offcpu` extension ([collector-releases#1678](https://github.com/open-telemetry/opentelemetry-collector-releases/issues/1678)). Once the extension is included in a released image, this setting will render its corresponding off-CPU configuration.
+
 ### v0.138.3 / 2026-09-24
 
 - [Feat] Enable Fleet Management restart commands by default for Supervisor-managed Collectors, and add the opt-in `presets.fleetManagement.acceptsRestartCommand` setting for direct Collector connections.
