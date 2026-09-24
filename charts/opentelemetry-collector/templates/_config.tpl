@@ -1912,6 +1912,8 @@ extensions:
           polling_interval: 2m
           headers:
             Authorization: "Bearer ${env:CORALOGIX_PRIVATE_KEY}"
+      capabilities:
+        accepts_restart_command: {{ .Values.presets.fleetManagement.acceptsRestartCommand }}
       agent_description:
         include_resource_attributes: true
         non_identifying_attributes:
@@ -1928,6 +1930,8 @@ extensions:
           polling_interval: 2m
           headers:
             Authorization: "Bearer {{ $endpoint.privateKey }}"
+      capabilities:
+        accepts_restart_command: {{ $.Values.presets.fleetManagement.acceptsRestartCommand }}
       agent_description:
         include_resource_attributes: true
         non_identifying_attributes:
