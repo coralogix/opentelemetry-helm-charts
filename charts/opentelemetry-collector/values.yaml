@@ -33,6 +33,9 @@ mode: "daemonset"
 # service account, provide it below.
 targetAllocator:
   enabled: false
+  # Target Allocator collection mode. Default: "daemonset".
+  # Valid values: "daemonset", "statefulset".
+  collectionMode: daemonset
   replicas: 1
   nodeSelector: {}
   tolerations: []
