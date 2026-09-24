@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.131.2 / 2026-09-24
+
+- [Feat] Enable Fleet Management restart commands by default for Supervisor-managed Collectors, and add the opt-in `presets.fleetManagement.acceptsRestartCommand` setting for direct Collector connections.
+
 ### v0.131.1 / 2026-04-30
 
 - [Feat] Support forwarding eBPF profiler profiles to a node-local agent with the `otlpExporter` preset, keeping Kubernetes attributes and profile service-name mapping on the standard agent collector.
