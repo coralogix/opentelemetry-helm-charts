@@ -1,21 +1,28 @@
-{{- if and .Values.autoscaling.enabled (eq .Values.autoscaling.mode "hpa") (or (eq .Values.mode "deployment") (eq .Values.mode "statefulset")) }}
+{{- $isTargetAllocatorPool := and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") }}
+{{- $primaryHPA := and .Values.autoscaling.enabled (eq .Values.autoscaling.mode "hpa") (or (eq .Values.mode "deployment") (eq .Values.mode "statefulset")) }}
+{{- $poolHPA := and .Values.autoscaling.enabled $isTargetAllocatorPool (eq .Values.autoscaling.mode "hpa") }}
+{{- if or $primaryHPA $poolHPA }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "opentelemetry-collector.fullname" . }}
+  name: {{ include "opentelemetry-collector.fullname" . }}{{ if $poolHPA }}-targetallocator-pool{{ end }}
   namespace: {{ template "opentelemetry-collector.namespace" . }}
   labels:
     {{- include "opentelemetry-collector.labels" . | nindent 4 }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
-    kind: {{ include "opentelemetry-collector.hpaKind" . }}
+    kind: {{ if $poolHPA }}StatefulSet{{ else }}{{ include "opentelemetry-collector.hpaKind" . }}{{ end }}
     name: {{ include "opentelemetry-collector.fullname" . }}
-  minReplicas: {{ .Values.autoscaling.minReplicas }}
-  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  minReplicas: {{ if $poolHPA }}{{ max 2 (.Values.autoscaling.minReplicas | int) }}{{ else }}{{ .Values.autoscaling.minReplicas }}{{ end }}
+  maxReplicas: {{ if $poolHPA }}{{ max 2 (.Values.autoscaling.maxReplicas | int) }}{{ else }}{{ .Values.autoscaling.maxReplicas }}{{ end }}
   {{- if .Values.autoscaling.behavior }}
   behavior:
     {{- toYaml .Values.autoscaling.behavior | nindent 4 }}
+  {{- else if $poolHPA }}
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
   {{- end }}
   metrics:
   {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}

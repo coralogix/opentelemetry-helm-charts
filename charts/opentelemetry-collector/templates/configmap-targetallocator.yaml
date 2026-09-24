@@ -9,7 +9,7 @@ metadata:
     {{- include "opentelemetry-target-allocator.labels" . | nindent 4 }}
 data:
   targetallocator.yaml: |
-    allocation_strategy: {{ .Values.targetAllocator.allocationStrategy }}
+    allocation_strategy: {{ ternary "least-weighted" .Values.targetAllocator.allocationStrategy (eq .Values.targetAllocator.collectionMode "statefulset") }}
     {{- if .Values.targetAllocator.allocationFallbackStrategy }}
     allocation_fallback_strategy: {{ .Values.targetAllocator.allocationFallbackStrategy }}
     {{- end }}
@@ -18,6 +18,9 @@ data:
       matchlabels:
         app.kubernetes.io/name: {{ include "opentelemetry-collector.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- if eq .Values.targetAllocator.collectionMode "statefulset" }}
+        opentelemetry.io/target-allocator-pool: "true"
+        {{- end }}
     {{- if .Values.targetAllocator.prometheusCR.enabled }}
     prometheus_cr:
       scrape_interval: {{ .Values.targetAllocator.prometheusCR.scrapeInterval | default "30s" }}

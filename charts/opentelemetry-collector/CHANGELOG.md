@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.139.1 / 2026-09-24
+
+- [Feat] Add `targetAllocator.collectionMode: statefulset`, moving Target Allocator Prometheus targets from the agent DaemonSet to an HPA-managed metrics-only StatefulSet pool.
+
 ### v0.139.0 / 2026-09-24
 
 - [Feat] Bump the OpenTelemetry Collector image to v0.161.0.
