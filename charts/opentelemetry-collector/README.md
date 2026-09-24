@@ -831,6 +831,14 @@ To override this behavior and retain the Collector configuration according to th
 When supervisor mode is enabled, `command.extraArgs` is passed to the managed Collector via the supervisor
 configuration's `agent.args` field instead of being appended to the `opampsupervisor` container command.
 
+Supervisor-managed Collectors accept Fleet Management restart commands by default. For a direct Collector-to-Fleet-Management connection, restart commands remain disabled unless explicitly enabled:
+
+```yaml
+presets:
+  fleetManagement:
+    acceptsRestartCommand: true
+```
+
 #### Initial fallback configuration
 
 Whenever a new Collector starts and it cannot reach the Fleet Manager to receive remote configuration, the Supervisor can optionally provide an initial fallback configuration to the Collector to ensure that it has a valid configuration to start from. When connection to the Fleet Manager is restored, this configuration will be dropped in favor of the remote configuration received from the Fleet Manager, even if such remote configuration is empty.

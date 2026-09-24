@@ -1894,6 +1894,11 @@
               "description": "Specifies whether to enable remote fleet management.",
               "type": "boolean"
             },
+            "acceptsRestartCommand": {
+              "description": "Specifies whether the direct Collector-to-Fleet-Management connection accepts restart commands. This is always enabled when the Supervisor preset is enabled.",
+              "type": "boolean",
+              "default": false
+            },
             "supervisor": {
               "type": "object",
               "additionalProperties": false,

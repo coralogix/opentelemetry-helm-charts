@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.138.3 / 2026-09-24
+
+- [Feat] Enable Fleet Management restart commands by default for Supervisor-managed Collectors, and add the opt-in `presets.fleetManagement.acceptsRestartCommand` setting for direct Collector connections.
+
 ### v0.138.2 / 2026-09-15
 
 - [Feat] Add an opt-in `hardenedMode` preset. On Linux, it replaces the `hostMetrics` preset's full host root mount with specific read-only mounts for `/dev`, `/proc`, `/run/udev/data`, and `/sys`. It disables the filesystem scraper by default to avoid reporting the container filesystem as the host root. Other host filesystems can be enabled through `extraVolumes`, `extraVolumeMounts`, and explicit scraper configuration. Existing behavior remains the default.
