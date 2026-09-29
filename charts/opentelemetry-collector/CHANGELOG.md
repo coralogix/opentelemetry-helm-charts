@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.139.1 / 2026-09-29
+
+- [Fix] Parse macOS `/var/log/system.log` multiline entries with `regex_parser` in the `macosSystemLogs` preset. `syslog_parser` rejected filelog-grouped stack-trace continuations.
+
 ### v0.139.0 / 2026-09-24
 
 - [Feat] Bump the OpenTelemetry Collector image to v0.161.0.
