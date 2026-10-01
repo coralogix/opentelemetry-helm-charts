@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.139.2
+    helm.sh/chart: opentelemetry-collector-0.139.3
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.161.0"
@@ -20,12 +20,6 @@ data:
         endpoint: ${env:MY_POD_IP}:13133
       opamp:
         reports_raw_config: true
-        server:
-          http:
-            endpoint: https://ingress./opamp/v1
-            headers:
-              Authorization: Bearer ${env:CORALOGIX_PRIVATE_KEY}
-            polling_interval: 2m
     receivers:
       nop: null
     service:
