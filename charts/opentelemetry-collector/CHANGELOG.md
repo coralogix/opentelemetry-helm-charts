@@ -2,9 +2,13 @@
 
 ## OpenTelemetry Collector
 
-### v0.139.2 / 2026-10-01
+### v0.139.3 / 2026-10-01
 
 - [Fix] Backfill `db.namespace` in the `spanMetrics` and `spanMetricsMulti` DB pipelines from `db.name`, then `server.address`, `network.peer.name` or `net.peer.name`, then `db.system`. Services on the older DB semantic conventions previously produced no `db_compact` metrics. `transform/db` also maps `db.operation` to `db.operation.name` and the per-system table attributes to `db.collection.name`. `transform/db_compact` now runs before `filter/db_compact_spanmetrics`.
+
+### v0.139.2 / 2026-10-01
+
+- [Feat] Enable raw configuration reporting by default in direct Fleet Management OpAMP extensions and in the minimal Collector config used by Supervisor mode.
 
 ### v0.139.1 / 2026-09-29
 
