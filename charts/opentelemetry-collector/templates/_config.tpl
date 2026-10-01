@@ -51,11 +51,20 @@ receivers:
 exporters:
   nop:
 extensions:
+  opamp:
+    reports_raw_config: true
+    server:
+      http:
+        endpoint: "https://ingress.{{ .Values.global.domain }}/opamp/v1"
+        polling_interval: 2m
+        headers:
+          Authorization: "Bearer ${env:CORALOGIX_PRIVATE_KEY}"
   health_check:
     endpoint: {{ include "opentelemetry-collector.envEndpoint" (dict "env" "MY_POD_IP" "port" "13133" "context" .) | quote }}
 service:
   extensions:
     - health_check
+    - opamp
   telemetry:
     logs:
       encoding: json
@@ -1913,6 +1922,7 @@ processors:
 {{- define "opentelemetry-collector.fleetManagementConfig" -}}
 extensions:
     opamp:
+      reports_raw_config: true
       server:
         http:
           endpoint: "https://ingress.{{.Values.global.domain}}/opamp/v1"
@@ -1931,6 +1941,7 @@ extensions:
   {{- if eq $endpoint.enabled true }}
     {{- $exporterSuffix := include "opentelemetry-collector.getExporterSuffix" $endpoint }}
     opamp/{{ $exporterSuffix }}:
+      reports_raw_config: true
       server:
         http:
           endpoint: "https://ingress.{{ $endpoint.domain }}/opamp/v1"

@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.139.2 / 2026-10-01
+
+- [Feat] Enable raw configuration reporting by default in direct Fleet Management OpAMP extensions and in the minimal Collector config used by Supervisor mode.
+
 ### v0.139.1 / 2026-09-29
 
 - [Fix] Parse macOS `/var/log/system.log` multiline entries with `regex_parser` in the `macosSystemLogs` preset. `syslog_parser` rejected filelog-grouped stack-trace continuations.
