@@ -6,7 +6,7 @@ metadata:
   name: cx-otel-collector-monitor
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.139.2
+    helm.sh/chart: opentelemetry-collector-0.139.3
     app.kubernetes.io/name: cx-otel-collector-monitor
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.161.0"
@@ -24,7 +24,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: ecd30cec468a45e6b657a3468a8b39b892085c2f9beff0c8efe797f7c08d4fd6
+        checksum/config: 894f57482a9bb3e00e1f59e5e01391295abd9018d2e56971832eb969cdac323d
         
       labels:
         app.kubernetes.io/name: cx-otel-collector-monitor

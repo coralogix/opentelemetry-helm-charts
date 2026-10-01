@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.139.3 / 2026-10-01
+
+- [Fix] Omit the external HTTP OpAMP server from the minimal Collector config used with Supervisor mode. Supervisor supplies the child Collector's local OpAMP server connection; keeping the external server here caused both `ws` and `http` to be configured.
+
 ### v0.139.2 / 2026-10-01
 
 - [Feat] Enable raw configuration reporting by default in direct Fleet Management OpAMP extensions and in the minimal Collector config used by Supervisor mode.
