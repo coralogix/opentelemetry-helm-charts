@@ -2004,6 +2004,25 @@ cx.integrationID: "{{ .Values.presets.fleetManagement.integrationID }}"
 {{- end }}
 {{- end -}}
 
+{{- define "opentelemetry-collector.dbNamespaceStatements" -}}
+- set(attributes["db.namespace"], attributes["db.name"]) where attributes["db.namespace"] == nil
+- set(attributes["db.namespace"], attributes["server.address"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
+- set(attributes["db.namespace"], attributes["network.peer.name"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
+- set(attributes["db.namespace"], attributes["net.peer.name"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
+- set(attributes["db.namespace"], attributes["db.system"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
+{{- end }}
+
+{{- define "opentelemetry-collector.dbSemconvStatements" -}}
+- set(attributes["db.operation.name"], attributes["db.operation"]) where attributes["db.operation.name"] == nil
+- set(attributes["db.collection.name"], attributes["db.sql.table"]) where attributes["db.collection.name"] == nil
+- set(attributes["db.collection.name"], attributes["db.cassandra.table"]) where attributes["db.collection.name"] == nil
+- set(attributes["db.collection.name"], attributes["db.mongodb.collection"]) where attributes["db.collection.name"] == nil
+- set(attributes["db.collection.name"], attributes["db.redis.database_index"]) where attributes["db.collection.name"] == nil
+- set(attributes["db.collection.name"], attributes["db.elasticsearch.path_parts.index"]) where attributes["db.collection.name"] == nil
+- set(attributes["db.collection.name"], attributes["db.cosmosdb.container"]) where attributes["db.collection.name"] == nil
+- set(attributes["db.collection.name"], attributes["aws_dynamodb.table_names"]) where attributes["db.collection.name"] == nil
+{{- end }}
+
 {{- define "opentelemetry-collector.applySpanMetricsConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.spanMetricsConfig" .Values | fromYaml) .config }}
 {{- if and ($config.service.pipelines.traces) (not (has "spanmetrics" $config.service.pipelines.traces.exporters)) }}
@@ -2243,6 +2262,8 @@ processors:
       - context: span
         statements:
         - set(attributes["db.system"], attributes["db.system.name"]) where attributes["db.system.name"] != nil and attributes["db.system"] == nil
+        {{- include "opentelemetry-collector.dbNamespaceStatements" . | nindent 8 }}
+        {{- include "opentelemetry-collector.dbSemconvStatements" . | nindent 8 }}
         {{- range $index, $pattern := .Values.presets.spanMetrics.dbMetrics.transformStatements }}
         - {{ $pattern }}
         {{- end}}
@@ -2256,6 +2277,7 @@ processors:
 {{- end }}
 {{- if .Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled }}
   transform/db_compact:
+    error_mode: silent
     trace_statements:
       - context: resource
         statements:
@@ -2263,6 +2285,7 @@ processors:
       - context: span
         statements:
           - set(attributes["db.system"], attributes["db.system.name"]) where attributes["db.system.name"] != nil and attributes["db.system"] == nil
+          {{- include "opentelemetry-collector.dbNamespaceStatements" . | nindent 10 }}
           - keep_keys(span.attributes, ["db.namespace", "db.system"])
 {{- end }}
 {{- if and (.Values.presets.spanMetrics.compactMetrics.enabled) (.Values.presets.spanMetrics.compactMetrics.dropHistogram) }}
@@ -2339,8 +2362,8 @@ service:
       exporters:
       - spanmetrics/db_compact
       processors:
-      - filter/db_compact_spanmetrics
       - transform/db_compact
+      - filter/db_compact_spanmetrics
       - batch
       receivers:
       - forward/db_compact
@@ -4757,6 +4780,8 @@ receivers:
       - context: span
         statements:
         - set(attributes["db.system"], attributes["db.system.name"]) where attributes["db.system.name"] != nil and attributes["db.system"] == nil
+        {{- include "opentelemetry-collector.dbNamespaceStatements" . | nindent 8 }}
+        {{- include "opentelemetry-collector.dbSemconvStatements" . | nindent 8 }}
         {{- range $index, $pattern := $dbMetrics.transformStatements }}
         - {{ $pattern }}
         {{- end}}
@@ -4770,6 +4795,7 @@ receivers:
 {{- end }}
 {{- if $dbCompactMetrics.enabled }}
   transform/db_compact:
+    error_mode: silent
     trace_statements:
       - context: resource
         statements:
@@ -4777,6 +4803,7 @@ receivers:
       - context: span
         statements:
           - set(attributes["db.system"], attributes["db.system.name"]) where attributes["db.system.name"] != nil and attributes["db.system"] == nil
+          {{- include "opentelemetry-collector.dbNamespaceStatements" . | nindent 10 }}
           - keep_keys(span.attributes, ["db.namespace", "db.system"])
 {{- end }}
 {{- if and ($compactMetrics.enabled) ($compactMetrics.dropHistogram) }}
@@ -4862,8 +4889,8 @@ service:
       exporters:
       - spanmetrics/db_compact
       processors:
-      - filter/db_compact_spanmetrics
       - transform/db_compact
+      - filter/db_compact_spanmetrics
       - batch
       receivers:
       - forward/db_compact
