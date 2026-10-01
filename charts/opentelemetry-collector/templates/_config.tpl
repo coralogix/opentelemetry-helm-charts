@@ -2204,6 +2204,12 @@ processors:
         - 'span.attributes["db.system"] == nil and span.attributes["db.system.name"] == nil'
 {{- end }}
 {{- if .Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled }}
+  transform/db_compact_namespace:
+    error_mode: silent
+    trace_statements:
+      - context: span
+        statements:
+        {{- include "opentelemetry-collector.dbCompactNamespaceStatements" . | nindent 8 }}
   filter/db_compact_spanmetrics:
     traces:
       span:
@@ -2328,6 +2334,7 @@ service:
       exporters:
       - spanmetrics/db_compact
       processors:
+      - transform/db_compact_namespace
       - filter/db_compact_spanmetrics
       - transform/db_compact
       - batch
@@ -4713,6 +4720,15 @@ receivers:
 {{- end }}
 {{- end -}}
 
+{{- define "opentelemetry-collector.dbCompactNamespaceStatements" -}}
+- set(span.attributes["db.namespace"], span.attributes["db.name"]) where span.attributes["db.namespace"] == nil
+- set(span.attributes["db.namespace"], span.attributes["server.address"]) where span.attributes["db.namespace"] == nil and (span.attributes["db.system"] != nil or span.attributes["db.system.name"] != nil)
+- set(span.attributes["db.namespace"], span.attributes["network.peer.name"]) where span.attributes["db.namespace"] == nil and (span.attributes["db.system"] != nil or span.attributes["db.system.name"] != nil)
+- set(span.attributes["db.namespace"], span.attributes["net.peer.name"]) where span.attributes["db.namespace"] == nil and (span.attributes["db.system"] != nil or span.attributes["db.system.name"] != nil)
+- set(span.attributes["db.namespace"], span.attributes["db.system"]) where span.attributes["db.namespace"] == nil
+- set(span.attributes["db.namespace"], span.attributes["db.system.name"]) where span.attributes["db.namespace"] == nil
+{{- end }}
+
 {{- define "opentelemetry-collector.spanMetricsMultiExtras.processors" -}}
 {{- $p := .preset -}}
 {{- $dbMetrics := $p.dbMetrics | default dict -}}
@@ -4734,6 +4750,12 @@ receivers:
         - 'span.attributes["db.system"] == nil and span.attributes["db.system.name"] == nil'
 {{- end }}
 {{- if $dbCompactMetrics.enabled }}
+  transform/db_compact_namespace:
+    error_mode: silent
+    trace_statements:
+      - context: span
+        statements:
+        {{- include "opentelemetry-collector.dbCompactNamespaceStatements" . | nindent 8 }}
   filter/db_compact_spanmetrics:
     traces:
       span:
@@ -4851,6 +4873,7 @@ service:
       exporters:
       - spanmetrics/db_compact
       processors:
+      - transform/db_compact_namespace
       - filter/db_compact_spanmetrics
       - transform/db_compact
       - batch

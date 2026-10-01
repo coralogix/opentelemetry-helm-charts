@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.139.2 / 2026-10-01
+
+- [Fix] Backfill `db.namespace` in the `db_compact` span-metrics pipeline when instrumentation only sets the older attributes (`db.name`, then `server.address` / `network.peer.name` / `net.peer.name`, then `db.system`). Previously `filter/db_compact_spanmetrics` dropped every database span without `db.namespace`, so services on pre-stable database semantic conventions produced no `db_compact_*` metrics. Applies to both `spanMetrics` and `spanMetricsMulti`.
+
 ### v0.139.1 / 2026-09-29
 
 - [Fix] Parse macOS `/var/log/system.log` multiline entries with `regex_parser` in the `macosSystemLogs` preset. `syslog_parser` rejected filelog-grouped stack-trace continuations.
