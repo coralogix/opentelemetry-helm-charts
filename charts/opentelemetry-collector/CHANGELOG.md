@@ -2,7 +2,7 @@
 
 ## OpenTelemetry Collector
 
-### v0.140.0 / 2026-10-01
+### v0.139.2 / 2026-10-01
 
 - [Feat] Enable raw configuration reporting by default in direct Fleet Management OpAMP extensions and in the minimal Collector config used by Supervisor mode.
 
