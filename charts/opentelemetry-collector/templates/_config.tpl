@@ -2937,6 +2937,7 @@ service:
 {{- /* Determine if cloud tags should be collected for infra explorer */ -}}
 {{- $useEc2 := and (eq $provider "aws") (ne $distribution "eks/fargate") }}
 {{- $useAzure := eq $provider "azure" }}
+{{- $useGcp := eq $provider "gcp" }}
 exporters:
   coralogix/resource_catalog:
     timeout: "30s"
@@ -2980,6 +2981,9 @@ processors:
 {{- if $useAzure }}
       - azure
 {{- end }}
+{{- if $useGcp }}
+      - gcp
+{{- end }}
     timeout: 2s
     override: false
     system:
@@ -3012,6 +3016,13 @@ processors:
 {{- if $useAzure }}
     azure:
       tags:
+        - ".*"
+{{- end }}
+{{- if $useGcp }}
+    gcp:
+      # host.type on GKE is fetched from the Compute API (requires compute.instances.get).
+      # Without permission the attribute is skipped; labels use the same permission.
+      labels:
         - ".*"
 {{- end }}
   transform/entity-event:
