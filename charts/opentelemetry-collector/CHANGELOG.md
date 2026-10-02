@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.139.4 / 2026-10-01
+
+- [Feat] Add GCP/GKE support for Infra Explore by enabling the `gcp` detector in the host entity events pipeline when provider is GCP. On GKE this populates `host.type` (machine type) via the Compute API when the runtime identity has `compute.instances.get` (covered by `roles/compute.viewer`).
+
 ### v0.139.3 / 2026-10-01
 
 - [Fix] Omit the external HTTP OpAMP server from the minimal Collector config used with Supervisor mode. Supervisor supplies the child Collector's local OpAMP server connection; keeping the external server here caused both `ws` and `http` to be configured.
