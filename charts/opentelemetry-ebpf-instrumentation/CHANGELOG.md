@@ -2,6 +2,10 @@
 
 ## OpenTelemetry eBPF Instrumentation
 
+### v0.1.28 / 2026-09-23
+
+- [Change] Enable gzip compression for OTLP trace export by default (`otel_traces_export.compression: gzip`). The OpenTelemetry Collector OTLP receiver decompresses gzip natively. OBI v0.13.0 ignores the key, so it takes effect with the next OBI image; set `config.data.otel_traces_export.compression: none` to opt out
+
 ### v0.1.27 / 2026-09-07
 
 - [Feature] Add a first-class `metrics.features` value, rendered as the top-level `metrics.features` in OBI's configuration (the modern key, applying to every metrics exporter — not the deprecated per-exporter `otel_metrics_export.features`). It defaults to `[]`, and the `stats.enabled` / `presets.runtimeMetrics` toggles append their features (`stats`, `application_runtime`) on top of it, so a default install exports `metrics.features: [application_runtime]`
