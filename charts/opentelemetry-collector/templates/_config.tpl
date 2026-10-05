@@ -53,12 +53,6 @@ exporters:
 extensions:
   opamp:
     reports_raw_config: true
-    server:
-      http:
-        endpoint: "https://ingress.{{ .Values.global.domain }}/opamp/v1"
-        polling_interval: 2m
-        headers:
-          Authorization: "Bearer ${env:CORALOGIX_PRIVATE_KEY}"
   health_check:
     endpoint: {{ include "opentelemetry-collector.envEndpoint" (dict "env" "MY_POD_IP" "port" "13133" "context" .) | quote }}
 service:
@@ -2234,10 +2228,14 @@ processors:
         - 'span.attributes["db.system"] == nil and span.attributes["db.system.name"] == nil'
 {{- end }}
 {{- if .Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled }}
+  filter/db_compact_pre:
+    traces:
+      span:
+        - 'span.kind != SPAN_KIND_CLIENT or (span.attributes["db.system"] == nil and span.attributes["db.system.name"] == nil)'
   filter/db_compact_spanmetrics:
     traces:
       span:
-        - 'span.kind != SPAN_KIND_CLIENT or span.attributes["db.namespace"] == nil or (span.attributes["db.system"] == nil and span.attributes["db.system.name"] == nil)'
+        - 'span.attributes["db.namespace"] == nil'
 {{- end }}
 {{- if .Values.presets.spanMetrics.enabled }}
   transform/spanmetrics:
@@ -2362,6 +2360,7 @@ service:
       exporters:
       - spanmetrics/db_compact
       processors:
+      - filter/db_compact_pre
       - transform/db_compact
       - filter/db_compact_spanmetrics
       - batch
@@ -2966,6 +2965,7 @@ service:
 {{- /* Determine if cloud tags should be collected for infra explorer */ -}}
 {{- $useEc2 := and (eq $provider "aws") (ne $distribution "eks/fargate") }}
 {{- $useAzure := eq $provider "azure" }}
+{{- $useGcp := eq $provider "gcp" }}
 exporters:
   coralogix/resource_catalog:
     timeout: "30s"
@@ -3009,6 +3009,9 @@ processors:
 {{- if $useAzure }}
       - azure
 {{- end }}
+{{- if $useGcp }}
+      - gcp
+{{- end }}
     timeout: 2s
     override: false
     system:
@@ -3041,6 +3044,13 @@ processors:
 {{- if $useAzure }}
     azure:
       tags:
+        - ".*"
+{{- end }}
+{{- if $useGcp }}
+    gcp:
+      # host.type on GKE is fetched from the Compute API (requires compute.instances.get).
+      # Without permission the attribute is skipped; labels use the same permission.
+      labels:
         - ".*"
 {{- end }}
   transform/entity-event:
@@ -4768,10 +4778,14 @@ receivers:
         - 'span.attributes["db.system"] == nil and span.attributes["db.system.name"] == nil'
 {{- end }}
 {{- if $dbCompactMetrics.enabled }}
+  filter/db_compact_pre:
+    traces:
+      span:
+        - 'span.kind != SPAN_KIND_CLIENT or (span.attributes["db.system"] == nil and span.attributes["db.system.name"] == nil)'
   filter/db_compact_spanmetrics:
     traces:
       span:
-        - 'span.kind != SPAN_KIND_CLIENT or span.attributes["db.namespace"] == nil or (span.attributes["db.system"] == nil and span.attributes["db.system.name"] == nil)'
+        - 'span.attributes["db.namespace"] == nil'
 {{- end }}
 {{- if $dbMetrics.enabled }}
   transform/db:
@@ -4889,6 +4903,7 @@ service:
       exporters:
       - spanmetrics/db_compact
       processors:
+      - filter/db_compact_pre
       - transform/db_compact
       - filter/db_compact_spanmetrics
       - batch

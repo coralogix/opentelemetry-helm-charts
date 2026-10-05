@@ -318,6 +318,27 @@ main() {
             total=$((total - 1))
             continue
         fi
+
+        # Supervisor injects a local WS server into the child Collector config at
+        # runtime. The standalone validator sees only the chart's minimal config,
+        # so add a test endpoint to its temporary copy to validate the OpAMP
+        # extension and reports_raw_config field without changing rendered output.
+        if grep -q '^    reports_raw_config: true$' <<< "$config_content" &&
+            ! awk '
+                /^  opamp:$/ { in_opamp = 1; next }
+                /^  [^ ]/ { in_opamp = 0 }
+                in_opamp && /^    server:$/ { found = 1 }
+                END { exit !found }
+            ' <<< "$config_content"; then
+            config_content=$(awk '
+                { print }
+                $0 == "    reports_raw_config: true" {
+                    print "    server:"
+                    print "      ws:"
+                    print "        endpoint: ws://127.0.0.1:4318/v1/opamp"
+                }
+            ' <<< "$config_content")
+        fi
         
         # Pick the distribution that actually owns the components in this config
         local binary="$collector_binary"

@@ -1,0 +1,25 @@
+mode: daemonset
+provider: gcp
+distribution: gke
+global:
+  domain: coralogix.com
+
+replicaCount: 1
+presets:
+  metadata:
+    enabled: true
+    clusterName: "gke-host-type"
+    integrationName: "coralogix-integration-helm"
+  hostMetrics:
+    enabled: true
+  hostEntityEvents:
+    enabled: true
+  kubernetesAttributes:
+    enabled: true
+  resourceDetection:
+    enabled: true
+    provider: gcp
+resources:
+  limits:
+    cpu: 2
+    memory: 4Gi

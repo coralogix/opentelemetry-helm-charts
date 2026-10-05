@@ -2,9 +2,17 @@
 
 ## OpenTelemetry Collector
 
+### v0.139.5 / 2026-10-05
+
+- [Fix] Backfill `db.namespace` in the `spanMetrics` and `spanMetricsMulti` DB pipelines from `db.name`, then `server.address`, `network.peer.name` or `net.peer.name`, then `db.system`. Services on the older DB semantic conventions previously produced no `db_compact` metrics. `transform/db` also maps `db.operation` to `db.operation.name` and the per-system table attributes to `db.collection.name`. `traces/db_compact` now drops non-DB and non-client spans with a new `filter/db_compact_pre` before the backfill, and `filter/db_compact_spanmetrics` only drops spans still missing `db.namespace` after it.
+
+### v0.139.4 / 2026-10-01
+
+- [Feat] Add GCP/GKE support for Infra Explore by enabling the `gcp` detector in the host entity events pipeline when provider is GCP. On GKE this populates `host.type` (machine type) via the Compute API when the runtime identity has `compute.instances.get` (covered by `roles/compute.viewer`).
+
 ### v0.139.3 / 2026-10-01
 
-- [Fix] Backfill `db.namespace` in the `spanMetrics` and `spanMetricsMulti` DB pipelines from `db.name`, then `server.address`, `network.peer.name` or `net.peer.name`, then `db.system`. Services on the older DB semantic conventions previously produced no `db_compact` metrics. `transform/db` also maps `db.operation` to `db.operation.name` and the per-system table attributes to `db.collection.name`. `transform/db_compact` now runs before `filter/db_compact_spanmetrics`.
+- [Fix] Omit the external HTTP OpAMP server from the minimal Collector config used with Supervisor mode. Supervisor supplies the child Collector's local OpAMP server connection; keeping the external server here caused both `ws` and `http` to be configured.
 
 ### v0.139.2 / 2026-10-01
 
