@@ -297,6 +297,7 @@ config:
         enabled: true
     otel_traces_export:
       endpoint: "http://${HOST_IP}:4317"
+      compression: gzip
     otel_metrics_export:
       endpoint: "http://${HOST_IP}:4318"
     name_resolver:
@@ -339,7 +340,8 @@ config:
 ## For example:
 ##   OTEL_EBPF_INTERNAL_METRICS_PROMETHEUS_PORT: 9090
 # -- extra environment variables
-env: {}
+env:
+  OTEL_EXPORTER_OTLP_METRICS_COMPRESSION: gzip
   # OTEL_EBPF_INTERNAL_METRICS_PROMETHEUS_PORT: 9090
 # OTEL_EBPF_TRACE_PRINTER: "text"
 
@@ -363,7 +365,7 @@ presets:
   ## preset never widens the set of instrumented processes. A selector that already sets
   ## `languages` is left untouched.
   runtimeMetrics:
-    # -- Exports runtime metrics for every language OBI supports (`go`, `java` and `nodejs`).
+    # -- Exports runtime metrics for every language OBI supports (`go`, `java`, `nodejs` and `dotnet`).
     enabled: true
     # -- (list) Narrows the export to these detected languages, named as OBI names them: `go`,
     # `java`, `dotnet`, `python`, `ruby`, `nodejs`, `rust`, `php`, `cpp`, `generic`. Empty (the

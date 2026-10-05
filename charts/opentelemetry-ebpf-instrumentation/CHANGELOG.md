@@ -2,6 +2,17 @@
 
 ## OpenTelemetry eBPF Instrumentation
 
+### v0.1.28 / 2026-10-04
+
+- [Change] Bump OBI image to v0.14.0
+- [Change] Enable gzip compression for OTLP export by default. Traces use `otel_traces_export.compression: gzip`; OBI has no metrics compression key, so metrics use the `OTEL_EXPORTER_OTLP_METRICS_COMPRESSION: gzip` entry in `env`. The OpenTelemetry Collector OTLP receiver decompresses gzip natively. Opt out with `config.data.otel_traces_export.compression: none` and `env.OTEL_EXPORTER_OTLP_METRICS_COMPRESSION: none`
+- [Change] Note for upgraders: the `application_host` metrics feature and the `traces_host_info` metric are removed, and OBI now refuses to start when `application_host` is listed in `metrics.features` or `config.data.otel_metrics_export.features`. Remove it from any custom values
+- [Change] Note for upgraders: with Kubernetes metadata enabled, OBI now waits for a container's Pod metadata before instrumenting it. If the k8s cache stays unreachable past `attributes.kubernetes.informers_sync_timeout` (30s), those containers are left uninstrumented rather than instrumented with partial metadata. This also enforces the default `kube-system` exclusions during startup
+- [Change] Note for upgraders: `service.peer.name`, `http.request.body.size`, `http.response.body.size` and `obi.http.response.observed` became opt-in span attributes. The chart's default `attributes.select.traces.include: ['*']` keeps emitting them; installs that override that list must add them back. Span metrics drop the `host.id` point attribute (it stays on the resource), and HTTP duration/size metrics gain `error.type`
+- [Change] Note for upgraders: `presets.runtimeMetrics` now also covers .NET. OBI opens an EventPipe session (16 MiB buffer, 1s sampling) over the diagnostic socket of every discovered .NET process to read its runtime counters. Set `presets.runtimeMetrics.languages` to a list without `dotnet` to leave .NET processes alone
+- [Fix] The image makes the Node.js agent send `SIGUSR1` only to positively identified Node.js processes and inject only into runtimes that can run it, stops sending `SIGQUIT` to JVMs that will not answer it, fixes a k8s cache subscriber leak, and shortens DaemonSet shutdown on kernels 6.6+ by detaching probes through `uprobe_multi`
+- [Feature] The image adds .NET runtime metrics, Ruby 4.0 support, `messaging.consumer.group.name` on Kafka consumer spans, and Python, .NET, Ruby and PHP route harvesting
+
 ### v0.1.27 / 2026-09-07
 
 - [Feature] Add a first-class `metrics.features` value, rendered as the top-level `metrics.features` in OBI's configuration (the modern key, applying to every metrics exporter — not the deprecated per-exporter `otel_metrics_export.features`). It defaults to `[]`, and the `stats.enabled` / `presets.runtimeMetrics` toggles append their features (`stats`, `application_runtime`) on top of it, so a default install exports `metrics.features: [application_runtime]`

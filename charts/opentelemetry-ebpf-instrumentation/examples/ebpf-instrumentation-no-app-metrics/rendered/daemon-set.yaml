@@ -6,10 +6,10 @@ metadata:
   name: example-opentelemetry-ebpf-instrumentation
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.27
+    helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.28
     app.kubernetes.io/name: opentelemetry-ebpf-instrumentation
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "v0.13.0"
+    app.kubernetes.io/version: "v0.14.0"
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/part-of: obi
     app.kubernetes.io/component: workload
@@ -23,12 +23,12 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 7e8e44e3f32de70da3fcce3425977287393dcb4afa17c658a8d736f8068e2c36
+        checksum/config: 31a02e0578661a228cade607abc9fd8844594ba4f87fc64e17668e4e11df94a8
       labels:
-        helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.27
+        helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.28
         app.kubernetes.io/name: opentelemetry-ebpf-instrumentation
         app.kubernetes.io/instance: example
-        app.kubernetes.io/version: "v0.13.0"
+        app.kubernetes.io/version: "v0.14.0"
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/part-of: obi
         app.kubernetes.io/component: workload
@@ -40,7 +40,7 @@ spec:
       initContainers:
       containers:
         - name: ebpf-instrument
-          image: ghcr.io/open-telemetry/opentelemetry-ebpf-instrumentation/ebpf-instrument:v0.13.0
+          image: ghcr.io/open-telemetry/opentelemetry-ebpf-instrumentation/ebpf-instrument:v0.14.0
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
@@ -57,6 +57,8 @@ spec:
               value: opentelemetry-ebpf-instrumentation-k8s-cache:50055
             - name: OTEL_EBPF_BPF_CONTEXT_PROPAGATION
               value: "headers,tcp"
+            - name: OTEL_EXPORTER_OTLP_METRICS_COMPRESSION
+              value: "gzip"
           volumeMounts:
             - mountPath: /etc/ebpf-instrument/config
               name: ebpf-instrument-config
