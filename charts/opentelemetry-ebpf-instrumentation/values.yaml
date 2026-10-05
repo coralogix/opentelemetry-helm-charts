@@ -82,9 +82,9 @@ metrics:
   # `[application_runtime]`.
   # Set `features: [application]` to export OBI's application metrics (do this when
   # `presets.spanMetrics` is not enabled on the collector, or you want OBI's semconv metrics
-  # regardless of the duplicated ingestion). Note there is no feature-level way to keep the
-  # latency histograms and drop the body sizes; filter the body-size metric names in the
-  # collector if you need that split.
+  # regardless of the duplicated ingestion). Set `features: [application_red]` instead to keep
+  # the latency histograms and drop the body sizes; `application_sizes` selects the body sizes
+  # alone.
   # Precedence: a `config.data.otel_metrics_export.features` passthrough (OBI's deprecated
   # per-exporter key, the only customization path before this value existed), when present, wins
   # over this value and renders exactly as it always did — migrate it here. This value replaces
@@ -97,9 +97,10 @@ metrics:
   features: []
 
 # -- Enables stat metrics support (requires tracefs mount). Adds "stats" (tcp_rtt,
-# tcp_failed_connections, tcp_retransmits, tcp_io) to the exported metrics features.
+# tcp_failed_connections, tcp_successful_connections, tcp_retransmits, tcp_io) to the exported
+# metrics features.
 # Note: tcp_io fires on every tcp_sendmsg/tcp_cleanup_rbuf call, so it has significantly
-# higher event volume/overhead than the other three stat metrics.
+# higher event volume/overhead than the other stat metrics.
 stats:
   enabled: false
 
