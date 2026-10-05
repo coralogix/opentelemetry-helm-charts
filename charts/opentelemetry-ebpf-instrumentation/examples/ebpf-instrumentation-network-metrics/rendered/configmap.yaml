@@ -19,17 +19,73 @@ data:
       kubernetes:
         enable: true
       select:
+        obi.network.flow:
+          include:
+          - direction
+          - k8s.src.owner.name
+          - k8s.src.owner.type
+          - k8s.src.namespace
+          - k8s.dst.owner.name
+          - k8s.dst.owner.type
+          - k8s.dst.namespace
+          - k8s.cluster.name
+        obi.network.inter.zone:
+          include:
+          - src.zone
+          - dst.zone
+          - k8s.src.owner.name
+          - k8s.src.namespace
+          - k8s.dst.owner.name
+          - k8s.dst.namespace
+          - k8s.cluster.name
+        obi.stat.tcp.failed.connections:
+          include:
+          - k8s.src.owner.name
+          - k8s.src.owner.type
+          - k8s.src.namespace
+          - k8s.dst.owner.name
+          - k8s.dst.owner.type
+          - k8s.dst.namespace
+          - k8s.cluster.name
+          - reason
+          - network.tcp.handshake.role
+        obi.stat.tcp.retransmits:
+          include:
+          - k8s.src.owner.name
+          - k8s.src.owner.type
+          - k8s.src.namespace
+          - k8s.dst.owner.name
+          - k8s.dst.owner.type
+          - k8s.dst.namespace
+          - k8s.cluster.name
+        obi.stat.tcp.rtt:
+          include:
+          - k8s.src.owner.name
+          - k8s.src.owner.type
+          - k8s.src.namespace
+          - k8s.dst.owner.name
+          - k8s.dst.owner.type
+          - k8s.dst.namespace
+          - k8s.cluster.name
+        obi.stat.tcp.successful.connections:
+          include:
+          - k8s.src.owner.name
+          - k8s.src.owner.type
+          - k8s.src.namespace
+          - k8s.dst.owner.name
+          - k8s.dst.owner.type
+          - k8s.dst.namespace
+          - k8s.cluster.name
+          - network.tcp.handshake.role
         traces:
           include:
           - '*'
     discovery:
+      exclude_instrument:
+      - exe_path: '*ebpf-instrument*'
+      - exe_path: '*otelcol*'
       instrument:
-      - k8s_namespace: prod
-      - k8s_namespace: prod
-        languages: '{go,java}'
-        metrics:
-          features:
-          - application_runtime
+      - k8s_namespace: '*'
     ebpf:
       buffer_sizes:
         http: 2048
@@ -78,7 +134,14 @@ data:
     jvm_runtime_metrics:
       sampling_interval: 1s
     metrics:
-      features: []
+      features:
+      - network
+      - network_inter_zone
+      - stats_tcp_rtt
+      - stats_tcp_failed_connections
+      - stats_tcp_successful_connections
+      - stats_tcp_retransmits
+      - application_runtime
     name_resolver:
       sources:
       - k8s
