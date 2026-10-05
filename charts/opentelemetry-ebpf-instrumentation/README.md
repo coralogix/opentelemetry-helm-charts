@@ -46,10 +46,9 @@ names, or the body-size histograms, which have no spanmetrics counterpart).
 
 Things to know:
 
-- There is no feature-level way to keep the latency histograms and drop only the body sizes:
-  `features: [application]` emits all four body-size histograms. To split them, filter the
-  OTLP names `http.{server,client}.{request,response}.body.size` with a collector `filter`
-  processor (the `_bytes`/`_By` underscore forms exist only after backend translation).
+- `features: [application]` emits all four body-size histograms. To keep the latency
+  histograms and drop the body sizes, use `features: [application_red]`; `application_sizes`
+  selects the body sizes alone.
 - `stats.enabled` and `presets.runtimeMetrics` append their own features (`stats`,
   `application_runtime`) on top of `metrics.features`. Disable those toggles too for a literal
   `features: []` (see
