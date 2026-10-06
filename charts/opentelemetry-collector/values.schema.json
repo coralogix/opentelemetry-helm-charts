@@ -1035,17 +1035,6 @@
                   "description": "Specifies whether the collector should configure spanmetrics metrics connector for db spans.",
                   "type": "boolean"
                 },
-                "deprecatedSemConv": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "enabled": {
-                      "description": "Backfill deprecated database semantic convention attributes before filtering database spans. Existing namespace, operation and collection values are preserved.",
-                      "type": "boolean",
-                      "default": false
-                    }
-                  }
-                },
                 "serviceVersion": {
                   "type": "object",
                   "additionalProperties": false,
@@ -1184,17 +1173,6 @@
                 "enabled": {
                   "description": "Specifies whether the collector should configure spanmetrics metrics connector for db spans.",
                   "type": "boolean"
-                },
-                "deprecatedSemConv": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "enabled": {
-                      "description": "Backfill deprecated database semantic convention attributes before filtering database spans. Existing namespace, operation and collection values are preserved.",
-                      "type": "boolean",
-                      "default": false
-                    }
-                  }
                 },
                 "serviceVersion": {
                   "type": "object",

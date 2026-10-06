@@ -425,10 +425,6 @@ presets:
       enabled: true
     dbMetrics:
       enabled: true
-      # Backfill db.namespace, db.operation.name and db.collection.name from deprecated DB attributes.
-      # Runs before the DB metrics filters and preserves existing values.
-      deprecatedSemConv:
-        enabled: false
       # Configures collector to add service.version to dbMetrics dimensions
       serviceVersion:
         enabled: true
@@ -482,8 +478,6 @@ presets:
     # errorTracking uses presets.spanMetrics.errorTracking when spanMetricsMulti.errorTracking is unset.
     # dbMetrics:
     #   enabled: false
-    #   deprecatedSemConv:
-    #     enabled: false
     # compactMetrics:
     #   enabled: false
     extraDimensions:

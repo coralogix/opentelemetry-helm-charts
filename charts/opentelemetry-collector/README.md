@@ -43,24 +43,6 @@ By default the chart configures endpoints for IPv4 addresses. When deploying in 
 
 ## Configuration
 
-### Deprecated database semantic conventions
-
-Enable compatibility for database spans using older attribute names:
-
-```yaml
-presets:
-  spanMetrics:
-    enabled: true
-    dbMetrics:
-      enabled: true
-      deprecatedSemConv:
-        enabled: true
-```
-
-`deprecatedSemConv.enabled` defaults to `false`. When enabled, `transform/db_deprecated_semconv` runs before the database metric filters, including `filter/db_compact_spanmetrics`. It fills missing `db.namespace` from `db.name`, then `server.address`, `network.peer.name`, `net.peer.name`, or `db.system`; address/system fallbacks require `db.system`. It also maps legacy operation and per-database collection attributes to `db.operation.name` and `db.collection.name`, preserving existing values.
-
-The same option is available under `presets.spanMetricsMulti.dbMetrics` when using `spanMetricsMulti`. See [the compatibility tests](tests/README.md) for a repeatable kind test with legacy spans.
-
 ### Default configuration
 
 By default this chart will deploy an OpenTelemetry Collector with three pipelines (logs, metrics and traces)

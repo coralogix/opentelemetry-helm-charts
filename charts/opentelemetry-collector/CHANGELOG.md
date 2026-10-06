@@ -2,9 +2,9 @@
 
 ## OpenTelemetry Collector
 
-### v0.139.5 / 2026-10-06
+### v0.139.5 / 2026-10-05
 
-- [Feat] Add opt-in `dbMetrics.deprecatedSemConv.enabled` to `spanMetrics` and `spanMetricsMulti`. A dedicated transform processor backfills `db.namespace`, `db.operation.name`, and `db.collection.name` from deprecated database attributes before the DB metrics filters, preserving existing values. Disabled by default.
+- [Fix] Backfill `db.namespace` in the `spanMetrics` and `spanMetricsMulti` DB pipelines from `db.name`, then `server.address`, `network.peer.name` or `net.peer.name`, then `db.system`. Services on the older DB semantic conventions previously produced no `db_compact` metrics. `transform/db` also maps `db.operation` to `db.operation.name` and the per-system table attributes to `db.collection.name`. `traces/db_compact` now drops non-DB and non-client spans with a new `filter/db_compact_pre` before the backfill, and `filter/db_compact_spanmetrics` only drops spans still missing `db.namespace` after it.
 
 ### v0.139.4 / 2026-10-01
 
