@@ -4,7 +4,7 @@
 
 ### v0.139.5 / 2026-10-06
 
-- [Feat] Add `dbMetrics.deprecatedSemConv.enabled` to `spanMetrics` and `spanMetricsMulti`. A dedicated transform processor backfills `db.namespace`, `db.operation.name`, and `db.collection.name` from deprecated database attributes before the DB metrics filters, preserving existing values. Legacy Redis database indexes become string namespaces before generic fallbacks. DynamoDB table arrays populate a collection only when they contain one table. Enabled by default for `spanMetrics`; disabled by default for `spanMetricsMulti`.
+- [Feat] Add `dbMetrics.deprecatedSemConv.enabled` to `spanMetrics` and `spanMetricsMulti`. A dedicated transform processor backfills `db.namespace`, `db.operation.name`, and `db.collection.name` from deprecated database attributes before the DB metrics filters, preserving existing values. Legacy Redis database indexes become string namespaces before generic fallbacks. DynamoDB table arrays populate a collection only when they contain one table. SQL Server named instances qualify database namespaces as `instance|database`. Enabled by default for `spanMetrics`; disabled by default for `spanMetricsMulti`.
 
 ### v0.139.4 / 2026-10-01
 
