@@ -2016,7 +2016,7 @@ transform/db_deprecated_semconv:
       - set(attributes["db.collection.name"], attributes["db.mongodb.collection"]) where attributes["db.collection.name"] == nil
       - set(attributes["db.collection.name"], attributes["db.elasticsearch.path_parts.index"]) where attributes["db.collection.name"] == nil
       - set(attributes["db.collection.name"], attributes["db.cosmosdb.container"]) where attributes["db.collection.name"] == nil
-      - set(attributes["db.collection.name"], attributes["aws_dynamodb.table_names"]) where attributes["db.collection.name"] == nil
+      - set(attributes["db.collection.name"], attributes["aws.dynamodb.table_names"][0]) where attributes["db.collection.name"] == nil and IsList(attributes["aws.dynamodb.table_names"]) and Len(attributes["aws.dynamodb.table_names"]) == 1
 {{- end }}
 
 {{- define "opentelemetry-collector.applySpanMetricsConfig" -}}
