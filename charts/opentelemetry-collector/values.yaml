@@ -483,7 +483,7 @@ presets:
     # dbMetrics:
     #   enabled: false
     #   deprecatedSemConv:
-    #     enabled: false
+    #     enabled: true
     # compactMetrics:
     #   enabled: false
     extraDimensions:
