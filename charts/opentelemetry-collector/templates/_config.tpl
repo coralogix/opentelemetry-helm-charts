@@ -1998,6 +1998,27 @@ cx.integrationID: "{{ .Values.presets.fleetManagement.integrationID }}"
 {{- end }}
 {{- end -}}
 
+{{- define "opentelemetry-collector.dbDeprecatedSemConvProcessor" -}}
+transform/db_deprecated_semconv:
+  error_mode: silent
+  trace_statements:
+    - context: span
+      statements:
+      - set(attributes["db.namespace"], attributes["db.name"]) where attributes["db.namespace"] == nil
+      - set(attributes["db.namespace"], attributes["server.address"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
+      - set(attributes["db.namespace"], attributes["network.peer.name"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
+      - set(attributes["db.namespace"], attributes["net.peer.name"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
+      - set(attributes["db.namespace"], attributes["db.system"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
+      - set(attributes["db.operation.name"], attributes["db.operation"]) where attributes["db.operation.name"] == nil
+      - set(attributes["db.collection.name"], attributes["db.sql.table"]) where attributes["db.collection.name"] == nil
+      - set(attributes["db.collection.name"], attributes["db.cassandra.table"]) where attributes["db.collection.name"] == nil
+      - set(attributes["db.collection.name"], attributes["db.mongodb.collection"]) where attributes["db.collection.name"] == nil
+      - set(attributes["db.collection.name"], attributes["db.redis.database_index"]) where attributes["db.collection.name"] == nil
+      - set(attributes["db.collection.name"], attributes["db.elasticsearch.path_parts.index"]) where attributes["db.collection.name"] == nil
+      - set(attributes["db.collection.name"], attributes["db.cosmosdb.container"]) where attributes["db.collection.name"] == nil
+      - set(attributes["db.collection.name"], attributes["aws_dynamodb.table_names"]) where attributes["db.collection.name"] == nil
+{{- end }}
+
 {{- define "opentelemetry-collector.applySpanMetricsConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.spanMetricsConfig" .Values | fromYaml) .config }}
 {{- if and ($config.service.pipelines.traces) (not (has "spanmetrics" $config.service.pipelines.traces.exporters)) }}
@@ -2230,6 +2251,9 @@ processors:
         {{- end}}
     {{- end }}
 {{- end }}
+{{- if and .Values.presets.spanMetrics.dbMetrics.deprecatedSemConv.enabled (or .Values.presets.spanMetrics.dbMetrics.enabled .Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled) }}
+{{- include "opentelemetry-collector.dbDeprecatedSemConvProcessor" . | nindent 2 }}
+{{- end }}
 {{- if .Values.presets.spanMetrics.dbMetrics.enabled }}
   transform/db:
     error_mode: silent
@@ -2299,6 +2323,9 @@ service:
       exporters:
       - spanmetrics/db
       processors:
+      {{- if .Values.presets.spanMetrics.dbMetrics.deprecatedSemConv.enabled }}
+      - transform/db_deprecated_semconv
+      {{- end }}
       - filter/db_spanmetrics
       - transform/db
       - batch
@@ -2333,6 +2360,9 @@ service:
       exporters:
       - spanmetrics/db_compact
       processors:
+      {{- if .Values.presets.spanMetrics.dbMetrics.deprecatedSemConv.enabled }}
+      - transform/db_deprecated_semconv
+      {{- end }}
       - filter/db_compact_spanmetrics
       - transform/db_compact
       - batch
@@ -4755,6 +4785,9 @@ receivers:
       span:
         - 'span.kind != SPAN_KIND_CLIENT or span.attributes["db.namespace"] == nil or (span.attributes["db.system"] == nil and span.attributes["db.system.name"] == nil)'
 {{- end }}
+{{- if and (dig "deprecatedSemConv" "enabled" false $dbMetrics) (or $dbMetrics.enabled $dbCompactMetrics.enabled) }}
+{{- include "opentelemetry-collector.dbDeprecatedSemConvProcessor" . | nindent 2 }}
+{{- end }}
 {{- if $dbMetrics.enabled }}
   transform/db:
     error_mode: silent
@@ -4833,6 +4866,9 @@ service:
       exporters:
       - spanmetrics/db
       processors:
+      {{- if dig "deprecatedSemConv" "enabled" false $dbMetrics }}
+      - transform/db_deprecated_semconv
+      {{- end }}
       - filter/db_spanmetrics
       - transform/db
       - batch
@@ -4867,6 +4903,9 @@ service:
       exporters:
       - spanmetrics/db_compact
       processors:
+      {{- if dig "deprecatedSemConv" "enabled" false $dbMetrics }}
+      - transform/db_deprecated_semconv
+      {{- end }}
       - filter/db_compact_spanmetrics
       - transform/db_compact
       - batch

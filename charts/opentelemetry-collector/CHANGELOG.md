@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.139.5 / 2026-10-06
+
+- [Feat] Add opt-in `dbMetrics.deprecatedSemConv.enabled` to `spanMetrics` and `spanMetricsMulti`. A dedicated transform processor backfills `db.namespace`, `db.operation.name`, and `db.collection.name` from deprecated database attributes before the DB metrics filters, preserving existing values. Disabled by default.
+
 ### v0.139.4 / 2026-10-01
 
 - [Feat] Add GCP/GKE support for Infra Explore by enabling the `gcp` detector in the host entity events pipeline when provider is GCP. On GKE this populates `host.type` (machine type) via the Compute API when the runtime identity has `compute.instances.get` (covered by `roles/compute.viewer`).
