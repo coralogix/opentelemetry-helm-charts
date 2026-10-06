@@ -2009,9 +2009,10 @@ transform/db_deprecated_semconv:
       - set(attributes["db.namespace"], attributes["db.mssql.instance_name"]) where attributes["db.namespace"] == nil and IsString(attributes["db.mssql.instance_name"]) and attributes["db.mssql.instance_name"] != "" and ConvertCase(attributes["db.mssql.instance_name"], "upper") != "MSSQLSERVER"
       - set(attributes["db.namespace"], attributes["db.elasticsearch.cluster.name"]) where attributes["db.namespace"] == nil and IsString(attributes["db.elasticsearch.cluster.name"]) and attributes["db.elasticsearch.cluster.name"] != ""
       - set(attributes["db.namespace"], attributes["db.name"]) where attributes["db.namespace"] == nil
-      - set(attributes["db.namespace"], attributes["server.address"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
-      - set(attributes["db.namespace"], attributes["network.peer.name"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
-      - set(attributes["db.namespace"], attributes["net.peer.name"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
+      - set(attributes["db.namespace"], attributes["server.address"]) where attributes["db.namespace"] == nil and (attributes["db.system"] != nil or attributes["db.system.name"] != nil)
+      - set(attributes["db.namespace"], attributes["network.peer.name"]) where attributes["db.namespace"] == nil and (attributes["db.system"] != nil or attributes["db.system.name"] != nil)
+      - set(attributes["db.namespace"], attributes["net.peer.name"]) where attributes["db.namespace"] == nil and (attributes["db.system"] != nil or attributes["db.system.name"] != nil)
+      - set(attributes["db.namespace"], attributes["db.system.name"]) where attributes["db.namespace"] == nil and attributes["db.system.name"] != nil
       - set(attributes["db.namespace"], attributes["db.system"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
       - set(attributes["db.operation.name"], attributes["db.operation"]) where attributes["db.operation.name"] == nil
       - set(attributes["db.operation.name"], attributes["db.cosmosdb.operation_type"]) where attributes["db.operation.name"] == nil and IsString(attributes["db.cosmosdb.operation_type"]) and attributes["db.cosmosdb.operation_type"] != ""
