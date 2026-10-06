@@ -425,10 +425,6 @@ presets:
       enabled: true
     dbMetrics:
       enabled: true
-      # Backfill db.namespace, db.operation.name and db.collection.name from deprecated DB attributes.
-      # Runs before the DB metrics filters and preserves existing values.
-      deprecatedSemConv:
-        enabled: true
       # Configures collector to add service.version to dbMetrics dimensions
       serviceVersion:
         enabled: true
@@ -482,8 +478,6 @@ presets:
     # errorTracking uses presets.spanMetrics.errorTracking when spanMetricsMulti.errorTracking is unset.
     # dbMetrics:
     #   enabled: false
-    #   deprecatedSemConv:
-    #     enabled: true
     # compactMetrics:
     #   enabled: false
     extraDimensions:
@@ -837,9 +831,16 @@ presets:
         - telemetry.sdk.language
         - telemetry.sdk.name
         - telemetry.sdk.version
-  # Applies semantic convention transformations.
+  # Applies semantic convention transformations before exporting spans and generating metrics.
   semconv:
     enabled: false
+    # Backfill missing DB attributes from legacy attributes when semconv is enabled.
+    dbNamespace:
+      enabled: true
+    dbCollection:
+      enabled: true
+    dbOperation:
+      enabled: true
   # Configures Kubernetes Object receiver to collect Kubernetes Resources.
   kubernetesResources:
     enabled: false

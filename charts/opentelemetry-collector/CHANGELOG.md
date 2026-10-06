@@ -4,7 +4,7 @@
 
 ### v0.139.5 / 2026-10-06
 
-- [Feat] Add `dbMetrics.deprecatedSemConv.enabled` to `spanMetrics` and `spanMetricsMulti`. A dedicated transform processor backfills `db.namespace`, `db.operation.name`, and `db.collection.name` from deprecated database attributes before the DB metrics filters, preserving existing values. Legacy Redis database indexes become string namespaces before generic fallbacks. DynamoDB table arrays populate a collection only when they contain one table. SQL Server named instances qualify database namespaces as `instance|database`, retaining the instance alone when the database name is unavailable. Legacy Elasticsearch cluster names become namespaces before generic fallbacks. Legacy Cosmos DB operation types backfill missing operation names after the generic operation fallback. Generic namespace fallbacks accept either database system attribute and prefer the modern system name as the final fallback. Enabled by default for `spanMetrics`; disabled by default for `spanMetricsMulti`.
+- [Feat] Add `semconv.dbNamespace.enabled`, `semconv.dbCollection.enabled`, and `semconv.dbOperation.enabled` to backfill missing database attributes on source spans before export and DB metric generation. Preserve existing values and legacy database-specific handling for Redis indexes, SQL Server instances, Elasticsearch clusters, DynamoDB single-table lists, and Cosmos DB operations. The shared `semconv` preset remains disabled by default; each DB transformation is enabled by default when the preset is enabled.
 
 ### v0.139.4 / 2026-10-01
 

@@ -1891,6 +1891,30 @@ processors:
         statements:
           - set(span.attributes["http.method"], span.attributes["http.request.method"]) where span.attributes["http.request.method"] != nil
           - set(span.attributes["http.response.status_code"], span.attributes["http.status_code"]) where span.attributes["http.response.status_code"] == nil and span.attributes["http.status_code"] != nil
+{{- if .Values.presets.semconv.dbNamespace.enabled }}
+          - set(attributes["db.namespace"], String(attributes["db.redis.database_index"])) where attributes["db.namespace"] == nil and attributes["db.redis.database_index"] != nil
+          - set(attributes["db.namespace"], Concat([attributes["db.mssql.instance_name"], attributes["db.name"]], "|")) where attributes["db.namespace"] == nil and IsString(attributes["db.mssql.instance_name"]) and attributes["db.mssql.instance_name"] != "" and ConvertCase(attributes["db.mssql.instance_name"], "upper") != "MSSQLSERVER" and IsString(attributes["db.name"]) and attributes["db.name"] != ""
+          - set(attributes["db.namespace"], attributes["db.mssql.instance_name"]) where attributes["db.namespace"] == nil and IsString(attributes["db.mssql.instance_name"]) and attributes["db.mssql.instance_name"] != "" and ConvertCase(attributes["db.mssql.instance_name"], "upper") != "MSSQLSERVER"
+          - set(attributes["db.namespace"], attributes["db.elasticsearch.cluster.name"]) where attributes["db.namespace"] == nil and IsString(attributes["db.elasticsearch.cluster.name"]) and attributes["db.elasticsearch.cluster.name"] != ""
+          - set(attributes["db.namespace"], attributes["db.name"]) where attributes["db.namespace"] == nil
+          - set(attributes["db.namespace"], attributes["server.address"]) where attributes["db.namespace"] == nil and (attributes["db.system"] != nil or attributes["db.system.name"] != nil)
+          - set(attributes["db.namespace"], attributes["network.peer.name"]) where attributes["db.namespace"] == nil and (attributes["db.system"] != nil or attributes["db.system.name"] != nil)
+          - set(attributes["db.namespace"], attributes["net.peer.name"]) where attributes["db.namespace"] == nil and (attributes["db.system"] != nil or attributes["db.system.name"] != nil)
+          - set(attributes["db.namespace"], attributes["db.system.name"]) where attributes["db.namespace"] == nil and attributes["db.system.name"] != nil
+          - set(attributes["db.namespace"], attributes["db.system"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
+{{- end }}
+{{- if .Values.presets.semconv.dbCollection.enabled }}
+          - set(attributes["db.collection.name"], attributes["db.sql.table"]) where attributes["db.collection.name"] == nil
+          - set(attributes["db.collection.name"], attributes["db.cassandra.table"]) where attributes["db.collection.name"] == nil
+          - set(attributes["db.collection.name"], attributes["db.mongodb.collection"]) where attributes["db.collection.name"] == nil
+          - set(attributes["db.collection.name"], attributes["db.elasticsearch.path_parts.index"]) where attributes["db.collection.name"] == nil
+          - set(attributes["db.collection.name"], attributes["db.cosmosdb.container"]) where attributes["db.collection.name"] == nil
+          - set(attributes["db.collection.name"], attributes["aws.dynamodb.table_names"][0]) where attributes["db.collection.name"] == nil and IsList(attributes["aws.dynamodb.table_names"]) and Len(attributes["aws.dynamodb.table_names"]) == 1
+{{- end }}
+{{- if .Values.presets.semconv.dbOperation.enabled }}
+          - set(attributes["db.operation.name"], attributes["db.operation"]) where attributes["db.operation.name"] == nil
+          - set(attributes["db.operation.name"], attributes["db.cosmosdb.operation_type"]) where attributes["db.operation.name"] == nil and IsString(attributes["db.cosmosdb.operation_type"]) and attributes["db.cosmosdb.operation_type"] != ""
+{{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyFleetManagementConfig" -}}
@@ -1998,31 +2022,6 @@ cx.integrationID: "{{ .Values.presets.fleetManagement.integrationID }}"
 {{- end }}
 {{- end -}}
 
-{{- define "opentelemetry-collector.dbDeprecatedSemConvProcessor" -}}
-transform/db_deprecated_semconv:
-  error_mode: silent
-  trace_statements:
-    - context: span
-      statements:
-      - set(attributes["db.namespace"], String(attributes["db.redis.database_index"])) where attributes["db.namespace"] == nil and attributes["db.redis.database_index"] != nil
-      - set(attributes["db.namespace"], Concat([attributes["db.mssql.instance_name"], attributes["db.name"]], "|")) where attributes["db.namespace"] == nil and IsString(attributes["db.mssql.instance_name"]) and attributes["db.mssql.instance_name"] != "" and ConvertCase(attributes["db.mssql.instance_name"], "upper") != "MSSQLSERVER" and IsString(attributes["db.name"]) and attributes["db.name"] != ""
-      - set(attributes["db.namespace"], attributes["db.mssql.instance_name"]) where attributes["db.namespace"] == nil and IsString(attributes["db.mssql.instance_name"]) and attributes["db.mssql.instance_name"] != "" and ConvertCase(attributes["db.mssql.instance_name"], "upper") != "MSSQLSERVER"
-      - set(attributes["db.namespace"], attributes["db.elasticsearch.cluster.name"]) where attributes["db.namespace"] == nil and IsString(attributes["db.elasticsearch.cluster.name"]) and attributes["db.elasticsearch.cluster.name"] != ""
-      - set(attributes["db.namespace"], attributes["db.name"]) where attributes["db.namespace"] == nil
-      - set(attributes["db.namespace"], attributes["server.address"]) where attributes["db.namespace"] == nil and (attributes["db.system"] != nil or attributes["db.system.name"] != nil)
-      - set(attributes["db.namespace"], attributes["network.peer.name"]) where attributes["db.namespace"] == nil and (attributes["db.system"] != nil or attributes["db.system.name"] != nil)
-      - set(attributes["db.namespace"], attributes["net.peer.name"]) where attributes["db.namespace"] == nil and (attributes["db.system"] != nil or attributes["db.system.name"] != nil)
-      - set(attributes["db.namespace"], attributes["db.system.name"]) where attributes["db.namespace"] == nil and attributes["db.system.name"] != nil
-      - set(attributes["db.namespace"], attributes["db.system"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
-      - set(attributes["db.operation.name"], attributes["db.operation"]) where attributes["db.operation.name"] == nil
-      - set(attributes["db.operation.name"], attributes["db.cosmosdb.operation_type"]) where attributes["db.operation.name"] == nil and IsString(attributes["db.cosmosdb.operation_type"]) and attributes["db.cosmosdb.operation_type"] != ""
-      - set(attributes["db.collection.name"], attributes["db.sql.table"]) where attributes["db.collection.name"] == nil
-      - set(attributes["db.collection.name"], attributes["db.cassandra.table"]) where attributes["db.collection.name"] == nil
-      - set(attributes["db.collection.name"], attributes["db.mongodb.collection"]) where attributes["db.collection.name"] == nil
-      - set(attributes["db.collection.name"], attributes["db.elasticsearch.path_parts.index"]) where attributes["db.collection.name"] == nil
-      - set(attributes["db.collection.name"], attributes["db.cosmosdb.container"]) where attributes["db.collection.name"] == nil
-      - set(attributes["db.collection.name"], attributes["aws.dynamodb.table_names"][0]) where attributes["db.collection.name"] == nil and IsList(attributes["aws.dynamodb.table_names"]) and Len(attributes["aws.dynamodb.table_names"]) == 1
-{{- end }}
 
 {{- define "opentelemetry-collector.applySpanMetricsConfig" -}}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.spanMetricsConfig" .Values | fromYaml) .config }}
@@ -2256,9 +2255,6 @@ processors:
         {{- end}}
     {{- end }}
 {{- end }}
-{{- if and .Values.presets.spanMetrics.dbMetrics.deprecatedSemConv.enabled (or .Values.presets.spanMetrics.dbMetrics.enabled .Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled) }}
-{{- include "opentelemetry-collector.dbDeprecatedSemConvProcessor" . | nindent 2 }}
-{{- end }}
 {{- if .Values.presets.spanMetrics.dbMetrics.enabled }}
   transform/db:
     error_mode: silent
@@ -2328,9 +2324,6 @@ service:
       exporters:
       - spanmetrics/db
       processors:
-      {{- if .Values.presets.spanMetrics.dbMetrics.deprecatedSemConv.enabled }}
-      - transform/db_deprecated_semconv
-      {{- end }}
       - filter/db_spanmetrics
       - transform/db
       - batch
@@ -2365,9 +2358,6 @@ service:
       exporters:
       - spanmetrics/db_compact
       processors:
-      {{- if .Values.presets.spanMetrics.dbMetrics.deprecatedSemConv.enabled }}
-      - transform/db_deprecated_semconv
-      {{- end }}
       - filter/db_compact_spanmetrics
       - transform/db_compact
       - batch
@@ -4790,9 +4780,6 @@ receivers:
       span:
         - 'span.kind != SPAN_KIND_CLIENT or span.attributes["db.namespace"] == nil or (span.attributes["db.system"] == nil and span.attributes["db.system.name"] == nil)'
 {{- end }}
-{{- if and (dig "deprecatedSemConv" "enabled" false $dbMetrics) (or $dbMetrics.enabled $dbCompactMetrics.enabled) }}
-{{- include "opentelemetry-collector.dbDeprecatedSemConvProcessor" . | nindent 2 }}
-{{- end }}
 {{- if $dbMetrics.enabled }}
   transform/db:
     error_mode: silent
@@ -4871,9 +4858,6 @@ service:
       exporters:
       - spanmetrics/db
       processors:
-      {{- if dig "deprecatedSemConv" "enabled" false $dbMetrics }}
-      - transform/db_deprecated_semconv
-      {{- end }}
       - filter/db_spanmetrics
       - transform/db
       - batch
@@ -4908,9 +4892,6 @@ service:
       exporters:
       - spanmetrics/db_compact
       processors:
-      {{- if dig "deprecatedSemConv" "enabled" false $dbMetrics }}
-      - transform/db_deprecated_semconv
-      {{- end }}
       - filter/db_compact_spanmetrics
       - transform/db_compact
       - batch

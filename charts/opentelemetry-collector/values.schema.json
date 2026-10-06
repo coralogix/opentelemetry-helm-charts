@@ -1035,17 +1035,6 @@
                   "description": "Specifies whether the collector should configure spanmetrics metrics connector for db spans.",
                   "type": "boolean"
                 },
-                "deprecatedSemConv": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "enabled": {
-                      "description": "Backfill deprecated database semantic convention attributes before filtering database spans. Existing namespace, operation and collection values are preserved.",
-                      "type": "boolean",
-                      "default": true
-                    }
-                  }
-                },
                 "serviceVersion": {
                   "type": "object",
                   "additionalProperties": false,
@@ -1184,17 +1173,6 @@
                 "enabled": {
                   "description": "Specifies whether the collector should configure spanmetrics metrics connector for db spans.",
                   "type": "boolean"
-                },
-                "deprecatedSemConv": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "enabled": {
-                      "description": "Backfill deprecated database semantic convention attributes before filtering database spans. Existing namespace, operation and collection values are preserved.",
-                      "type": "boolean",
-                      "default": false
-                    }
-                  }
                 },
                 "serviceVersion": {
                   "type": "object",
@@ -1844,6 +1822,39 @@
             "enabled": {
               "description": "Specifies whether to apply semantic convention transformations.",
               "type": "boolean"
+            },
+            "dbNamespace": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Backfill missing db.namespace on source spans from legacy database attributes when semconv is enabled. Existing values are preserved.",
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            },
+            "dbCollection": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Backfill missing db.collection.name on source spans from legacy database attributes when semconv is enabled. Existing values are preserved.",
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            },
+            "dbOperation": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Backfill missing db.operation.name on source spans from legacy database attributes when semconv is enabled. Existing values are preserved.",
+                  "type": "boolean",
+                  "default": true
+                }
+              }
             }
           }
         },
