@@ -2013,6 +2013,7 @@ transform/db_deprecated_semconv:
       - set(attributes["db.namespace"], attributes["net.peer.name"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
       - set(attributes["db.namespace"], attributes["db.system"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
       - set(attributes["db.operation.name"], attributes["db.operation"]) where attributes["db.operation.name"] == nil
+      - set(attributes["db.operation.name"], attributes["db.cosmosdb.operation_type"]) where attributes["db.operation.name"] == nil and IsString(attributes["db.cosmosdb.operation_type"]) and attributes["db.cosmosdb.operation_type"] != ""
       - set(attributes["db.collection.name"], attributes["db.sql.table"]) where attributes["db.collection.name"] == nil
       - set(attributes["db.collection.name"], attributes["db.cassandra.table"]) where attributes["db.collection.name"] == nil
       - set(attributes["db.collection.name"], attributes["db.mongodb.collection"]) where attributes["db.collection.name"] == nil
