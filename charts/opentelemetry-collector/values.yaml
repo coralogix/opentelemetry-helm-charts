@@ -831,10 +831,12 @@ presets:
         - telemetry.sdk.language
         - telemetry.sdk.name
         - telemetry.sdk.version
-  # Applies semantic convention transformations before exporting spans and generating metrics.
+  # Applies semantic convention transformations.
   semconv:
     enabled: false
-    # Backfill missing DB attributes from legacy attributes when semconv is enabled.
+  # Backfill missing DB attributes on source spans before export and metric generation.
+  dbSemConv:
+    enabled: false
     dbNamespace:
       enabled: true
     dbCollection:
