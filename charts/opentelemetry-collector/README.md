@@ -57,9 +57,9 @@ presets:
         enabled: true
 ```
 
-`deprecatedSemConv.enabled` defaults to `false`. When enabled, `transform/db_deprecated_semconv` runs before the database metric filters, including `filter/db_compact_spanmetrics`. It fills missing `db.namespace` from `db.name`, then `server.address`, `network.peer.name`, `net.peer.name`, or `db.system`; address/system fallbacks require `db.system`. It also maps legacy operation and per-database collection attributes to `db.operation.name` and `db.collection.name`, preserving existing values.
+`presets.spanMetrics.dbMetrics.deprecatedSemConv.enabled` defaults to `true`; set it to `false` to disable compatibility. When enabled, `transform/db_deprecated_semconv` runs before the database metric filters, including `filter/db_compact_spanmetrics`. It fills missing `db.namespace` from `db.name`, then `server.address`, `network.peer.name`, `net.peer.name`, or `db.system`; address/system fallbacks require `db.system`. It also maps legacy operation and per-database collection attributes to `db.operation.name` and `db.collection.name`, preserving existing values.
 
-The same option is available under `presets.spanMetricsMulti.dbMetrics` when using `spanMetricsMulti`. See [the compatibility tests](tests/README.md) for a repeatable kind test with legacy spans.
+The same option is available under `presets.spanMetricsMulti.dbMetrics` when using `spanMetricsMulti`, where it defaults to `false`. See [the compatibility tests](tests/README.md) for a repeatable kind test with legacy spans.
 
 ### Default configuration
 

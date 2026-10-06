@@ -1042,7 +1042,7 @@
                     "enabled": {
                       "description": "Backfill deprecated database semantic convention attributes before filtering database spans. Existing namespace, operation and collection values are preserved.",
                       "type": "boolean",
-                      "default": false
+                      "default": true
                     }
                   }
                 },

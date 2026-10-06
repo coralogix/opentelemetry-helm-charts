@@ -4,7 +4,7 @@
 
 ### v0.139.5 / 2026-10-06
 
-- [Feat] Add opt-in `dbMetrics.deprecatedSemConv.enabled` to `spanMetrics` and `spanMetricsMulti`. A dedicated transform processor backfills `db.namespace`, `db.operation.name`, and `db.collection.name` from deprecated database attributes before the DB metrics filters, preserving existing values. Disabled by default.
+- [Feat] Add `dbMetrics.deprecatedSemConv.enabled` to `spanMetrics` and `spanMetricsMulti`. A dedicated transform processor backfills `db.namespace`, `db.operation.name`, and `db.collection.name` from deprecated database attributes before the DB metrics filters, preserving existing values. Enabled by default for `spanMetrics`; disabled by default for `spanMetricsMulti`.
 
 ### v0.139.4 / 2026-10-01
 

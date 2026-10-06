@@ -6,7 +6,7 @@ Install Python 3 with PyYAML and Helm. From the repository root, run the renderi
 python3 charts/opentelemetry-collector/tests/db-deprecated-semconv.py
 ```
 
-This covers 48 combinations: both span metric presets, deployment/daemonset modes, omitted/disabled/enabled compatibility, and independently enabled DB/compact pipelines. It also verifies the exact 13 statements and processor ordering.
+This covers 48 combinations: both span metric presets, deployment/daemonset modes, omitted/disabled/enabled compatibility, and independently enabled DB/compact pipelines. It also verifies the exact 13 statements and processor ordering, that omitted compatibility is enabled for `spanMetrics` and disabled for `spanMetricsMulti`, and that omitted settings render identically to their explicit defaults.
 
 To send real legacy OTLP spans through the rendered DB processor/connector chains in an isolated Kubernetes cluster:
 

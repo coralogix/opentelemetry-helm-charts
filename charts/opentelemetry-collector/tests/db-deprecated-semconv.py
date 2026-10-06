@@ -63,7 +63,8 @@ def render_checks():
             for enabled in (None, False, True):
                 for db, compact in ((True, True), (True, False), (False, True), (False, False)):
                     config = render(preset, enabled, db, compact, mode)
-                    present = enabled is True and (db or compact)
+                    effective_enabled = preset == "spanMetrics" if enabled is None else enabled
+                    present = effective_enabled and (db or compact)
                     assert (PROCESSOR in config.get("processors", {})) == present
                     if present:
                         statements = config["processors"][PROCESSOR]["trace_statements"][0]["statements"]
@@ -83,6 +84,8 @@ def render_checks():
                             if present:
                                 assert processors.index(PROCESSOR) + 1 == processors.index("filter/" + suffix + "_spanmetrics")
                     count += 1
+    assert render("spanMetrics", None) == render("spanMetrics", True)
+    assert render("spanMetricsMulti", None) == render("spanMetricsMulti", False)
     print(f"PASS: {count} render cases (both presets, both modes, defaults and independent DB pipelines)", flush=True)
 
 

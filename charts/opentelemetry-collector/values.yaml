@@ -428,7 +428,7 @@ presets:
       # Backfill db.namespace, db.operation.name and db.collection.name from deprecated DB attributes.
       # Runs before the DB metrics filters and preserves existing values.
       deprecatedSemConv:
-        enabled: false
+        enabled: true
       # Configures collector to add service.version to dbMetrics dimensions
       serviceVersion:
         enabled: true
