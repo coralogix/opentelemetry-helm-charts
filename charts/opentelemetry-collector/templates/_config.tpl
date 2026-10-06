@@ -2004,6 +2004,7 @@ transform/db_deprecated_semconv:
   trace_statements:
     - context: span
       statements:
+      - set(attributes["db.namespace"], String(attributes["db.redis.database_index"])) where attributes["db.namespace"] == nil and attributes["db.redis.database_index"] != nil
       - set(attributes["db.namespace"], attributes["db.name"]) where attributes["db.namespace"] == nil
       - set(attributes["db.namespace"], attributes["server.address"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
       - set(attributes["db.namespace"], attributes["network.peer.name"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
@@ -2013,7 +2014,6 @@ transform/db_deprecated_semconv:
       - set(attributes["db.collection.name"], attributes["db.sql.table"]) where attributes["db.collection.name"] == nil
       - set(attributes["db.collection.name"], attributes["db.cassandra.table"]) where attributes["db.collection.name"] == nil
       - set(attributes["db.collection.name"], attributes["db.mongodb.collection"]) where attributes["db.collection.name"] == nil
-      - set(attributes["db.collection.name"], attributes["db.redis.database_index"]) where attributes["db.collection.name"] == nil
       - set(attributes["db.collection.name"], attributes["db.elasticsearch.path_parts.index"]) where attributes["db.collection.name"] == nil
       - set(attributes["db.collection.name"], attributes["db.cosmosdb.container"]) where attributes["db.collection.name"] == nil
       - set(attributes["db.collection.name"], attributes["aws_dynamodb.table_names"]) where attributes["db.collection.name"] == nil
