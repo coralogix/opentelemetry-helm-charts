@@ -1939,7 +1939,6 @@ processors:
 {{- end }}
 {{- if .Values.presets.dbSemConv.dbOperation.enabled }}
           - set(attributes["db.operation.name"], attributes["db.operation"]) where attributes["db.operation.name"] == nil
-          - set(attributes["db.operation.name"], attributes["db.cosmosdb.operation_type"]) where attributes["db.operation.name"] == nil and IsString(attributes["db.cosmosdb.operation_type"]) and attributes["db.cosmosdb.operation_type"] != ""
 {{- end }}
 {{- end }}
 
