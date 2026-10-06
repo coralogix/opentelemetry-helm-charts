@@ -1825,6 +1825,50 @@
             }
           }
         },
+        "dbSemConv": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether to backfill missing database semantic convention attributes on source spans before export and metric generation.",
+              "type": "boolean",
+              "default": false
+            },
+            "dbNamespace": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Backfill missing db.namespace on source spans from legacy database attributes when dbSemConv is enabled. Existing values are preserved.",
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            },
+            "dbCollection": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Backfill missing db.collection.name on source spans from legacy database attributes when dbSemConv is enabled. Existing values are preserved.",
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            },
+            "dbOperation": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Backfill missing db.operation.name on source spans from legacy database attributes when dbSemConv is enabled. Existing values are preserved.",
+                  "type": "boolean",
+                  "default": true
+                }
+              }
+            }
+          }
+        },
         "kubernetesResources": {
           "type": "object",
           "additionalProperties": false,

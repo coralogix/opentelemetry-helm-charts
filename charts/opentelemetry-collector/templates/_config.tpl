@@ -213,6 +213,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.semconv.enabled }}
 {{- $config = (include "opentelemetry-collector.applySemconvConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.dbSemConv.enabled }}
+{{- $config = (include "opentelemetry-collector.applyDbSemConvConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.transactions.enabled }}
 {{- $config = (include "opentelemetry-collector.applyTransactionsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -432,6 +435,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.semconv.enabled }}
 {{- $config = (include "opentelemetry-collector.applySemconvConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.dbSemConv.enabled }}
+{{- $config = (include "opentelemetry-collector.applyDbSemConvConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.transactions.enabled }}
 {{- $config = (include "opentelemetry-collector.applyTransactionsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -1891,6 +1897,49 @@ processors:
         statements:
           - set(span.attributes["http.method"], span.attributes["http.request.method"]) where span.attributes["http.request.method"] != nil
           - set(span.attributes["http.response.status_code"], span.attributes["http.status_code"]) where span.attributes["http.response.status_code"] == nil and span.attributes["http.status_code"] != nil
+{{- end }}
+
+{{- define "opentelemetry-collector.applyDbSemConvConfig" -}}
+{{- $config := .config }}
+{{- if or .Values.Values.presets.dbSemConv.dbNamespace.enabled .Values.Values.presets.dbSemConv.dbCollection.enabled .Values.Values.presets.dbSemConv.dbOperation.enabled }}
+{{- $config = mustMergeOverwrite (include "opentelemetry-collector.dbSemConvConfig" .Values | fromYaml) $config }}
+{{- if and ($config.service.pipelines.traces) (not (has "transform/db_semconv" $config.service.pipelines.traces.processors)) }}
+{{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/db_semconv" | uniq) }}
+{{- end }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.dbSemConvConfig" -}}
+processors:
+  transform/db_semconv:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+{{- if .Values.presets.dbSemConv.dbNamespace.enabled }}
+          - set(attributes["db.namespace"], String(attributes["db.redis.database_index"])) where attributes["db.namespace"] == nil and attributes["db.redis.database_index"] != nil
+          - set(attributes["db.namespace"], Concat([attributes["db.mssql.instance_name"], attributes["db.name"]], "|")) where attributes["db.namespace"] == nil and IsString(attributes["db.mssql.instance_name"]) and attributes["db.mssql.instance_name"] != "" and ConvertCase(attributes["db.mssql.instance_name"], "upper") != "MSSQLSERVER" and IsString(attributes["db.name"]) and attributes["db.name"] != ""
+          - set(attributes["db.namespace"], attributes["db.mssql.instance_name"]) where attributes["db.namespace"] == nil and IsString(attributes["db.mssql.instance_name"]) and attributes["db.mssql.instance_name"] != "" and ConvertCase(attributes["db.mssql.instance_name"], "upper") != "MSSQLSERVER"
+          - set(attributes["db.namespace"], attributes["db.elasticsearch.cluster.name"]) where attributes["db.namespace"] == nil and IsString(attributes["db.elasticsearch.cluster.name"]) and attributes["db.elasticsearch.cluster.name"] != ""
+          - set(attributes["db.namespace"], attributes["db.name"]) where attributes["db.namespace"] == nil
+          - set(attributes["db.namespace"], attributes["server.address"]) where attributes["db.namespace"] == nil and (attributes["db.system"] != nil or attributes["db.system.name"] != nil)
+          - set(attributes["db.namespace"], attributes["network.peer.name"]) where attributes["db.namespace"] == nil and (attributes["db.system"] != nil or attributes["db.system.name"] != nil)
+          - set(attributes["db.namespace"], attributes["net.peer.name"]) where attributes["db.namespace"] == nil and (attributes["db.system"] != nil or attributes["db.system.name"] != nil)
+          - set(attributes["db.namespace"], attributes["db.system.name"]) where attributes["db.namespace"] == nil and attributes["db.system.name"] != nil
+          - set(attributes["db.namespace"], attributes["db.system"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
+{{- end }}
+{{- if .Values.presets.dbSemConv.dbCollection.enabled }}
+          - set(attributes["db.collection.name"], attributes["db.sql.table"]) where attributes["db.collection.name"] == nil
+          - set(attributes["db.collection.name"], attributes["db.cassandra.table"]) where attributes["db.collection.name"] == nil
+          - set(attributes["db.collection.name"], attributes["db.mongodb.collection"]) where attributes["db.collection.name"] == nil
+          - set(attributes["db.collection.name"], attributes["db.elasticsearch.path_parts.index"]) where attributes["db.collection.name"] == nil
+          - set(attributes["db.collection.name"], attributes["db.cosmosdb.container"]) where attributes["db.collection.name"] == nil
+          - set(attributes["db.collection.name"], attributes["aws.dynamodb.table_names"][0]) where attributes["db.collection.name"] == nil and IsList(attributes["aws.dynamodb.table_names"]) and Len(attributes["aws.dynamodb.table_names"]) == 1
+{{- end }}
+{{- if .Values.presets.dbSemConv.dbOperation.enabled }}
+          - set(attributes["db.operation.name"], attributes["db.operation"]) where attributes["db.operation.name"] == nil
+{{- end }}
 {{- end }}
 
 {{- define "opentelemetry-collector.applyFleetManagementConfig" -}}
