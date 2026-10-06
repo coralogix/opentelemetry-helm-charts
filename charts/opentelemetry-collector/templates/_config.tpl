@@ -2006,6 +2006,7 @@ transform/db_deprecated_semconv:
       statements:
       - set(attributes["db.namespace"], String(attributes["db.redis.database_index"])) where attributes["db.namespace"] == nil and attributes["db.redis.database_index"] != nil
       - set(attributes["db.namespace"], Concat([attributes["db.mssql.instance_name"], attributes["db.name"]], "|")) where attributes["db.namespace"] == nil and IsString(attributes["db.mssql.instance_name"]) and attributes["db.mssql.instance_name"] != "" and ConvertCase(attributes["db.mssql.instance_name"], "upper") != "MSSQLSERVER" and IsString(attributes["db.name"]) and attributes["db.name"] != ""
+      - set(attributes["db.namespace"], attributes["db.elasticsearch.cluster.name"]) where attributes["db.namespace"] == nil and IsString(attributes["db.elasticsearch.cluster.name"]) and attributes["db.elasticsearch.cluster.name"] != ""
       - set(attributes["db.namespace"], attributes["db.name"]) where attributes["db.namespace"] == nil
       - set(attributes["db.namespace"], attributes["server.address"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
       - set(attributes["db.namespace"], attributes["network.peer.name"]) where attributes["db.namespace"] == nil and attributes["db.system"] != nil
