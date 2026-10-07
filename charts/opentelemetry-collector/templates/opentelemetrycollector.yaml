@@ -95,13 +95,13 @@ spec:
         fieldRef:
           fieldPath: metadata.name
     {{- end }}
-    {{- if and .Values.presets.kubernetesAttributes.enabled (or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled) }}
+    {{- if or .Values.presets.kubeletPrometheusMetrics.enabled (and .Values.presets.kubernetesAttributes.enabled (or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled)) }}
     - name: K8S_NODE_NAME
       valueFrom:
         fieldRef:
           fieldPath: spec.nodeName
     {{- end }}
-    {{- if .Values.presets.kubeletMetrics.enabled }}
+    {{- if or .Values.presets.kubeletMetrics.enabled .Values.presets.kubeletPrometheusMetrics.enabled }}
     - name: K8S_NODE_IP
       valueFrom:
         fieldRef:

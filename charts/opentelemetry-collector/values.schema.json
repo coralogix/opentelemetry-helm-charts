@@ -987,6 +987,24 @@
             }
           }
         },
+        "kubeletPrometheusMetrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether the collector should scrape the kubelet /metrics endpoint on the local node.",
+              "type": "boolean"
+            },
+            "scrapeAll": {
+              "description": "When false (default), collects a curated set of kubelet health metrics. When true, collect all kubelet metrics.",
+              "type": "boolean"
+            },
+            "semconv": {
+              "description": "When true (default), maps kubelet labels to OpenTelemetry semantic conventions. k8s.node.name is always set on the resource.",
+              "type": "boolean"
+            }
+          }
+        },
         "metadata": {
           "type": "object",
           "additionalProperties": false,

@@ -321,6 +321,21 @@ presets:
     enabled: true
 ```
 
+### Configuration for Retrieving Kubelet Prometheus Metrics
+
+The collector can be configured to scrape the kubelet's own Prometheus endpoint (`/metrics`) on the local node. This covers kubelet health metrics such as running pods and containers, PLEG and runtime operation latencies, evictions, certificate TTLs, and volume stats. It complements `kubeletMetrics` (`/stats/summary`) and `kubernetesExtraMetrics` (`/metrics/cadvisor`).
+
+This feature is disabled by default. By default only a curated set of kubelet health metrics is kept; set `scrapeAll: true` to keep every metric the kubelet exposes. Kubelet labels are mapped to OpenTelemetry semantic conventions (for example `namespace` → `k8s.namespace.name`, `pod` → `k8s.pod.name`, `persistentvolumeclaim` → `k8s.persistentvolumeclaim.name`). Set `semconv: false` to keep the raw Prometheus label names. `k8s.node.name` is always added to the resource.
+
+```yaml
+mode: daemonset
+presets:
+  kubeletPrometheusMetrics:
+    enabled: true
+    scrapeAll: false
+    semconv: true
+```
+
 ### Configuration for Kubernetes Cluster Metrics
 
 The collector can be configured to collects cluster-level metrics from the Kubernetes API server. A single instance of this receiver can be used to monitor a cluster.

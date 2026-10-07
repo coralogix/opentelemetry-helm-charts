@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.139.6 / 2026-10-07
+
+- [Feat] Add the `kubeletPrometheusMetrics` preset to scrape the kubelet `/metrics` endpoint on the local node. By default a curated allowlist of kubelet health metrics is kept; set `scrapeAll: true` to keep all kubelet metrics. Kubelet labels are mapped to OpenTelemetry semantic conventions (`namespace` → `k8s.namespace.name`, `pod` → `k8s.pod.name`, `uid` → `k8s.pod.uid`, `container` → `k8s.container.name`, `persistentvolumeclaim` → `k8s.persistentvolumeclaim.name`, `node` → `k8s.node.name`) ; set `semconv: false` to keep raw Prometheus labels. `k8s.node.name` is always set on the resource. The preset is disabled by default.
+
 ### v0.139.5 / 2026-10-06
 
 - [Feat] Add the standalone `dbSemConv` preset with independent `dbNamespace`, `dbCollection`, and `dbOperation` switches. Backfill missing database attributes on source spans before export and DB metric generation, preserving existing values and database-specific handling for Redis indexes, SQL Server instances, Elasticsearch clusters, DynamoDB single-table lists, and Cosmos DB containers. The preset is disabled by default; each DB transformation is enabled by default when the preset is enabled. The existing `semconv` preset remains independent.

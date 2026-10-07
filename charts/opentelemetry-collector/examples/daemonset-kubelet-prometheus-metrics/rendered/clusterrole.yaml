@@ -1,0 +1,19 @@
+---
+# Source: opentelemetry-collector/templates/clusterrole.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: example-opentelemetry-collector
+  labels:
+    helm.sh/chart: opentelemetry-collector-0.139.6
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.161.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/stats", "nodes/metrics"]
+    verbs: ["get", "watch", "list"]
+  - nonResourceURLs:
+    - "/metrics"
+    verbs: ["get"]

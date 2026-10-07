@@ -1,0 +1,251 @@
+---
+# Source: opentelemetry-collector/templates/configmap-agent.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-opentelemetry-collector-agent
+  namespace: default
+  labels:
+    helm.sh/chart: opentelemetry-collector-0.139.6
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.161.0"
+    app.kubernetes.io/managed-by: Helm
+data:
+  relay: |
+    exporters:
+      debug:
+        verbosity: detailed
+    extensions:
+      health_check:
+        endpoint: ${env:MY_POD_IP}:13133
+    processors:
+      filter/k8s_extra_metrics:
+        metrics:
+          metric:
+          - resource.attributes["service.name"] == "kubernetes-cadvisor" and (metric.name
+            != "container_fs_writes_total" and metric.name != "container_fs_reads_total"
+            and metric.name != "container_fs_writes_bytes_total" and metric.name != "container_fs_reads_bytes_total"
+            and metric.name != "container_fs_usage_bytes" and metric.name != "container_cpu_cfs_throttled_periods_total"
+            and metric.name != "container_cpu_cfs_periods_total")
+      filter/kubelet_metrics:
+        metrics:
+          metric:
+          - resource.attributes["service.name"] == "kubernetes-kubelet" and not IsMatch(metric.name,
+            "^(kubelet_running_pods|kubelet_running_containers|kubelet_running_pod_count|kubelet_running_container_count|kubelet_pleg_relist_duration_seconds|kubelet_pleg_relist_interval_seconds|kubelet_pod_start_duration_seconds|kubelet_pod_worker_duration_seconds|kubelet_cgroup_manager_duration_seconds|kubelet_runtime_operations_total|kubelet_runtime_operations_errors_total|kubelet_evictions|kubelet_certificate_manager_client_ttl_seconds|kubelet_certificate_manager_client_expiration_renew_errors|kubelet_certificate_manager_server_ttl_seconds|kubelet_server_expiration_renew_errors|kubelet_volume_stats_.*|volume_manager_total_volumes|storage_operation_duration_seconds|rest_client_requests_total|kubernetes_build_info|process_cpu_seconds_total|process_resident_memory_bytes|go_goroutines|up)$")
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      transform/kubelet_metrics:
+        error_mode: ignore
+        metric_statements:
+        - context: resource
+          statements:
+          - set(resource.attributes["k8s.node.name"], "${env:K8S_NODE_NAME}") where resource.attributes["service.name"]
+            == "kubernetes-kubelet" and resource.attributes["k8s.node.name"] == nil
+        - context: datapoint
+          statements:
+          - set(datapoint.attributes["k8s.container.name"], datapoint.attributes["container"])
+            where resource.attributes["service.name"] == "kubernetes-kubelet" and datapoint.attributes["container"]
+            != nil
+          - delete_key(datapoint.attributes, "container") where resource.attributes["service.name"]
+            == "kubernetes-kubelet"
+          - set(datapoint.attributes["k8s.namespace.name"], datapoint.attributes["namespace"])
+            where resource.attributes["service.name"] == "kubernetes-kubelet" and datapoint.attributes["namespace"]
+            != nil
+          - delete_key(datapoint.attributes, "namespace") where resource.attributes["service.name"]
+            == "kubernetes-kubelet"
+          - set(datapoint.attributes["k8s.node.name"], datapoint.attributes["node"]) where
+            resource.attributes["service.name"] == "kubernetes-kubelet" and datapoint.attributes["node"]
+            != nil
+          - delete_key(datapoint.attributes, "node") where resource.attributes["service.name"]
+            == "kubernetes-kubelet"
+          - set(datapoint.attributes["k8s.persistentvolumeclaim.name"], datapoint.attributes["persistentvolumeclaim"])
+            where resource.attributes["service.name"] == "kubernetes-kubelet" and datapoint.attributes["persistentvolumeclaim"]
+            != nil
+          - delete_key(datapoint.attributes, "persistentvolumeclaim") where resource.attributes["service.name"]
+            == "kubernetes-kubelet"
+          - set(datapoint.attributes["k8s.pod.name"], datapoint.attributes["pod"]) where
+            resource.attributes["service.name"] == "kubernetes-kubelet" and datapoint.attributes["pod"]
+            != nil
+          - delete_key(datapoint.attributes, "pod") where resource.attributes["service.name"]
+            == "kubernetes-kubelet"
+          - set(datapoint.attributes["k8s.pod.uid"], datapoint.attributes["uid"]) where
+            resource.attributes["service.name"] == "kubernetes-kubelet" and datapoint.attributes["uid"]
+            != nil
+          - delete_key(datapoint.attributes, "uid") where resource.attributes["service.name"]
+            == "kubernetes-kubelet"
+      transform/kubeletstatscpu:
+        error_mode: ignore
+        metric_statements:
+        - context: metric
+          statements:
+          - set(metric.unit, "1") where metric.name == "container.cpu.usage"
+          - set(metric.name, "container.cpu.utilization") where metric.name == "container.cpu.usage"
+          - set(metric.unit, "1") where metric.name == "k8s.pod.cpu.usage"
+          - set(metric.name, "k8s.pod.cpu.utilization") where metric.name == "k8s.pod.cpu.usage"
+          - set(metric.unit, "1") where metric.name == "k8s.node.cpu.usage"
+          - set(metric.name, "k8s.node.cpu.utilization") where metric.name == "k8s.node.cpu.usage"
+      transform/prometheus:
+        error_mode: ignore
+        metric_statements:
+        - context: metric
+          statements:
+          - replace_pattern(metric.name, "_total$", "") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_cpu_seconds_seconds$", "otelcol_process_cpu_seconds")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_heap_alloc_bytes_bytes$",
+            "otelcol_process_runtime_heap_alloc_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_total_alloc_bytes_bytes$",
+            "otelcol_process_runtime_total_alloc_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_total_sys_memory_bytes_bytes$",
+            "otelcol_process_runtime_total_sys_memory_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_fileconsumer_open_files$", "otelcol_fileconsumer_open_files_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_fileconsumer_reading_files$", "otelcol_fileconsumer_reading_files_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_ip_lookup_miss$", "otelcol_otelsvc_k8s_ip_lookup_miss_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_added$", "otelcol_otelsvc_k8s_pod_added_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_updated$", "otelcol_otelsvc_k8s_pod_updated_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_deleted$", "otelcol_otelsvc_k8s_pod_deleted_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_log_records$",
+            "otelcol_processor_accepted_log_records") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_metric_points$",
+            "otelcol_processor_accepted_metric_points") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_spans$",
+            "otelcol_processor_accepted_spans") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_log_records$",
+            "otelcol_processor_refused_log_records") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_metric_points$",
+            "otelcol_processor_refused_metric_points") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_spans$",
+            "otelcol_processor_refused_spans") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_filter_spans\\.filtered$",
+            "otelcol_processor_filter_spans.filtered_ratio") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+        - context: resource
+          statements:
+          - set(resource.attributes["k8s.pod.ip"], resource.attributes["net.host.name"])
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - delete_key(resource.attributes, "service_name") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+        - context: datapoint
+          statements:
+          - delete_key(datapoint.attributes, "service_name") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
+            == "opentelemetry-collector"
+    receivers:
+      kubeletstats:
+        auth_type: serviceAccount
+        collect_all_network_interfaces:
+          node: true
+          pod: true
+        collection_interval: 20s
+        endpoint: ${env:K8S_NODE_IP}:10250
+        insecure_skip_verify: true
+      otlp:
+        protocols:
+          grpc:
+            endpoint: ${env:MY_POD_IP}:4317
+            max_recv_msg_size_mib: 20
+          http:
+            endpoint: ${env:MY_POD_IP}:4318
+      prometheus:
+        config:
+          scrape_configs:
+          - job_name: opentelemetry-collector
+            scrape_interval: 30s
+            static_configs:
+            - targets:
+              - ${env:MY_POD_IP}:8888
+      prometheus/k8s_extra_metrics:
+        config:
+          scrape_configs:
+          - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+            honor_timestamps: true
+            job_name: kubernetes-cadvisor
+            metrics_path: /metrics/cadvisor
+            scheme: https
+            static_configs:
+            - targets:
+              - ${env:K8S_NODE_IP}:10250
+            tls_config:
+              ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+              insecure_skip_verify: true
+      prometheus/kubelet_metrics:
+        config:
+          scrape_configs:
+          - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+            honor_timestamps: true
+            job_name: kubernetes-kubelet
+            metrics_path: /metrics
+            scheme: https
+            static_configs:
+            - targets:
+              - ${env:K8S_NODE_IP}:10250
+            tls_config:
+              ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+              insecure_skip_verify: true
+    service:
+      extensions:
+      - health_check
+      pipelines:
+        logs:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          receivers:
+          - otlp
+        metrics:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          - transform/kubeletstatscpu
+          - filter/k8s_extra_metrics
+          - filter/kubelet_metrics
+          - transform/kubelet_metrics
+          - transform/prometheus
+          receivers:
+          - kubeletstats
+          - prometheus/k8s_extra_metrics
+          - prometheus/kubelet_metrics
+          - prometheus
+          - otlp
+        traces:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          receivers:
+          - otlp
+      telemetry:
+        logs:
+          encoding: json
+        metrics:
+          readers:
+          - pull:
+              exporter:
+                prometheus:
+                  host: ${env:MY_POD_IP}
+                  port: 8888
+                  without_scope_info: false
+                  without_type_suffix: false
+                  without_units: false

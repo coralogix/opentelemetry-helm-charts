@@ -410,6 +410,17 @@ presets:
     # When false (default), collects only kubernetes_build_info metric. When true, collect all API server metrics.
     scrapeAll: false
 
+  # Configures the collector to scrape the kubelet's own Prometheus endpoint (/metrics) on the local node.
+  # Complements kubeletMetrics (kubeletstats, /stats/summary) and kubernetesExtraMetrics (/metrics/cadvisor).
+  # Best used with mode = daemonset.
+  kubeletPrometheusMetrics:
+    enabled: false
+    # When false (default), collects a curated set of kubelet health metrics. When true, collect all kubelet metrics.
+    scrapeAll: false
+    # When true (default), maps kubelet labels to OpenTelemetry semantic conventions
+    # (e.g. namespace -> k8s.namespace.name, pod -> k8s.pod.name). k8s.node.name is always set on the resource.
+    semconv: true
+
   # Configures the collector to add k8s.cluster.name and cx.otel_integration.name
   # to metrics
   metadata:
