@@ -1,0 +1,28 @@
+mode: daemonset
+
+presets:
+  kubeletPrometheusMetrics:
+    enabled: true
+    scrapeAll: false
+    semconv: true
+  # The other kubelet presets, as otel-integration runs them on the agent
+  kubeletMetrics:
+    enabled: true
+  kubernetesExtraMetrics:
+    enabled: true
+    perNode: true
+
+config:
+  exporters:
+    debug:
+      verbosity: detailed
+  service:
+    pipelines:
+      metrics:
+        exporters:
+          - debug
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 200M
