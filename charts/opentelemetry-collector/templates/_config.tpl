@@ -176,6 +176,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.kubernetesApiServerMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyKubernetesApiServerMetrics" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.kubeletPrometheusMetrics.enabled }}
+{{- $config = (include "opentelemetry-collector.applyKubeletPrometheusMetrics" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.clusterMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyClusterMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -395,6 +398,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.kubernetesApiServerMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyKubernetesApiServerMetrics" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.kubeletPrometheusMetrics.enabled }}
+{{- $config = (include "opentelemetry-collector.applyKubeletPrometheusMetrics" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.metadata.enabled }}
 {{- $config = (include "opentelemetry-collector.applyMetadataConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -1507,6 +1513,58 @@ processors:
           metric.name != "container_fs_writes_bytes_total" and metric.name != "container_fs_reads_bytes_total" and
           metric.name != "container_fs_usage_bytes" and metric.name != "container_cpu_cfs_throttled_periods_total" and
           metric.name != "container_cpu_cfs_periods_total")'
+{{- end }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyKubeletPrometheusMetrics" -}}
+{{- $scrapeAll := .Values.Values.presets.kubeletPrometheusMetrics.scrapeAll | default false }}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.kubeletPrometheusMetricsConfig" (dict "Values" .Values.Values "scrapeAll" $scrapeAll) | fromYaml) .config }}
+{{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus/kubelet_metrics" | uniq)  }}
+{{- if not $scrapeAll }}
+{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "filter/kubelet_metrics" | uniq)  }}
+{{- end }}
+{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/kubelet_metrics" | uniq)  }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.kubeletPrometheusMetricsConfig" -}}
+receivers:
+  prometheus/kubelet_metrics:
+    config:
+      scrape_configs:
+      - job_name: kubernetes-kubelet
+        honor_timestamps: true
+        metrics_path: /metrics
+        scheme: https
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        static_configs:
+          - targets: [ {{ include "opentelemetry-collector.envEndpoint" (dict "env" "K8S_NODE_IP" "port" "10250" "context" $) | quote }} ]
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: true
+processors:
+  transform/kubelet_metrics:
+    error_mode: ignore
+    metric_statements:
+      - context: resource
+        statements:
+          - set(resource.attributes["k8s.node.name"], "${env:K8S_NODE_NAME}") where resource.attributes["service.name"] == "kubernetes-kubelet" and resource.attributes["k8s.node.name"] == nil
+      {{- if .Values.presets.kubeletPrometheusMetrics.semconv }}
+      # Map kubelet Prometheus labels to OpenTelemetry semantic conventions.
+      - context: datapoint
+        statements:
+          {{- range $from, $to := dict "namespace" "k8s.namespace.name" "pod" "k8s.pod.name" "uid" "k8s.pod.uid" "container" "k8s.container.name" "persistentvolumeclaim" "k8s.persistentvolumeclaim.name" "node" "k8s.node.name" }}
+          - set(datapoint.attributes[{{ $to | quote }}], datapoint.attributes[{{ $from | quote }}]) where resource.attributes["service.name"] == "kubernetes-kubelet" and datapoint.attributes[{{ $from | quote }}] != nil
+          - delete_key(datapoint.attributes, {{ $from | quote }}) where resource.attributes["service.name"] == "kubernetes-kubelet"
+          {{- end }}
+      {{- end }}
+{{- $scrapeAll := default false .scrapeAll }}
+{{- if not $scrapeAll }}
+  filter/kubelet_metrics:
+    metrics:
+      metric:
+        - 'resource.attributes["service.name"] == "kubernetes-kubelet" and
+          not IsMatch(metric.name, "^(kubelet_running_pods|kubelet_running_containers|kubelet_running_pod_count|kubelet_running_container_count|kubelet_pleg_relist_duration_seconds|kubelet_pleg_relist_interval_seconds|kubelet_pod_start_duration_seconds|kubelet_pod_worker_duration_seconds|kubelet_cgroup_manager_duration_seconds|kubelet_runtime_operations_total|kubelet_runtime_operations_errors_total|kubelet_evictions|kubelet_certificate_manager_client_ttl_seconds|kubelet_certificate_manager_client_expiration_renew_errors|kubelet_certificate_manager_server_ttl_seconds|kubelet_server_expiration_renew_errors|kubelet_volume_stats_.*|volume_manager_total_volumes|storage_operation_duration_seconds|rest_client_requests_total|kubernetes_build_info|process_cpu_seconds_total|process_resident_memory_bytes|go_goroutines|up)$")'
 {{- end }}
 {{- end }}
 

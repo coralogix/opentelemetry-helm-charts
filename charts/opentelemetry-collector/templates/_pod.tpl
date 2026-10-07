@@ -71,7 +71,7 @@ containers:
             apiVersion: v1
             fieldPath: metadata.name
       {{- end }}
-      {{- if or .Values.presets.kubeletMetrics.enabled .Values.presets.kubernetesExtraMetrics.perNode (and .Values.presets.otlpExporter.enabled (contains "K8S_NODE_IP" .Values.presets.otlpExporter.endpoint)) }}
+      {{- if or .Values.presets.kubeletMetrics.enabled .Values.presets.kubernetesExtraMetrics.perNode .Values.presets.kubeletPrometheusMetrics.enabled (and .Values.presets.otlpExporter.enabled (contains "K8S_NODE_IP" .Values.presets.otlpExporter.endpoint)) }}
       - name: K8S_NODE_IP
         valueFrom:
           fieldRef:
