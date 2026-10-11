@@ -1,0 +1,12 @@
+mode: daemonset
+
+presets:
+  batch:
+    enabled: true
+  spanMetrics:
+    enabled: true
+    histogramBuckets: [10ms, 20ms, 50ms, 100ms, 200ms, 500ms]
+    dbMetrics:
+      enabled: true
+      # DB calls are usually much faster than HTTP calls, so give them finer buckets.
+      histogramBuckets: [100us, 1ms, 2ms, 2.5ms, 4ms, 6ms, 10ms, 100ms, 250ms]

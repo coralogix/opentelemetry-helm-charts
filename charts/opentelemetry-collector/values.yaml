@@ -440,6 +440,10 @@ presets:
       serviceVersion:
         enabled: true
       extraDimensions: []
+      # Histogram buckets for DB span metrics (spanmetrics/db and spanmetrics/db_compact).
+      # Empty (default) uses spanMetrics.histogramBuckets. DB calls are usually much faster than
+      # HTTP calls, so a finer list such as [100us, 1ms, 2ms, 5ms, 10ms, 50ms, 100ms, 250ms] may fit better.
+      histogramBuckets: []
       compactMetrics:
         enabled: true
         dropHistogram: false
@@ -489,6 +493,7 @@ presets:
     # errorTracking uses presets.spanMetrics.errorTracking when spanMetricsMulti.errorTracking is unset.
     # dbMetrics:
     #   enabled: false
+    #   histogramBuckets: []  # empty uses defaultHistogramBuckets
     # compactMetrics:
     #   enabled: false
     extraDimensions:
