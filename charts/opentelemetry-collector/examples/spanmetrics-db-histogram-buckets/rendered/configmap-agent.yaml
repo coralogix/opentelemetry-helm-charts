@@ -125,6 +125,50 @@ data:
         namespace: db_compact
         series_expiration: 5m
     exporters:
+      coralogix:
+        application_name: otel
+        application_name_attributes:
+        - k8s.namespace.name
+        - service.namespace
+        domain: coralogix.com
+        domain_settings:
+          keepalive:
+            enabled: true
+            permit_without_stream: false
+            time: 30s
+            timeout: 10s
+        logs:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        metrics:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        private_key: ${env:CORALOGIX_PRIVATE_KEY}
+        profiles:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+            x-coralogix-ingress: otlp/v1.10.0
+        sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
+          enabled: true
+          num_consumers: 20
+          queue_size: 209715200
+          sizer: bytes
+        subsystem_name: integration
+        subsystem_name_attributes:
+        - k8s.deployment.name
+        - k8s.statefulset.name
+        - k8s.daemonset.name
+        - k8s.cronjob.name
+        - service.name
+        timeout: 30s
+        traces:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
       debug: {}
     extensions:
       health_check:
@@ -278,6 +322,7 @@ data:
         logs:
           exporters:
           - debug
+          - coralogix
           processors:
           - memory_limiter
           - batch
@@ -286,6 +331,7 @@ data:
         metrics:
           exporters:
           - debug
+          - coralogix
           processors:
           - memory_limiter
           - transform/spanmetrics
@@ -321,6 +367,7 @@ data:
           - forward/db
           - forward/compact
           - forward/db_compact
+          - coralogix
           processors:
           - memory_limiter
           - transform/spanmetrics

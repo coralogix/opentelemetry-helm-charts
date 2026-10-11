@@ -1,8 +1,15 @@
 mode: daemonset
+global:
+  domain: coralogix.com
+  defaultApplicationName: otel
+  defaultSubsystemName: integration
 
 presets:
   batch:
     enabled: true
+  coralogixExporter:
+    enabled: true
+    privateKey: ${env:CORALOGIX_PRIVATE_KEY}
   spanMetrics:
     enabled: true
     histogramBuckets: [10ms, 20ms, 50ms, 100ms, 200ms, 500ms]
