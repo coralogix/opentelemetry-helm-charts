@@ -2208,7 +2208,7 @@ connectors:
     histogram:
       unit: ms
       explicit:
-        buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
+        buckets: {{ (.Values.presets.spanMetrics.dbMetrics.histogramBuckets | default .Values.presets.spanMetrics.histogramBuckets) | toYaml | nindent 12 }}
     dimensions:
       - name: db.namespace
       - name: db.operation.name
@@ -2276,11 +2276,11 @@ connectors:
     - collector.instance.id
     - span.name
     - span.kind
-{{- if .Values.presets.spanMetrics.histogramBuckets }}
+{{- if (.Values.presets.spanMetrics.dbMetrics.histogramBuckets | default .Values.presets.spanMetrics.histogramBuckets) }}
     histogram:
       unit: ms
       explicit:
-        buckets: {{ .Values.presets.spanMetrics.histogramBuckets | toYaml | nindent 12 }}
+        buckets: {{ (.Values.presets.spanMetrics.dbMetrics.histogramBuckets | default .Values.presets.spanMetrics.histogramBuckets) | toYaml | nindent 12 }}
 {{- end }}
 {{- if .Values.presets.spanMetrics.metricsExpiration }}
     metrics_expiration: "{{ .Values.presets.spanMetrics.metricsExpiration }}"
@@ -4734,6 +4734,7 @@ receivers:
 {{- $dbMetrics := $p.dbMetrics | default dict -}}
 {{- $compactMetrics := $p.compactMetrics | default dict -}}
 {{- $dbCompactMetrics := $dbMetrics.compactMetrics | default dict -}}
+{{- $dbHistogramBuckets := $dbMetrics.histogramBuckets | default $histogramBuckets -}}
 {{- if $dbMetrics.enabled }}
   spanmetrics/db:
     namespace: "db"
@@ -4744,7 +4745,7 @@ receivers:
     histogram:
       unit: ms
       explicit:
-        buckets: {{ $histogramBuckets | toYaml | nindent 12 }}
+        buckets: {{ $dbHistogramBuckets | toYaml | nindent 12 }}
     dimensions:
       - name: db.namespace
       - name: db.operation.name
@@ -4813,11 +4814,11 @@ receivers:
     - collector.instance.id
     - span.name
     - span.kind
-{{- if $histogramBuckets }}
+{{- if $dbHistogramBuckets }}
     histogram:
       unit: ms
       explicit:
-        buckets: {{ $histogramBuckets | toYaml | nindent 12 }}
+        buckets: {{ $dbHistogramBuckets | toYaml | nindent 12 }}
 {{- end }}
 {{- if $p.metricsExpiration }}
     metrics_expiration: "{{ $p.metricsExpiration }}"
