@@ -63,6 +63,43 @@ Things to know:
   numeric bitmask up to and including v0.12.2, by name on newer images — check the DaemonSet
   logs to verify the value actually took effect.
 
+## Network metrics
+
+`presets.networkMetrics.enabled: true` exports node-wide network metrics between Kubernetes
+workloads (see
+[examples/ebpf-instrumentation-network-metrics](./examples/ebpf-instrumentation-network-metrics/values.yaml)).
+It works with either `preset`: network flows and TCP stats are captured for every socket on the
+node, not only for the instrumented processes. The DaemonSet runs with `hostNetwork` and mounts
+tracefs.
+
+| Metric (OTLP name) | Feature | Attributes |
+| --- | --- | --- |
+| `obi.network.flow.bytes` | `network` | `direction`, `k8s.{src,dst}.owner.{name,type}`, `k8s.{src,dst}.namespace`, `k8s.cluster.name` |
+| `obi.network.inter.zone.bytes` | `network_inter_zone` | `{src,dst}.zone`, `k8s.{src,dst}.owner.name`, `k8s.{src,dst}.namespace`, `k8s.cluster.name` |
+| `obi.stat.tcp.rtt` | `stats_tcp_rtt` | `k8s.{src,dst}.owner.{name,type}`, `k8s.{src,dst}.namespace`, `k8s.cluster.name` |
+| `obi.stat.tcp.failed.connections` | `stats_tcp_failed_connections` | as `obi.stat.tcp.rtt`, plus `reason` and `network.tcp.handshake.role` |
+| `obi.stat.tcp.successful.connections` | `stats_tcp_successful_connections` | as `obi.stat.tcp.rtt`, plus `network.tcp.handshake.role` |
+| `obi.stat.tcp.retransmits` | `stats_tcp_retransmits` | as `obi.stat.tcp.rtt` |
+
+Things to know:
+
+- Cardinality is bounded by the number of communicating workload pairs. IP addresses, ports and
+  Pod names are left out, since their values are unbounded or churn with every rollout; this
+  includes the `src.address` / `dst.address` that OBI reports on stat metrics by default.
+- Peers outside the cluster have no owner, so all their traffic is reported under empty
+  `k8s.dst.*` attributes.
+- Stat metrics are reported from the local socket's side, so `src` is always the workload on the
+  reporting node. When both ends run on nodes with OBI, each end reports the connection.
+- `stats_tcp_io` is not part of the preset: it fires on every TCP send and receive, at a far
+  higher event volume than the other stat metrics, and largely duplicates the flow bytes.
+  `stats.enabled: true` adds it, as part of the `stats` feature.
+- To change the attributes of a metric, set `config.data.attributes.select.<metric>` using the
+  section names `obi.network.flow`, `obi.network.inter.zone`, `obi.stat.tcp.rtt`,
+  `obi.stat.tcp.failed.connections`, `obi.stat.tcp.successful.connections` and
+  `obi.stat.tcp.retransmits`. The preset leaves a section
+  that is already set untouched. A section set under another spelling of the same metric (e.g.
+  `obi_stat_tcp_rtt_seconds`) is merged with the preset's by OBI instead.
+
 ### Other configuration options
 
 The [values.yaml](./values.yaml) file contains information about all other configuration
