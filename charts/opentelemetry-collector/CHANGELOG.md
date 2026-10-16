@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.140.0 / 2026-10-14
+
+- [Feat] Bump the OpenTelemetry Collector image to v0.162.0.
+
 ### v0.139.7 / 2026-10-11
 
 - [Feat] Add optional `presets.spanMetrics.dbMetrics.histogramBuckets` (and `presets.spanMetricsMulti.dbMetrics.histogramBuckets`) to set separate histogram buckets for DB span metrics (`spanmetrics/db` and `spanmetrics/db_compact`). When empty (default), DB span metrics keep using the shared span metrics buckets, so existing behavior is unchanged.
