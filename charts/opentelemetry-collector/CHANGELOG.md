@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.141.0 / 2026-10-22
+
+- [Feat] Bump the OpenTelemetry Collector image to v0.163.2.
+
 ### v0.140.0 / 2026-10-14
 
 - [Feat] Bump the OpenTelemetry Collector image to v0.162.0.
