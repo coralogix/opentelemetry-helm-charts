@@ -32,7 +32,7 @@ spec:
      {{- if .Values.serviceAccount.create }}
       serviceAccountName: {{ include "obi.serviceAccountName" . }}
      {{- end }}
-      {{- $networkEnabled := or (eq .Values.preset "network") .Values.config.data.network }}
+      {{- $networkEnabled := or (eq .Values.preset "network") .Values.config.data.network .Values.presets.networkMetrics.enabled }}
       {{- $contextPropagationEnabled := .Values.contextPropagation.enabled }}
       {{- if eq .Values.preset "application" }}
       hostPID: true
@@ -135,7 +135,7 @@ spec:
             - mountPath: /sys/fs/cgroup
               name: cgroup
           {{- end }}
-          {{- if or $contextPropagationEnabled .Values.stats.enabled }}
+          {{- if or $contextPropagationEnabled .Values.stats.enabled .Values.presets.networkMetrics.enabled }}
             - mountPath: /sys/kernel/tracing
               name: tracefs
               readOnly: true
@@ -173,7 +173,7 @@ spec:
             path: /sys/fs/cgroup
             type: Directory
       {{- end }}
-      {{- if or $contextPropagationEnabled .Values.stats.enabled }}
+      {{- if or $contextPropagationEnabled .Values.stats.enabled .Values.presets.networkMetrics.enabled }}
         - name: tracefs
           hostPath:
             path: /sys/kernel/tracing
