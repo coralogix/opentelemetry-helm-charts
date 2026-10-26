@@ -411,6 +411,37 @@ presets:
     # `obi.coralogix.com/enabled: "false"` in "exclude" mode.
     annotations: {}
 
+  ## Exports node-wide network metrics, aggregated at the Kubernetes workload (owner) level: the
+  ## network flow bytes between workloads, the bytes crossing availability zones, and the TCP
+  ## round-trip time, failed and successful connections and retransmits. Works with either
+  ## `preset`, since network flows and TCP stats are captured for every socket on the node, not
+  ## only for the instrumented processes. Enabling it runs the DaemonSet with `hostNetwork` and
+  ## mounts tracefs. It adds the `network`, `network_inter_zone`, `stats_tcp_rtt`,
+  ## `stats_tcp_failed_connections`, `stats_tcp_successful_connections` and
+  ## `stats_tcp_retransmits` metrics features, and selects the attributes of each metric:
+  ##   obi.network.flow.bytes:              direction, k8s.{src,dst}.owner.{name,type},
+  ##                                        k8s.{src,dst}.namespace, k8s.cluster.name
+  ##   obi.network.inter.zone.bytes:        {src,dst}.zone, k8s.{src,dst}.owner.name,
+  ##                                        k8s.{src,dst}.namespace, k8s.cluster.name
+  ##   obi.stat.tcp.rtt:                    k8s.{src,dst}.owner.{name,type},
+  ##                                        k8s.{src,dst}.namespace, k8s.cluster.name
+  ##   obi.stat.tcp.failed.connections:     as obi.stat.tcp.rtt, plus reason and
+  ##                                        network.tcp.handshake.role
+  ##   obi.stat.tcp.successful.connections: as obi.stat.tcp.rtt, plus network.tcp.handshake.role
+  ##   obi.stat.tcp.retransmits:            as obi.stat.tcp.rtt
+  ## IP addresses, ports and Pod names are left out, since their values are unbounded or churn
+  ## with every rollout; OBI's own defaults for the stat metrics include `src.address` and
+  ## `dst.address`. Peers outside the cluster have no owner, so all their traffic is reported
+  ## under empty `k8s.dst.*` attributes. To change the attributes of a metric, set
+  ## `config.data.attributes.select.<metric>` using the section names above (e.g.
+  ## `obi.stat.tcp.rtt`): the preset leaves a section that is already set untouched.
+  ## `stats_tcp_io` is deliberately left out: it fires on every TCP send and receive, at a far
+  ## higher event volume than the other stat metrics, and largely duplicates the flow bytes.
+  ## `stats.enabled: true` adds it, as part of the `stats` feature.
+  networkMetrics:
+    # -- Exports network flow and TCP stat metrics between Kubernetes workloads.
+    enabled: false
+
 # -- Enable creation of ServiceMonitor for scraping of prometheus HTTP endpoint
 serviceMonitor:
   enabled: false

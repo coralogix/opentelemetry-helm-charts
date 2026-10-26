@@ -123,6 +123,31 @@ data:
     {{- end }}
     {{- $writeGlobalFeatures = true }}
   {{- end }}
+  {{- if .Values.presets.networkMetrics.enabled }}
+    {{- range $feature := list "network" "network_inter_zone" "stats_tcp_rtt" "stats_tcp_failed_connections" "stats_tcp_successful_connections" "stats_tcp_retransmits" }}
+      {{- if not (has $feature $globalFeatures) }}
+        {{- $globalFeatures = append $globalFeatures $feature }}
+      {{- end }}
+    {{- end }}
+    {{- $writeGlobalFeatures = true }}
+    {{- $workloadAttributes := list "k8s.src.owner.name" "k8s.src.owner.type" "k8s.src.namespace" "k8s.dst.owner.name" "k8s.dst.owner.type" "k8s.dst.namespace" "k8s.cluster.name" }}
+    {{- $networkSelect := dict
+      "obi.network.flow" (prepend $workloadAttributes "direction")
+      "obi.network.inter.zone" (list "src.zone" "dst.zone" "k8s.src.owner.name" "k8s.src.namespace" "k8s.dst.owner.name" "k8s.dst.namespace" "k8s.cluster.name")
+      "obi.stat.tcp.rtt" $workloadAttributes
+      "obi.stat.tcp.failed.connections" (concat $workloadAttributes (list "reason" "network.tcp.handshake.role"))
+      "obi.stat.tcp.successful.connections" (append $workloadAttributes "network.tcp.handshake.role")
+      "obi.stat.tcp.retransmits" $workloadAttributes }}
+    {{- $attributes := $configData.attributes | default dict }}
+    {{- $select := $attributes.select | default dict }}
+    {{- range $section, $include := $networkSelect }}
+      {{- if not (hasKey $select $section) }}
+        {{- $_ := set $select $section (dict "include" $include) }}
+      {{- end }}
+    {{- end }}
+    {{- $_ := set $attributes "select" $select }}
+    {{- $_ := set $configData "attributes" $attributes }}
+  {{- end }}
   {{- $runtimeMetrics := .Values.presets.runtimeMetrics }}
   {{- if and $runtimeMetrics.enabled (eq .Values.preset "application") }}
     {{- $languages := $runtimeMetrics.languages | default list }}

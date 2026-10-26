@@ -2,6 +2,10 @@
 
 ## OpenTelemetry eBPF Instrumentation
 
+### v0.1.29 / 2026-10-05
+
+- [Feature] Add a `presets.networkMetrics` preset, exporting node-wide network metrics between Kubernetes workloads: network flow bytes (`obi.network.flow.bytes`), bytes crossing availability zones (`obi.network.inter.zone.bytes`), and the TCP round-trip time, failed and successful connections and retransmits (`obi.stat.tcp.rtt`, `obi.stat.tcp.failed.connections`, `obi.stat.tcp.successful.connections`, `obi.stat.tcp.retransmits`). It is disabled by default and works with either `preset`; enabling it adds the `network`, `network_inter_zone`, `stats_tcp_rtt`, `stats_tcp_failed_connections`, `stats_tcp_successful_connections` and `stats_tcp_retransmits` metrics features, runs the DaemonSet with `hostNetwork` and mounts tracefs. Each metric is reported at the workload level (source/destination owner name, owner type and namespace, plus the cluster name), with the `direction` of network flows, the zones of inter-zone bytes, the `reason` and `network.tcp.handshake.role` of failed connections, and the `network.tcp.handshake.role` of successful connections. IP addresses, ports and Pod names, including the `src.address` / `dst.address` that OBI reports on stat metrics by default, are left out to bound cardinality; a `config.data.attributes.select` section already set for one of these metrics is left untouched. `stats_tcp_io` is not part of the preset, since it fires on every TCP send and receive
+
 ### v0.1.28 / 2026-10-05
 
 - [Change] Bump OBI image to v0.14.0

@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-ebpf-instrumentation
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.28
+    helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.29
     app.kubernetes.io/name: opentelemetry-ebpf-instrumentation
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "v0.14.0"
@@ -23,9 +23,9 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: e2448ce047376d4dbf29dafe26433cff8ae48cec296438bdba900f752f086143
+        checksum/config: 3475ee42784243bf196b82164ce99d0379848c892a133170ba46b4f22dc081dc
       labels:
-        helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.28
+        helm.sh/chart: opentelemetry-ebpf-instrumentation-0.1.29
         app.kubernetes.io/name: opentelemetry-ebpf-instrumentation
         app.kubernetes.io/instance: example
         app.kubernetes.io/version: "v0.14.0"
