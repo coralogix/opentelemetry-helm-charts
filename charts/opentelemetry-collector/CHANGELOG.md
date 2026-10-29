@@ -2,6 +2,13 @@
 
 ## OpenTelemetry Collector
 
+### v0.142.1 / 2026-10-29
+
+- [Feat] Add messaging dimensions (`messaging.system`, `messaging.destination.name`, `messaging.operation.type`, `messaging.consumer.group.name`) to the default `presets.spanMetrics.extraDimensions` and `presets.spanMetricsMulti.extraDimensions`, so `calls_total` and `duration_ms_*` can be sliced per messaging system, destination, operation type and consumer group.
+- [Feat] Keep `service.namespace`, `k8s.namespace.name` and `deployment.environment.type` (alongside `service.name`, `k8s.cluster.name`, `host.name`, `deployment.environment.name`) on the resource for compact and DB compact span metrics.
+- [Feat] Add `global.deploymentEnvironmentType` / `presets.resourceDetection.deploymentEnvironmentType` to set the `deployment.environment.type` resource attribute through `OTEL_RESOURCE_ATTRIBUTES`.
+- [Feat] Add opt-in `presets.spanMetrics.tenant` (`enabled`, `sourceAttributes`). When enabled, `cx.tenant.name` is copied on spans from the first available source attribute (span before resource) and added as a dimension to span, DB, compact and DB compact span metrics. Disabled by default.
+
 ### v0.142.0 / 2026-10-27
 
 - [Feat] Bump the OpenTelemetry Collector image to v0.164.0.

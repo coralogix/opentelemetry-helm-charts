@@ -7,6 +7,9 @@ global:
   defaultApplicationName: ""
   defaultSubsystemName: ""
   deploymentEnvironmentName: ""
+  # Sets deployment.environment.type (for example production, staging, development) via
+  # OTEL_RESOURCE_ATTRIBUTES when the resourceDetection preset is enabled.
+  deploymentEnvironmentType: ""
 
 nameOverride: ""
 fullnameOverride: ""
@@ -463,6 +466,18 @@ presets:
       - name: db.collection.name
       - name: db.system
       - name: graphql.operation.type
+      - name: messaging.system
+      - name: messaging.destination.name
+      - name: messaging.operation.type
+      - name: messaging.consumer.group.name
+    # Opt-in tenant dimension. When enabled, cx.tenant.name is set on spans from the first
+    # non-empty attribute in sourceAttributes (span attributes are checked before resource
+    # attributes) and added as a dimension to all span metrics, including compact and DB metrics.
+    # Spans that already carry cx.tenant.name keep it. High cardinality for single-tenant apps.
+    tenant:
+      enabled: false
+      sourceAttributes: []
+      # - cgx.company.id
     histogramBuckets:
       [1ms, 4ms, 10ms, 20ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s]
 
@@ -506,6 +521,10 @@ presets:
       - name: db.collection.name
       - name: db.system
       - name: graphql.operation.type
+      - name: messaging.system
+      - name: messaging.destination.name
+      - name: messaging.operation.type
+      - name: messaging.consumer.group.name
     defaultHistogramBuckets:
       [1ms, 4ms, 10ms, 20ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s]
     # collectionInterval: 30s
@@ -1195,6 +1214,9 @@ presets:
       enabled: true
     # Allows setting the deployment environment name in OTEL_RESOURCE_ATTRIBUTES.
     deploymentEnvironmentName: ""
+    # Allows setting the deployment environment type in OTEL_RESOURCE_ATTRIBUTES
+    # (falls back to global.deploymentEnvironmentType).
+    deploymentEnvironmentType: ""
 
 configMap:
   # Specifies whether a configMap should be created (true by default)

@@ -182,6 +182,12 @@ Generate default OTEL_RESOURCE_ATTRIBUTES value when resourceDetection preset is
 {{- $attrs = append $attrs (printf "deployment.environment.name=%s" $val) -}}
 {{- end -}}
 {{- end -}}
+{{- with (.Values.presets.resourceDetection.deploymentEnvironmentType | default .Values.global.deploymentEnvironmentType) -}}
+{{- $val := tpl . $ -}}
+{{- if ne $val "" -}}
+{{- $attrs = append $attrs (printf "deployment.environment.type=%s" $val) -}}
+{{- end -}}
+{{- end -}}
 {{- end -}}
 {{- $distribution := .Values.distribution | default "" -}}
 {{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "topLevelProvider" .Values.provider "explicitProvider" .Values.presets.resourceDetection.provider) -}}

@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.142.0
+    helm.sh/chart: opentelemetry-collector-0.142.1
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.164.0"
@@ -30,6 +30,10 @@ data:
         - name: db.collection.name
         - name: db.system
         - name: graphql.operation.type
+        - name: messaging.system
+        - name: messaging.destination.name
+        - name: messaging.operation.type
+        - name: messaging.consumer.group.name
         - name: http.response.status_code
         - name: rpc.grpc.status_code
         - name: service.version
@@ -202,8 +206,7 @@ data:
         trace_statements:
         - context: resource
           statements:
-          - keep_keys(resource.attributes, ["service.name", "k8s.cluster.name", "host.name",
-            "deployment.environment.name"])
+          - keep_keys(resource.attributes, ["service.name","service.namespace","k8s.cluster.name","k8s.namespace.name","host.name","deployment.environment.name","deployment.environment.type"])
       transform/db:
         error_mode: silent
         trace_statements:
@@ -215,8 +218,7 @@ data:
         trace_statements:
         - context: resource
           statements:
-          - keep_keys(resource.attributes, ["service.name", "k8s.cluster.name", "host.name",
-            "deployment.environment.name"])
+          - keep_keys(resource.attributes, ["service.name","service.namespace","k8s.cluster.name","k8s.namespace.name","host.name","deployment.environment.name","deployment.environment.type"])
         - context: span
           statements:
           - set(attributes["db.system"], attributes["db.system.name"]) where attributes["db.system.name"]
