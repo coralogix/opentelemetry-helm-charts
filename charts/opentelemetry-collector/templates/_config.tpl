@@ -2160,10 +2160,20 @@ cx.integrationID: "{{ .Values.presets.fleetManagement.integrationID }}"
 {{- if .Values.presets.spanMetrics.serviceVersion.enabled }}
 - name: service.version
 {{- end }}
+{{- if .Values.presets.spanMetrics.messagingDimensions.enabled }}
+{{- include "opentelemetry-collector.spanMetrics.messagingDimensions" . }}
+{{- end }}
 {{- if .Values.presets.spanMetrics.tenant.enabled }}
 - name: cx.tenant.name
 {{- end }}
 {{- end}}
+
+{{- define "opentelemetry-collector.spanMetrics.messagingDimensions" }}
+- name: messaging.system
+- name: messaging.destination.name
+- name: messaging.operation.type
+- name: messaging.consumer.group.name
+{{- end }}
 
 {{/* Resource attributes kept on spans feeding compact span metrics; each becomes a metric label. */}}
 {{- define "opentelemetry-collector.spanMetrics.compactResourceKeys" -}}
@@ -2513,6 +2523,14 @@ service:
 {{- $multiServiceVersion := .Values.presets.spanMetricsMulti.serviceVersion -}}
 {{- if and $multiServiceVersion $multiServiceVersion.enabled }}
 {{- $generatedNames = append $generatedNames "service.version" -}}
+{{- end }}
+{{- $multiMessaging := .Values.presets.spanMetricsMulti.messagingDimensions -}}
+{{- $messagingEnabled := .Values.presets.spanMetrics.messagingDimensions.enabled -}}
+{{- if and $multiMessaging (hasKey $multiMessaging "enabled") -}}
+{{- $messagingEnabled = $multiMessaging.enabled -}}
+{{- end -}}
+{{- if $messagingEnabled }}
+{{- $generatedNames = concat $generatedNames (list "messaging.system" "messaging.destination.name" "messaging.operation.type" "messaging.consumer.group.name") -}}
 {{- end }}
 {{- range ($generatedNames | uniq) }}
 {{- if not (has . $extraNames) }}

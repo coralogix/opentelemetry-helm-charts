@@ -456,6 +456,11 @@ presets:
     # Configures the collector to collect and export error information from spans.
     errorTracking:
       enabled: true
+    # Adds messaging.system, messaging.destination.name, messaging.operation.type and
+    # messaging.consumer.group.name to spanMetrics dimensions (calls_total, duration_ms_*).
+    # Disabled by default because it increases span metrics cardinality.
+    messagingDimensions:
+      enabled: false
     extraDimensions:
       - name: http.method
       - name: cgx.transaction
@@ -466,10 +471,6 @@ presets:
       - name: db.collection.name
       - name: db.system
       - name: graphql.operation.type
-      - name: messaging.system
-      - name: messaging.destination.name
-      - name: messaging.operation.type
-      - name: messaging.consumer.group.name
     # Opt-in tenant dimension. When enabled, cx.tenant.name is set on spans from the first
     # non-empty attribute in sourceAttributes (span attributes are checked before resource
     # attributes) and added as a dimension to all span metrics, including compact and DB metrics.
@@ -506,6 +507,9 @@ presets:
     # serviceVersion:
     #   enabled: false
     # errorTracking uses presets.spanMetrics.errorTracking when spanMetricsMulti.errorTracking is unset.
+    # messagingDimensions uses presets.spanMetrics.messagingDimensions when spanMetricsMulti.messagingDimensions is unset.
+    # messagingDimensions:
+    #   enabled: false
     # dbMetrics:
     #   enabled: false
     #   histogramBuckets: []  # empty uses defaultHistogramBuckets
@@ -521,10 +525,6 @@ presets:
       - name: db.collection.name
       - name: db.system
       - name: graphql.operation.type
-      - name: messaging.system
-      - name: messaging.destination.name
-      - name: messaging.operation.type
-      - name: messaging.consumer.group.name
     defaultHistogramBuckets:
       [1ms, 4ms, 10ms, 20ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s]
     # collectionInterval: 30s
