@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.142.0
+    helm.sh/chart: opentelemetry-collector-0.142.1
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.164.0"
@@ -187,6 +187,18 @@ data:
           - set(datapoint.attributes["status.code"], "STATUS_CODE_UNSET") where datapoint.attributes["status.code"]
             == nil and instrumentation_scope.name == "spanmetricsconnector" and (datapoint.attributes["otel.status_code"]
             == "UNSET" or datapoint.attributes["otel.status_code"] == nil)
+        trace_statements:
+        - context: resource
+          statements:
+          - set(resource.attributes["cx.cluster.name"], resource.attributes["k8s.cluster.name"])
+            where resource.attributes["cx.cluster.name"] == nil and resource.attributes["k8s.cluster.name"]
+            != nil
+          - set(resource.attributes["cx.cluster.name"], resource.attributes["aws.ecs.cluster.name"])
+            where resource.attributes["cx.cluster.name"] == nil and resource.attributes["aws.ecs.cluster.name"]
+            != nil
+          - set(resource.attributes["cx.cluster.name"], resource.attributes["aws.ecs.cluster.arn"])
+            where resource.attributes["cx.cluster.name"] == nil and resource.attributes["aws.ecs.cluster.arn"]
+            != nil
     receivers:
       otlp:
         protocols:
@@ -234,6 +246,7 @@ data:
           - routing
           processors:
           - memory_limiter
+          - transform/spanmetricsmulti
           - redaction/spanname
           - batch
           receivers:

@@ -1,0 +1,483 @@
+---
+# Source: opentelemetry-collector/templates/configmap-agent.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-opentelemetry-collector-agent
+  namespace: default
+  labels:
+    helm.sh/chart: opentelemetry-collector-0.142.1
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.164.0"
+    app.kubernetes.io/managed-by: Helm
+data:
+  relay: |
+    connectors:
+      forward/compact: {}
+      forward/db: {}
+      forward/db_compact: {}
+      spanmetrics:
+        add_resource_attributes: true
+        aggregation_cardinality_limit: 100000
+        dimensions:
+        - name: http.method
+        - name: cgx.transaction
+        - name: cgx.transaction.root
+        - name: status_code
+        - name: db.namespace
+        - name: db.operation.name
+        - name: db.collection.name
+        - name: db.system
+        - name: graphql.operation.type
+        - name: http.response.status_code
+        - name: rpc.grpc.status_code
+        - name: service.version
+        - name: messaging.system
+        - name: messaging.destination.name
+        - name: messaging.operation.type
+        - name: messaging.consumer.group.name
+        - name: cx.tenant.name
+        exclude_dimensions:
+        - collector.instance.id
+        histogram:
+          explicit:
+            buckets:
+            - 1ms
+            - 4ms
+            - 10ms
+            - 20ms
+            - 50ms
+            - 100ms
+            - 200ms
+            - 500ms
+            - 1s
+            - 2s
+            - 5s
+          unit: ms
+        metrics_expiration: 0
+        metrics_flush_interval: 15s
+        namespace: ""
+        series_expiration: 5m
+      spanmetrics/compact:
+        add_resource_attributes: true
+        aggregation_cardinality_limit: 100000
+        dimensions:
+        - name: cx.tenant.name
+        exclude_dimensions:
+        - collector.instance.id
+        - span.name
+        histogram:
+          explicit:
+            buckets:
+            - 1ms
+            - 4ms
+            - 10ms
+            - 20ms
+            - 50ms
+            - 100ms
+            - 200ms
+            - 500ms
+            - 1s
+            - 2s
+            - 5s
+          unit: ms
+        metrics_expiration: 0
+        metrics_flush_interval: 15s
+        namespace: compact
+        series_expiration: 5m
+      spanmetrics/db:
+        add_resource_attributes: true
+        aggregation_cardinality_limit: 100000
+        dimensions:
+        - name: db.namespace
+        - name: db.operation.name
+        - name: db.collection.name
+        - name: db.system
+        - name: service.version
+        - name: cx.tenant.name
+        exclude_dimensions:
+        - collector.instance.id
+        histogram:
+          explicit:
+            buckets:
+            - 1ms
+            - 4ms
+            - 10ms
+            - 20ms
+            - 50ms
+            - 100ms
+            - 200ms
+            - 500ms
+            - 1s
+            - 2s
+            - 5s
+          unit: ms
+        metrics_expiration: 0
+        metrics_flush_interval: 15s
+        namespace: db
+        series_expiration: 5m
+      spanmetrics/db_compact:
+        add_resource_attributes: true
+        aggregation_cardinality_limit: 100000
+        dimensions:
+        - name: db.namespace
+        - name: db.system
+        - name: cx.tenant.name
+        exclude_dimensions:
+        - collector.instance.id
+        - span.name
+        - span.kind
+        histogram:
+          explicit:
+            buckets:
+            - 1ms
+            - 4ms
+            - 10ms
+            - 20ms
+            - 50ms
+            - 100ms
+            - 200ms
+            - 500ms
+            - 1s
+            - 2s
+            - 5s
+          unit: ms
+        metrics_expiration: 0
+        metrics_flush_interval: 15s
+        namespace: db_compact
+        series_expiration: 5m
+    exporters:
+      coralogix:
+        application_name: otel
+        application_name_attributes:
+        - k8s.namespace.name
+        - service.namespace
+        domain: coralogix.com
+        domain_settings:
+          keepalive:
+            enabled: true
+            permit_without_stream: false
+            time: 30s
+            timeout: 10s
+        logs:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        metrics:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        private_key: ${env:CORALOGIX_PRIVATE_KEY}
+        profiles:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+            x-coralogix-ingress: otlp/v1.10.0
+        sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
+          enabled: true
+          num_consumers: 20
+          queue_size: 209715200
+          sizer: bytes
+        subsystem_name: integration
+        subsystem_name_attributes:
+        - k8s.deployment.name
+        - k8s.statefulset.name
+        - k8s.daemonset.name
+        - k8s.cronjob.name
+        - service.name
+        timeout: 30s
+        traces:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+      debug: {}
+    extensions:
+      health_check:
+        endpoint: ${env:MY_POD_IP}:13133
+    processors:
+      batch:
+        send_batch_max_size: 2048
+        send_batch_size: 1024
+        timeout: 1s
+      filter/db_compact_spanmetrics:
+        traces:
+          span:
+          - span.kind != SPAN_KIND_CLIENT or span.attributes["db.namespace"] == nil or
+            (span.attributes["db.system"] == nil and span.attributes["db.system.name"]
+            == nil)
+      filter/db_spanmetrics:
+        traces:
+          span:
+          - span.attributes["db.system"] == nil and span.attributes["db.system.name"]
+            == nil
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      redaction/spanname:
+        allow_all_keys: true
+        db_sanitizer: null
+        url_sanitizer:
+          enabled: true
+      resourcedetection/env:
+        detectors:
+        - system
+        - env
+        override: false
+        system:
+          resource_attributes:
+            host.id:
+              enabled: true
+        timeout: 2s
+      resourcedetection/region:
+        detectors:
+        - gcp
+        - ec2
+        - azure
+        - eks
+        eks:
+          node_from_env_var: K8S_NODE_NAME
+        override: true
+        timeout: 2s
+      transform/compact:
+        trace_statements:
+        - context: resource
+          statements:
+          - keep_keys(resource.attributes, ["service.name","service.namespace","cx.cluster.name","k8s.cluster.name","k8s.namespace.name","host.name","deployment.environment.name","deployment.environment.type","cx.tenant.name"])
+      transform/db:
+        error_mode: silent
+        trace_statements:
+        - context: span
+          statements:
+          - set(attributes["db.system"], attributes["db.system.name"]) where attributes["db.system.name"]
+            != nil and attributes["db.system"] == nil
+      transform/db_compact:
+        trace_statements:
+        - context: resource
+          statements:
+          - keep_keys(resource.attributes, ["service.name","service.namespace","cx.cluster.name","k8s.cluster.name","k8s.namespace.name","host.name","deployment.environment.name","deployment.environment.type","cx.tenant.name"])
+        - context: span
+          statements:
+          - set(attributes["db.system"], attributes["db.system.name"]) where attributes["db.system.name"]
+            != nil and attributes["db.system"] == nil
+          - keep_keys(span.attributes, ["db.namespace", "db.system", "cx.tenant.name"])
+      transform/prometheus:
+        error_mode: ignore
+        metric_statements:
+        - context: metric
+          statements:
+          - replace_pattern(metric.name, "_total$", "") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_cpu_seconds_seconds$", "otelcol_process_cpu_seconds")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_heap_alloc_bytes_bytes$",
+            "otelcol_process_runtime_heap_alloc_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_total_alloc_bytes_bytes$",
+            "otelcol_process_runtime_total_alloc_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_total_sys_memory_bytes_bytes$",
+            "otelcol_process_runtime_total_sys_memory_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_fileconsumer_open_files$", "otelcol_fileconsumer_open_files_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_fileconsumer_reading_files$", "otelcol_fileconsumer_reading_files_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_ip_lookup_miss$", "otelcol_otelsvc_k8s_ip_lookup_miss_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_added$", "otelcol_otelsvc_k8s_pod_added_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_updated$", "otelcol_otelsvc_k8s_pod_updated_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_deleted$", "otelcol_otelsvc_k8s_pod_deleted_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_log_records$",
+            "otelcol_processor_accepted_log_records") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_metric_points$",
+            "otelcol_processor_accepted_metric_points") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_spans$",
+            "otelcol_processor_accepted_spans") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_log_records$",
+            "otelcol_processor_refused_log_records") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_metric_points$",
+            "otelcol_processor_refused_metric_points") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_spans$",
+            "otelcol_processor_refused_spans") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_filter_spans\\.filtered$",
+            "otelcol_processor_filter_spans.filtered_ratio") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+        - context: resource
+          statements:
+          - set(resource.attributes["k8s.pod.ip"], resource.attributes["net.host.name"])
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - delete_key(resource.attributes, "service_name") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+        - context: datapoint
+          statements:
+          - delete_key(datapoint.attributes, "service_name") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
+            == "opentelemetry-collector"
+      transform/spanmetrics:
+        error_mode: silent
+        metric_statements:
+        - context: datapoint
+          statements:
+          - set(datapoint.attributes["status.code"], "STATUS_CODE_ERROR") where datapoint.attributes["status.code"]
+            == nil and instrumentation_scope.name == "spanmetricsconnector" and datapoint.attributes["otel.status_code"]
+            == "ERROR"
+          - set(datapoint.attributes["status.code"], "STATUS_CODE_OK") where datapoint.attributes["status.code"]
+            == nil and instrumentation_scope.name == "spanmetricsconnector" and datapoint.attributes["otel.status_code"]
+            == "OK"
+          - set(datapoint.attributes["status.code"], "STATUS_CODE_UNSET") where datapoint.attributes["status.code"]
+            == nil and instrumentation_scope.name == "spanmetricsconnector" and (datapoint.attributes["otel.status_code"]
+            == "UNSET" or datapoint.attributes["otel.status_code"] == nil)
+        trace_statements:
+        - context: resource
+          statements:
+          - set(resource.attributes["cx.cluster.name"], resource.attributes["k8s.cluster.name"])
+            where resource.attributes["cx.cluster.name"] == nil and resource.attributes["k8s.cluster.name"]
+            != nil
+          - set(resource.attributes["cx.cluster.name"], resource.attributes["aws.ecs.cluster.name"])
+            where resource.attributes["cx.cluster.name"] == nil and resource.attributes["aws.ecs.cluster.name"]
+            != nil
+          - set(resource.attributes["cx.cluster.name"], resource.attributes["aws.ecs.cluster.arn"])
+            where resource.attributes["cx.cluster.name"] == nil and resource.attributes["aws.ecs.cluster.arn"]
+            != nil
+        - context: span
+          statements:
+          - set(span.attributes["cx.tenant.name"], span.attributes["cgx.company.id"])
+            where span.attributes["cx.tenant.name"] == nil and span.attributes["cgx.company.id"]
+            != nil
+          - set(span.attributes["cx.tenant.name"], resource.attributes["cgx.company.id"])
+            where span.attributes["cx.tenant.name"] == nil and resource.attributes["cgx.company.id"]
+            != nil
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: ${env:MY_POD_IP}:4317
+            max_recv_msg_size_mib: 20
+          http:
+            endpoint: ${env:MY_POD_IP}:4318
+      prometheus:
+        config:
+          scrape_configs:
+          - job_name: opentelemetry-collector
+            scrape_interval: 30s
+            static_configs:
+            - targets:
+              - ${env:MY_POD_IP}:8888
+    service:
+      extensions:
+      - health_check
+      pipelines:
+        logs:
+          exporters:
+          - debug
+          - coralogix
+          processors:
+          - memory_limiter
+          - resourcedetection/region
+          - resourcedetection/env
+          - batch
+          receivers:
+          - otlp
+        metrics:
+          exporters:
+          - debug
+          - coralogix
+          processors:
+          - memory_limiter
+          - resourcedetection/region
+          - resourcedetection/env
+          - transform/spanmetrics
+          - transform/prometheus
+          - batch
+          receivers:
+          - spanmetrics
+          - spanmetrics/db
+          - prometheus
+          - otlp
+        metrics/compact:
+          exporters:
+          - coralogix
+          processors:
+          - memory_limiter
+          - transform/spanmetrics
+          - batch
+          receivers:
+          - spanmetrics/compact
+        metrics/db_compact:
+          exporters:
+          - coralogix
+          processors:
+          - memory_limiter
+          - transform/spanmetrics
+          - batch
+          receivers:
+          - spanmetrics/db_compact
+        traces:
+          exporters:
+          - debug
+          - spanmetrics
+          - forward/db
+          - forward/compact
+          - forward/db_compact
+          - coralogix
+          processors:
+          - memory_limiter
+          - resourcedetection/region
+          - resourcedetection/env
+          - transform/spanmetrics
+          - redaction/spanname
+          - batch
+          receivers:
+          - otlp
+        traces/compact:
+          exporters:
+          - spanmetrics/compact
+          processors:
+          - transform/compact
+          - batch
+          receivers:
+          - forward/compact
+        traces/db:
+          exporters:
+          - spanmetrics/db
+          processors:
+          - filter/db_spanmetrics
+          - transform/db
+          - batch
+          receivers:
+          - forward/db
+        traces/db_compact:
+          exporters:
+          - spanmetrics/db_compact
+          processors:
+          - filter/db_compact_spanmetrics
+          - transform/db_compact
+          - batch
+          receivers:
+          - forward/db_compact
+      telemetry:
+        logs:
+          encoding: json
+        metrics:
+          readers:
+          - pull:
+              exporter:
+                prometheus:
+                  host: ${env:MY_POD_IP}
+                  port: 8888
+                  without_scope_info: false
+                  without_type_suffix: false
+                  without_units: false

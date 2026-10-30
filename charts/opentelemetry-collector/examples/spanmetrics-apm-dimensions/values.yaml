@@ -1,0 +1,28 @@
+mode: daemonset
+global:
+  domain: coralogix.com
+  defaultApplicationName: otel
+  defaultSubsystemName: integration
+  deploymentEnvironmentName: production-eu
+  deploymentEnvironmentType: production
+
+presets:
+  batch:
+    enabled: true
+  coralogixExporter:
+    enabled: true
+    privateKey: ${env:CORALOGIX_PRIVATE_KEY}
+  resourceDetection:
+    enabled: true
+  spanMetrics:
+    enabled: true
+    dbMetrics:
+      enabled: true
+    # Opt-in messaging.* dimensions on calls_total and duration_ms_*.
+    messagingDimensions:
+      enabled: true
+    # Opt-in tenant dimension, read from the cgx.company.id span or resource attribute.
+    tenant:
+      enabled: true
+      sourceAttributes:
+        - cgx.company.id
