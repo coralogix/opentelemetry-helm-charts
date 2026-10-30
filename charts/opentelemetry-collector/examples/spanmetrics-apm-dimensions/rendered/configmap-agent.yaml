@@ -245,7 +245,7 @@ data:
         trace_statements:
         - context: resource
           statements:
-          - keep_keys(resource.attributes, ["service.name","service.namespace","k8s.cluster.name","k8s.namespace.name","host.name","deployment.environment.name","deployment.environment.type","cx.tenant.name"])
+          - keep_keys(resource.attributes, ["service.name","service.namespace","cx.cluster.name","k8s.cluster.name","k8s.namespace.name","host.name","deployment.environment.name","deployment.environment.type","cx.tenant.name"])
       transform/db:
         error_mode: silent
         trace_statements:
@@ -257,7 +257,7 @@ data:
         trace_statements:
         - context: resource
           statements:
-          - keep_keys(resource.attributes, ["service.name","service.namespace","k8s.cluster.name","k8s.namespace.name","host.name","deployment.environment.name","deployment.environment.type","cx.tenant.name"])
+          - keep_keys(resource.attributes, ["service.name","service.namespace","cx.cluster.name","k8s.cluster.name","k8s.namespace.name","host.name","deployment.environment.name","deployment.environment.type","cx.tenant.name"])
         - context: span
           statements:
           - set(attributes["db.system"], attributes["db.system.name"]) where attributes["db.system.name"]
@@ -341,6 +341,17 @@ data:
             == nil and instrumentation_scope.name == "spanmetricsconnector" and (datapoint.attributes["otel.status_code"]
             == "UNSET" or datapoint.attributes["otel.status_code"] == nil)
         trace_statements:
+        - context: resource
+          statements:
+          - set(resource.attributes["cx.cluster.name"], resource.attributes["k8s.cluster.name"])
+            where resource.attributes["cx.cluster.name"] == nil and resource.attributes["k8s.cluster.name"]
+            != nil
+          - set(resource.attributes["cx.cluster.name"], resource.attributes["aws.ecs.cluster.name"])
+            where resource.attributes["cx.cluster.name"] == nil and resource.attributes["aws.ecs.cluster.name"]
+            != nil
+          - set(resource.attributes["cx.cluster.name"], resource.attributes["aws.ecs.cluster.arn"])
+            where resource.attributes["cx.cluster.name"] == nil and resource.attributes["aws.ecs.cluster.arn"]
+            != nil
         - context: span
           statements:
           - set(span.attributes["cx.tenant.name"], span.attributes["cgx.company.id"])

@@ -2175,9 +2175,20 @@ cx.integrationID: "{{ .Values.presets.fleetManagement.integrationID }}"
 - name: messaging.consumer.group.name
 {{- end }}
 
+{{/* Sets resource cx.cluster.name from the first available cluster attribute (k8s, then ECS), falling back to the configured cluster name. */}}
+{{- define "opentelemetry-collector.spanMetrics.clusterNameStatements" -}}
+- set(resource.attributes["cx.cluster.name"], resource.attributes["k8s.cluster.name"]) where resource.attributes["cx.cluster.name"] == nil and resource.attributes["k8s.cluster.name"] != nil
+- set(resource.attributes["cx.cluster.name"], resource.attributes["aws.ecs.cluster.name"]) where resource.attributes["cx.cluster.name"] == nil and resource.attributes["aws.ecs.cluster.name"] != nil
+- set(resource.attributes["cx.cluster.name"], resource.attributes["aws.ecs.cluster.arn"]) where resource.attributes["cx.cluster.name"] == nil and resource.attributes["aws.ecs.cluster.arn"] != nil
+{{- $clusterName := tpl (.Values.presets.metadata.clusterName | default .Values.global.clusterName | default "") . }}
+{{- if $clusterName }}
+- set(resource.attributes["cx.cluster.name"], {{ $clusterName | quote }}) where resource.attributes["cx.cluster.name"] == nil
+{{- end }}
+{{- end }}
+
 {{/* Resource attributes kept on spans feeding compact span metrics; each becomes a metric label. */}}
 {{- define "opentelemetry-collector.spanMetrics.compactResourceKeys" -}}
-{{- $keys := list "service.name" "service.namespace" "k8s.cluster.name" "k8s.namespace.name" "host.name" "deployment.environment.name" "deployment.environment.type" -}}
+{{- $keys := list "service.name" "service.namespace" "cx.cluster.name" "k8s.cluster.name" "k8s.namespace.name" "host.name" "deployment.environment.name" "deployment.environment.type" -}}
 {{- if .tenant -}}
 {{- $keys = append $keys "cx.tenant.name" -}}
 {{- end -}}
@@ -2360,8 +2371,11 @@ processors:
       - context: datapoint
         statements:
         {{- include "opentelemetry-collector.spanMetricsStatusCodeStatements" . | nindent 8 }}
-    {{- if or .Values.presets.spanMetrics.transformStatements .Values.presets.spanMetrics.tenant.enabled }}
     trace_statements:
+      - context: resource
+        statements:
+        {{- include "opentelemetry-collector.spanMetrics.clusterNameStatements" . | nindent 8 }}
+    {{- if or .Values.presets.spanMetrics.transformStatements .Values.presets.spanMetrics.tenant.enabled }}
       - context: span
         statements:
         {{- range $index, $pattern := .Values.presets.spanMetrics.transformStatements }}
@@ -2541,7 +2555,6 @@ service:
 
 {{- define "opentelemetry-collector.applySpanMetricsMultiConfig" -}}
 {{- $sm := mergeOverwrite (dict "dbMetrics" (dict "enabled" false "compactMetrics" (dict "enabled" false)) "compactMetrics" (dict "enabled" false)) .Values.Values.presets.spanMetricsMulti }}
-{{- $hasTransformStatements := and $sm.transformStatements (gt (len $sm.transformStatements) 0) }}
 {{- $hasSpanNameReplacePattern := and $sm.spanNameReplacePattern (gt (len $sm.spanNameReplacePattern) 0) }}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.spanMetricsMultiConfig" .Values | fromYaml) .config }}
 {{- $tracesPipeline := deepCopy $config.service.pipelines.traces }}
@@ -2568,10 +2581,8 @@ service:
 {{- $tracesExporters = append $tracesExporters "forward/db_compact" | uniq }}
 {{- end }}
 {{- $_ := set $config.service.pipelines.traces "exporters" $tracesExporters }}
-{{- if $hasTransformStatements }}
 {{- if not (has "transform/spanmetricsmulti" $config.service.pipelines.traces.processors) }}
 {{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/spanmetricsmulti" | uniq) }}
-{{- end }}
 {{- end }}
 {{- if $hasSpanNameReplacePattern }}
 {{- $_ := set $config.service.pipelines.traces "processors" (prepend $config.service.pipelines.traces.processors "transform/span_name" | uniq) }}
@@ -2687,8 +2698,11 @@ processors:
       - context: datapoint
         statements:
         {{- include "opentelemetry-collector.spanMetricsStatusCodeStatements" . | nindent 8 }}
-    {{- if and .Values.presets.spanMetricsMulti.transformStatements (gt (len .Values.presets.spanMetricsMulti.transformStatements) 0) }}
     trace_statements:
+      - context: resource
+        statements:
+        {{- include "opentelemetry-collector.spanMetrics.clusterNameStatements" . | nindent 8 }}
+    {{- if and .Values.presets.spanMetricsMulti.transformStatements (gt (len .Values.presets.spanMetricsMulti.transformStatements) 0) }}
       - context: span
         statements:
         {{- range $index, $pattern := .Values.presets.spanMetricsMulti.transformStatements }}

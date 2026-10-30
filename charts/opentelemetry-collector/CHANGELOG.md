@@ -6,6 +6,7 @@
 
 - [Feat] Add opt-in `presets.spanMetrics.messagingDimensions.enabled` (disabled by default) to add `messaging.system`, `messaging.destination.name`, `messaging.operation.type` and `messaging.consumer.group.name` as dimensions on `calls_total` and `duration_ms_*`. `presets.spanMetricsMulti.messagingDimensions.enabled` overrides it for the multi preset and falls back to the `spanMetrics` setting when unset.
 - [Feat] Keep `service.namespace`, `k8s.namespace.name` and `deployment.environment.type` (alongside `service.name`, `k8s.cluster.name`, `host.name`, `deployment.environment.name`) on the resource for compact and DB compact span metrics.
+- [Feat] Set a unified `cx.cluster.name` resource attribute on spans feeding span metrics (`spanMetrics` and `spanMetricsMulti`), taken from the first available of `k8s.cluster.name`, `aws.ecs.cluster.name`, `aws.ecs.cluster.arn`, then `presets.metadata.clusterName` / `global.clusterName`. Existing `cx.cluster.name` values are kept. It is kept on compact and DB compact span metrics alongside `k8s.cluster.name`.
 - [Feat] Add `global.deploymentEnvironmentType` / `presets.resourceDetection.deploymentEnvironmentType` to set the `deployment.environment.type` resource attribute through `OTEL_RESOURCE_ATTRIBUTES`.
 - [Feat] Add opt-in `presets.spanMetrics.tenant` (`enabled`, `sourceAttributes`). When enabled, `cx.tenant.name` is copied on spans from the first available source attribute (span before resource) and added as a dimension to span, DB, compact and DB compact span metrics. Disabled by default.
 
