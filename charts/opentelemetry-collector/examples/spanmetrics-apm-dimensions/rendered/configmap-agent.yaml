@@ -245,7 +245,7 @@ data:
         trace_statements:
         - context: resource
           statements:
-          - keep_keys(resource.attributes, ["service.name","service.namespace","cx.cluster.name","k8s.cluster.name","k8s.namespace.name","host.name","deployment.environment.name","deployment.environment.type","cx.tenant.name"])
+          - keep_keys(resource.attributes, ["service.name","service.namespace","cx.cluster.name","k8s.cluster.name","host.name","deployment.environment.name","deployment.environment.type","cx.tenant.name"])
       transform/db:
         error_mode: silent
         trace_statements:
@@ -257,7 +257,7 @@ data:
         trace_statements:
         - context: resource
           statements:
-          - keep_keys(resource.attributes, ["service.name","service.namespace","cx.cluster.name","k8s.cluster.name","k8s.namespace.name","host.name","deployment.environment.name","deployment.environment.type","cx.tenant.name"])
+          - keep_keys(resource.attributes, ["service.name","service.namespace","cx.cluster.name","k8s.cluster.name","host.name","deployment.environment.name","deployment.environment.type","cx.tenant.name"])
         - context: span
           statements:
           - set(attributes["db.system"], attributes["db.system.name"]) where attributes["db.system.name"]

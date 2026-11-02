@@ -2188,7 +2188,7 @@ cx.integrationID: "{{ .Values.presets.fleetManagement.integrationID }}"
 
 {{/* Resource attributes kept on spans feeding compact span metrics; each becomes a metric label. */}}
 {{- define "opentelemetry-collector.spanMetrics.compactResourceKeys" -}}
-{{- $keys := list "service.name" "service.namespace" "cx.cluster.name" "k8s.cluster.name" "k8s.namespace.name" "host.name" "deployment.environment.name" "deployment.environment.type" -}}
+{{- $keys := list "service.name" "service.namespace" "cx.cluster.name" "k8s.cluster.name" "host.name" "deployment.environment.name" "deployment.environment.type" -}}
 {{- if .tenant -}}
 {{- $keys = append $keys "cx.tenant.name" -}}
 {{- end -}}
