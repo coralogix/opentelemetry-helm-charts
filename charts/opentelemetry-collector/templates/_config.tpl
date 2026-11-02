@@ -2175,8 +2175,13 @@ cx.integrationID: "{{ .Values.presets.fleetManagement.integrationID }}"
 - name: messaging.consumer.group.name
 {{- end }}
 
-{{/* Sets resource cx.cluster.name from the first available cluster attribute (k8s, then ECS), falling back to the configured cluster name. */}}
-{{- define "opentelemetry-collector.spanMetrics.clusterNameStatements" -}}
+{{/*
+Resource statements for spans feeding span metrics:
+- service.namespace falls back to k8s.namespace.name when unset.
+- cx.cluster.name is set from the first available cluster attribute (k8s, then ECS), falling back to the configured cluster name.
+*/}}
+{{- define "opentelemetry-collector.spanMetrics.resourceStatements" -}}
+- set(resource.attributes["service.namespace"], resource.attributes["k8s.namespace.name"]) where resource.attributes["service.namespace"] == nil and resource.attributes["k8s.namespace.name"] != nil
 - set(resource.attributes["cx.cluster.name"], resource.attributes["k8s.cluster.name"]) where resource.attributes["cx.cluster.name"] == nil and resource.attributes["k8s.cluster.name"] != nil
 - set(resource.attributes["cx.cluster.name"], resource.attributes["aws.ecs.cluster.name"]) where resource.attributes["cx.cluster.name"] == nil and resource.attributes["aws.ecs.cluster.name"] != nil
 - set(resource.attributes["cx.cluster.name"], resource.attributes["aws.ecs.cluster.arn"]) where resource.attributes["cx.cluster.name"] == nil and resource.attributes["aws.ecs.cluster.arn"] != nil
@@ -2374,7 +2379,7 @@ processors:
     trace_statements:
       - context: resource
         statements:
-        {{- include "opentelemetry-collector.spanMetrics.clusterNameStatements" . | nindent 8 }}
+        {{- include "opentelemetry-collector.spanMetrics.resourceStatements" . | nindent 8 }}
     {{- if or .Values.presets.spanMetrics.transformStatements .Values.presets.spanMetrics.tenant.enabled }}
       - context: span
         statements:
@@ -2701,7 +2706,7 @@ processors:
     trace_statements:
       - context: resource
         statements:
-        {{- include "opentelemetry-collector.spanMetrics.clusterNameStatements" . | nindent 8 }}
+        {{- include "opentelemetry-collector.spanMetrics.resourceStatements" . | nindent 8 }}
     {{- if and .Values.presets.spanMetricsMulti.transformStatements (gt (len .Values.presets.spanMetricsMulti.transformStatements) 0) }}
       - context: span
         statements:

@@ -190,6 +190,9 @@ data:
         trace_statements:
         - context: resource
           statements:
+          - set(resource.attributes["service.namespace"], resource.attributes["k8s.namespace.name"])
+            where resource.attributes["service.namespace"] == nil and resource.attributes["k8s.namespace.name"]
+            != nil
           - set(resource.attributes["cx.cluster.name"], resource.attributes["k8s.cluster.name"])
             where resource.attributes["cx.cluster.name"] == nil and resource.attributes["k8s.cluster.name"]
             != nil
