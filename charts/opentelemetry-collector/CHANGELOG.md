@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.142.1 / 2026-11-01
+
+- [Feat] `presets.semconv` now backfills `rpc.grpc.status_code` (int) from the string gRPC status in `rpc.response.status_code` or `rpc.status_code` for gRPC spans, so APM error tracking works with newer RPC semantic conventions.
+
 ### v0.142.0 / 2026-10-27
 
 - [Feat] Bump the OpenTelemetry Collector image to v0.164.0.
