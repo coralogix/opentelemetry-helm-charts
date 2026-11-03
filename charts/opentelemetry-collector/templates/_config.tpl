@@ -1955,6 +1955,10 @@ processors:
         statements:
           - set(span.attributes["http.method"], span.attributes["http.request.method"]) where span.attributes["http.request.method"] != nil
           - set(span.attributes["http.response.status_code"], span.attributes["http.status_code"]) where span.attributes["http.response.status_code"] == nil and span.attributes["http.status_code"] != nil
+          - set(span.cache["rpc_status"], span.attributes["rpc.response.status_code"]) where span.attributes["rpc.response.status_code"] != nil
+          - set(span.cache["rpc_status"], span.attributes["rpc.status_code"]) where span.attributes["rpc.status_code"] != nil
+          - 'set(span.cache["grpc_codes"], {"OK": 0, "CANCELLED": 1, "UNKNOWN": 2, "INVALID_ARGUMENT": 3, "DEADLINE_EXCEEDED": 4, "NOT_FOUND": 5, "ALREADY_EXISTS": 6, "PERMISSION_DENIED": 7, "RESOURCE_EXHAUSTED": 8, "FAILED_PRECONDITION": 9, "ABORTED": 10, "OUT_OF_RANGE": 11, "UNIMPLEMENTED": 12, "INTERNAL": 13, "UNAVAILABLE": 14, "DATA_LOSS": 15, "UNAUTHENTICATED": 16}) where span.cache["rpc_status"] != nil'
+          - set(span.attributes["rpc.grpc.status_code"], span.cache["grpc_codes"][span.cache["rpc_status"]]) where span.attributes["rpc.grpc.status_code"] == nil and span.cache["rpc_status"] != nil and (span.attributes["rpc.system"] == "grpc" or span.attributes["rpc.system.name"] == "grpc") and span.cache["grpc_codes"][span.cache["rpc_status"]] != nil
 {{- end }}
 
 {{- define "opentelemetry-collector.applyDbSemConvConfig" -}}
