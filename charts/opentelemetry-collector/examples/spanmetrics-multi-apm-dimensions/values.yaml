@@ -1,0 +1,36 @@
+# APM span metrics dimensions (spanMetricsMulti preset), all enabled:
+# - deployment.environment.type from global.deploymentEnvironmentType
+# - service.namespace (falls back to k8s.namespace.name from kubernetesAttributes)
+# - cx.cluster.name (k8s.cluster.name, then ECS cluster name/ARN, then global.clusterName)
+# - opt-in messaging.* dimensions
+mode: daemonset
+global:
+  domain: coralogix.com
+  clusterName: prod-eu-1
+  defaultApplicationName: otel
+  defaultSubsystemName: integration
+  deploymentEnvironmentName: production-eu
+  deploymentEnvironmentType: production
+
+presets:
+  batch:
+    enabled: true
+  coralogixExporter:
+    enabled: true
+    privateKey: ${env:CORALOGIX_PRIVATE_KEY}
+  resourceDetection:
+    enabled: true
+  kubernetesAttributes:
+    enabled: true
+  spanMetricsMulti:
+    enabled: true
+    dbMetrics:
+      enabled: true
+    compactMetrics:
+      enabled: true
+    # Opt-in messaging.* dimensions on calls_total and duration_ms_*.
+    messagingDimensions:
+      enabled: true
+    configs:
+      - selector: route() where attributes["service.name"] == "checkout"
+        histogramBuckets: [5ms, 10ms, 50ms, 100ms, 500ms, 1s]

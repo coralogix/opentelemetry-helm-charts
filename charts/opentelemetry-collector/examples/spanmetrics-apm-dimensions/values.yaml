@@ -1,6 +1,13 @@
+# APM span metrics dimensions (spanMetrics preset), all enabled:
+# - deployment.environment.type from global.deploymentEnvironmentType
+# - service.namespace (falls back to k8s.namespace.name from kubernetesAttributes)
+# - cx.cluster.name (k8s.cluster.name, then ECS cluster name/ARN, then global.clusterName)
+# - opt-in messaging.* dimensions
+# - opt-in cx.tenant.name dimension
 mode: daemonset
 global:
   domain: coralogix.com
+  clusterName: prod-eu-1
   defaultApplicationName: otel
   defaultSubsystemName: integration
   deploymentEnvironmentName: production-eu
@@ -13,6 +20,8 @@ presets:
     enabled: true
     privateKey: ${env:CORALOGIX_PRIVATE_KEY}
   resourceDetection:
+    enabled: true
+  kubernetesAttributes:
     enabled: true
   spanMetrics:
     enabled: true
