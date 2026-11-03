@@ -389,10 +389,10 @@ data:
           statements:
           - set(span.attributes["cx.tenant.name"], span.attributes["cgx.company.id"])
             where span.attributes["cx.tenant.name"] == nil and span.attributes["cgx.company.id"]
-            != nil
+            != nil and span.attributes["cgx.company.id"] != ""
           - set(span.attributes["cx.tenant.name"], resource.attributes["cgx.company.id"])
             where span.attributes["cx.tenant.name"] == nil and resource.attributes["cgx.company.id"]
-            != nil
+            != nil and resource.attributes["cgx.company.id"] != ""
     receivers:
       otlp:
         protocols:

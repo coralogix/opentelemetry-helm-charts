@@ -2392,8 +2392,8 @@ processors:
         {{- end}}
         {{- if .Values.presets.spanMetrics.tenant.enabled }}
         {{- range .Values.presets.spanMetrics.tenant.sourceAttributes }}
-        - set(span.attributes["cx.tenant.name"], span.attributes["{{ . }}"]) where span.attributes["cx.tenant.name"] == nil and span.attributes["{{ . }}"] != nil
-        - set(span.attributes["cx.tenant.name"], resource.attributes["{{ . }}"]) where span.attributes["cx.tenant.name"] == nil and resource.attributes["{{ . }}"] != nil
+        - set(span.attributes["cx.tenant.name"], span.attributes["{{ . }}"]) where span.attributes["cx.tenant.name"] == nil and span.attributes["{{ . }}"] != nil and span.attributes["{{ . }}"] != ""
+        - set(span.attributes["cx.tenant.name"], resource.attributes["{{ . }}"]) where span.attributes["cx.tenant.name"] == nil and resource.attributes["{{ . }}"] != nil and resource.attributes["{{ . }}"] != ""
         {{- end }}
         {{- end }}
     {{- end }}
