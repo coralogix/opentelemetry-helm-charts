@@ -2164,7 +2164,45 @@ cx.integrationID: "{{ .Values.presets.fleetManagement.integrationID }}"
 {{- if .Values.presets.spanMetrics.serviceVersion.enabled }}
 - name: service.version
 {{- end }}
+{{- if .Values.presets.spanMetrics.messagingDimensions.enabled }}
+{{- include "opentelemetry-collector.spanMetrics.messagingDimensions" . }}
+{{- end }}
+{{- if .Values.presets.spanMetrics.tenant.enabled }}
+- name: cx.tenant.name
+{{- end }}
 {{- end}}
+
+{{- define "opentelemetry-collector.spanMetrics.messagingDimensions" }}
+- name: messaging.system
+- name: messaging.destination.name
+- name: messaging.operation.type
+- name: messaging.consumer.group.name
+{{- end }}
+
+{{/*
+Resource statements for spans feeding span metrics:
+- service.namespace falls back to k8s.namespace.name when unset.
+- cx.cluster.name is set from the first available cluster attribute (k8s, then ECS), falling back to the configured cluster name.
+*/}}
+{{- define "opentelemetry-collector.spanMetrics.resourceStatements" -}}
+- set(resource.attributes["service.namespace"], resource.attributes["k8s.namespace.name"]) where resource.attributes["service.namespace"] == nil and resource.attributes["k8s.namespace.name"] != nil
+- set(resource.attributes["cx.cluster.name"], resource.attributes["k8s.cluster.name"]) where resource.attributes["cx.cluster.name"] == nil and resource.attributes["k8s.cluster.name"] != nil
+- set(resource.attributes["cx.cluster.name"], resource.attributes["aws.ecs.cluster.name"]) where resource.attributes["cx.cluster.name"] == nil and resource.attributes["aws.ecs.cluster.name"] != nil
+- set(resource.attributes["cx.cluster.name"], resource.attributes["aws.ecs.cluster.arn"]) where resource.attributes["cx.cluster.name"] == nil and resource.attributes["aws.ecs.cluster.arn"] != nil
+{{- $clusterName := tpl (.Values.presets.metadata.clusterName | default .Values.global.clusterName | default "") . }}
+{{- if $clusterName }}
+- set(resource.attributes["cx.cluster.name"], {{ $clusterName | quote }}) where resource.attributes["cx.cluster.name"] == nil
+{{- end }}
+{{- end }}
+
+{{/* Resource attributes kept on spans feeding compact span metrics; each becomes a metric label. */}}
+{{- define "opentelemetry-collector.spanMetrics.compactResourceKeys" -}}
+{{- $keys := list "service.name" "service.namespace" "cx.cluster.name" "k8s.cluster.name" "host.name" "deployment.environment.name" "deployment.environment.type" -}}
+{{- if .tenant -}}
+{{- $keys = append $keys "cx.tenant.name" -}}
+{{- end -}}
+{{- $keys | toJson -}}
+{{- end }}
 
 {{- define "opentelemetry-collector.spanMetricsConfig" -}}
 connectors:
@@ -2224,6 +2262,9 @@ connectors:
       {{- if .Values.presets.spanMetrics.dbMetrics.extraDimensions }}
       {{- .Values.presets.spanMetrics.dbMetrics.extraDimensions | toYaml | nindent 6 }}
       {{- end }}
+      {{- if .Values.presets.spanMetrics.tenant.enabled }}
+      - name: cx.tenant.name
+      {{- end }}
 {{- if .Values.presets.spanMetrics.metricsExpiration }}
     metrics_expiration: "{{ .Values.presets.spanMetrics.metricsExpiration }}"
 {{- else }}
@@ -2244,6 +2285,10 @@ connectors:
   spanmetrics/compact:
     aggregation_cardinality_limit: {{ .Values.presets.spanMetrics.aggregationCardinalityLimit }}
     add_resource_attributes: true
+{{- if .Values.presets.spanMetrics.tenant.enabled }}
+    dimensions:
+      - name: cx.tenant.name
+{{- end }}
     exclude_dimensions:
     - collector.instance.id
     - span.name
@@ -2276,6 +2321,9 @@ connectors:
     dimensions:
       - name: db.namespace
       - name: db.system
+      {{- if .Values.presets.spanMetrics.tenant.enabled }}
+      - name: cx.tenant.name
+      {{- end }}
     exclude_dimensions:
     - collector.instance.id
     - span.name
@@ -2332,13 +2380,22 @@ processors:
       - context: datapoint
         statements:
         {{- include "opentelemetry-collector.spanMetricsStatusCodeStatements" . | nindent 8 }}
-    {{- if .Values.presets.spanMetrics.transformStatements }}
     trace_statements:
+      - context: resource
+        statements:
+        {{- include "opentelemetry-collector.spanMetrics.resourceStatements" . | nindent 8 }}
+    {{- if or .Values.presets.spanMetrics.transformStatements .Values.presets.spanMetrics.tenant.enabled }}
       - context: span
         statements:
         {{- range $index, $pattern := .Values.presets.spanMetrics.transformStatements }}
         - {{ $pattern }}
         {{- end}}
+        {{- if .Values.presets.spanMetrics.tenant.enabled }}
+        {{- range .Values.presets.spanMetrics.tenant.sourceAttributes }}
+        - set(span.attributes["cx.tenant.name"], span.attributes["{{ . }}"]) where span.attributes["cx.tenant.name"] == nil and span.attributes["{{ . }}"] != nil and span.attributes["{{ . }}"] != ""
+        - set(span.attributes["cx.tenant.name"], resource.attributes["{{ . }}"]) where span.attributes["cx.tenant.name"] == nil and resource.attributes["{{ . }}"] != nil and resource.attributes["{{ . }}"] != ""
+        {{- end }}
+        {{- end }}
     {{- end }}
 {{- end }}
 {{- if .Values.presets.spanMetrics.dbMetrics.enabled }}
@@ -2357,18 +2414,18 @@ processors:
     trace_statements:
       - context: resource
         statements:
-          - keep_keys(resource.attributes, ["service.name", "k8s.cluster.name", "host.name", "deployment.environment.name"])
+          - keep_keys(resource.attributes, {{ include "opentelemetry-collector.spanMetrics.compactResourceKeys" (dict "tenant" .Values.presets.spanMetrics.tenant.enabled) }})
 {{- end }}
 {{- if .Values.presets.spanMetrics.dbMetrics.compactMetrics.enabled }}
   transform/db_compact:
     trace_statements:
       - context: resource
         statements:
-          - keep_keys(resource.attributes, ["service.name", "k8s.cluster.name", "host.name", "deployment.environment.name"])
+          - keep_keys(resource.attributes, {{ include "opentelemetry-collector.spanMetrics.compactResourceKeys" (dict "tenant" .Values.presets.spanMetrics.tenant.enabled) }})
       - context: span
         statements:
           - set(attributes["db.system"], attributes["db.system.name"]) where attributes["db.system.name"] != nil and attributes["db.system"] == nil
-          - keep_keys(span.attributes, ["db.namespace", "db.system"])
+          - keep_keys(span.attributes, ["db.namespace", "db.system"{{ if .Values.presets.spanMetrics.tenant.enabled }}, "cx.tenant.name"{{ end }}])
 {{- end }}
 {{- if and (.Values.presets.spanMetrics.compactMetrics.enabled) (.Values.presets.spanMetrics.compactMetrics.dropHistogram) }}
   transform/compact_histogram:
@@ -2490,6 +2547,14 @@ service:
 {{- if and $multiServiceVersion $multiServiceVersion.enabled }}
 {{- $generatedNames = append $generatedNames "service.version" -}}
 {{- end }}
+{{- $multiMessaging := .Values.presets.spanMetricsMulti.messagingDimensions -}}
+{{- $messagingEnabled := .Values.presets.spanMetrics.messagingDimensions.enabled -}}
+{{- if and $multiMessaging (hasKey $multiMessaging "enabled") -}}
+{{- $messagingEnabled = $multiMessaging.enabled -}}
+{{- end -}}
+{{- if $messagingEnabled }}
+{{- $generatedNames = concat $generatedNames (list "messaging.system" "messaging.destination.name" "messaging.operation.type" "messaging.consumer.group.name") -}}
+{{- end }}
 {{- range ($generatedNames | uniq) }}
 {{- if not (has . $extraNames) }}
 - name: {{ . }}
@@ -2499,7 +2564,6 @@ service:
 
 {{- define "opentelemetry-collector.applySpanMetricsMultiConfig" -}}
 {{- $sm := mergeOverwrite (dict "dbMetrics" (dict "enabled" false "compactMetrics" (dict "enabled" false)) "compactMetrics" (dict "enabled" false)) .Values.Values.presets.spanMetricsMulti }}
-{{- $hasTransformStatements := and $sm.transformStatements (gt (len $sm.transformStatements) 0) }}
 {{- $hasSpanNameReplacePattern := and $sm.spanNameReplacePattern (gt (len $sm.spanNameReplacePattern) 0) }}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.spanMetricsMultiConfig" .Values | fromYaml) .config }}
 {{- $tracesPipeline := deepCopy $config.service.pipelines.traces }}
@@ -2526,10 +2590,8 @@ service:
 {{- $tracesExporters = append $tracesExporters "forward/db_compact" | uniq }}
 {{- end }}
 {{- $_ := set $config.service.pipelines.traces "exporters" $tracesExporters }}
-{{- if $hasTransformStatements }}
 {{- if not (has "transform/spanmetricsmulti" $config.service.pipelines.traces.processors) }}
 {{- $_ := set $config.service.pipelines.traces "processors" (append $config.service.pipelines.traces.processors "transform/spanmetricsmulti" | uniq) }}
-{{- end }}
 {{- end }}
 {{- if $hasSpanNameReplacePattern }}
 {{- $_ := set $config.service.pipelines.traces "processors" (prepend $config.service.pipelines.traces.processors "transform/span_name" | uniq) }}
@@ -2645,8 +2707,11 @@ processors:
       - context: datapoint
         statements:
         {{- include "opentelemetry-collector.spanMetricsStatusCodeStatements" . | nindent 8 }}
-    {{- if and .Values.presets.spanMetricsMulti.transformStatements (gt (len .Values.presets.spanMetricsMulti.transformStatements) 0) }}
     trace_statements:
+      - context: resource
+        statements:
+        {{- include "opentelemetry-collector.spanMetrics.resourceStatements" . | nindent 8 }}
+    {{- if and .Values.presets.spanMetricsMulti.transformStatements (gt (len .Values.presets.spanMetricsMulti.transformStatements) 0) }}
       - context: span
         statements:
         {{- range $index, $pattern := .Values.presets.spanMetricsMulti.transformStatements }}
@@ -4883,14 +4948,14 @@ receivers:
     trace_statements:
       - context: resource
         statements:
-          - keep_keys(resource.attributes, ["service.name", "k8s.cluster.name", "host.name", "deployment.environment.name"])
+          - keep_keys(resource.attributes, {{ include "opentelemetry-collector.spanMetrics.compactResourceKeys" (dict "tenant" false) }})
 {{- end }}
 {{- if $dbCompactMetrics.enabled }}
   transform/db_compact:
     trace_statements:
       - context: resource
         statements:
-          - keep_keys(resource.attributes, ["service.name", "k8s.cluster.name", "host.name", "deployment.environment.name"])
+          - keep_keys(resource.attributes, {{ include "opentelemetry-collector.spanMetrics.compactResourceKeys" (dict "tenant" false) }})
       - context: span
         statements:
           - set(attributes["db.system"], attributes["db.system.name"]) where attributes["db.system.name"] != nil and attributes["db.system"] == nil
