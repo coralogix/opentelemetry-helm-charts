@@ -356,15 +356,16 @@ envValueFrom: {}
 preset: application
 
 presets:
-  ## Exports application runtime metrics (Go memory limits, completed GC cycles, GOMAXPROCS and
-  ## GOGC; HotSpot JVM heap used/committed/limit; Node.js event loop) for the instrumented
-  ## processes. Requires `preset: application`. By default it adds the `application_runtime`
+  ## Exports application runtime metrics (Go memory, GC, goroutines, CPU time and scheduling,
+  ## GOMAXPROCS and GOGC; HotSpot JVM heap used/committed/limit; Node.js event loop, GC and heap;
+  ## .NET 8+ GC, heap and CPU; CPython GC) for the instrumented processes. Requires `preset: application`. By default it adds the `application_runtime`
   ## metrics feature for every language; setting `languages` instead scopes the feature by giving
   ## each `config.data.discovery.instrument` selector a language-scoped copy carrying it, so the
   ## preset never widens the set of instrumented processes. A selector that already sets
   ## `languages` is left untouched.
   runtimeMetrics:
-    # -- Exports runtime metrics for every language OBI supports (`go`, `java` and `nodejs`).
+    # -- Exports runtime metrics for every language OBI supports (`go`, `java`, `nodejs`,
+    # `dotnet` and `python`).
     enabled: true
     # -- (list) Narrows the export to these detected languages, named as OBI names them: `go`,
     # `java`, `dotnet`, `python`, `ruby`, `nodejs`, `rust`, `php`, `cpp`, `generic`. Empty (the
