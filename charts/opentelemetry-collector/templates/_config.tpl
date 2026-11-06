@@ -2102,6 +2102,10 @@ cx.cluster.name: "{{.Values.presets.fleetManagement.clusterName}}"
 {{- if .Values.presets.fleetManagement.integrationID }}
 cx.integrationID: "{{ .Values.presets.fleetManagement.integrationID }}"
 {{- end }}
+{{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" .Values.distribution "topLevelProvider" .Values.provider "explicitProvider" .Values.presets.resourceDetection.provider) }}
+{{- if $provider }}
+cx.provider.name: {{ $provider | quote }}
+{{- end }}
 {{- if .Values.presets.fleetManagement.customAttributes }}
 {{- range $key, $value := .Values.presets.fleetManagement.customAttributes }}
 {{ $key }}: "{{ $value }}"

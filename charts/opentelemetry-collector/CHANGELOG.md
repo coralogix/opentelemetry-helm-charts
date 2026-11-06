@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.142.3 / 2026-11-06
+
+- [Feat] Add `cx.provider.name` to the non-identifying attributes reported by the Collector and Supervisor when the provider is configured or inferred from the distribution.
+
 ### v0.142.2 / 2026-11-03
 
 - [Feat] Add opt-in `presets.spanMetrics.messagingDimensions.enabled` (disabled by default) to add `messaging.system`, `messaging.destination.name`, `messaging.operation.type` and `messaging.consumer.group.name` as dimensions on `calls_total` and `duration_ms_*`. `presets.spanMetricsMulti.messagingDimensions.enabled` overrides it for the multi preset and falls back to the `spanMetrics` setting when unset.
