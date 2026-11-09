@@ -100,6 +100,50 @@ Things to know:
   that is already set untouched. A section set under another spelling of the same metric (e.g.
   `obi_stat_tcp_rtt_seconds`) is merged with the preset's by OBI instead.
 
+## DNS metrics
+
+`presets.dnsMetrics.enabled: true` exports the `dns.lookup.duration` histogram for the DNS
+lookups made by the instrumented processes (see
+[examples/ebpf-instrumentation-dns-metrics](./examples/ebpf-instrumentation-dns-metrics/values.yaml)).
+
+```yaml
+preset: application
+presets:
+  dnsMetrics:
+    enabled: true
+```
+
+| Metric (OTLP name) | Attributes |
+| --- | --- |
+| `dns.lookup.duration` | `error.type`, plus the Kubernetes metadata of the client (`k8s.namespace.name`, `k8s.pod.name`, `k8s.owner.name`, `k8s.cluster.name`, ...) |
+
+Things to know:
+
+- It requires `preset: application`, and the render fails otherwise. DNS lookups are captured
+  by the application pipeline, so only the processes selected by `config.data.discovery` are
+  covered, and the DaemonSet runs the full application instrumentation (`hostPID` and the
+  application probes) even when DNS is the only exported metric.
+- When `metrics.features` does not already export OBI's application metrics (the default), the
+  preset adds the `application_red` feature and sets `instrumentations: [dns]` on the metrics
+  exporters, so no HTTP, gRPC, database or messaging metrics are exported. With
+  `metrics.features: [application]` (or `application_red`) DNS metrics are already exported, and
+  the preset only adds `dns` to an `instrumentations` list you set yourself.
+- Series are per instrumented process: OTLP metrics carry the process identity
+  (`service.instance.id` and the Pod metadata) as resource attributes, whatever the data point
+  attributes. `dns.question.name` is left out by OBI, since its values are unbounded. To add
+  it, select it next to the default attributes (an `include` list replaces the default set):
+
+  ```yaml
+  config:
+    data:
+      attributes:
+        select:
+          dns.lookup.duration:
+            include: ["error.type", "k8s.*", "dns.question.name"]
+  ```
+
+- The preset does not change tracing: spans are still exported as configured.
+
 ### Other configuration options
 
 The [values.yaml](./values.yaml) file contains information about all other configuration

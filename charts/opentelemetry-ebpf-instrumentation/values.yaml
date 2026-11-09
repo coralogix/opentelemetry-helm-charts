@@ -382,6 +382,21 @@ presets:
       # `languages` is empty or lists `java`.
       samplingInterval: 1s
 
+  ## Exports the `dns.lookup.duration` histogram of the DNS lookups made by the instrumented
+  ## processes, labeled with `error.type` and the Kubernetes metadata of the client workload.
+  ## Requires `preset: application`: DNS lookups are captured by the application pipeline, for the
+  ## processes selected by `config.data.discovery`, so the DaemonSet keeps the full application
+  ## instrumentation (`hostPID` and the application probes) even when DNS is the only exported
+  ## metric. When `metrics.features` does not already export OBI's application metrics, it adds
+  ## the `application_red` feature and restricts the exported application metrics to DNS, by
+  ## setting `instrumentations: [dns]` on the metrics exporters; when it does, DNS metrics are
+  ## already exported and only an explicit `instrumentations` list is extended with `dns`.
+  ## `dns.question.name` is left out by OBI, since its values are unbounded; see the chart README
+  ## to select it.
+  dnsMetrics:
+    # -- Exports DNS lookup duration metrics for the instrumented processes.
+    enabled: false
+
   ## Injects the active trace context into the logs written by the instrumented processes: OBI
   ## preserves an existing `trace_id` / `span_id` field where the log line already carries one, and
   ## adds it where it does not. Requires `preset: application`, and enriches the workloads selected
