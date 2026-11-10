@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/actions/setup/**'
       - '.github/workflows/validate-collector.yaml'
+      - 'hack/validate-collector-manifests.sh'
       - 'Makefile'
       - 'charts/opentelemetry-collector/**'
   workflow_dispatch:
@@ -30,3 +31,6 @@ jobs:
 
       - name: Check rendered OpenTelemetry Collector examples
         run: make check-examples CHARTS=opentelemetry-collector
+
+      - name: Validate rendered OpenTelemetry Collector manifests
+        run: ./hack/validate-collector-manifests.sh
