@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.143.0 / 2026-11-11
+
+- [Feat] Bump the OpenTelemetry Collector image to v0.165.0.
+
 ### v0.142.3 / 2026-11-06
 
 - [Feat] Add `cx.provider.name` to the non-identifying attributes reported by the Collector and Supervisor when the provider is configured or inferred from the distribution.
