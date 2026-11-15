@@ -173,19 +173,25 @@ tests:
       - failedTemplate:
           errorPattern: 'credentialsSecret'
 
-  # --- SEC-F-17: connection budget --------------------------------------------
-  - it: caps each receiver pool at one connection (metrics 1 + events 1 + dbentity probe 1 = 3, SEC-F-17)
+  # --- SEC-F-17: connection budget (open decision Q12 / R8) --------------------
+  # Upstream keeps one pool per database name plus the `postgres` client, and top-query EXPLAIN opens a
+  # client per database seen in pg_stat_statements. So max_open 1 caps each pool, not the receiver:
+  # per instance (1 + N databases) per receiver, plus the dbentity probe. Q12 measured 4 steady at limit 3.
+  - it: sets max_open 1 and max_idle 0 on every receiver pool, so connections close after each scrape (SEC-F-17, Q12/R8 open)
     template: configmap.yaml
     asserts:
       - matchRegex:
           path: data.relay
-          pattern: '(?s)postgresql/dbm_orders_events:\n    collection_interval: 10s\n    connection_pool:\n      max_open: 1\n'
+          pattern: '(?s)postgresql/dbm_orders_events:\n    collection_interval: 10s\n    connection_pool:\n      max_idle: 0\n      max_open: 1\n'
       - matchRegex:
           path: data.relay
-          pattern: '(?s)postgresql/dbm_orders_metrics:\n    collection_interval: 60s\n    connection_pool:\n      max_open: 1\n'
+          pattern: '(?s)postgresql/dbm_orders_metrics:\n    collection_interval: 60s\n    connection_pool:\n      max_idle: 0\n      max_open: 1\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?s)postgresql/dbm_billing_events:\n    collection_interval: 10s\n    connection_pool:\n      max_idle: 0\n      max_open: 1\n'
       - notMatchRegex:
           path: data.relay
-          pattern: 'max_open: [02-9]'
+          pattern: 'max_open: [02-9]|max_idle: [1-9]'
 
   # --- dbentity connector ------------------------------------------------------
   - it: renders one dbentity target per instance, verify-full by default, aws_account_id only when set
@@ -399,3 +405,37 @@ tests:
     asserts:
       - failedTemplate:
           errorPattern: 'at least one'
+
+  - it: refuses an instance name outside ^[a-z][a-z0-9_]{0,39}$
+    template: deployment.yaml
+    set:
+      presets.databaseMonitoring.instances:
+        - name: Orders
+          endpoint: orders.example.com:5432
+          databases: [app]
+          credentialsSecret:
+            name: dbm-orders
+    asserts:
+      - failedTemplate:
+          errorPattern: 'name'
+
+  # --- M2: the preset owns its components; config: must not redefine them -------
+  - it: refuses a config override of a DBM pipeline
+    template: deployment.yaml
+    set:
+      config.service.pipelines.logs/dbm:
+        receivers: [otlp]
+        exporters: [debug]
+    asserts:
+      - failedTemplate:
+          errorPattern: 'logs/dbm'
+
+  - it: refuses a config override of a DBM processor
+    template: deployment.yaml
+    set:
+      config.processors.dbm:
+        static_policy:
+          mode: sampled
+    asserts:
+      - failedTemplate:
+          errorPattern: 'config.processors.dbm'
