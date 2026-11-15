@@ -515,7 +515,7 @@ Build config file for deployment OpenTelemetry Collector
 {{- $rendered := tpl (toYaml $config) . }}
 {{- if .Values.presets.databaseMonitoring.enabled }}
 {{- /* Guard the tpl-expanded result, so no {{ }} value can bring an owned id back after the check. */}}
-{{- include "opentelemetry-collector.dbmFinalGuard" (dict "config" ($rendered | fromYaml) "expected" (tpl (include "opentelemetry-collector.databaseMonitoringConfig" $data) . | fromYaml)) }}
+{{- include "opentelemetry-collector.dbmFinalGuard" (dict "config" $config "expected" (include "opentelemetry-collector.databaseMonitoringConfig" $data | fromYaml)) }}
 {{- end }}
 {{- $rendered }}
 {{- end }}
