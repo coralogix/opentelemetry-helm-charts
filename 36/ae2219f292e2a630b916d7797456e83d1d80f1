@@ -1,0 +1,25 @@
+charts/opentelemetry-collector/tests/run-database-monitoring-tests.sh
+  s_f831f252c737d7::t_0c3faa7bf821d4 2,6-7,13-34,40,44,59
+Makefile
+  s_f831f252c737d7::t_c6d822ff61b120 135-142
+charts/opentelemetry-collector/tests/database_monitoring_test.yaml
+  s_f831f252c737d7::t_a7ac9b295d6714 176-180,185,188-191,194,408-441
+charts/opentelemetry-collector/tests/requirements-database-monitoring.txt
+  s_f831f252c737d7::t_03d2bb7cda3ecd 1-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "36ae2219f292e2a630b916d7797456e83d1d80f1",
+  "prompts": {},
+  "sessions": {
+    "s_f831f252c737d7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d17d887-0e27-40f9-aede-50f0536246af",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "oded-dd <oded@coralogix.com>"
+    }
+  }
+}
