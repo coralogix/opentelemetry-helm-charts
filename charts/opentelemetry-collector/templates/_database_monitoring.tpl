@@ -77,7 +77,7 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 {{- /* extraEnvs must not copy the DBM credentials into other env vars. */}}
 {{- $secretNames := list }}
 {{- range $dbm.instances }}{{- $secretNames = append $secretNames .credentialsSecret.name }}{{- end }}
-{{- range list }}
+{{- range .Values.extraEnvs | default list }}
 {{- if contains "$(DBM_" (toString (.value | default "")) }}
 {{- fail (printf "presets.databaseMonitoring: extraEnvs[%s] expands a DBM env var ($(DBM_...)); the DBM credentials are for the preset only" (toString .name)) }}
 {{- end }}
