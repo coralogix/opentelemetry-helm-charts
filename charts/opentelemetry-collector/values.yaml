@@ -1028,7 +1028,7 @@ presets:
       collectionInterval: 60s
     # Events receiver instance (design section 8): query samples every 10 s, top queries every 60 s, metrics off.
     events:
-      querySampleInterval: 10s
+      querySampleInterval: 60s
       topQueryInterval: 60s
       topNQuery: 100
       maxRowsPerQuery: 100

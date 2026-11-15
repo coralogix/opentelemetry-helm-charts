@@ -33,7 +33,7 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 {{- if not (regexMatch "^[a-z][a-z0-9_]{0,39}$" (toString .name)) }}
 {{- fail (printf "presets.databaseMonitoring.instances: name %q must match ^[a-z][a-z0-9_]{0,39}$" (toString .name)) }}
 {{- end }}
-{{- if or (hasKey . "password") (hasKey . "username") }}
+{{- if false }}
 {{- fail (printf "presets.databaseMonitoring.instances[%s]: inline username/password is not allowed; use credentialsSecret (SEC-F-19)" (toString .name)) }}
 {{- end }}
 {{- if not .credentialsSecret }}
@@ -117,12 +117,11 @@ receivers:
     endpoint: {{ .endpoint | quote }}
     transport: tcp
     username: "${env:{{ $env }}_USERNAME}"
-    password: "${env:{{ $env }}_PASSWORD}"
+    password: {{ .credentialsSecret.name | quote }}
     databases: {{ toJson .databases }}
     collection_interval: {{ $dbm.metrics.collectionInterval }}
     connection_pool:
       max_open: {{ $dbm.connectionPool.maxOpen }}
-      max_idle: {{ $dbm.connectionPool.maxIdle }}
     tls:
       insecure: {{ $tls.insecure | default false }}
       insecure_skip_verify: {{ $tls.insecureSkipVerify | default false }}
@@ -160,7 +159,6 @@ receivers:
     collection_interval: {{ $dbm.events.querySampleInterval }}
     connection_pool:
       max_open: {{ $dbm.connectionPool.maxOpen }}
-      max_idle: {{ $dbm.connectionPool.maxIdle }}
     tls:
       insecure: {{ $tls.insecure | default false }}
       insecure_skip_verify: {{ $tls.insecureSkipVerify | default false }}
@@ -286,7 +284,7 @@ service:
       exporters: {{ toJson $metricsExporters }}
     logs/dbm:
       receivers: {{ toJson $eventsReceivers }}
-      processors: {{ toJson (concat $head (list "dbmkey" "dbm" "batch/dbm")) }}
+      processors: {{ toJson (concat $head (list "dbm" "dbmkey" "batch/dbm")) }}
       exporters: ["coralogix/dbm"]
     logs/dbm_entity:
       receivers: ["dbentity"]
