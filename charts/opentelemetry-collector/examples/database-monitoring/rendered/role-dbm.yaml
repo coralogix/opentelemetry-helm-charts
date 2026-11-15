@@ -1,0 +1,40 @@
+---
+# Source: opentelemetry-collector/templates/role-dbm.yaml
+# dbentity PVC lookup (EC-05-S2/S3): read-only, in each namespace that holds a StatefulSet pod target.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: example-opentelemetry-collector-dbm-pvc-lookup
+  namespace: billing
+  labels:
+    helm.sh/chart: opentelemetry-collector-0.143.1
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.165.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+
+---
+# Source: opentelemetry-collector/templates/role-dbm.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: example-opentelemetry-collector-dbm-pvc-lookup
+  namespace: billing
+  labels:
+    helm.sh/chart: opentelemetry-collector-0.143.1
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.165.0"
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: example-opentelemetry-collector-dbm-pvc-lookup
+subjects:
+  - kind: ServiceAccount
+    name: example-opentelemetry-collector
+    namespace: default

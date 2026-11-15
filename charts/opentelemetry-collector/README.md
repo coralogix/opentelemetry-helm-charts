@@ -521,6 +521,56 @@ receivers:
                 env: prod
 ```
 
+### Configuration for Database Monitoring (development)
+
+The `databaseMonitoring` preset renders the Coralogix Database Monitoring (DBM) pipelines for remote and managed
+PostgreSQL instances. It runs only with `mode: deployment` or `mode: statefulset` (not `daemonset`, not
+`collectorCRD.generate`) and needs a collector image that contains the `dbm` processor, the `dbmkey` processor and the
+`dbentity` connector.
+
+For each instance it adds two PostgreSQL receivers: `postgresql/dbm_<name>_metrics` (60 s, events off, per-table and
+per-index metrics off) and `postgresql/dbm_<name>_events` (query samples every 10 s, top queries every 60 s,
+`max_explain_each_interval` 100). Pipelines:
+
+| Pipeline | Receivers | Processors | Exporters |
+|---|---|---|---|
+| `metrics/dbm` | `*_metrics` | `memory_limiter`, [`resource/dbm_scope`], `dbmkey` | `dbentity` (+ `coralogix` when the Coralogix exporter preset is on) |
+| `logs/dbm` | `*_events` | `memory_limiter`, [`resource/dbm_scope`], `dbmkey`, `dbm`, `batch/dbm` | `coralogix/dbm` (`x-coralogix-ingress: dbm-as-otlp-logs/v1`) |
+| `logs/dbm_entity` | `dbentity` | | `nop`, or `coralogix/dbm_entity` with `entity.export.enabled` |
+| `logs/dbm_file` (optional) | `filelog/dbm` | `memory_limiter`, `resource/dbm_file`, [`resource/dbm_scope`], `dbmkey`, `dbm`, `filter/dbm_file_unparsed` | `coralogix/dbm` |
+
+Security and safety:
+
+- **Credentials** come only from a Kubernetes Secret (`credentialsSecret`). The chart injects them as pod env vars
+  `DBM_<NAME>_USERNAME` / `DBM_<NAME>_PASSWORD`, and the configuration only holds `${env:...}` references. Inline
+  `username` or `password` keys are refused.
+- **Connections:** each receiver pool is capped at one connection (`connection_pool.max_open: 1`), so metrics 1 +
+  events 1 + the `dbentity` probe 1 stay within a `CONNECTION LIMIT 3` monitoring user. The receiver enforces the pool
+  only with the collector feature gate `receiver.postgresql.connectionPool`.
+- **Self-managed log files** (`logs`, off by default) are a placeholder: every record passes `dbmkey` and `dbm` and is
+  then dropped by `filter/dbm_file_unparsed`, so no raw log line leaves the collector until the log parser and edge
+  redaction exist.
+- **RDS / Aurora log files** (`rdsLogs`) are a stub and enabling them is refused. The future receiver needs the IAM
+  permissions `rds:DescribeDBLogFiles` and `rds:DownloadDBLogFilePortion` on the monitored instances.
+- `pvcLookup.namespaces` creates a read-only Role and RoleBinding (`get`, `list`, `watch` on pods and
+  persistentvolumeclaims) in each namespace that holds a StatefulSet pod target.
+
+```yaml
+mode: statefulset
+presets:
+  databaseMonitoring:
+    enabled: true
+    clusterUid: ""          # optional kube-system namespace UID, inserted as k8s.cluster.uid
+    instances:
+      - name: orders
+        endpoint: orders.abc123.eu-west-1.rds.amazonaws.com:5432
+        databases: [app]
+        credentialsSecret:
+          name: dbm-orders   # keys: username, password
+        sslrootcert: /etc/dbm/rds-ca.pem
+        awsAccountId: "012345678901"
+```
+
 ### Configuration for Multiple Filelog Receivers
 
 The `filelogMulti` preset wires additional filelog receivers into the logs pipeline. Each receiver watches its own set of files and automatically annotates collected log records with `cx.application.name` and `cx.subsystem.name` resource attributes. Static values can be supplied through `applicationName` and `subsystemName`, while the `applicationNameAttribute` and `subsystemNameAttribute` options copy resource attributes after any `extraOperators` run (for example, once JSON parsing has promoted values into the resource scope). Receivers may also fine-tune ingestion with `forceFlushPeriod`, `startAt`, and an optional `multiline` block that mirrors the ECS logs preset behavior.

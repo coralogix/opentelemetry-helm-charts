@@ -142,6 +142,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- define "opentelemetry-collector.daemonsetConfig" -}}
 {{- $values := deepCopy .Values }}
 {{- $data := dict "Values" $values | mustMergeOverwrite (deepCopy .) }}
+{{- if .Values.presets.databaseMonitoring.enabled }}
+{{- fail "presets.databaseMonitoring: mode must be deployment or statefulset (design topology 2)" }}
+{{- end }}
 {{- $config := include "opentelemetry-collector.baseConfig" $data | fromYaml }}
 {{- if .Values.presets.ecsLogsCollection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyEcsLogsCollectionConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -362,6 +365,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- if .Values.presets.mysql.metrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyMysqlConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
+{{- if .Values.presets.databaseMonitoring.enabled }}
+{{- $config = (include "opentelemetry-collector.applyDatabaseMonitoringConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.hostMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyHostMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}

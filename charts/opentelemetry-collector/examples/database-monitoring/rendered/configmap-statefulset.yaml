@@ -1,0 +1,379 @@
+---
+# Source: opentelemetry-collector/templates/configmap-statefulset.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-opentelemetry-collector-statefulset
+  namespace: default
+  labels:
+    helm.sh/chart: opentelemetry-collector-0.143.1
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.165.0"
+    app.kubernetes.io/managed-by: Helm
+data:
+  relay: |
+    connectors:
+      dbentity:
+        interval: 5m
+        probe_timeout: 5s
+        targets:
+        - aws_account_id: "012345678901"
+          database: app
+          db_system: postgresql
+          endpoint: orders.abc123.eu-west-1.rds.amazonaws.com:5432
+          password: ${env:DBM_ORDERS_PASSWORD}
+          sslmode: verify-full
+          sslrootcert: /etc/dbm/rds-ca.pem
+          username: ${env:DBM_ORDERS_USERNAME}
+        - database: billing
+          db_system: postgresql
+          endpoint: billing-db.billing.svc.cluster.local:5432
+          password: ${env:DBM_BILLING_PASSWORD}
+          sslmode: require
+          username: ${env:DBM_BILLING_USERNAME}
+    exporters:
+      coralogix/dbm:
+        application_name: dbm
+        domain: eu2.coralogix.com
+        logs:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+            x-coralogix-ingress: dbm-as-otlp-logs/v1
+        private_key: ${env:CORALOGIX_PRIVATE_KEY}
+        subsystem_name: events
+        timeout: 30s
+      debug: {}
+      nop: {}
+    extensions:
+      health_check:
+        endpoint: ${env:MY_POD_IP}:13133
+    processors:
+      batch/dbm:
+        send_batch_size: 1024
+        timeout: 5s
+      dbm:
+        allow_literal_capture: false
+        lease_copy_enabled: false
+        opamp: ""
+        static_policy:
+          mode: baseline
+          samples_per_signature_per_hour: 15
+          top_k: 100
+      dbmkey:
+        db_system: postgresql
+      filter/dbm_file_unparsed:
+        error_mode: propagate
+        logs:
+          log_record:
+          - "true"
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      resource/dbm_file:
+        attributes:
+        - action: upsert
+          key: db.system.name
+          value: postgresql
+        - action: upsert
+          key: server.address
+          value: billing-db.billing.svc.cluster.local
+        - action: upsert
+          key: server.port
+          value: 5432
+        - action: upsert
+          key: dbm.log.format
+          value: jsonlog
+      resource/dbm_scope:
+        attributes:
+        - action: insert
+          key: k8s.cluster.uid
+          value: 0c31d8e2-b613-43a4-98ed-566f8138b361
+      transform/prometheus:
+        error_mode: ignore
+        metric_statements:
+        - context: metric
+          statements:
+          - replace_pattern(metric.name, "_total$", "") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_cpu_seconds_seconds$", "otelcol_process_cpu_seconds")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_heap_alloc_bytes_bytes$",
+            "otelcol_process_runtime_heap_alloc_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_total_alloc_bytes_bytes$",
+            "otelcol_process_runtime_total_alloc_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_total_sys_memory_bytes_bytes$",
+            "otelcol_process_runtime_total_sys_memory_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_fileconsumer_open_files$", "otelcol_fileconsumer_open_files_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_fileconsumer_reading_files$", "otelcol_fileconsumer_reading_files_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_ip_lookup_miss$", "otelcol_otelsvc_k8s_ip_lookup_miss_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_added$", "otelcol_otelsvc_k8s_pod_added_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_updated$", "otelcol_otelsvc_k8s_pod_updated_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_deleted$", "otelcol_otelsvc_k8s_pod_deleted_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_log_records$",
+            "otelcol_processor_accepted_log_records") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_metric_points$",
+            "otelcol_processor_accepted_metric_points") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_spans$",
+            "otelcol_processor_accepted_spans") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_log_records$",
+            "otelcol_processor_refused_log_records") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_metric_points$",
+            "otelcol_processor_refused_metric_points") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_spans$",
+            "otelcol_processor_refused_spans") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_filter_spans\\.filtered$",
+            "otelcol_processor_filter_spans.filtered_ratio") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+        - context: resource
+          statements:
+          - set(resource.attributes["k8s.pod.ip"], resource.attributes["net.host.name"])
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - delete_key(resource.attributes, "service_name") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+        - context: datapoint
+          statements:
+          - delete_key(datapoint.attributes, "service_name") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
+            == "opentelemetry-collector"
+    receivers:
+      filelog/dbm:
+        include:
+        - /var/log/postgresql/*.json
+        include_file_path: true
+        start_at: end
+      otlp:
+        protocols:
+          grpc:
+            endpoint: ${env:MY_POD_IP}:4317
+            max_recv_msg_size_mib: 20
+          http:
+            endpoint: ${env:MY_POD_IP}:4318
+      postgresql/dbm_billing_events:
+        collection_interval: 10s
+        connection_pool:
+          max_open: 1
+        databases:
+        - billing
+        - ledger
+        endpoint: billing-db.billing.svc.cluster.local:5432
+        events:
+          db.server.query_sample:
+            enabled: true
+          db.server.top_query:
+            enabled: true
+        password: ${env:DBM_BILLING_PASSWORD}
+        query_sample_collection:
+          max_rows_per_query: 100
+        tls:
+          insecure: false
+          insecure_skip_verify: false
+        top_query_collection:
+          collection_interval: 60s
+          max_explain_each_interval: 100
+          max_rows_per_query: 100
+          top_n_query: 100
+        transport: tcp
+        username: ${env:DBM_BILLING_USERNAME}
+      postgresql/dbm_billing_metrics:
+        collection_interval: 60s
+        connection_pool:
+          max_open: 1
+        databases:
+        - billing
+        - ledger
+        endpoint: billing-db.billing.svc.cluster.local:5432
+        events:
+          db.server.query_sample:
+            enabled: false
+          db.server.top_query:
+            enabled: false
+        metrics:
+          postgresql.blocks_read:
+            enabled: false
+          postgresql.index.scans:
+            enabled: false
+          postgresql.index.size:
+            enabled: false
+          postgresql.operations:
+            enabled: false
+          postgresql.rows:
+            enabled: false
+          postgresql.sequential_scans:
+            enabled: false
+          postgresql.table.size:
+            enabled: false
+          postgresql.table.vacuum.count:
+            enabled: false
+        password: ${env:DBM_BILLING_PASSWORD}
+        tls:
+          insecure: false
+          insecure_skip_verify: false
+        transport: tcp
+        username: ${env:DBM_BILLING_USERNAME}
+      postgresql/dbm_orders_events:
+        collection_interval: 10s
+        connection_pool:
+          max_open: 1
+        databases:
+        - app
+        endpoint: orders.abc123.eu-west-1.rds.amazonaws.com:5432
+        events:
+          db.server.query_sample:
+            enabled: true
+          db.server.top_query:
+            enabled: true
+        password: ${env:DBM_ORDERS_PASSWORD}
+        query_sample_collection:
+          max_rows_per_query: 100
+        tls:
+          ca_file: /etc/dbm/rds-ca.pem
+          insecure: false
+          insecure_skip_verify: false
+        top_query_collection:
+          collection_interval: 60s
+          max_explain_each_interval: 100
+          max_rows_per_query: 100
+          top_n_query: 100
+        transport: tcp
+        username: ${env:DBM_ORDERS_USERNAME}
+      postgresql/dbm_orders_metrics:
+        collection_interval: 60s
+        connection_pool:
+          max_open: 1
+        databases:
+        - app
+        endpoint: orders.abc123.eu-west-1.rds.amazonaws.com:5432
+        events:
+          db.server.query_sample:
+            enabled: false
+          db.server.top_query:
+            enabled: false
+        metrics:
+          postgresql.blocks_read:
+            enabled: false
+          postgresql.index.scans:
+            enabled: false
+          postgresql.index.size:
+            enabled: false
+          postgresql.operations:
+            enabled: false
+          postgresql.rows:
+            enabled: false
+          postgresql.sequential_scans:
+            enabled: false
+          postgresql.table.size:
+            enabled: false
+          postgresql.table.vacuum.count:
+            enabled: false
+        password: ${env:DBM_ORDERS_PASSWORD}
+        tls:
+          ca_file: /etc/dbm/rds-ca.pem
+          insecure: false
+          insecure_skip_verify: false
+        transport: tcp
+        username: ${env:DBM_ORDERS_USERNAME}
+      prometheus:
+        config:
+          scrape_configs:
+          - job_name: opentelemetry-collector
+            scrape_interval: 30s
+            static_configs:
+            - targets:
+              - ${env:MY_POD_IP}:8888
+    service:
+      extensions:
+      - health_check
+      pipelines:
+        logs:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          receivers:
+          - otlp
+        logs/dbm:
+          exporters:
+          - coralogix/dbm
+          processors:
+          - memory_limiter
+          - resource/dbm_scope
+          - dbmkey
+          - dbm
+          - batch/dbm
+          receivers:
+          - postgresql/dbm_orders_events
+          - postgresql/dbm_billing_events
+        logs/dbm_entity:
+          exporters:
+          - nop
+          receivers:
+          - dbentity
+        logs/dbm_file:
+          exporters:
+          - coralogix/dbm
+          processors:
+          - memory_limiter
+          - resource/dbm_file
+          - resource/dbm_scope
+          - dbmkey
+          - dbm
+          - filter/dbm_file_unparsed
+          receivers:
+          - filelog/dbm
+        metrics:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          - transform/prometheus
+          receivers:
+          - prometheus
+          - otlp
+        metrics/dbm:
+          exporters:
+          - dbentity
+          processors:
+          - memory_limiter
+          - resource/dbm_scope
+          - dbmkey
+          receivers:
+          - postgresql/dbm_orders_metrics
+          - postgresql/dbm_billing_metrics
+        traces:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          receivers:
+          - otlp
+      telemetry:
+        logs:
+          encoding: json
+        metrics:
+          readers:
+          - pull:
+              exporter:
+                prometheus:
+                  host: ${env:MY_POD_IP}
+                  port: 8888
+                  without_scope_info: false
+                  without_type_suffix: false
+                  without_units: false

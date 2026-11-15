@@ -1,1 +1,33 @@
-{{- /* EC-09 red stub: the databaseMonitoring PVC-lookup Role is not implemented yet. */ -}}
+{{- if .Values.presets.databaseMonitoring.enabled }}
+{{- range .Values.presets.databaseMonitoring.pvcLookup.namespaces }}
+---
+# dbentity PVC lookup (EC-05-S2/S3): read-only, in each namespace that holds a StatefulSet pod target.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "opentelemetry-collector.fullname" $ }}-dbm-pvc-lookup
+  namespace: {{ . }}
+  labels:
+    {{- include "opentelemetry-collector.labels" $ | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "opentelemetry-collector.fullname" $ }}-dbm-pvc-lookup
+  namespace: {{ . }}
+  labels:
+    {{- include "opentelemetry-collector.labels" $ | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "opentelemetry-collector.fullname" $ }}-dbm-pvc-lookup
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "opentelemetry-collector.serviceAccountName" $ }}
+    namespace: {{ template "opentelemetry-collector.namespace" $ }}
+{{- end }}
+{{- end }}

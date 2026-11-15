@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.143.1 / 2026-11-15
+
+- [Feat] Add the off-by-default `presets.databaseMonitoring` (development) for Coralogix Database Monitoring on a Deployment or StatefulSet collector: per PostgreSQL instance a metrics receiver (60 s, per-table/index metrics off) and an events receiver (query samples 10 s, top queries 60 s, `max_explain_each_interval` 100), the `dbmkey` processor before the `dbentity` connector and the `dbm` processor, and a dedicated `coralogix/dbm` exporter (`x-coralogix-ingress: dbm-as-otlp-logs/v1`). Credentials come only from a Kubernetes Secret (inline `username`/`password` are refused), each receiver pool is capped at one connection, entity events go to `nop` unless `entity.export.enabled`, an optional `clusterUid` sets `k8s.cluster.uid`, `pvcLookup.namespaces` creates a read-only Role/RoleBinding, an off-by-default `logs.filelog` placeholder drops every record after `dbm` until the log parser exists, and an `rdsLogs` stub is refused when enabled. Requires a collector image with the `dbm`, `dbmkey` and `dbentity` components.
+
 ### v0.143.0 / 2026-11-11
 
 - [Feat] Bump the OpenTelemetry Collector image to v0.165.0.

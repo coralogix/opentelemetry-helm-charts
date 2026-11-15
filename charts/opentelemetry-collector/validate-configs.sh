@@ -151,6 +151,11 @@ should_ignore_errors() {
         "unknown type.*ecsattributes"
         "receivers.*unknown type.*awsecscontainermetricsd.*for id.*awsecscontainermetricsd"
         "unknown type.*awsecscontainermetricsd"
+        # Database Monitoring (DBM) components that otelcol-contrib does not ship; the
+        # database-monitoring example is validated strictly by tests/run-database-monitoring-tests.sh
+        "unknown type: \"dbm\" for id"
+        "unknown type: \"dbmkey\" for id"
+        "unknown type: \"dbentity\" for id"
         # Windows-only receivers when validating on Linux
         "windows perf counters receiver is only supported on Windows"
         "windows eventlog receiver is only supported on Windows"
