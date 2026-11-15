@@ -547,8 +547,9 @@ Security and safety:
 - **Connections:** every receiver pool gets `connection_pool.max_open: 1` and `max_idle: 0` (connections close after
   each scrape). The receiver keeps one pool per database name plus a client on the `postgres` database, and top-query
   EXPLAIN opens a client per database seen in `pg_stat_statements`, so `max_open` caps each pool, not the receiver.
-  Per instance, expect up to `(1 + N databases)` connections per receiver (metrics and events) plus 1 for the
-  `dbentity` probe. The receiver applies these pool settings only with the collector feature gate
+  Per instance, expect up to `(1 + N)` connections per receiver plus 1 for the `dbentity` probe, where N is the
+  configured `databases` for the metrics receiver and the databases seen in `pg_stat_statements` (top-query EXPLAIN)
+  for the events receiver. The receiver applies these pool settings only with the collector feature gate
   `receiver.postgresql.connectionPool`, which this chart does not set. Size the monitoring user's connection limit
   for this; a limit of 3 is not enough (measured: 4 steady connections, `too many connections` at limit 3).
 - **Coralogix key:** `exporter.privateKey` defaults to `${env:CORALOGIX_PRIVATE_KEY}`. Provide that env var from a
@@ -559,8 +560,10 @@ Security and safety:
 - **Owned components:** the preset owns the pipelines `metrics/dbm`, `logs/dbm`, `logs/dbm_entity` and
   `logs/dbm_file`, the receivers `postgresql/dbm_*` and `filelog/dbm`, the processors `dbm`, `dbmkey`, `batch/dbm`,
   `resource/dbm_scope`, `resource/dbm_file` and `filter/dbm_file_unparsed`, the exporters `coralogix/dbm` and
-  `coralogix/dbm_entity`, and the connector `dbentity`. Its guarantees hold only if `config:` does not redefine them,
-  so the chart refuses such overrides.
+  `coralogix/dbm_entity`, and the connector `dbentity`. Its guarantees hold only if `config:` and `extraConfig` leave
+  them alone, so after all merges the chart checks the final configuration and refuses it when an owned receiver,
+  processor, exporter or the connector appears in another pipeline, or when an owned pipeline or component differs
+  from what the preset rendered.
 - **Self-managed log files** (`logs`, off by default) are a placeholder: every record passes `dbmkey` and `dbm` and is
   then dropped by `filter/dbm_file_unparsed`, so no raw log line leaves the collector until the log parser and edge
   redaction exist.

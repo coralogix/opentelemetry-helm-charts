@@ -1035,9 +1035,10 @@ presets:
       maxExplainEachInterval: 100
     # Connection pools. The receiver keeps one pool per database name plus a client on the `postgres`
     # database, and top-query EXPLAIN opens a client per database seen in pg_stat_statements; `maxOpen`
-    # caps each pool, not the receiver. Per instance that is up to (1 + N databases) connections per
-    # receiver (metrics and events), plus 1 for the dbentity probe. `maxIdle: 0` closes connections after
-    # each scrape. The receiver applies these settings only with the collector feature gate
+    # caps each pool, not the receiver. Per instance that is up to (1 + N) connections per receiver, plus
+    # 1 for the dbentity probe, where N is the configured `databases` for the metrics receiver and the
+    # databases seen in pg_stat_statements (top-query EXPLAIN) for the events receiver. `maxIdle: 0`
+    # closes connections after each scrape. The receiver applies these settings only with the collector feature gate
     # `receiver.postgresql.connectionPool`, which this chart does not set.
     # The per-role connection limit of the DBM grant scripts (CONNECTION LIMIT 3) is an open decision:
     # Q12 measured 4 steady connections and `too many connections` at limit 3 (SEC-F-17).

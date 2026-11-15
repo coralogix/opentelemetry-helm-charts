@@ -317,3 +317,57 @@ service:
 {{- end }}
 {{- end }}
 {{- end }}
+
+{{/*
+Final guard on the fully merged config (after extraConfig and the processor reordering), so no
+`config:`/`extraConfig` path can route DBM data around `dbm` or change what the preset rendered.
+Input: dict "config" (merged config) "expected" (the preset's own render).
+*/}}
+{{- define "opentelemetry-collector.dbmFinalGuard" -}}
+{{- $config := .config }}
+{{- $expected := .expected }}
+{{- $pipelines := (($config.service | default dict).pipelines) | default dict }}
+{{- $expPipelines := $expected.service.pipelines }}
+{{- $ownedPipelines := keys $expPipelines | sortAlpha }}
+{{- /* 1. Owned components stay where the preset put them. */}}
+{{- range $name := keys $pipelines | sortAlpha }}
+{{- $pl := get $pipelines $name | default dict }}
+{{- if not (has $name $ownedPipelines) }}
+{{- range $r := $pl.receivers | default list }}
+{{- if or (hasPrefix "postgresql/dbm_" $r) (eq $r "filelog/dbm") (eq $r "dbentity") }}
+{{- fail (printf "presets.databaseMonitoring: receiver %s is owned by the preset and must not be used in pipeline %s" $r $name) }}
+{{- end }}
+{{- end }}
+{{- range $p := $pl.processors | default list }}
+{{- if has $p (list "dbm" "dbmkey" "batch/dbm" "filter/dbm_file_unparsed" "resource/dbm_scope" "resource/dbm_file") }}
+{{- fail (printf "presets.databaseMonitoring: processor %s is owned by the preset and must not be used in pipeline %s" $p $name) }}
+{{- end }}
+{{- end }}
+{{- range $e := $pl.exporters | default list }}
+{{- if has $e (list "coralogix/dbm" "coralogix/dbm_entity" "dbentity") }}
+{{- fail (printf "presets.databaseMonitoring: exporter %s is owned by the preset and must not be used in pipeline %s" $e $name) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- /* 2. Owned pipelines are exactly what the preset rendered. */}}
+{{- range $name := $ownedPipelines }}
+{{- $want := get $expPipelines $name }}
+{{- $have := get $pipelines $name | default dict }}
+{{- range $field := list "receivers" "processors" "exporters" }}
+{{- if ne (toJson (get $want $field | default list)) (toJson (get $have $field | default list)) }}
+{{- fail (printf "presets.databaseMonitoring: service.pipelines.%s.%s is owned by the preset and must not be changed" $name $field) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- /* 3. Owned component configurations are exactly what the preset rendered (nop is shared and skipped). */}}
+{{- range $section := list "receivers" "processors" "exporters" "connectors" }}
+{{- $want := get $expected $section | default dict }}
+{{- $have := get $config $section | default dict }}
+{{- range $id := keys $want | sortAlpha }}
+{{- if and (ne $id "nop") (ne (toJson (get $want $id)) (toJson (get $have $id))) }}
+{{- fail (printf "presets.databaseMonitoring: %s.%s is owned by the preset and must not be changed" $section $id) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
