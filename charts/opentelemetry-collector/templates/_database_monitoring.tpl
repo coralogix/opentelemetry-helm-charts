@@ -365,7 +365,7 @@ Input: dict "config" (merged config) "expected" (the preset's own render).
 {{- $want := get $expected $section | default dict }}
 {{- $have := get $config $section | default dict }}
 {{- range $id := keys $have | sortAlpha }}
-{{- if and false (regexMatch "\\$\\{?(env:)?DBM_" (toJson (get $have $id))) }}
+{{- if and (not (hasKey $want $id)) (regexMatch "\\$\\{?(env:)?DBM_" (toJson (get $have $id))) }}
 {{- fail (printf "presets.databaseMonitoring: config %s.%s references the DBM Secret env vars (DBM_*); only the preset's components may use them" $section $id) }}
 {{- end }}
 {{- end }}
