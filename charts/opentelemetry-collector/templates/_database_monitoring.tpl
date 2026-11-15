@@ -29,7 +29,7 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 {{- end }}
 {{- $names := list }}
 {{- range $dbm.instances }}
-{{- if false }}
+{{- if or (hasKey . "password") (hasKey . "username") }}
 {{- fail (printf "presets.databaseMonitoring.instances[%s]: inline username/password is not allowed; use credentialsSecret (SEC-F-19)" (toString .name)) }}
 {{- end }}
 {{- if not .credentialsSecret }}
@@ -83,7 +83,7 @@ receivers:
     endpoint: {{ .endpoint | quote }}
     transport: tcp
     username: "${env:{{ $env }}_USERNAME}"
-    password: {{ .credentialsSecret.name | quote }}
+    password: "${env:{{ $env }}_PASSWORD}"
     databases: {{ toJson .databases }}
     collection_interval: {{ $dbm.metrics.collectionInterval }}
     connection_pool:
@@ -250,7 +250,7 @@ service:
       exporters: {{ toJson $metricsExporters }}
     logs/dbm:
       receivers: {{ toJson $eventsReceivers }}
-      processors: {{ toJson (concat $head (list "dbm" "dbmkey" "batch/dbm")) }}
+      processors: {{ toJson (concat $head (list "dbmkey" "dbm" "batch/dbm")) }}
       exporters: ["coralogix/dbm"]
     logs/dbm_entity:
       receivers: ["dbentity"]
