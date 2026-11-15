@@ -43,7 +43,7 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 {{- if not ($dbm.exporter.domain | default .Values.global.domain) }}
 {{- fail "presets.databaseMonitoring: exporter.domain or global.domain is required" }}
 {{- end }}
-{{- if false }}
+{{- if $dbm.rdsLogs.enabled }}
 {{- fail "presets.databaseMonitoring.rdsLogs: the RDS log-file receiver (EC-12) is not available in this chart version" }}
 {{- end }}
 {{- if $dbm.logs.enabled }}
@@ -124,7 +124,7 @@ receivers:
     databases: {{ toJson .databases }}
     collection_interval: {{ $dbm.events.querySampleInterval }}
     connection_pool:
-      max_open: 2
+      max_open: {{ $dbm.connectionPool.maxOpen }}
     tls:
       insecure: {{ $tls.insecure | default false }}
       insecure_skip_verify: {{ $tls.insecureSkipVerify | default false }}
@@ -258,7 +258,7 @@ service:
     {{- if $dbm.logs.enabled }}
     logs/dbm_file:
       receivers: ["filelog/dbm"]
-      processors: {{ toJson (concat (list "memory_limiter" "resource/dbm_file") (rest $head) (list "dbmkey" "dbm")) }}
+      processors: {{ toJson (concat (list "memory_limiter" "resource/dbm_file") (rest $head) (list "dbmkey" "dbm" "filter/dbm_file_unparsed")) }}
       exporters: ["coralogix/dbm"]
     {{- end }}
 {{- end }}
