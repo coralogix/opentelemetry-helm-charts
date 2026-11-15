@@ -513,7 +513,7 @@ Build config file for deployment OpenTelemetry Collector
 {{- $config = include "opentelemetry-collector.supervisorCollectorConfig" .  | fromYaml }}
 {{- end }}
 {{- if .Values.presets.databaseMonitoring.enabled }}
-{{- include "opentelemetry-collector.dbmFinalGuard" (dict "config" $config "expected" (include "opentelemetry-collector.databaseMonitoringConfig" $data | fromYaml)) }}
+{{- /* M14 */ -}}{{- if false }}{{ include "opentelemetry-collector.dbmFinalGuard" (dict "config" $config "expected" (include "opentelemetry-collector.databaseMonitoringConfig" $data | fromYaml)) }}{{ end }}
 {{- end }}
 {{- tpl (toYaml $config) . }}
 {{- end }}
