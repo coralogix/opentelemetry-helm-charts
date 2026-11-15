@@ -515,3 +515,37 @@ tests:
       - matchRegex:
           path: data.relay
           pattern: '(?m)^  debug:\n    verbosity: detailed\n'
+
+  # --- review round 3: the guard checks the tpl-expanded config; DBM Secret env stays owned ---
+  - it: refuses an owned receiver brought back by a template expression after the check (t1)
+    template: deployment.yaml
+    set:
+      config.service.pipelines.logs.receivers: [otlp, '{{ "postgresql/dbm_orders_events" }}']
+    asserts:
+      - failedTemplate:
+          errorPattern: 'postgresql/dbm_orders_events.*pipeline logs'
+
+  - it: refuses the dbentity connector brought back by a template expression after the check (t4)
+    template: deployment.yaml
+    set:
+      config.service.pipelines.logs.receivers: [otlp, '{{ print "dbentity" }}']
+    asserts:
+      - failedTemplate:
+          errorPattern: 'dbentity.*pipeline logs'
+
+  - it: refuses a user component that references the DBM Secret env vars (t3)
+    template: deployment.yaml
+    set:
+      config:
+        receivers:
+          postgresql/mine:
+            endpoint: orders.abc123.eu-west-1.rds.amazonaws.com:5432
+            username: ${env:DBM_ORDERS_USERNAME}
+            password: ${env:DBM_ORDERS_PASSWORD}
+        service:
+          pipelines:
+            logs:
+              receivers: [otlp, postgresql/mine]
+    asserts:
+      - failedTemplate:
+          errorPattern: 'receivers.postgresql/mine.*DBM_'
