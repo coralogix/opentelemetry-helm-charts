@@ -549,3 +549,27 @@ tests:
     asserts:
       - failedTemplate:
           errorPattern: 'receivers.postgresql/mine.*DBM_'
+
+  # --- review round 4: extraEnvs must not copy the DBM credentials -------------
+  - it: refuses an extraEnvs value that expands a DBM env var (t6)
+    template: deployment.yaml
+    set:
+      extraEnvs:
+        - name: X_P
+          value: "$(DBM_ORDERS_PASSWORD)"
+    asserts:
+      - failedTemplate:
+          errorPattern: 'extraEnvs\[X_P\].*DBM_'
+
+  - it: refuses an extraEnvs secretKeyRef to an instance credentials Secret
+    template: deployment.yaml
+    set:
+      extraEnvs:
+        - name: X_P
+          valueFrom:
+            secretKeyRef:
+              name: dbm-orders
+              key: password
+    asserts:
+      - failedTemplate:
+          errorPattern: 'extraEnvs\[X_P\].*dbm-orders'
