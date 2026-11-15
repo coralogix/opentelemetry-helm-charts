@@ -169,6 +169,7 @@ data:
       postgresql/dbm_billing_events:
         collection_interval: 10s
         connection_pool:
+          max_idle: 0
           max_open: 1
         databases:
         - billing
@@ -195,6 +196,7 @@ data:
       postgresql/dbm_billing_metrics:
         collection_interval: 60s
         connection_pool:
+          max_idle: 0
           max_open: 1
         databases:
         - billing
@@ -231,6 +233,7 @@ data:
       postgresql/dbm_orders_events:
         collection_interval: 10s
         connection_pool:
+          max_idle: 0
           max_open: 1
         databases:
         - app
@@ -257,6 +260,7 @@ data:
       postgresql/dbm_orders_metrics:
         collection_interval: 60s
         connection_pool:
+          max_idle: 0
           max_open: 1
         databases:
         - app

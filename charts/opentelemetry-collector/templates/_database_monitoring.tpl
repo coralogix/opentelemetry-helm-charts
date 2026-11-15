@@ -28,17 +28,51 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 {{- fail "presets.databaseMonitoring: at least one entry in instances is required" }}
 {{- end }}
 {{- $names := list }}
+{{- $lowerNames := list }}
 {{- range $dbm.instances }}
+{{- if not (regexMatch "^[a-z][a-z0-9_]{0,39}$" (toString .name)) }}
+{{- fail (printf "presets.databaseMonitoring.instances: name %q must match ^[a-z][a-z0-9_]{0,39}$" (toString .name)) }}
+{{- end }}
 {{- if or (hasKey . "password") (hasKey . "username") }}
 {{- fail (printf "presets.databaseMonitoring.instances[%s]: inline username/password is not allowed; use credentialsSecret (SEC-F-19)" (toString .name)) }}
 {{- end }}
 {{- if not .credentialsSecret }}
 {{- fail (printf "presets.databaseMonitoring.instances[%s]: credentialsSecret is required (SEC-F-19)" (toString .name)) }}
 {{- end }}
-{{- if has .name $names }}
+{{- if has (lower .name) $lowerNames }}
 {{- fail (printf "presets.databaseMonitoring.instances: duplicate name %q" .name) }}
 {{- end }}
 {{- $names = append $names .name }}
+{{- $lowerNames = append $lowerNames (lower .name) }}
+{{- end }}
+{{- /* The preset owns its components: a `config:` override would replace them (mustMergeOverwrite) and
+       break its guarantees (Secret-only credentials, dbmkey before dbm, fail-closed file logs). */}}
+{{- $cfg := .Values.config | default dict }}
+{{- $pipelines := (($cfg.service | default dict).pipelines) | default dict }}
+{{- range $p := list "metrics/dbm" "logs/dbm" "logs/dbm_entity" "logs/dbm_file" }}
+{{- if hasKey $pipelines $p }}
+{{- fail (printf "presets.databaseMonitoring: config.service.pipelines.%s is owned by the preset; do not redefine it in config" $p) }}
+{{- end }}
+{{- end }}
+{{- $owned := dict
+    "processors" (list "dbm" "dbmkey" "batch/dbm" "filter/dbm_file_unparsed" "resource/dbm_scope" "resource/dbm_file")
+    "exporters" (list "coralogix/dbm" "coralogix/dbm_entity")
+    "connectors" (list "dbentity")
+    "receivers" (list "filelog/dbm") }}
+{{- range $section := keys $owned | sortAlpha }}
+{{- $have := (get $cfg $section) | default dict }}
+{{- range $id := get $owned $section }}
+{{- if hasKey $have $id }}
+{{- fail (printf "presets.databaseMonitoring: config.%s.%s is owned by the preset; do not redefine it in config" $section $id) }}
+{{- end }}
+{{- end }}
+{{- if eq $section "receivers" }}
+{{- range $id := keys $have }}
+{{- if hasPrefix "postgresql/dbm_" $id }}
+{{- fail (printf "presets.databaseMonitoring: config.receivers.%s is owned by the preset; do not redefine it in config" $id) }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{- end }}
 {{- if not ($dbm.exporter.domain | default .Values.global.domain) }}
 {{- fail "presets.databaseMonitoring: exporter.domain or global.domain is required" }}
@@ -88,6 +122,7 @@ receivers:
     collection_interval: {{ $dbm.metrics.collectionInterval }}
     connection_pool:
       max_open: {{ $dbm.connectionPool.maxOpen }}
+      max_idle: {{ $dbm.connectionPool.maxIdle }}
     tls:
       insecure: {{ $tls.insecure | default false }}
       insecure_skip_verify: {{ $tls.insecureSkipVerify | default false }}
@@ -125,6 +160,7 @@ receivers:
     collection_interval: {{ $dbm.events.querySampleInterval }}
     connection_pool:
       max_open: {{ $dbm.connectionPool.maxOpen }}
+      max_idle: {{ $dbm.connectionPool.maxIdle }}
     tls:
       insecure: {{ $tls.insecure | default false }}
       insecure_skip_verify: {{ $tls.insecureSkipVerify | default false }}

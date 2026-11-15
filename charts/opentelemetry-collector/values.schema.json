@@ -868,6 +868,11 @@
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 1
+                },
+                "maxIdle": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 0
                 }
               }
             },

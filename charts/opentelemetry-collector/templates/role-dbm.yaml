@@ -12,6 +12,8 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["pods", "persistentvolumeclaims"]
+    # get: the dbentity PVC lookup reads one pod and its data PVC UID for the rung-2 alias (ADR-0002 A2);
+    # list and watch: its watch cache.
     verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1

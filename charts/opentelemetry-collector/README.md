@@ -544,9 +544,23 @@ Security and safety:
 - **Credentials** come only from a Kubernetes Secret (`credentialsSecret`). The chart injects them as pod env vars
   `DBM_<NAME>_USERNAME` / `DBM_<NAME>_PASSWORD`, and the configuration only holds `${env:...}` references. Inline
   `username` or `password` keys are refused.
-- **Connections:** each receiver pool is capped at one connection (`connection_pool.max_open: 1`), so metrics 1 +
-  events 1 + the `dbentity` probe 1 stay within a `CONNECTION LIMIT 3` monitoring user. The receiver enforces the pool
-  only with the collector feature gate `receiver.postgresql.connectionPool`.
+- **Connections:** every receiver pool gets `connection_pool.max_open: 1` and `max_idle: 0` (connections close after
+  each scrape). The receiver keeps one pool per database name plus a client on the `postgres` database, and top-query
+  EXPLAIN opens a client per database seen in `pg_stat_statements`, so `max_open` caps each pool, not the receiver.
+  Per instance, expect up to `(1 + N databases)` connections per receiver (metrics and events) plus 1 for the
+  `dbentity` probe. The receiver applies these pool settings only with the collector feature gate
+  `receiver.postgresql.connectionPool`, which this chart does not set. Size the monitoring user's connection limit
+  for this; a limit of 3 is not enough (measured: 4 steady connections, `too many connections` at limit 3).
+- **Coralogix key:** `exporter.privateKey` defaults to `${env:CORALOGIX_PRIVATE_KEY}`. Provide that env var from a
+  Kubernetes Secret with `extraEnvs` and `valueFrom.secretKeyRef`, never as a literal value.
+- **TLS:** the receivers use `tls` and the `dbentity` probe uses `sslmode`/`sslrootcert`. For an in-cluster database
+  with a self-signed or private CA, mount the CA and set both `tls.caFile` and `sslrootcert` (with `sslmode:
+  verify-full` or `verify-ca`); setting only `sslmode` leaves the receivers without the CA.
+- **Owned components:** the preset owns the pipelines `metrics/dbm`, `logs/dbm`, `logs/dbm_entity` and
+  `logs/dbm_file`, the receivers `postgresql/dbm_*` and `filelog/dbm`, the processors `dbm`, `dbmkey`, `batch/dbm`,
+  `resource/dbm_scope`, `resource/dbm_file` and `filter/dbm_file_unparsed`, the exporters `coralogix/dbm` and
+  `coralogix/dbm_entity`, and the connector `dbentity`. Its guarantees hold only if `config:` does not redefine them,
+  so the chart refuses such overrides.
 - **Self-managed log files** (`logs`, off by default) are a placeholder: every record passes `dbmkey` and `dbm` and is
   then dropped by `filter/dbm_file_unparsed`, so no raw log line leaves the collector until the log parser and edge
   redaction exist.
