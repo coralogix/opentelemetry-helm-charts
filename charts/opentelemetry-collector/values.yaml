@@ -1051,7 +1051,7 @@ presets:
       export:
         # Off by default: entity events go to a `nop` exporter. When on, they go to the resource catalog
         # route (`x-coralogix-ingress: metadata-as-otlp-logs/v1`).
-        enabled: false
+        enabled: true
     # dbm processor static policy (no OpAMP policy yet).
     policy:
       opamp: ""
