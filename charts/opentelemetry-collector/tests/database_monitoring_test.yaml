@@ -439,3 +439,79 @@ tests:
     asserts:
       - failedTemplate:
           errorPattern: 'config.processors.dbm'
+
+  # --- final guard on the fully merged config (review round 2) ------------------
+  - it: refuses an owned DBM receiver in a non-owned pipeline through config (b1)
+    template: deployment.yaml
+    set:
+      config.service.pipelines.logs.receivers: [otlp, postgresql/dbm_orders_events]
+    asserts:
+      - failedTemplate:
+          errorPattern: 'postgresql/dbm_orders_events.*pipeline logs'
+
+  - it: refuses owned DBM receivers and the dbentity connector in a non-owned pipeline through extraConfig (b5)
+    template: deployment.yaml
+    set:
+      extraConfig:
+        service:
+          pipelines:
+            logs:
+              receivers: [postgresql/dbm_orders_events, dbentity]
+    asserts:
+      - failedTemplate:
+          errorPattern: 'pipeline logs'
+
+  - it: refuses extraConfig changes to the dbm processor and to owned pipelines (b4)
+    template: deployment.yaml
+    set:
+      extraConfig:
+        processors:
+          dbm:
+            static_policy:
+              mode: sampled
+            allow_literal_capture: true
+        exporters:
+          debug: {}
+        service:
+          pipelines:
+            logs/dbm:
+              exporters: [debug]
+            metrics/dbm:
+              receivers: [otlp]
+    asserts:
+      - failedTemplate:
+          errorPattern: 'owned by the preset'
+
+  - it: refuses the dedicated DBM exporter in a non-owned pipeline
+    template: deployment.yaml
+    set:
+      extraConfig:
+        service:
+          pipelines:
+            logs:
+              exporters: [coralogix/dbm]
+    asserts:
+      - failedTemplate:
+          errorPattern: 'coralogix/dbm.*pipeline logs'
+
+  - it: keeps rendering legitimate config changes outside the preset (ok)
+    template: configmap.yaml
+    set:
+      config:
+        processors:
+          batch:
+            timeout: 2s
+        exporters:
+          debug:
+            verbosity: detailed
+        service:
+          pipelines:
+            traces:
+              exporters: [debug]
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^    logs/dbm:\n      exporters:\n      - coralogix/dbm\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^  debug:\n    verbosity: detailed\n'
