@@ -1,0 +1,33 @@
+.github/workflows/collector-unittest.yaml
+  s_f831f252c737d7::t_3a5e489d22b038 1-54
+charts/opentelemetry-collector/examples/database-monitoring/values.yaml
+  s_f831f252c737d7::t_8f17d835c8de9b 1-41
+charts/opentelemetry-collector/templates/role-dbm.yaml
+  s_f831f252c737d7::t_c311b2808939d3 1
+charts/opentelemetry-collector/tests/database_monitoring_test.yaml
+  s_f831f252c737d7::t_8d22039c788a36 1-362
+charts/opentelemetry-collector/tests/validate_database_monitoring.py
+  s_f831f252c737d7::t_7c7a1e9fee9658 1-74
+charts/opentelemetry-collector/tests/values/database-monitoring.yaml
+  s_f831f252c737d7::t_fdb720616bff29 1-21
+charts/opentelemetry-collector/values.schema.json
+  s_f831f252c737d7::t_a91eee8d3443f7 716-719
+charts/opentelemetry-collector/values.yaml
+  s_f831f252c737d7::t_d6c1dfb529d9b9 994-1084
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8238c022dc821a760b9bc33279eaddb5eda53f33",
+  "prompts": {},
+  "sessions": {
+    "s_f831f252c737d7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d17d887-0e27-40f9-aede-50f0536246af",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "oded-dd <oded@coralogix.com>"
+    }
+  }
+}
