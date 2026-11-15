@@ -550,7 +550,8 @@ Security and safety:
   Per instance, expect up to `(1 + N)` connections per receiver plus 1 for the `dbentity` probe, where N is the
   configured `databases` for the metrics receiver and the databases seen in `pg_stat_statements` (top-query EXPLAIN)
   for the events receiver. The receiver applies these pool settings only with the collector feature gate
-  `receiver.postgresql.connectionPool`, which this chart does not set. Size the monitoring user's connection limit
+  `receiver.postgresql.connectionPool`, a beta gate on by default in the cdot image; the chart does not set it and
+  refuses `command.extraArgs` that disable it (`-receiver.postgresql.connectionPool`). Size the monitoring user's connection limit
   for this; a limit of 3 is not enough (measured: 4 steady connections, `too many connections` at limit 3).
 - **Coralogix key:** `exporter.privateKey` defaults to `${env:CORALOGIX_PRIVATE_KEY}`. Provide that env var from a
   Kubernetes Secret with `extraEnvs` and `valueFrom.secretKeyRef`, never as a literal value.

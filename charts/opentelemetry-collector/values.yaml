@@ -1039,7 +1039,8 @@ presets:
     # 1 for the dbentity probe, where N is the configured `databases` for the metrics receiver and the
     # databases seen in pg_stat_statements (top-query EXPLAIN) for the events receiver. `maxIdle: 0`
     # closes connections after each scrape. The receiver applies these settings only with the collector feature gate
-    # `receiver.postgresql.connectionPool`, which this chart does not set.
+    # `receiver.postgresql.connectionPool` (beta, on by default in the cdot image). The chart does not set it
+    # and refuses `command.extraArgs` that disable it.
     # The per-role connection limit of the DBM grant scripts (CONNECTION LIMIT 3) is an open decision:
     # Q12 measured 4 steady connections and `too many connections` at limit 3 (SEC-F-17).
     connectionPool:
