@@ -713,6 +713,10 @@
             }
           }
         },
+        "databaseMonitoring": {
+          "type": "object",
+          "description": "Database Monitoring (DBM) preset (stub)."
+        },
         "hostMetrics": {
           "type": "object",
           "additionalProperties": false,

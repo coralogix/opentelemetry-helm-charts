@@ -1,0 +1,362 @@
+# helm-unittest suite for the databaseMonitoring preset (DBM EC-09).
+# ACs 9.1 and 3.6, SEC-F-17, SEC-F-19; design section 8; ADR-0018 items 1 and 2.
+suite: databaseMonitoring preset
+values:
+  - values/database-monitoring.yaml
+templates:
+  - configmap.yaml
+  - configmap-agent.yaml
+  - deployment.yaml
+  - role-dbm.yaml
+release:
+  name: example
+  namespace: default
+tests:
+  # --- off by default -------------------------------------------------------
+  - it: renders nothing DBM-related when the preset is off
+    template: configmap.yaml
+    set:
+      presets.databaseMonitoring.enabled: false
+    asserts:
+      - notMatchRegex:
+          path: data.relay
+          pattern: 'dbm|postgresql/|dbentity'
+
+  # --- receivers and design intervals (section 8) ---------------------------
+  - it: renders one metrics receiver per instance at 60 s with events off and per-table/index metrics off
+    template: configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^  postgresql/dbm_orders_metrics:\n    collection_interval: 60s\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?s)postgresql/dbm_orders_metrics:.*?events:\n      db\.server\.query_sample:\n        enabled: false\n      db\.server\.top_query:\n        enabled: false\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?s)postgresql/dbm_orders_metrics:.*?postgresql\.index\.scans:\n        enabled: false\n.*?postgresql\.table\.size:\n        enabled: false\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^  postgresql/dbm_billing_metrics:\n'
+
+  - it: renders one events receiver per instance with query_sample 10 s, top_query 60 s and max_explain_each_interval 100
+    template: configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^  postgresql/dbm_orders_events:\n    collection_interval: 10s\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?s)postgresql/dbm_orders_events:.*?db\.server\.query_sample:\n        enabled: true\n      db\.server\.top_query:\n        enabled: true\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?s)postgresql/dbm_orders_events:.*?top_query_collection:\n      collection_interval: 60s\n      max_explain_each_interval: 100\n      max_rows_per_query: 100\n      top_n_query: 100\n'
+
+  # --- pipelines and component order -----------------------------------------
+  - it: wires metrics through dbmkey into the dbentity connector
+    template: configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^    metrics/dbm:\n      exporters:\n      - dbentity\n      processors:\n      - memory_limiter\n      - dbmkey\n      receivers:\n      - postgresql/dbm_orders_metrics\n      - postgresql/dbm_billing_metrics\n'
+
+  - it: wires events through dbmkey, then dbm, then batch, into the dedicated DBM exporter only
+    template: configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^    logs/dbm:\n      exporters:\n      - coralogix/dbm\n      processors:\n      - memory_limiter\n      - dbmkey\n      - dbm\n      - batch/dbm\n      receivers:\n      - postgresql/dbm_orders_events\n      - postgresql/dbm_billing_events\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?s)coralogix/dbm:\n.*?x-coralogix-ingress: dbm-as-otlp-logs/v1\n'
+
+  - it: keeps the events receivers out of every metrics pipeline (metrics disabled on the events instance)
+    template: configmap.yaml
+    asserts:
+      - notMatchRegex:
+          path: data.relay
+          pattern: '(?s)metrics/dbm:\n      exporters:[^\n]*\n(      [^\n]*\n)*?      - postgresql/dbm_[a-z]+_events'
+
+  - it: adds the coralogix exporter to metrics/dbm when the coralogixExporter preset is on
+    template: configmap.yaml
+    set:
+      presets.coralogixExporter.enabled: true
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^    metrics/dbm:\n      exporters:\n      - dbentity\n      - coralogix\n'
+      - notMatchRegex:
+          path: data.relay
+          pattern: '(?m)^    logs/dbm:\n      exporters:\n      - coralogix/dbm\n      - coralogix\n'
+
+  # --- dbm processor policy (AC-9.1) -----------------------------------------
+  - it: defaults the dbm static policy to baseline with literal capture off
+    template: configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^  dbm:\n    allow_literal_capture: false\n    lease_copy_enabled: false\n    opamp: ""\n    static_policy:\n      mode: baseline\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^  dbmkey:\n    db_system: postgresql\n'
+
+  # --- SEC-F-19: credentials only from a Secret -------------------------------
+  - it: renders every credential as an env placeholder and never an inline value (SEC-F-19)
+    template: configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: 'password: \$\{env:DBM_ORDERS_PASSWORD\}'
+      - matchRegex:
+          path: data.relay
+          pattern: 'username: \$\{env:DBM_BILLING_USERNAME\}'
+      - notMatchRegex:
+          path: data.relay
+          pattern: '(?m)(password|username): *(["'']?[^$"''\s]|["'']?\$[^{]|["'']?\$\{(?:[^e]|e[^n]|en[^v]|env[^:]))'
+
+  - it: injects credentials as env from the instance Secret (SEC-F-19)
+    template: deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DBM_ORDERS_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: dbm-orders
+                key: password
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: DBM_BILLING_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: dbm-billing
+                key: user
+
+  - it: refuses an inline password (SEC-F-19)
+    template: configmap.yaml
+    set:
+      presets.databaseMonitoring.instances[0].password: "$(NOT_A_SECRET)"
+    asserts:
+      - failedTemplate:
+          errorPattern: 'password'
+
+  - it: refuses an inline username (SEC-F-19)
+    template: configmap.yaml
+    set:
+      presets.databaseMonitoring.instances[0].username: monitor
+    asserts:
+      - failedTemplate:
+          errorPattern: 'username'
+
+  - it: refuses an instance without credentialsSecret (SEC-F-19)
+    template: configmap.yaml
+    set:
+      presets.databaseMonitoring.instances:
+        - name: lonely
+          endpoint: lonely.example.com:5432
+          databases: [app]
+    asserts:
+      - failedTemplate:
+          errorPattern: 'credentialsSecret'
+
+  # --- SEC-F-17: connection budget --------------------------------------------
+  - it: caps each receiver pool at one connection (metrics 1 + events 1 + dbentity probe 1 = 3, SEC-F-17)
+    template: configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: '(?s)postgresql/dbm_orders_events:\n    collection_interval: 10s\n    connection_pool:\n      max_open: 1\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?s)postgresql/dbm_orders_metrics:\n    collection_interval: 60s\n    connection_pool:\n      max_open: 1\n'
+      - notMatchRegex:
+          path: data.relay
+          pattern: 'max_open: [02-9]'
+
+  # --- dbentity connector ------------------------------------------------------
+  - it: renders one dbentity target per instance, verify-full by default, aws_account_id only when set
+    template: configmap.yaml
+    set:
+      presets.databaseMonitoring.instances[0].awsAccountId: "012345678901"
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^    - aws_account_id: "012345678901"\n      database: app\n      db_system: postgresql\n      endpoint: orders\.abc123\.eu-west-1\.rds\.amazonaws\.com:5432\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?s)endpoint: orders\.abc123[^\n]*\n      password: \$\{env:DBM_ORDERS_PASSWORD\}\n      sslmode: verify-full\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^    - database: billing\n      db_system: postgresql\n'
+
+  - it: omits aws_account_id when it is not set
+    template: configmap.yaml
+    asserts:
+      - notMatchRegex:
+          path: data.relay
+          pattern: 'aws_account_id'
+
+  - it: sends entity events to nop by default (route A off)
+    template: configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^    logs/dbm_entity:\n      exporters:\n      - nop\n      receivers:\n      - dbentity\n'
+      - notMatchRegex:
+          path: data.relay
+          pattern: 'metadata-as-otlp-logs'
+
+  - it: sends entity events to the resource catalog route when entity export is on
+    template: configmap.yaml
+    set:
+      presets.databaseMonitoring.entity.export.enabled: true
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^    logs/dbm_entity:\n      exporters:\n      - coralogix/dbm_entity\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?s)coralogix/dbm_entity:\n.*?x-coralogix-ingress: metadata-as-otlp-logs/v1\n'
+
+  # --- k8s.cluster.uid scope --------------------------------------------------
+  - it: inserts k8s.cluster.uid before dbmkey in both pipelines when clusterUid is set
+    template: configmap.yaml
+    set:
+      presets.databaseMonitoring.clusterUid: 0c31d8e2-b613-43a4-98ed-566f8138b361
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^  resource/dbm_scope:\n    attributes:\n    - action: insert\n      key: k8s\.cluster\.uid\n      value: 0c31d8e2-b613-43a4-98ed-566f8138b361\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^    metrics/dbm:\n      exporters:\n      - dbentity\n      processors:\n      - memory_limiter\n      - resource/dbm_scope\n      - dbmkey\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^      - memory_limiter\n      - resource/dbm_scope\n      - dbmkey\n      - dbm\n      - batch/dbm\n'
+
+  # --- PVC lookup RBAC (EC-05-S2/S3) -----------------------------------------
+  - it: creates a read-only Role and RoleBinding in each pvcLookup namespace
+    template: role-dbm.yaml
+    set:
+      presets.databaseMonitoring.pvcLookup.namespaces: [billing]
+    asserts:
+      - hasDocuments:
+          count: 2
+      - equal:
+          path: kind
+          value: Role
+        documentIndex: 0
+      - equal:
+          path: metadata.namespace
+          value: billing
+        documentIndex: 0
+      - equal:
+          path: rules[0].resources
+          value: [pods, persistentvolumeclaims]
+        documentIndex: 0
+      - equal:
+          path: rules[0].verbs
+          value: [get, list, watch]
+        documentIndex: 0
+      - equal:
+          path: kind
+          value: RoleBinding
+        documentIndex: 1
+      - equal:
+          path: subjects[0].name
+          value: example-opentelemetry-collector
+        documentIndex: 1
+
+  - it: creates no Role without pvcLookup namespaces
+    template: role-dbm.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # --- self-managed logs placeholder (ADR-0018 item 1) -------------------------
+  - it: renders no filelog pipeline by default
+    template: configmap.yaml
+    asserts:
+      - notMatchRegex:
+          path: data.relay
+          pattern: 'filelog/dbm|logs/dbm_file'
+
+  - it: passes every file log record through dbmkey and dbm, then drops it until EC-11 adds the parser
+    template: configmap.yaml
+    set:
+      presets.databaseMonitoring.logs.enabled: true
+      presets.databaseMonitoring.logs.filelog.instance: billing
+      presets.databaseMonitoring.logs.filelog.include: [/var/log/postgresql/*.json]
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^    logs/dbm_file:\n      exporters:\n      - coralogix/dbm\n      processors:\n      - memory_limiter\n      - resource/dbm_file\n      - dbmkey\n      - dbm\n      - filter/dbm_file_unparsed\n      receivers:\n      - filelog/dbm\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?s)resource/dbm_file:\n.*?key: server\.address\n      value: billing-db\.billing\.svc\.cluster\.local\n.*?key: server\.port\n      value: 5432\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^  filter/dbm_file_unparsed:\n    error_mode: propagate\n    logs:\n      log_record:\n      - "true"\n'
+
+  - it: refuses the logs section without include paths
+    template: configmap.yaml
+    set:
+      presets.databaseMonitoring.logs.enabled: true
+      presets.databaseMonitoring.logs.filelog.instance: billing
+    asserts:
+      - failedTemplate:
+          errorPattern: 'filelog.include'
+
+  - it: refuses the logs section when filelog.instance names no instance
+    template: configmap.yaml
+    set:
+      presets.databaseMonitoring.logs.enabled: true
+      presets.databaseMonitoring.logs.filelog.instance: nope
+      presets.databaseMonitoring.logs.filelog.include: [/var/log/postgresql/*.json]
+    asserts:
+      - failedTemplate:
+          errorPattern: 'filelog.instance'
+
+  # --- RDS log files stub (ADR-0018 item 2, EC-12) -----------------------------
+  - it: refuses rdsLogs until the EC-12 receiver exists
+    template: configmap.yaml
+    set:
+      presets.databaseMonitoring.rdsLogs.enabled: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'EC-12'
+
+  # --- topology guards ---------------------------------------------------------
+  - it: refuses daemonset mode
+    template: configmap-agent.yaml
+    set:
+      mode: daemonset
+    asserts:
+      - failedTemplate:
+          errorPattern: 'deployment or statefulset'
+
+  - it: refuses collectorCRD.generate
+    template: configmap.yaml
+    set:
+      collectorCRD.generate: true
+    asserts:
+      - failedTemplate:
+          errorPattern: 'collectorCRD'
+
+  - it: refuses duplicate instance names
+    template: configmap.yaml
+    set:
+      presets.databaseMonitoring.instances[1].name: orders
+    asserts:
+      - failedTemplate:
+          errorPattern: 'duplicate name'
+
+  - it: refuses an empty instance list
+    template: configmap.yaml
+    set:
+      presets.databaseMonitoring.instances: []
+    asserts:
+      - failedTemplate:
+          errorPattern: 'at least one'

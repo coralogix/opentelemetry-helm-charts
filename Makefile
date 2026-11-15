@@ -132,7 +132,7 @@ check-operator-crds:
 
 .PHONY: validate-examples
 validate-examples:
-	cd charts/opentelemetry-collector && ./validate-configs.sh
+	cd charts/opentelemetry-collector && ./validate-configs.sh && ./tests/run-database-monitoring-tests.sh
 
 .PHONY: validate-version-bump
 validate-version-bump:
