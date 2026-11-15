@@ -1,0 +1,19 @@
+charts/opentelemetry-collector/tests/run-database-monitoring-tests.sh
+  s_f831f252c737d7::t_84062489dea0dc 3,9-32,34-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "14469cd2f60623b3209838163fe25acc095f4acb",
+  "prompts": {},
+  "sessions": {
+    "s_f831f252c737d7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d17d887-0e27-40f9-aede-50f0536246af",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "oded-dd <oded@coralogix.com>"
+    }
+  }
+}
