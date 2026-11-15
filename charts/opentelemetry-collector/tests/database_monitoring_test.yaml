@@ -573,3 +573,29 @@ tests:
     asserts:
       - failedTemplate:
           errorPattern: 'extraEnvs\[X_P\].*dbm-orders'
+
+  # --- EC-09-B hand-off: the connectionPool feature gate must stay on -----------
+  - it: refuses command.extraArgs that disable the connectionPool gate (--feature-gates=- form)
+    template: deployment.yaml
+    set:
+      command.extraArgs: ["--feature-gates=-receiver.postgresql.connectionPool"]
+    asserts:
+      - failedTemplate:
+          errorPattern: 'receiver.postgresql.connectionPool'
+
+  - it: refuses command.extraArgs that disable the connectionPool gate inside a gate list (=- form)
+    template: deployment.yaml
+    set:
+      command.extraArgs: ["--feature-gates=+service.profilesSupport,-receiver.postgresql.connectionPool"]
+    asserts:
+      - failedTemplate:
+          errorPattern: 'receiver.postgresql.connectionPool'
+
+  - it: keeps rendering command.extraArgs that leave the gate on
+    template: deployment.yaml
+    set:
+      command.extraArgs: ["--feature-gates=+receiver.postgresql.connectionPool"]
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].command
+          content: "--feature-gates=+receiver.postgresql.connectionPool"
