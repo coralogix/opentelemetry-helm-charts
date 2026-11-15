@@ -729,7 +729,7 @@
               "type": "array",
               "items": {
                 "type": "object",
-                "additionalProperties": true,
+                "additionalProperties": false,
                 "properties": {
                   "name": {
                     "description": "Instance name, used in component ids and env names.",
