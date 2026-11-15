@@ -1,0 +1,19 @@
+charts/opentelemetry-collector/templates/_database_monitoring.tpl
+  s_f831f252c737d7::t_2d3a4bb6f5eb7c 368
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "633b0b512000ba4893b6bb4a3a970b8f247c84f0",
+  "prompts": {},
+  "sessions": {
+    "s_f831f252c737d7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d17d887-0e27-40f9-aede-50f0536246af",
+        "model": "unknown"
+      },
+      "human_author": "oded-dd <oded@coralogix.com>"
+    }
+  }
+}
