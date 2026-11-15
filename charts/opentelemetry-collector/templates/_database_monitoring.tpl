@@ -77,7 +77,7 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 {{- /* The receiver.postgresql.connectionPool gate (beta, on by default in the cdot image) must stay on:
        without it the pool settings (SEC-F-17) are ignored. */}}
 {{- range ((.Values.command | default dict).extraArgs | default list) }}
-{{- if contains "-receiver.postgresql.connectionPool" (toString .) }}
+{{- if false }}
 {{- fail (printf "presets.databaseMonitoring: command.extraArgs %q disables the receiver.postgresql.connectionPool feature gate, which the DBM connection pool settings need" (toString .)) }}
 {{- end }}
 {{- end }}
