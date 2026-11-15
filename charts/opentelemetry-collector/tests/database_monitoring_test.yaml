@@ -135,23 +135,35 @@ tests:
                 key: user
 
   - it: refuses an inline password (SEC-F-19)
-    template: configmap.yaml
+    template: deployment.yaml
     set:
-      presets.databaseMonitoring.instances[0].password: "$(NOT_A_SECRET)"
+      presets.databaseMonitoring.instances:
+        - name: orders
+          endpoint: orders.abc123.eu-west-1.rds.amazonaws.com:5432
+          databases: [app]
+          credentialsSecret:
+            name: dbm-orders
+          password: "$(NOT_A_SECRET)"
     asserts:
       - failedTemplate:
           errorPattern: 'password'
 
   - it: refuses an inline username (SEC-F-19)
-    template: configmap.yaml
+    template: deployment.yaml
     set:
-      presets.databaseMonitoring.instances[0].username: monitor
+      presets.databaseMonitoring.instances:
+        - name: orders
+          endpoint: orders.abc123.eu-west-1.rds.amazonaws.com:5432
+          databases: [app]
+          credentialsSecret:
+            name: dbm-orders
+          username: monitor
     asserts:
       - failedTemplate:
           errorPattern: 'username'
 
   - it: refuses an instance without credentialsSecret (SEC-F-19)
-    template: configmap.yaml
+    template: deployment.yaml
     set:
       presets.databaseMonitoring.instances:
         - name: lonely
@@ -179,7 +191,21 @@ tests:
   - it: renders one dbentity target per instance, verify-full by default, aws_account_id only when set
     template: configmap.yaml
     set:
-      presets.databaseMonitoring.instances[0].awsAccountId: "012345678901"
+      presets.databaseMonitoring.instances:
+        - name: orders
+          endpoint: orders.abc123.eu-west-1.rds.amazonaws.com:5432
+          databases: [app]
+          credentialsSecret:
+            name: dbm-orders
+          awsAccountId: "012345678901"
+        - name: billing
+          endpoint: billing-db.billing.svc.cluster.local:5432
+          databases: [billing]
+          credentialsSecret:
+            name: dbm-billing
+            usernameKey: user
+            passwordKey: pass
+          sslmode: require
     asserts:
       - matchRegex:
           path: data.relay
@@ -301,7 +327,7 @@ tests:
           pattern: '(?m)^  filter/dbm_file_unparsed:\n    error_mode: propagate\n    logs:\n      log_record:\n      - "true"\n'
 
   - it: refuses the logs section without include paths
-    template: configmap.yaml
+    template: deployment.yaml
     set:
       presets.databaseMonitoring.logs.enabled: true
       presets.databaseMonitoring.logs.filelog.instance: billing
@@ -310,7 +336,7 @@ tests:
           errorPattern: 'filelog.include'
 
   - it: refuses the logs section when filelog.instance names no instance
-    template: configmap.yaml
+    template: deployment.yaml
     set:
       presets.databaseMonitoring.logs.enabled: true
       presets.databaseMonitoring.logs.filelog.instance: nope
@@ -321,7 +347,7 @@ tests:
 
   # --- RDS log files stub (ADR-0018 item 2, EC-12) -----------------------------
   - it: refuses rdsLogs until the EC-12 receiver exists
-    template: configmap.yaml
+    template: deployment.yaml
     set:
       presets.databaseMonitoring.rdsLogs.enabled: true
     asserts:
@@ -346,15 +372,28 @@ tests:
           errorPattern: 'collectorCRD'
 
   - it: refuses duplicate instance names
-    template: configmap.yaml
+    template: deployment.yaml
     set:
-      presets.databaseMonitoring.instances[1].name: orders
+      presets.databaseMonitoring.instances:
+        - name: orders
+          endpoint: orders.abc123.eu-west-1.rds.amazonaws.com:5432
+          databases: [app]
+          credentialsSecret:
+            name: dbm-orders
+        - name: orders
+          endpoint: billing-db.billing.svc.cluster.local:5432
+          databases: [billing]
+          credentialsSecret:
+            name: dbm-billing
+            usernameKey: user
+            passwordKey: pass
+          sslmode: require
     asserts:
       - failedTemplate:
           errorPattern: 'duplicate name'
 
   - it: refuses an empty instance list
-    template: configmap.yaml
+    template: deployment.yaml
     set:
       presets.databaseMonitoring.instances: []
     asserts:

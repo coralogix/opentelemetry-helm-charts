@@ -14,6 +14,8 @@ declare -A HELM_UNITTEST_SHA256=(
     [linux-arm64]=c66062713cd3cbb1a80d7098bd1d4a48db8438f56b43fb6377df65447f93f8de
 )
 UNTT="${UNTT:-}"
+workdir="$(mktemp -d)"
+trap 'rm -rf "${workdir:?}"' EXIT
 if [[ -z "${UNTT}" ]]; then
     os="$(uname -s | tr '[:upper:]' '[:lower:]')"
     case "$(uname -m)" in x86_64) arch=amd64 ;; aarch64|arm64) arch=arm64 ;; *) echo "unsupported arch"; exit 1 ;; esac
@@ -23,8 +25,6 @@ if [[ -z "${UNTT}" ]]; then
         echo "no pinned helm-unittest checksum for ${platform}; set UNTT to a helm-unittest ${HELM_UNITTEST_VERSION} binary"
         exit 1
     fi
-    workdir="$(mktemp -d)"
-    trap 'rm -rf "${workdir:?}"' EXIT
     tgz="helm-unittest-${platform}-${HELM_UNITTEST_VERSION}.tgz"
     curl -fsSL -o "${workdir}/${tgz}" "https://github.com/helm-unittest/helm-unittest/releases/download/v${HELM_UNITTEST_VERSION}/${tgz}"
     echo "${sha}  ${workdir}/${tgz}" | sha256sum -c -
@@ -32,7 +32,16 @@ if [[ -z "${UNTT}" ]]; then
     UNTT="${workdir}/untt-${platform}"
 fi
 echo "== helm-unittest ${HELM_UNITTEST_VERSION}: tests/database_monitoring_test.yaml"
-"${UNTT}" --file 'tests/database_monitoring_test.yaml' "${CHART_DIR}"
+status=0
+"${UNTT}" --file 'tests/database_monitoring_test.yaml' --output-type JUnit --output-file "${workdir}/junit.xml" "${CHART_DIR}" || status=$?
+# Per-test results for review (JUnit), printed between markers.
+echo "----- BEGIN helm-unittest JUnit -----"
+cat "${workdir}/junit.xml" 2>/dev/null || true
+echo
+echo "----- END helm-unittest JUnit -----"
+if [[ "${status}" -ne 0 ]]; then
+    exit "${status}"
+fi
 
 echo "== strict validation: examples/database-monitoring"
 if ! python3 -c 'import yaml' 2>/dev/null; then
