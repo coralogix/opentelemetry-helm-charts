@@ -512,10 +512,12 @@ Build config file for deployment OpenTelemetry Collector
 {{- if and ($supervisorEnabled) (.Values.presets.fleetManagement.supervisor.minimalCollectorConfig) }}
 {{- $config = include "opentelemetry-collector.supervisorCollectorConfig" .  | fromYaml }}
 {{- end }}
+{{- $rendered := tpl (toYaml $config) . }}
 {{- if .Values.presets.databaseMonitoring.enabled }}
-{{- include "opentelemetry-collector.dbmFinalGuard" (dict "config" $config "expected" (include "opentelemetry-collector.databaseMonitoringConfig" $data | fromYaml)) }}
+{{- /* Guard the tpl-expanded result, so no {{ }} value can bring an owned id back after the check. */}}
+{{- include "opentelemetry-collector.dbmFinalGuard" (dict "config" ($rendered | fromYaml) "expected" (tpl (include "opentelemetry-collector.databaseMonitoringConfig" $data) . | fromYaml)) }}
 {{- end }}
-{{- tpl (toYaml $config) . }}
+{{- $rendered }}
 {{- end }}
 
 {{- define "opentelemetry-collector.removePipelinesWithoutExporters" -}}

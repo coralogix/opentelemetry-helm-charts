@@ -561,9 +561,10 @@ Security and safety:
   `logs/dbm_file`, the receivers `postgresql/dbm_*` and `filelog/dbm`, the processors `dbm`, `dbmkey`, `batch/dbm`,
   `resource/dbm_scope`, `resource/dbm_file` and `filter/dbm_file_unparsed`, the exporters `coralogix/dbm` and
   `coralogix/dbm_entity`, and the connector `dbentity`. Its guarantees hold only if `config:` and `extraConfig` leave
-  them alone, so after all merges the chart checks the final configuration and refuses it when an owned receiver,
-  processor, exporter or the connector appears in another pipeline, or when an owned pipeline or component differs
-  from what the preset rendered.
+  them alone, so after all merges and after template (`tpl`) expansion the chart checks the final configuration and
+  refuses it when an owned receiver, processor, exporter or the connector appears in another pipeline, when an owned
+  pipeline or component differs from what the preset rendered, or when any other component references the
+  `DBM_*` Secret env vars.
 - **Self-managed log files** (`logs`, off by default) are a placeholder: every record passes `dbmkey` and `dbm` and is
   then dropped by `filter/dbm_file_unparsed`, so no raw log line leaves the collector until the log parser and edge
   redaction exist.

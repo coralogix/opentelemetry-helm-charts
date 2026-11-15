@@ -360,6 +360,16 @@ Input: dict "config" (merged config) "expected" (the preset's own render).
 {{- end }}
 {{- end }}
 {{- end }}
+{{- /* 4. Only the preset's own components may read the DBM Secret env vars (DBM_*). */}}
+{{- range $section := list "receivers" "processors" "exporters" "connectors" "extensions" }}
+{{- $want := get $expected $section | default dict }}
+{{- $have := get $config $section | default dict }}
+{{- range $id := keys $have | sortAlpha }}
+{{- if and (not (hasKey $want $id)) (regexMatch "\\$\\{?(env:)?DBM_" (toJson (get $have $id))) }}
+{{- fail (printf "presets.databaseMonitoring: config %s.%s references the DBM Secret env vars (DBM_*); only the preset's components may use them" $section $id) }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{- /* 3. Owned component configurations are exactly what the preset rendered (nop is shared and skipped). */}}
 {{- range $section := list "receivers" "processors" "exporters" "connectors" }}
 {{- $want := get $expected $section | default dict }}
