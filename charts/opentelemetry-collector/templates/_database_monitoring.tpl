@@ -166,7 +166,9 @@ connectors:
         {{- with .sslrootcert }}
         sslrootcert: {{ . | quote }}
         {{- end }}
-        aws_account_id: {{ .awsAccountId | default "" | quote }}
+        {{- with .awsAccountId }}
+        aws_account_id: {{ . | quote }}
+        {{- end }}
 {{- end }}
 processors:
   {{- if $scope }}
@@ -275,7 +277,7 @@ service:
   valueFrom:
     secretKeyRef:
       name: {{ .credentialsSecret.name | quote }}
-      key: {{ .credentialsSecret.usernameKey | default "username" | quote }}
+      key: {{ .credentialsSecret.passwordKey | default "password" | quote }}
 {{- end }}
 {{- end }}
 {{- end }}
