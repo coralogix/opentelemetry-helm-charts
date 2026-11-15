@@ -564,7 +564,12 @@ Security and safety:
   them alone, so after all merges and after template (`tpl`) expansion the chart checks the final configuration and
   refuses it when an owned receiver, processor, exporter or the connector appears in another pipeline, when an owned
   pipeline or component differs from what the preset rendered, or when any other component references the
-  `DBM_*` Secret env vars.
+  `DBM_*` Secret env vars. It also refuses `extraEnvs` entries that expand `$(DBM_...)` or read an instance's
+  `credentialsSecret`.
+- **Scope of these checks:** they protect the preset's components and their data path against accidental or
+  conflicting chart configuration. They are not a sandbox against the operator's own configuration: indirect
+  references such as nested env expansion (`${env:${env:P}_PASSWORD}`) or `${file:/proc/self/environ}`, or other
+  deployment changes, remain under the operator's control.
 - **Self-managed log files** (`logs`, off by default) are a placeholder: every record passes `dbmkey` and `dbm` and is
   then dropped by `filter/dbm_file_unparsed`, so no raw log line leaves the collector until the log parser and edge
   redaction exist.
