@@ -1103,7 +1103,8 @@ presets:
       # refused.
       instances: []
       # Marker storage. The chart mounts an emptyDir here: markers survive container restarts; a new pod
-      # starts again per startAt.
+      # (each helm upgrade or config change) starts again per startAt, leaving a gap of about one poll.
+      # rdsLogs needs replicaCount 1 and no autoscaling; the Deployment then uses the Recreate strategy.
       storageDirectory: /var/lib/otelcol/dbm-rdslog
       pollInterval: 60s
       # Log data per instance per poll; the rest is read in the next polls.

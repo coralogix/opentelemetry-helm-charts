@@ -586,6 +586,11 @@ Security and safety:
   they survive container restarts; a new pod starts again per `startAt` (default `end`). The collector's AWS
   identity (for example IRSA) needs `rds:DescribeDBLogFiles` and `rds:DownloadDBLogFilePortion` on the monitored
   instances, which must be in its own account; the receiver also calls `sts:GetCallerIdentity`.
+  `rdsLogs` needs exactly one collector replica (`replicaCount: 1`, no autoscaling; refused otherwise), and the
+  Deployment then uses the `Recreate` strategy, so two pods never read the same log files. Every pod replacement
+  (each `helm upgrade` or config change) starts a new emptyDir, so the new pod starts again per `startAt` and the
+  log lines written in between are not read: a gap of about one poll interval. `logs/dbm_rds` drops records that
+  `dbm` replaced with `[cx.dbm: log entry removed]` (`filter/dbm_rds_removed`).
 - `pvcLookup.namespaces` creates a read-only Role and RoleBinding (`get`, `list`, `watch` on pods and
   persistentvolumeclaims) in each namespace that holds a StatefulSet pod target.
 

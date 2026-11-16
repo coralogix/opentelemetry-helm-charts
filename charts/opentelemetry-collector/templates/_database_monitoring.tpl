@@ -6,7 +6,7 @@ Pipelines (design section 8, ADR-0018):
   logs/dbm:         postgresql/dbm_<name>_events  -> memory_limiter -> [resource/dbm_scope] -> dbmkey -> dbm -> batch/dbm -> coralogix/dbm
   logs/dbm_entity:  dbentity -> nop | coralogix/dbm_entity
   logs/dbm_file:    filelog/dbm -> memory_limiter -> resource/dbm_file -> [resource/dbm_scope] -> dbmkey -> dbm -> filter/dbm_file_unparsed -> coralogix/dbm
-  logs/dbm_rds:     rdslog/dbm -> memory_limiter -> [resource/dbm_scope] -> dbmkey -> dbm -> batch/dbm -> coralogix/dbm (EC-12, rdsLogs)
+  logs/dbm_rds:     rdslog/dbm -> memory_limiter -> [resource/dbm_scope] -> dbmkey -> dbm -> filter/dbm_rds_removed -> batch/dbm -> coralogix/dbm (EC-12, rdsLogs)
 
 Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 */}}
@@ -56,7 +56,7 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 {{- end }}
 {{- end }}
 {{- $owned := dict
-    "processors" (list "dbm" "dbmkey" "batch/dbm" "filter/dbm_file_unparsed" "resource/dbm_scope" "resource/dbm_file")
+    "processors" (list "dbm" "dbmkey" "batch/dbm" "filter/dbm_file_unparsed" "filter/dbm_rds_removed" "resource/dbm_scope" "resource/dbm_file")
     "exporters" (list "coralogix/dbm" "coralogix/dbm_entity")
     "connectors" (list "dbentity")
     "receivers" (list "filelog/dbm" "rdslog/dbm")
@@ -99,6 +99,11 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 {{- fail "presets.databaseMonitoring: exporter.domain or global.domain is required" }}
 {{- end }}
 {{- if $dbm.rdsLogs.enabled }}
+{{- /* One poller per instance: a second replica (or an autoscaled one) would read the same log files with
+       its own markers and send every record twice (EC-12 review I3). */}}
+{{- if or (gt (int .Values.replicaCount) 1) .Values.autoscaling.enabled }}
+{{- fail "presets.databaseMonitoring.rdsLogs needs exactly one collector replica: set replicaCount: 1 and autoscaling.enabled: false" }}
+{{- end }}
 {{- if not $dbm.rdsLogs.instances }}
 {{- fail "presets.databaseMonitoring.rdsLogs: instances must name at least one entry of instances" }}
 {{- end }}
@@ -304,6 +309,14 @@ processors:
   batch/dbm:
     send_batch_size: 1024
     timeout: 5s
+  {{- if $rds }}
+  # dbm replaces a server log record it cannot recognise with this marker; drop it (EC-12 review M8).
+  filter/dbm_rds_removed:
+    error_mode: propagate
+    logs:
+      log_record:
+        - 'body == "[cx.dbm: log entry removed]"'
+  {{- end }}
   {{- if $dbm.logs.enabled }}
   {{- $inst := dict }}
   {{- range $dbm.instances }}{{- if eq .name $dbm.logs.filelog.instance }}{{- $inst = . }}{{- end }}{{- end }}
@@ -371,7 +384,7 @@ service:
     {{- if $rds }}
     logs/dbm_rds:
       receivers: ["rdslog/dbm"]
-      processors: {{ toJson (concat $head (list "dbmkey" "dbm" "batch/dbm")) }}
+      processors: {{ toJson (concat $head (list "dbmkey" "dbm" "filter/dbm_rds_removed" "batch/dbm")) }}
       exporters: ["coralogix/dbm"]
     {{- end }}
     {{- if $dbm.logs.enabled }}
@@ -422,7 +435,7 @@ Input: dict "config" (merged config) "expected" (the preset's own render).
 {{- end }}
 {{- end }}
 {{- range $p := $pl.processors | default list }}
-{{- if has $p (list "dbm" "dbmkey" "batch/dbm" "filter/dbm_file_unparsed" "resource/dbm_scope" "resource/dbm_file") }}
+{{- if has $p (list "dbm" "dbmkey" "batch/dbm" "filter/dbm_file_unparsed" "filter/dbm_rds_removed" "resource/dbm_scope" "resource/dbm_file") }}
 {{- fail (printf "presets.databaseMonitoring: processor %s is owned by the preset and must not be used in pipeline %s" $p $name) }}
 {{- end }}
 {{- end }}
