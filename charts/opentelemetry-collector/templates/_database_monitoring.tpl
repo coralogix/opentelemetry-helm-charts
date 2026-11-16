@@ -148,7 +148,7 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 {{- if .Values.Values.presets.databaseMonitoring.rdsLogs.enabled }}
 {{- /* The rdslog marker storage must be in service.extensions; the user's list is kept. */}}
 {{- $extensions := $config.service.extensions | default (list) }}
-{{- $_ := set $config.service "extensions" ($extensions | uniq) }}
+{{- $_ := set $config.service "extensions" (append $extensions "file_storage/dbm_rdslog" | uniq) }}
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
