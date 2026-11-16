@@ -7,7 +7,7 @@ metadata:
   name: example-opentelemetry-collector-dbm-pvc-lookup
   namespace: billing
   labels:
-    helm.sh/chart: opentelemetry-collector-0.143.1
+    helm.sh/chart: opentelemetry-collector-0.143.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.165.0"
@@ -27,7 +27,7 @@ metadata:
   name: example-opentelemetry-collector-dbm-pvc-lookup
   namespace: billing
   labels:
-    helm.sh/chart: opentelemetry-collector-0.143.1
+    helm.sh/chart: opentelemetry-collector-0.143.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.165.0"

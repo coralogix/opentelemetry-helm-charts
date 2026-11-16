@@ -2,10 +2,14 @@
 
 ## OpenTelemetry Collector
 
-### v0.143.1 / 2026-11-15
+### v0.143.2 / 2026-11-16
 
 - [Feat] `presets.databaseMonitoring.rdsLogs` (development, EC-12) replaces the refused stub: for the listed RDS/Aurora PostgreSQL instances (instance endpoints only; cluster, reader, custom and proxy endpoints are refused) the cdot `rdslog` receiver reads engine log files through the RDS API without CloudWatch Logs, with its markers in a `file_storage/dbm_rdslog` extension on an emptyDir, and a `logs/dbm_rds` pipeline through `dbmkey`, `dbm` and `batch/dbm` to `coralogix/dbm`. Owned and guarded like the other preset components. Needs the IAM permissions `rds:DescribeDBLogFiles` and `rds:DownloadDBLogFilePortion` and a cdot image with the `rdslog` receiver.
 - [Feat] Add the off-by-default `presets.databaseMonitoring` (development) for Coralogix Database Monitoring on a Deployment or StatefulSet collector: per PostgreSQL instance a metrics receiver (60 s, per-table/index metrics off) and an events receiver (query samples 10 s, top queries 60 s, `max_explain_each_interval` 100), the `dbmkey` processor before the `dbentity` connector and the `dbm` processor, and a dedicated `coralogix/dbm` exporter (`x-coralogix-ingress: dbm-as-otlp-logs/v1`). Credentials come only from a Kubernetes Secret (inline `username`/`password` are refused), every receiver pool gets `max_open: 1` and `max_idle: 0` (the receiver keeps one pool per database plus a `postgres` client, so expect up to `1 + N` connections per receiver plus the `dbentity` probe, N being the configured databases for metrics and the databases seen in `pg_stat_statements` for events; the pool settings apply only with the `receiver.postgresql.connectionPool` feature gate, a beta gate on by default in the cdot image; the chart does not set it and refuses `command.extraArgs` that disable it; the grant script sets `CONNECTION LIMIT 8`; budget = (1 + N) connections per receiver (N = configured databases for metrics, databases seen in pg_stat_statements for events) + the dbentity probe + up to 2 EC-07 sweeps; max_idle 0 keeps steady use low; worst case per instance = N metrics + N events + 5, so 7 with one database each and over 8 once the two N add up to more than 3), `config:` and `extraConfig` changes to the preset's components, and owned components used in other pipelines, are refused by a check on the final merged and template-expanded configuration, which also refuses other components that reference the `DBM_*` Secret env vars and `extraEnvs` entries that copy the DBM credentials, entity events go to `nop` unless `entity.export.enabled`, an optional `clusterUid` sets `k8s.cluster.uid`, `pvcLookup.namespaces` creates a read-only Role/RoleBinding, an off-by-default `logs.filelog` placeholder drops every record after `dbm` until the log parser exists, and an `rdsLogs` stub is refused when enabled. Requires a collector image with the `dbm`, `dbmkey` and `dbentity` components.
+
+### v0.143.1 / 2026-11-16
+
+- [Fix] Bump the supervised image to 0.20.0 with Supervisor 0.165.1 to apply package and configuration updates together.
 
 ### v0.143.0 / 2026-11-11
 
