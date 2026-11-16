@@ -308,7 +308,7 @@ tests:
       - hasDocuments:
           count: 0
 
-  # --- self-managed logs placeholder (ADR-0018 item 1) -------------------------
+  # --- self-managed logs (ADR-0018 item 1, EC-11 parser) ------------------------
   - it: renders no filelog pipeline by default
     template: configmap.yaml
     asserts:
@@ -316,7 +316,9 @@ tests:
           path: data.relay
           pattern: 'filelog/dbm|logs/dbm_file'
 
-  - it: passes every file log record through dbmkey and dbm, then drops it until EC-11 adds the parser
+  # EC-11: the dbmlogparser processor parses jsonlog/csvlog entries before dbmkey and dbm; the final
+  # filter drops every record the parser did not stamp (fail closed).
+  - it: parses every file log record with dbmlogparser before dbmkey and dbm, and drops any record it did not stamp
     template: configmap.yaml
     set:
       presets.databaseMonitoring.logs.enabled: true
@@ -325,13 +327,78 @@ tests:
     asserts:
       - matchRegex:
           path: data.relay
-          pattern: '(?m)^    logs/dbm_file:\n      exporters:\n      - coralogix/dbm\n      processors:\n      - memory_limiter\n      - resource/dbm_file\n      - dbmkey\n      - dbm\n      - filter/dbm_file_unparsed\n      receivers:\n      - filelog/dbm\n'
+          pattern: '(?m)^    logs/dbm_file:\n      exporters:\n      - coralogix/dbm\n      processors:\n      - memory_limiter\n      - dbmlogparser\n      - resource/dbm_file\n      - dbmkey\n      - dbm\n      - filter/dbm_file_unparsed\n      receivers:\n      - filelog/dbm\n'
       - matchRegex:
           path: data.relay
           pattern: '(?s)resource/dbm_file:\n.*?key: server\.address\n      value: billing-db\.billing\.svc\.cluster\.local\n.*?key: server\.port\n      value: 5432\n'
       - matchRegex:
           path: data.relay
-          pattern: '(?m)^  filter/dbm_file_unparsed:\n    error_mode: propagate\n    logs:\n      log_record:\n      - "true"\n'
+          pattern: '(?m)^  dbmlogparser:\n    format: jsonlog\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^  filter/dbm_file_unparsed:\n    error_mode: propagate\n    logs:\n      log_record:\n      - attributes\["cx\.dbm\.log\.parser"\] == nil\n'
+      - notMatchRegex:
+          path: data.relay
+          pattern: '(?m)^      - "true"$'
+      - notMatchRegex:
+          path: data.relay
+          pattern: 'line_start_pattern'
+
+  - it: renders csvlog with the parser format and a multiline rule that starts an entry at a timestamp
+    template: configmap.yaml
+    set:
+      presets.databaseMonitoring.logs.enabled: true
+      presets.databaseMonitoring.logs.filelog.instance: billing
+      presets.databaseMonitoring.logs.filelog.format: csvlog
+      presets.databaseMonitoring.logs.filelog.include: [/var/log/postgresql/*.csv]
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^  dbmlogparser:\n    format: csvlog\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?s)  filelog/dbm:\n.*?    multiline:\n      line_start_pattern: \^\\d\{4\}-\\d\{2\}-\\d\{2\} \\d\{2\}:\\d\{2\}:\\d\{2\}\n'
+
+  - it: refuses a config override of the dbmlogparser processor
+    template: deployment.yaml
+    set:
+      presets.databaseMonitoring.logs.enabled: true
+      presets.databaseMonitoring.logs.filelog.instance: billing
+      presets.databaseMonitoring.logs.filelog.include: [/var/log/postgresql/*.json]
+      config.processors.dbmlogparser:
+        format: csvlog
+    asserts:
+      - failedTemplate:
+          errorPattern: 'config.processors.dbmlogparser'
+
+  - it: refuses dbmlogparser in a non-owned pipeline
+    template: deployment.yaml
+    set:
+      presets.databaseMonitoring.logs.enabled: true
+      presets.databaseMonitoring.logs.filelog.instance: billing
+      presets.databaseMonitoring.logs.filelog.include: [/var/log/postgresql/*.json]
+      extraConfig:
+        service:
+          pipelines:
+            logs:
+              processors: [dbmlogparser, batch]
+    asserts:
+      - failedTemplate:
+          errorPattern: 'processor dbmlogparser is owned by the preset.*pipeline logs'
+
+  - it: refuses an extraConfig change to the dbmlogparser format
+    template: deployment.yaml
+    set:
+      presets.databaseMonitoring.logs.enabled: true
+      presets.databaseMonitoring.logs.filelog.instance: billing
+      presets.databaseMonitoring.logs.filelog.include: [/var/log/postgresql/*.json]
+      extraConfig:
+        processors:
+          dbmlogparser:
+            format: csvlog
+    asserts:
+      - failedTemplate:
+          errorPattern: 'processors.dbmlogparser is owned by the preset'
 
   - it: refuses the logs section without include paths
     template: deployment.yaml
