@@ -1,0 +1,31 @@
+charts/opentelemetry-collector/CHANGELOG.md
+  s_f831f252c737d7::t_0e6c3f1bf1d06d 7
+charts/opentelemetry-collector/README.md
+  s_f831f252c737d7::t_a48e927f003d0c 540,566,578-585
+charts/opentelemetry-collector/examples/database-monitoring/rendered/configmap-statefulset.yaml
+  s_f831f252c737d7::t_19f5d09a50bb3b 65-66,71,340
+charts/opentelemetry-collector/examples/database-monitoring/rendered/statefulset.yaml
+  s_f831f252c737d7::t_028a59436424ca 28
+charts/opentelemetry-collector/templates/_database_monitoring.tpl
+  s_f831f252c737d7::t_002d7a75672ef4 8-9,59,208-212,273-277,282,325,370
+charts/opentelemetry-collector/tests/validate_database_monitoring.py
+  s_f831f252c737d7::t_b32612bb293524 6,21
+charts/opentelemetry-collector/values.yaml
+  s_f831f252c737d7::t_27a436f8247662 1078-1082
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "57dc3cb10a5ed11adf7337557777d67e77c2635b",
+  "prompts": {},
+  "sessions": {
+    "s_f831f252c737d7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d17d887-0e27-40f9-aede-50f0536246af",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "oded-dd <oded@coralogix.com>"
+    }
+  }
+}
