@@ -1041,8 +1041,9 @@ presets:
     # closes connections after each scrape. The receiver applies these settings only with the collector feature gate
     # `receiver.postgresql.connectionPool` (beta, on by default in the cdot image). The chart does not set it
     # and refuses `command.extraArgs` that disable it.
-    # The per-role connection limit of the DBM grant scripts (CONNECTION LIMIT 3) is an open decision:
-    # Q12 measured 4 steady connections and `too many connections` at limit 3 (SEC-F-17).
+    # Monitoring role limit (SEC-F-17, requester decision A):
+    # the grant script sets `CONNECTION LIMIT 8`; budget = (1 + N) per receiver + probe + up to 2 EC-07 sweeps; `max_idle: 0` keeps steady use low.
+    # With N > 1 the worst case can exceed 8 (for example N = 2: 3 + 3 + 1 + 2 = 9); keep N small or raise the limit.
     connectionPool:
       maxOpen: 1
       maxIdle: 0

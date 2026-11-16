@@ -173,11 +173,12 @@ tests:
       - failedTemplate:
           errorPattern: 'credentialsSecret'
 
-  # --- SEC-F-17: connection budget (open decision Q12 / R8) --------------------
+  # --- SEC-F-17: connection budget (requester decision A: CONNECTION LIMIT 8) ----
   # Upstream keeps one pool per database name plus the `postgres` client, and top-query EXPLAIN opens a
   # client per database seen in pg_stat_statements. So max_open 1 caps each pool, not the receiver:
-  # per instance (1 + N databases) per receiver, plus the dbentity probe. Q12 measured 4 steady at limit 3.
-  - it: sets max_open 1 and max_idle 0 on every receiver pool, so connections close after each scrape (SEC-F-17, Q12/R8 open)
+  # per instance (1 + N) per receiver, plus the dbentity probe and up to 2 EC-07 sweeps; the grant script sets
+  # CONNECTION LIMIT 8 (Q12 measured 4 steady at the old limit 3).
+  - it: sets max_open 1 and max_idle 0 on every receiver pool, so connections close after each scrape (SEC-F-17, CONNECTION LIMIT 8)
     template: configmap.yaml
     asserts:
       - matchRegex:
