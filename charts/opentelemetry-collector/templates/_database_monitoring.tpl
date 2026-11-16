@@ -101,7 +101,7 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 {{- if $dbm.rdsLogs.enabled }}
 {{- /* One poller per instance: a second replica (or an autoscaled one) would read the same log files with
        its own markers and send every record twice (EC-12 review I3). */}}
-{{- if false }}
+{{- if or (gt (int .Values.replicaCount) 1) .Values.autoscaling.enabled }}
 {{- fail "presets.databaseMonitoring.rdsLogs needs exactly one collector replica: set replicaCount: 1 and autoscaling.enabled: false" }}
 {{- end }}
 {{- if not $dbm.rdsLogs.instances }}
@@ -384,7 +384,7 @@ service:
     {{- if $rds }}
     logs/dbm_rds:
       receivers: ["rdslog/dbm"]
-      processors: {{ toJson (concat $head (list "dbmkey" "dbm" "batch/dbm")) }}
+      processors: {{ toJson (concat $head (list "dbmkey" "dbm" "filter/dbm_rds_removed" "batch/dbm")) }}
       exporters: ["coralogix/dbm"]
     {{- end }}
     {{- if $dbm.logs.enabled }}

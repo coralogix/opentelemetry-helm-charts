@@ -23,7 +23,7 @@ spec:
       {{- include "opentelemetry-collector.selectorLabels" . | nindent 6 }}
       {{- include "opentelemetry-collector.component" . | nindent 6 }}
   strategy:
-    {{- if false }}
+    {{- if and .Values.presets.databaseMonitoring.enabled .Values.presets.databaseMonitoring.rdsLogs.enabled }}
     {{- /* DBM rdsLogs (EC-12 review I3): the old pod stops before the new one starts, so two pods never poll the same RDS log files. */}}
     type: Recreate
     {{- else }}
