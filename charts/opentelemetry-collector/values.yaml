@@ -991,6 +991,110 @@ presets:
       # logFilesExtension specifies the file extension of the log files to watch. This will normally be .log.
       logFilesExtension: ".log"
 
+  # Database Monitoring (DBM). Status: development. Renders the DBM pipelines for remote and managed PostgreSQL
+  # instances (design topology 2: a Deployment or StatefulSet collector; `mode: daemonset` and
+  # `collectorCRD.generate` are refused). It needs a collector build that contains the `dbm` processor,
+  # the `dbmkey` processor and the `dbentity` connector (not yet in the default image).
+  # Pipelines, per instance:
+  #   metrics/dbm:  postgresql/dbm_<name>_metrics -> memory_limiter -> [resource/dbm_scope] -> dbmkey -> dbentity (+ coralogix)
+  #   logs/dbm:     postgresql/dbm_<name>_events  -> memory_limiter -> [resource/dbm_scope] -> dbmkey -> dbm -> batch/dbm -> coralogix/dbm
+  #   logs/dbm_entity: dbentity -> nop (default) or coralogix/dbm_entity (entity.export.enabled)
+  databaseMonitoring:
+    enabled: false
+    # Optional Kubernetes cluster UID (the kube-system namespace UID), inserted as `k8s.cluster.uid` on DBM
+    # resources so `dbmkey` can scope in-cluster endpoints. Without it, in-cluster endpoints get no
+    # `cx.dbm.collector_key` (fail closed). Managed endpoints (for example RDS) do not need it.
+    clusterUid: ""
+    # One entry per database instance. Credentials come ONLY from a Kubernetes Secret (SEC-F-19): inline
+    # `username` or `password` keys are refused.
+    instances: []
+    # - name: orders                        # ^[a-z][a-z0-9_]{0,39}$; used in component ids and env names
+    #   engine: postgresql                  # postgresql only in this version
+    #   endpoint: orders.abc123.eu-west-1.rds.amazonaws.com:5432
+    #   databases: [app]                    # the first one is also the dbentity probe database
+    #   credentialsSecret:
+    #     name: dbm-orders                  # Secret in the release namespace
+    #     usernameKey: username
+    #     passwordKey: password
+    #   tls:
+    #     insecure: false
+    #     insecureSkipVerify: false
+    #     caFile: /etc/dbm/rds-ca.pem       # mount it with extraVolumes / extraVolumeMounts
+    #   sslmode: verify-full                # dbentity probe: disable | require | verify-ca | verify-full
+    #   sslrootcert: /etc/dbm/rds-ca.pem    # dbentity probe CA bundle (absolute path)
+    #   awsAccountId: "012345678901"        # RDS/Aurora only: rendered only when set explicitly (quoted, keep leading zeros)
+    # Metrics receiver instance (design section 8): 60 s, events off, per-table and per-index metrics off.
+    metrics:
+      collectionInterval: 60s
+    # Events receiver instance (design section 8): query samples every 10 s, top queries every 60 s, metrics off.
+    events:
+      querySampleInterval: 10s
+      topQueryInterval: 60s
+      topNQuery: 100
+      maxRowsPerQuery: 100
+      maxExplainEachInterval: 100
+    # Connection pools. The receiver keeps one pool per database name plus a client on the `postgres`
+    # database, and top-query EXPLAIN opens a client per database seen in pg_stat_statements; `maxOpen`
+    # caps each pool, not the receiver. Per instance that is up to (1 + N) connections per receiver, plus
+    # 1 for the dbentity probe, where N is the configured `databases` for the metrics receiver and the
+    # databases seen in pg_stat_statements (top-query EXPLAIN) for the events receiver. `maxIdle: 0`
+    # closes connections after each scrape. The receiver applies these settings only with the collector feature gate
+    # `receiver.postgresql.connectionPool` (beta, on by default in the cdot image). The chart does not set it
+    # and refuses `command.extraArgs` that disable it.
+    # Monitoring role limit (SEC-F-17, requester decision A):
+    # the grant script sets `CONNECTION LIMIT 8`; budget = (1 + N) connections per receiver (N = configured databases
+    # for metrics, databases seen in pg_stat_statements for events) + the dbentity probe + up to 2 EC-07 sweeps;
+    # max_idle 0 keeps steady use low.
+    # Worst case per instance = (1 + N metrics) + (1 + N events) + 1 + 2 = N metrics + N events + 5: one database
+    # each gives 7, within 8; it exceeds 8 when the two N add up to more than 3 (N = 2 each gives 9), so raise the
+    # limit for such an instance.
+    connectionPool:
+      maxOpen: 1
+      maxIdle: 0
+    # dbentity connector (entity identity events).
+    entity:
+      interval: 5m
+      probeTimeout: 5s
+      export:
+        # Off by default: entity events go to a `nop` exporter. When on, they go to the resource catalog
+        # route (`x-coralogix-ingress: metadata-as-otlp-logs/v1`).
+        enabled: false
+    # dbm processor static policy (no OpAMP policy yet).
+    policy:
+      opamp: ""
+      mode: baseline                        # off | baseline | sampled
+      topK: 100
+      samplesPerSignaturePerHour: 15
+      allowLiteralCapture: false
+    # Dedicated DBM exporter (`x-coralogix-ingress: dbm-as-otlp-logs/v1`, ADR-0009).
+    exporter:
+      domain: ""                            # defaults to global.domain
+      privateKey: ${env:CORALOGIX_PRIVATE_KEY}
+    # Namespaces that hold StatefulSet pod targets. For each one the chart creates a Role and RoleBinding
+    # (get, list and watch on pods and persistentvolumeclaims) for the dbentity PVC lookup; without them the
+    # dbentity startup RBAC self-check stops the collector.
+    pvcLookup:
+      namespaces: []
+    # Self-managed PostgreSQL log files (ADR-0018 item 1). Placeholder: EC-11 adds the jsonlog/csvlog parser
+    # and the edge redaction. Until then every record passes `dbm` and is then dropped by
+    # `filter/dbm_file_unparsed`, so no raw log line leaves the collector (fail closed).
+    logs:
+      enabled: false
+      filelog:
+        # The instance (from `instances`) these files belong to; sets db.system.name, server.address and
+        # server.port so `dbmkey` stamps the same `cx.dbm.collector_key`.
+        instance: ""
+        format: jsonlog                     # jsonlog | csvlog
+        include: []
+        startAt: end
+    # RDS / Aurora PostgreSQL log files without CloudWatch (ADR-0018 item 2). Stub: the receiver is task EC-12
+    # and is not in this chart version; enabling it is refused.
+    # Collector AWS permissions (IAM) the receiver will need, on the monitored DB instances:
+    #   rds:DescribeDBLogFiles
+    #   rds:DownloadDBLogFilePortion
+    rdsLogs:
+      enabled: false
+
   # Configures probabilistic head sampling for traces
   headSampling:
     enabled: false

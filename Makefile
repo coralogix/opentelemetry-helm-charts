@@ -133,6 +133,13 @@ check-operator-crds:
 .PHONY: validate-examples
 validate-examples:
 	cd charts/opentelemetry-collector && ./validate-configs.sh
+	$(MAKE) test-database-monitoring
+
+# databaseMonitoring preset (DBM): helm-unittest suite + strict validation of its example.
+# Runs on Linux (CI); skips cleanly elsewhere. Needs otelcol-contrib, which validate-configs.sh downloads.
+.PHONY: test-database-monitoring
+test-database-monitoring:
+	cd charts/opentelemetry-collector && ./tests/run-database-monitoring-tests.sh
 
 .PHONY: validate-version-bump
 validate-version-bump:

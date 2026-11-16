@@ -142,6 +142,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- define "opentelemetry-collector.daemonsetConfig" -}}
 {{- $values := deepCopy .Values }}
 {{- $data := dict "Values" $values | mustMergeOverwrite (deepCopy .) }}
+{{- if .Values.presets.databaseMonitoring.enabled }}
+{{- fail "presets.databaseMonitoring: mode must be deployment or statefulset (design topology 2)" }}
+{{- end }}
 {{- $config := include "opentelemetry-collector.baseConfig" $data | fromYaml }}
 {{- if .Values.presets.ecsLogsCollection.enabled }}
 {{- $config = (include "opentelemetry-collector.applyEcsLogsCollectionConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -363,6 +366,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.mysql.metrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyMysqlConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.databaseMonitoring.enabled }}
+{{- $config = (include "opentelemetry-collector.applyDatabaseMonitoringConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.hostMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyHostMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -506,7 +512,12 @@ Build config file for deployment OpenTelemetry Collector
 {{- if and ($supervisorEnabled) (.Values.presets.fleetManagement.supervisor.minimalCollectorConfig) }}
 {{- $config = include "opentelemetry-collector.supervisorCollectorConfig" .  | fromYaml }}
 {{- end }}
-{{- tpl (toYaml $config) . }}
+{{- $rendered := tpl (toYaml $config) . }}
+{{- if .Values.presets.databaseMonitoring.enabled }}
+{{- /* Guard the tpl-expanded result, so no {{ }} value can bring an owned id back after the check. */}}
+{{- include "opentelemetry-collector.dbmFinalGuard" (dict "config" ($rendered | fromYaml) "expected" (tpl (include "opentelemetry-collector.databaseMonitoringConfig" $data) . | fromYaml)) }}
+{{- end }}
+{{- $rendered }}
 {{- end }}
 
 {{- define "opentelemetry-collector.removePipelinesWithoutExporters" -}}

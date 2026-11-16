@@ -1,0 +1,21 @@
+# Base values for tests/database_monitoring_test.yaml (EC-09). Synthetic endpoints only.
+mode: deployment
+global:
+  domain: "eu2.coralogix.com"
+presets:
+  databaseMonitoring:
+    enabled: true
+    instances:
+      - name: orders
+        endpoint: orders.abc123.eu-west-1.rds.amazonaws.com:5432
+        databases: [app]
+        credentialsSecret:
+          name: dbm-orders
+      - name: billing
+        endpoint: billing-db.billing.svc.cluster.local:5432
+        databases: [billing]
+        credentialsSecret:
+          name: dbm-billing
+          usernameKey: user
+          passwordKey: pass
+        sslmode: require

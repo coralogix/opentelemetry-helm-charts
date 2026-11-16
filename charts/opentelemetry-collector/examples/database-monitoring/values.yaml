@@ -1,0 +1,41 @@
+mode: statefulset
+
+replicaCount: 1
+
+global:
+  domain: "eu2.coralogix.com"
+
+presets:
+  databaseMonitoring:
+    enabled: true
+    clusterUid: "0c31d8e2-b613-43a4-98ed-566f8138b361"
+    instances:
+      - name: orders
+        endpoint: orders.abc123.eu-west-1.rds.amazonaws.com:5432
+        databases: [app]
+        credentialsSecret:
+          name: dbm-orders
+        tls:
+          caFile: /etc/dbm/rds-ca.pem
+        sslrootcert: /etc/dbm/rds-ca.pem
+        awsAccountId: "012345678901"
+      - name: billing
+        endpoint: billing-db.billing.svc.cluster.local:5432
+        databases: [billing, ledger]
+        credentialsSecret:
+          name: dbm-billing
+          usernameKey: user
+          passwordKey: pass
+        sslmode: require
+    pvcLookup:
+      namespaces: [billing]
+    logs:
+      enabled: true
+      filelog:
+        instance: billing
+        include: [/var/log/postgresql/*.json]
+
+resources:
+  limits:
+    cpu: 1
+    memory: 1Gi

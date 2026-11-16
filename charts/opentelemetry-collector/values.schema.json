@@ -713,6 +713,298 @@
             }
           }
         },
+        "databaseMonitoring": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Enables the Database Monitoring (DBM) pipelines.",
+              "type": "boolean",
+              "default": false
+            },
+            "clusterUid": {
+              "type": "string"
+            },
+            "instances": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "description": "Instance name, used in component ids and env names.",
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_]{0,39}$"
+                  },
+                  "engine": {
+                    "type": "string",
+                    "enum": [
+                      "postgresql"
+                    ],
+                    "default": "postgresql"
+                  },
+                  "endpoint": {
+                    "description": "host:port of the database.",
+                    "type": "string",
+                    "pattern": "^[^\\s:]+:[0-9]{1,5}$"
+                  },
+                  "databases": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "credentialsSecret": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "usernameKey": {
+                        "type": "string",
+                        "minLength": 1,
+                        "default": "username"
+                      },
+                      "passwordKey": {
+                        "type": "string",
+                        "minLength": 1,
+                        "default": "password"
+                      }
+                    },
+                    "required": [
+                      "name"
+                    ],
+                    "description": "Kubernetes Secret with the monitoring user's credentials (SEC-F-19: the only credential source)."
+                  },
+                  "tls": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "insecure": {
+                        "type": "boolean"
+                      },
+                      "insecureSkipVerify": {
+                        "type": "boolean"
+                      },
+                      "caFile": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "sslmode": {
+                    "type": "string",
+                    "enum": [
+                      "disable",
+                      "require",
+                      "verify-ca",
+                      "verify-full"
+                    ]
+                  },
+                  "sslrootcert": {
+                    "type": "string"
+                  },
+                  "awsAccountId": {
+                    "description": "RDS/Aurora AWS account id, rendered only when set.",
+                    "type": "string",
+                    "pattern": "^([0-9]{12})?$"
+                  }
+                },
+                "required": [
+                  "name",
+                  "endpoint",
+                  "databases",
+                  "credentialsSecret"
+                ],
+                "description": "One database instance. Inline username/password keys are not allowed (SEC-F-19)."
+              }
+            },
+            "metrics": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "collectionInterval": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(ms|s|m|h)$"
+                }
+              }
+            },
+            "events": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "querySampleInterval": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(ms|s|m|h)$"
+                },
+                "topQueryInterval": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(ms|s|m|h)$"
+                },
+                "topNQuery": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 500
+                },
+                "maxRowsPerQuery": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "maxExplainEachInterval": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100
+                }
+              }
+            },
+            "connectionPool": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "maxOpen": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1
+                },
+                "maxIdle": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 0
+                }
+              }
+            },
+            "entity": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "interval": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(ms|s|m|h)$"
+                },
+                "probeTimeout": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(ms|s|m|h)$"
+                },
+                "export": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            },
+            "policy": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "opamp": {
+                  "type": "string"
+                },
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "off",
+                    "baseline",
+                    "sampled"
+                  ]
+                },
+                "topK": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 500
+                },
+                "samplesPerSignaturePerHour": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 15
+                },
+                "allowLiteralCapture": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "exporter": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "domain": {
+                  "type": "string"
+                },
+                "privateKey": {
+                  "type": "string"
+                }
+              }
+            },
+            "pvcLookup": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "namespaces": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                  }
+                }
+              }
+            },
+            "logs": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "filelog": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "instance": {
+                      "type": "string"
+                    },
+                    "format": {
+                      "type": "string",
+                      "enum": [
+                        "jsonlog",
+                        "csvlog"
+                      ]
+                    },
+                    "include": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "startAt": {
+                      "type": "string",
+                      "enum": [
+                        "beginning",
+                        "end"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "rdsLogs": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "description": "Database Monitoring (DBM) preset (development)."
+        },
         "hostMetrics": {
           "type": "object",
           "additionalProperties": false,
