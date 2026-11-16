@@ -281,7 +281,6 @@ processors:
     logs:
       log_record:
         - 'attributes["cx.dbm.log.parser"] == nil'
-        - 'resource.attributes["cx.dbm.collector_key"] == nil'
   {{- end }}
 exporters:
   coralogix/dbm:
