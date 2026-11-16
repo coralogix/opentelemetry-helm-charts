@@ -273,13 +273,15 @@ processors:
   # EC-11: one record per PostgreSQL log entry; entries that do not parse are dropped and counted.
   dbmlogparser:
     format: {{ $dbm.logs.filelog.format }}
-  # Final guard: only records the parser stamped (cx.dbm.log.parser) reach the exporter, so no raw
-  # log line leaves the collector (ADR-0018 item 5b, fail closed).
+  # Final guard: only records the parser stamped (cx.dbm.log.parser) and dbmkey keyed
+  # (cx.dbm.collector_key, without which dbm redacts nothing) reach the exporter, so no raw
+  # or unredacted log line leaves the collector (ADR-0018 item 5b, fail closed).
   filter/dbm_file_unparsed:
     error_mode: propagate
     logs:
       log_record:
         - 'attributes["cx.dbm.log.parser"] == nil'
+        - 'resource.attributes["cx.dbm.collector_key"] == nil'
   {{- end }}
 exporters:
   coralogix/dbm:

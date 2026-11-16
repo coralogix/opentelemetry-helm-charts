@@ -579,7 +579,8 @@ Security and safety:
   (preferred) or `csvlog` entry into one record, and auto_explain JSON plans into `actual` plan records, before `dbmkey`
   and `dbm`, which obfuscates every statement, parameter and plan part. Entries that do not parse are dropped and
   counted (`dbm_log_entry_unparsed_total`). `filter/dbm_file_unparsed` drops any record the parser did not stamp
-  (`cx.dbm.log.parser`), so no raw log line leaves the collector. For `csvlog`, `filelog/dbm` starts an entry at a line
+  (`cx.dbm.log.parser`) and any record without `cx.dbm.collector_key`, so no raw log line leaves the collector.
+  `lc_messages` must be `C` (English): the parser replaces messages it does not recognise. For `csvlog`, `filelog/dbm` starts an entry at a line
   that begins with a timestamp, so multi-line entries stay whole. Recommended PostgreSQL settings:
   `log_destination = 'jsonlog'` (15+), `log_timezone = 'UTC'`, and for actual plans `auto_explain.log_format = json`
   with `auto_explain.log_verbose = on` and `compute_query_id = on` (14+) so plans join on `queryid`.

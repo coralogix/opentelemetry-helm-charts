@@ -69,6 +69,7 @@ data:
         logs:
           log_record:
           - attributes["cx.dbm.log.parser"] == nil
+          - resource.attributes["cx.dbm.collector_key"] == nil
       memory_limiter:
         check_interval: 5s
         limit_percentage: 80
