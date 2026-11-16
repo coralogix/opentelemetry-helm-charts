@@ -272,7 +272,7 @@ processors:
         action: upsert
   # EC-11: one record per PostgreSQL log entry; entries that do not parse are dropped and counted.
   dbmlogparser:
-    format: jsonlog
+    format: {{ $dbm.logs.filelog.format }}
   # Final guard: only records the parser stamped (cx.dbm.log.parser) reach the exporter, so no raw
   # log line leaves the collector (ADR-0018 item 5b, fail closed).
   filter/dbm_file_unparsed:
@@ -322,7 +322,7 @@ service:
     {{- if $dbm.logs.enabled }}
     logs/dbm_file:
       receivers: ["filelog/dbm"]
-      processors: {{ toJson (concat (list "memory_limiter" "resource/dbm_file") (rest $head) (list "dbmkey" "dbm" "dbmlogparser" "filter/dbm_file_unparsed")) }}
+      processors: {{ toJson (concat (list "memory_limiter" "dbmlogparser" "resource/dbm_file") (rest $head) (list "dbmkey" "dbm" "filter/dbm_file_unparsed")) }}
       exporters: ["coralogix/dbm"]
     {{- end }}
 {{- end }}
