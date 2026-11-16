@@ -56,7 +56,7 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 {{- end }}
 {{- end }}
 {{- $owned := dict
-    "processors" (list "dbm" "dbmkey" "batch/dbm" "filter/dbm_file_unparsed" "resource/dbm_scope" "resource/dbm_file")
+    "processors" (list "dbm" "dbmkey" "dbmlogparser" "batch/dbm" "filter/dbm_file_unparsed" "resource/dbm_scope" "resource/dbm_file")
     "exporters" (list "coralogix/dbm" "coralogix/dbm_entity")
     "connectors" (list "dbentity")
     "receivers" (list "filelog/dbm") }}
@@ -205,7 +205,7 @@ receivers:
     include: {{ toJson $dbm.logs.filelog.include }}
     start_at: {{ $dbm.logs.filelog.startAt }}
     include_file_path: true
-    {{- if false }}
+    {{- if eq $dbm.logs.filelog.format "csvlog" }}
     # A csvlog entry spans lines when a quoted field holds a newline: an entry starts at a timestamp.
     multiline:
       line_start_pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'
@@ -272,7 +272,7 @@ processors:
         action: upsert
   # EC-11: one record per PostgreSQL log entry; entries that do not parse are dropped and counted.
   dbmlogparser:
-    format: {{ $dbm.logs.filelog.format }}
+    format: jsonlog
   # Final guard: only records the parser stamped (cx.dbm.log.parser) and dbmkey keyed
   # (cx.dbm.collector_key, without which dbm redacts nothing) reach the exporter, so no raw
   # or unredacted log line leaves the collector (ADR-0018 item 5b, fail closed).
@@ -280,7 +280,7 @@ processors:
     error_mode: propagate
     logs:
       log_record:
-        - 'false'
+        - 'attributes["cx.dbm.log.parser"] == nil'
         - 'resource.attributes["cx.dbm.collector_key"] == nil'
   {{- end }}
 exporters:
@@ -324,7 +324,7 @@ service:
     {{- if $dbm.logs.enabled }}
     logs/dbm_file:
       receivers: ["filelog/dbm"]
-      processors: {{ toJson (concat (list "memory_limiter" "dbmlogparser" "resource/dbm_file") (rest $head) (list "dbmkey" "dbm" "filter/dbm_file_unparsed")) }}
+      processors: {{ toJson (concat (list "memory_limiter" "resource/dbm_file") (rest $head) (list "dbmkey" "dbm" "dbmlogparser" "filter/dbm_file_unparsed")) }}
       exporters: ["coralogix/dbm"]
     {{- end }}
 {{- end }}
@@ -369,7 +369,7 @@ Input: dict "config" (merged config) "expected" (the preset's own render).
 {{- end }}
 {{- end }}
 {{- range $p := $pl.processors | default list }}
-{{- if has $p (list "dbm" "dbmkey" "batch/dbm" "filter/dbm_file_unparsed" "resource/dbm_scope" "resource/dbm_file") }}
+{{- if has $p (list "dbm" "dbmkey" "dbmlogparser" "batch/dbm" "filter/dbm_file_unparsed" "resource/dbm_scope" "resource/dbm_file") }}
 {{- fail (printf "presets.databaseMonitoring: processor %s is owned by the preset and must not be used in pipeline %s" $p $name) }}
 {{- end }}
 {{- end }}
