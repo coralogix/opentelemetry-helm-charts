@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.143.1 / 2026-11-16
+
+- [Fix] Bump the supervised image to 0.20.0 with Supervisor 0.165.1 to apply package and configuration updates together.
+
 ### v0.143.0 / 2026-11-11
 
 - [Feat] Bump the OpenTelemetry Collector image to v0.165.0.
