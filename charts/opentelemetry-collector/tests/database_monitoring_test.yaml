@@ -377,7 +377,7 @@ tests:
           pattern: '(?m)^  extensions:\n(  - .*\n)*  - file_storage/dbm_rdslog\n'
       - matchRegex:
           path: data.relay
-          pattern: '(?m)^    logs/dbm_rds:\n      exporters:\n      - coralogix/dbm\n      processors:\n      - memory_limiter\n      - dbmkey\n      - dbm\n      - batch/dbm\n      receivers:\n      - rdslog/dbm\n'
+          pattern: '(?m)^    logs/dbm_rds:\n      exporters:\n      - coralogix/dbm\n      processors:\n      - memory_limiter\n      - dbmkey\n      - dbm\n      - filter/dbm_rds_removed\n      - batch/dbm\n      receivers:\n      - rdslog/dbm\n'
       - notMatchRegex:
           path: data.relay
           pattern: 'billing-db\.billing\.svc\.cluster\.local:5432\n    max_bytes_per_poll'
@@ -396,6 +396,57 @@ tests:
       - matchRegex:
           path: data.relay
           pattern: '(?s)rdslog/dbm:\n    account_requests_per_second: 2\n    instance_requests_per_second: 0\.5\n.*?max_bytes_per_poll: 1048576\n    poll_interval: 30s\n    start_at: beginning\n'
+
+  - it: drops records that dbm replaced with the log-entry-removed marker (review M8)
+    template: configmap.yaml
+    set:
+      presets.databaseMonitoring.rdsLogs.enabled: true
+      presets.databaseMonitoring.rdsLogs.instances: [orders]
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^    logs/dbm_rds:\n      exporters:\n      - coralogix/dbm\n      processors:\n      - memory_limiter\n      - dbmkey\n      - dbm\n      - filter/dbm_rds_removed\n      - batch/dbm\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^  filter/dbm_rds_removed:\n    error_mode: propagate\n    logs:\n      log_record:\n      - body == "\[cx\.dbm: log entry removed\]"\n'
+
+  - it: refuses rdsLogs with more than one replica (review I3)
+    template: deployment.yaml
+    set:
+      replicaCount: 2
+      presets.databaseMonitoring.rdsLogs.enabled: true
+      presets.databaseMonitoring.rdsLogs.instances: [orders]
+    asserts:
+      - failedTemplate:
+          errorPattern: 'rdsLogs needs exactly one collector replica'
+
+  - it: refuses rdsLogs with autoscaling (review I3)
+    template: deployment.yaml
+    set:
+      autoscaling.enabled: true
+      presets.databaseMonitoring.rdsLogs.enabled: true
+      presets.databaseMonitoring.rdsLogs.instances: [orders]
+    asserts:
+      - failedTemplate:
+          errorPattern: 'rdsLogs needs exactly one collector replica'
+
+  - it: uses the Recreate strategy for the rdsLogs Deployment (review I3)
+    template: deployment.yaml
+    set:
+      presets.databaseMonitoring.rdsLogs.enabled: true
+      presets.databaseMonitoring.rdsLogs.instances: [orders]
+    asserts:
+      - equal:
+          path: spec.strategy
+          value:
+            type: Recreate
+
+  - it: keeps the configured rollout strategy while rdsLogs is off
+    template: deployment.yaml
+    asserts:
+      - equal:
+          path: spec.strategy.type
+          value: RollingUpdate
 
   - it: mounts an emptyDir for the rdslog markers
     template: deployment.yaml
