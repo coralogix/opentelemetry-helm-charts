@@ -386,8 +386,10 @@ tests:
       - failedTemplate:
           errorPattern: 'processor dbmlogparser is owned by the preset.*pipeline logs'
 
-  - it: refuses an extraConfig change to the dbmlogparser format
-    template: deployment.yaml
+  # extraConfig is merged under the existing config (applyExtraConfig: mustMergeOverwrite extraConfig config),
+  # so it cannot change an owned component: the preset's dbmlogparser format stays.
+  - it: keeps the preset's dbmlogparser format when extraConfig sets another
+    template: configmap.yaml
     set:
       presets.databaseMonitoring.logs.enabled: true
       presets.databaseMonitoring.logs.filelog.instance: billing
@@ -396,9 +398,16 @@ tests:
         processors:
           dbmlogparser:
             format: csvlog
+        service:
+          pipelines:
+            logs: {}
     asserts:
-      - failedTemplate:
-          errorPattern: 'processors.dbmlogparser is owned by the preset'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^  dbmlogparser:\n    format: jsonlog\n'
+      - notMatchRegex:
+          path: data.relay
+          pattern: 'format: csvlog'
 
   - it: refuses the logs section without include paths
     template: deployment.yaml
