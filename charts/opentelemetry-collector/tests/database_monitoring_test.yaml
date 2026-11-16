@@ -318,6 +318,7 @@ tests:
 
   # EC-11: the dbmlogparser processor parses jsonlog/csvlog entries before dbmkey and dbm; the final
   # filter drops every record the parser did not stamp (fail closed).
+  # Review round 1 (I4): the filter also drops records without the dbmkey collector key.
   - it: parses every file log record with dbmlogparser before dbmkey and dbm, and drops any record it did not stamp
     template: configmap.yaml
     set:
@@ -336,7 +337,7 @@ tests:
           pattern: '(?m)^  dbmlogparser:\n    format: jsonlog\n'
       - matchRegex:
           path: data.relay
-          pattern: '(?m)^  filter/dbm_file_unparsed:\n    error_mode: propagate\n    logs:\n      log_record:\n      - attributes\["cx\.dbm\.log\.parser"\] == nil\n'
+          pattern: '(?m)^  filter/dbm_file_unparsed:\n    error_mode: propagate\n    logs:\n      log_record:\n      - attributes\["cx\.dbm\.log\.parser"\] == nil\n      - resource\.attributes\["cx\.dbm\.collector_key"\] == nil\n'
       - notMatchRegex:
           path: data.relay
           pattern: '(?m)^      - "true"$'
