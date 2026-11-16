@@ -1,0 +1,651 @@
+charts/opentelemetry-collector/CHANGELOG.md
+  s_f831f252c737d7::t_3d347fc60fbae9 5,10-13
+charts/opentelemetry-collector/Chart.yaml
+  s_f831f252c737d7::t_7edc3ab506c47c 3
+charts/opentelemetry-collector/examples/daemonset-hostmetrics/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_231a094e826806 9
+charts/opentelemetry-collector/examples/daemonset-hostmetrics/rendered/daemonset.yaml
+  s_f831f252c737d7::t_86b0f992f3a92e 9,25
+charts/opentelemetry-collector/examples/daemonset-hostmetrics/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_9f902f2589e9f5 9
+charts/opentelemetry-collector/examples/daemonset-only/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_8f81d002b7c5bb 9
+charts/opentelemetry-collector/examples/daemonset-only/rendered/daemonset.yaml
+  s_f831f252c737d7::t_d27069de5de8ab 9,25
+charts/opentelemetry-collector/examples/daemonset-only/rendered/podmonitor.yaml
+  s_f831f252c737d7::t_f4f985bcdd6729 9
+charts/opentelemetry-collector/examples/daemonset-only/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_8aa72f3687fce5 9
+charts/opentelemetry-collector/examples/daemonset-pprof-self/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_c9b50ae59b0e4c 8
+charts/opentelemetry-collector/examples/daemonset-pprof-self/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_2d4d5858a64f0c 8
+charts/opentelemetry-collector/examples/daemonset-pprof-self/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_cf31edebe156a5 9
+charts/opentelemetry-collector/examples/daemonset-pprof-self/rendered/daemonset.yaml
+  s_f831f252c737d7::t_34c9dfa20e5b04 9,25
+charts/opentelemetry-collector/examples/daemonset-pprof-self/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_e06585bb0941a8 9
+charts/opentelemetry-collector/examples/deployment-use-existing-configMap/rendered/deployment.yaml
+  s_f831f252c737d7::t_237e1142c78330 9
+charts/opentelemetry-collector/examples/deployment-use-existing-configMap/rendered/service.yaml
+  s_f831f252c737d7::t_20d5414274959d 9
+charts/opentelemetry-collector/examples/deployment-use-existing-configMap/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_4579468c247e37 9
+charts/opentelemetry-collector/examples/ebpf-profiler-with-fleet-management-no-supervisor/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_ceffde9e1004ee 9,29
+charts/opentelemetry-collector/examples/ebpf-profiler-with-fleet-management-no-supervisor/rendered/daemonset.yaml
+  s_f831f252c737d7::t_fe486980bf16f7 9,25
+charts/opentelemetry-collector/examples/ebpf-profiler-with-fleet-management-no-supervisor/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_462084209334a5 9
+charts/opentelemetry-collector/examples/eks-fargate/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_f3cd22ab3f868c 8
+charts/opentelemetry-collector/examples/eks-fargate/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_1cc4017de865f4 8
+charts/opentelemetry-collector/examples/eks-fargate/rendered/configmap-script.yaml
+  s_f831f252c737d7::t_93a973ad67d0af 9
+charts/opentelemetry-collector/examples/eks-fargate/rendered/configmap-statefulset.yaml
+  s_f831f252c737d7::t_7c93ca2e3882e3 9
+charts/opentelemetry-collector/examples/eks-fargate/rendered/service.yaml
+  s_f831f252c737d7::t_0e890c9e58fcd2 9
+charts/opentelemetry-collector/examples/eks-fargate/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_82f32c6ddef59f 9
+charts/opentelemetry-collector/examples/eks-fargate/rendered/statefulset.yaml
+  s_f831f252c737d7::t_cfb25b3b0a1427 9,28
+charts/opentelemetry-collector/examples/kubernetesAttributes/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_d15e7c47d32e31 8
+charts/opentelemetry-collector/examples/kubernetesAttributes/rendered/deployment.yaml
+  s_f831f252c737d7::t_d50d5842c9b379 9,27
+charts/opentelemetry-collector/examples/kubernetesAttributes/rendered/service.yaml
+  s_f831f252c737d7::t_e91524753bc454 9
+charts/opentelemetry-collector/examples/kubernetesAttributes/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_2829e502014b94 9
+charts/opentelemetry-collector/examples/opentelemetrycollector-crd-security-context/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_00445514d2e53d 9
+charts/opentelemetry-collector/examples/opentelemetrycollector-crd-security-context/rendered/opentelemetrycollector.yaml
+  s_f831f252c737d7::t_b5dbd5dbaf3c91 8
+charts/opentelemetry-collector/examples/opentelemetrycollector-crd-security-context/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_9e1c4d339a3c86 9
+charts/opentelemetry-collector/examples/opentelemetrycollector-crd/rendered/clusterrole-targetallocator.yaml
+  s_f831f252c737d7::t_11b50cf7de1a78 8
+charts/opentelemetry-collector/examples/opentelemetrycollector-crd/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_e789311ee67f67 8
+charts/opentelemetry-collector/examples/opentelemetrycollector-crd/rendered/clusterrolebinding-targetallocator.yaml
+  s_f831f252c737d7::t_f0e6d02353c25f 8
+charts/opentelemetry-collector/examples/opentelemetrycollector-crd/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_91148e8c7b254a 8
+charts/opentelemetry-collector/examples/opentelemetrycollector-crd/rendered/opentelemetrycollector.yaml
+  s_f831f252c737d7::t_366f9cf738403d 8
+charts/opentelemetry-collector/examples/opentelemetrycollector-crd/rendered/serviceaccount-targetallocator.yaml
+  s_f831f252c737d7::t_76caf5b129d33f 9
+charts/opentelemetry-collector/examples/opentelemetrycollector-ds-crd/rendered/opentelemetrycollector.yaml
+  s_f831f252c737d7::t_1a916d51c65454 8
+charts/opentelemetry-collector/examples/spanmetrics-db-histogram-buckets/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_cf00c6207a340d 9
+charts/opentelemetry-collector/examples/spanmetrics-db-histogram-buckets/rendered/daemonset.yaml
+  s_f831f252c737d7::t_a9359e271c8f38 9,25
+charts/opentelemetry-collector/examples/spanmetrics-db-histogram-buckets/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_d62527f2e19bf2 9
+charts/opentelemetry-collector/values.yaml
+  s_f831f252c737d7::t_3839ced121b94a 906
+charts/opentelemetry-collector/examples/additional-endpoints/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_089247236591a5 9,313,327,341,355
+charts/opentelemetry-collector/examples/additional-endpoints/rendered/daemonset.yaml
+  s_f831f252c737d7::t_9aa8585c8e2422 9,25
+charts/opentelemetry-collector/examples/additional-endpoints/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_589c7f6f577282 9
+charts/opentelemetry-collector/examples/aws-eks-deployment/rendered/configmap.yaml
+  s_f831f252c737d7::t_e5f7ba614fb60e 9
+charts/opentelemetry-collector/examples/aws-eks-deployment/rendered/deployment.yaml
+  s_f831f252c737d7::t_2892a4e6254528 9,27
+charts/opentelemetry-collector/examples/aws-eks-deployment/rendered/service.yaml
+  s_f831f252c737d7::t_8b8efb37d2b802 9
+charts/opentelemetry-collector/examples/aws-eks-deployment/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_9806f958482209 9
+charts/opentelemetry-collector/examples/coralogix-exporter-helper/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_a5203a42a36d7c 9
+charts/opentelemetry-collector/examples/coralogix-exporter-helper/rendered/daemonset.yaml
+  s_f831f252c737d7::t_1f9d03ff5287f1 9,25
+charts/opentelemetry-collector/examples/coralogix-exporter-helper/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_743c617ce57893 9
+charts/opentelemetry-collector/examples/coralogix-exporter-keepalive/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_8c0886f2272691 9
+charts/opentelemetry-collector/examples/coralogix-exporter-keepalive/rendered/daemonset.yaml
+  s_f831f252c737d7::t_89e6a00bc51a60 9,25
+charts/opentelemetry-collector/examples/coralogix-exporter-keepalive/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_2bb28c6c959fc1 9
+charts/opentelemetry-collector/examples/coralogix-exporter-pipeline/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_5f37b998b5c5be 9
+charts/opentelemetry-collector/examples/coralogix-exporter-pipeline/rendered/daemonset.yaml
+  s_f831f252c737d7::t_fc11d350ce5842 9,25
+charts/opentelemetry-collector/examples/coralogix-exporter-pipeline/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_d93e530809762f 9
+charts/opentelemetry-collector/examples/coralogix-exporter-pipelines/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_18de3c89171670 9
+charts/opentelemetry-collector/examples/coralogix-exporter-pipelines/rendered/daemonset.yaml
+  s_f831f252c737d7::t_284391012428f7 9,25
+charts/opentelemetry-collector/examples/coralogix-exporter-pipelines/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_ebdda9dc7bb108 9
+charts/opentelemetry-collector/examples/daemonset-and-deployment/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_658f16b9898040 8
+charts/opentelemetry-collector/examples/daemonset-and-deployment/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_ab9fd906cbafa6 8
+charts/opentelemetry-collector/examples/daemonset-and-deployment/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_ac1d9c5d682999 9
+charts/opentelemetry-collector/examples/daemonset-and-deployment/rendered/configmap.yaml
+  s_f831f252c737d7::t_04d9ce6a4852c6 9
+charts/opentelemetry-collector/examples/daemonset-and-deployment/rendered/daemonset.yaml
+  s_f831f252c737d7::t_5392f039fbee74 9,25
+charts/opentelemetry-collector/examples/daemonset-and-deployment/rendered/deployment.yaml
+  s_f831f252c737d7::t_08f1080eeab9ba 9,27
+charts/opentelemetry-collector/examples/daemonset-and-deployment/rendered/service.yaml
+  s_f831f252c737d7::t_5d092cb1ac8444 9
+charts/opentelemetry-collector/examples/daemonset-and-deployment/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_83f575b804c262 9
+charts/opentelemetry-collector/examples/daemonset-apiserver-metrics/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_33282faa3697b3 8
+charts/opentelemetry-collector/examples/daemonset-apiserver-metrics/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_9d186c9efea9d7 8
+charts/opentelemetry-collector/examples/daemonset-apiserver-metrics/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_a87032e61c25bd 9
+charts/opentelemetry-collector/examples/daemonset-apiserver-metrics/rendered/daemonset.yaml
+  s_f831f252c737d7::t_35ab3cb20c3f2f 9,25
+charts/opentelemetry-collector/examples/daemonset-apiserver-metrics/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_aeeadb42e19615 9
+charts/opentelemetry-collector/examples/daemonset-deltatocumulative-defaults/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_29aa5d2ceb0885 9
+charts/opentelemetry-collector/examples/daemonset-deltatocumulative-defaults/rendered/daemonset.yaml
+  s_f831f252c737d7::t_9035409b223122 9,25
+charts/opentelemetry-collector/examples/daemonset-deltatocumulative-defaults/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_ec46113fa63a35 9
+charts/opentelemetry-collector/examples/daemonset-deltatocumulative/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_78702d8ae8f254 9
+charts/opentelemetry-collector/examples/daemonset-deltatocumulative/rendered/daemonset.yaml
+  s_f831f252c737d7::t_f038b2e97c990d 9,25
+charts/opentelemetry-collector/examples/daemonset-deltatocumulative/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_ab8aae5fadd74e 9
+charts/opentelemetry-collector/examples/daemonset-hostmetrics-hardened/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_3ed3cee35ea9bd 9
+charts/opentelemetry-collector/examples/daemonset-hostmetrics-hardened/rendered/daemonset.yaml
+  s_f831f252c737d7::t_181914cf88476c 9,25
+charts/opentelemetry-collector/examples/daemonset-hostmetrics-hardened/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_fab50ad6801108 9
+charts/opentelemetry-collector/examples/daemonset-kubelet-prometheus-metrics/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_12f00e1288cb70 8
+charts/opentelemetry-collector/examples/daemonset-kubelet-prometheus-metrics/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_cbd3c4e1c178c6 8
+charts/opentelemetry-collector/examples/daemonset-kubelet-prometheus-metrics/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_bf6e18e45135f8 9
+charts/opentelemetry-collector/examples/daemonset-kubelet-prometheus-metrics/rendered/daemonset.yaml
+  s_f831f252c737d7::t_8ec82ea3e8359e 9,25
+charts/opentelemetry-collector/examples/daemonset-kubelet-prometheus-metrics/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_0f3927e3c38477 9
+charts/opentelemetry-collector/examples/daemonset-lifecycle-hooks/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_0ff0074c9eef46 9
+charts/opentelemetry-collector/examples/daemonset-lifecycle-hooks/rendered/daemonset.yaml
+  s_f831f252c737d7::t_ab547878d791fd 9,25
+charts/opentelemetry-collector/examples/daemonset-lifecycle-hooks/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_f9c50a0243ad6a 9
+charts/opentelemetry-collector/examples/daemonset-pprof-pull-prometheus-discovery/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_a5c13cdda8a07a 8
+charts/opentelemetry-collector/examples/daemonset-pprof-pull-prometheus-discovery/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_9f7380f398e3d0 8
+charts/opentelemetry-collector/examples/daemonset-pprof-pull-prometheus-discovery/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_46028dc82251d6 9
+charts/opentelemetry-collector/examples/daemonset-pprof-pull-prometheus-discovery/rendered/daemonset.yaml
+  s_f831f252c737d7::t_1d2fad2e7fd32c 9,25
+charts/opentelemetry-collector/examples/daemonset-pprof-pull-prometheus-discovery/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_aa86b626635299 9
+charts/opentelemetry-collector/examples/daemonset-presets/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_91b8183db70c35 8
+charts/opentelemetry-collector/examples/daemonset-presets/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_acd5d98b50244c 8
+charts/opentelemetry-collector/examples/daemonset-presets/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_7f0794b0ffb107 9
+charts/opentelemetry-collector/examples/daemonset-presets/rendered/daemonset.yaml
+  s_f831f252c737d7::t_a6b36954b5c8b1 9,25
+charts/opentelemetry-collector/examples/daemonset-presets/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_613cc0ff79808d 9
+charts/opentelemetry-collector/examples/daemonset-reduced-attributes/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_5897bdfb4b1a74 8
+charts/opentelemetry-collector/examples/daemonset-reduced-attributes/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_60b1901dbb08e2 8
+charts/opentelemetry-collector/examples/daemonset-reduced-attributes/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_cb4774421b78a6 9
+charts/opentelemetry-collector/examples/daemonset-reduced-attributes/rendered/daemonset.yaml
+  s_f831f252c737d7::t_1e34b0248a7099 9,25
+charts/opentelemetry-collector/examples/daemonset-reduced-attributes/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_6ba402dd7439c6 9
+charts/opentelemetry-collector/examples/daemonset-supervisor-image-version/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_bff2c0817c7097 9
+charts/opentelemetry-collector/examples/daemonset-supervisor-image-version/rendered/configmap-supervisor.yaml
+  s_f831f252c737d7::t_772d4ae4ab0204 9
+charts/opentelemetry-collector/examples/daemonset-supervisor-image-version/rendered/daemonset.yaml
+  s_f831f252c737d7::t_5bfbef0e333dd2 9,25
+charts/opentelemetry-collector/examples/daemonset-supervisor-image-version/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_999670edc1fb53 9
+charts/opentelemetry-collector/examples/daemonset-supervisor/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_5cb3b263497905 8
+charts/opentelemetry-collector/examples/daemonset-supervisor/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_17c4b6bc374b5e 8
+charts/opentelemetry-collector/examples/daemonset-supervisor/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_339d1017f1d657 9
+charts/opentelemetry-collector/examples/daemonset-supervisor/rendered/configmap-supervisor.yaml
+  s_f831f252c737d7::t_99ff2cad75931b 9
+charts/opentelemetry-collector/examples/daemonset-supervisor/rendered/daemonset.yaml
+  s_f831f252c737d7::t_0fa4762c39f4c3 9,25,44
+charts/opentelemetry-collector/examples/daemonset-supervisor/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_40b716a6bd2c5a 9
+charts/opentelemetry-collector/examples/daemonset-targetallocator/rendered/clusterrole-targetallocator.yaml
+  s_f831f252c737d7::t_941e301ae1f8fd 8
+charts/opentelemetry-collector/examples/daemonset-targetallocator/rendered/clusterrolebinding-targetallocator.yaml
+  s_f831f252c737d7::t_7c48ff7e2b2810 8
+charts/opentelemetry-collector/examples/daemonset-targetallocator/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_43548d9c264e9e 9
+charts/opentelemetry-collector/examples/daemonset-targetallocator/rendered/configmap-targetallocator.yaml
+  s_f831f252c737d7::t_15349d8947e2d2 9
+charts/opentelemetry-collector/examples/daemonset-targetallocator/rendered/daemonset.yaml
+  s_f831f252c737d7::t_db8dc74444c22c 9,25
+charts/opentelemetry-collector/examples/daemonset-targetallocator/rendered/deployment-targetallocator.yaml
+  s_f831f252c737d7::t_3ff3c339f2388c 9,26
+charts/opentelemetry-collector/examples/daemonset-targetallocator/rendered/podmonitor.yaml
+  s_f831f252c737d7::t_2ccb8e7b6781a1 9
+charts/opentelemetry-collector/examples/daemonset-targetallocator/rendered/service-targetallocator.yaml
+  s_f831f252c737d7::t_4c0d1b5e21ce9e 9
+charts/opentelemetry-collector/examples/daemonset-targetallocator/rendered/serviceaccount-targetallocator.yaml
+  s_f831f252c737d7::t_e39c9563717b9b 9
+charts/opentelemetry-collector/examples/daemonset-targetallocator/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_b9799d517712fc 9
+charts/opentelemetry-collector/examples/daemonset-windows/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_11d54675eb782a 9
+charts/opentelemetry-collector/examples/daemonset-windows/rendered/daemonset.yaml
+  s_f831f252c737d7::t_d1aeb1204d12ab 9,25
+charts/opentelemetry-collector/examples/daemonset-windows/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_9bdf00b2fa0822 9
+charts/opentelemetry-collector/examples/database-monitoring/rendered/configmap-statefulset.yaml
+  s_f831f252c737d7::t_9479ac89a4c538 9
+charts/opentelemetry-collector/examples/database-monitoring/rendered/role-dbm.yaml
+  s_f831f252c737d7::t_883e58bbf6d495 10,30
+charts/opentelemetry-collector/examples/database-monitoring/rendered/service.yaml
+  s_f831f252c737d7::t_e24bf27abfe8c7 9
+charts/opentelemetry-collector/examples/database-monitoring/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_303128b7290aad 9
+charts/opentelemetry-collector/examples/database-monitoring/rendered/statefulset.yaml
+  s_f831f252c737d7::t_95792875420e59 9,28
+charts/opentelemetry-collector/examples/deployment-only/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_935edd94aea93f 8
+charts/opentelemetry-collector/examples/deployment-only/rendered/configmap.yaml
+  s_f831f252c737d7::t_c82c44404e67f0 9
+charts/opentelemetry-collector/examples/deployment-only/rendered/deployment.yaml
+  s_f831f252c737d7::t_4e9a85da24a12b 9,26
+charts/opentelemetry-collector/examples/deployment-only/rendered/hpa.yaml
+  s_f831f252c737d7::t_85a655d115c1ec 9
+charts/opentelemetry-collector/examples/deployment-only/rendered/service.yaml
+  s_f831f252c737d7::t_0e561bb8829078 9
+charts/opentelemetry-collector/examples/deployment-only/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_67e34c49631e94 9
+charts/opentelemetry-collector/examples/deployment-pprof-pull/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_b9446a3f72d15a 8
+charts/opentelemetry-collector/examples/deployment-pprof-pull/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_f32dbf18639f7c 8
+charts/opentelemetry-collector/examples/deployment-pprof-pull/rendered/configmap.yaml
+  s_f831f252c737d7::t_5c1d3bca8cd0ae 9
+charts/opentelemetry-collector/examples/deployment-pprof-pull/rendered/deployment.yaml
+  s_f831f252c737d7::t_1b7236b1664df2 9,27
+charts/opentelemetry-collector/examples/deployment-pprof-pull/rendered/service.yaml
+  s_f831f252c737d7::t_bde79cfa472d50 9
+charts/opentelemetry-collector/examples/deployment-pprof-pull/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_8ce17bfd098dbc 9
+charts/opentelemetry-collector/examples/deployment-pprof-push/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_8eb7ef5efac21f 8
+charts/opentelemetry-collector/examples/deployment-pprof-push/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_deff2c0db122b4 8
+charts/opentelemetry-collector/examples/deployment-pprof-push/rendered/configmap.yaml
+  s_f831f252c737d7::t_03c805a6bc82e3 9
+charts/opentelemetry-collector/examples/deployment-pprof-push/rendered/deployment.yaml
+  s_f831f252c737d7::t_bf24f11797a8ac 9,27
+charts/opentelemetry-collector/examples/deployment-pprof-push/rendered/service.yaml
+  s_f831f252c737d7::t_59159fa7cf05cf 9
+charts/opentelemetry-collector/examples/deployment-pprof-push/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_09c32b695f16e0 9
+charts/opentelemetry-collector/examples/ebpf-profiler-with-fleet-management-image-versions/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_f2c429e2808ac3 9
+charts/opentelemetry-collector/examples/ebpf-profiler-with-fleet-management-image-versions/rendered/configmap-supervisor.yaml
+  s_f831f252c737d7::t_7a8eccfbe02aa8 9
+charts/opentelemetry-collector/examples/ebpf-profiler-with-fleet-management-image-versions/rendered/daemonset.yaml
+  s_f831f252c737d7::t_5a5ce5f2ef1083 9,25
+charts/opentelemetry-collector/examples/ebpf-profiler-with-fleet-management-image-versions/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_7a89665daa3512 9
+charts/opentelemetry-collector/examples/ebpf-profiler-with-fleet-management/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_5031e6f2d39b9c 9
+charts/opentelemetry-collector/examples/ebpf-profiler-with-fleet-management/rendered/configmap-supervisor.yaml
+  s_f831f252c737d7::t_54f4c507bf1c26 9
+charts/opentelemetry-collector/examples/ebpf-profiler-with-fleet-management/rendered/daemonset.yaml
+  s_f831f252c737d7::t_7cb5769b89f18c 9,25,46
+charts/opentelemetry-collector/examples/ebpf-profiler-with-fleet-management/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_5293dac92c13f5 9
+charts/opentelemetry-collector/examples/ebpf-profiler/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_ce93c08b13bb38 9
+charts/opentelemetry-collector/examples/ebpf-profiler/rendered/daemonset.yaml
+  s_f831f252c737d7::t_a9bc9af711adc9 9,25
+charts/opentelemetry-collector/examples/ebpf-profiler/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_a93cf9e61dff55 9
+charts/opentelemetry-collector/examples/ecs-profiles-service-name-disabled/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_ad0a73b296130e 9
+charts/opentelemetry-collector/examples/ecs-profiles-service-name-disabled/rendered/daemonset.yaml
+  s_f831f252c737d7::t_d6ed4ee8bbb7c8 9,25
+charts/opentelemetry-collector/examples/ecs-profiles-service-name-disabled/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_269aadf0bff41b 9
+charts/opentelemetry-collector/examples/ecs-profiles-service-name-enabled/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_8cca37fd77dc9a 9
+charts/opentelemetry-collector/examples/ecs-profiles-service-name-enabled/rendered/daemonset.yaml
+  s_f831f252c737d7::t_92fd0724f0e5f0 9,25
+charts/opentelemetry-collector/examples/ecs-profiles-service-name-enabled/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_b30986302127bb 9
+charts/opentelemetry-collector/examples/ecs/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_3f29f0aaf5f4e7 9,90
+charts/opentelemetry-collector/examples/ecs/rendered/daemonset.yaml
+  s_f831f252c737d7::t_884da46a77d265 9,25
+charts/opentelemetry-collector/examples/ecs/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_b644d581672a34 9
+charts/opentelemetry-collector/examples/eks-fargate-monitoring/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_129b21b216b5bd 8
+charts/opentelemetry-collector/examples/eks-fargate-monitoring/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_91ad5b0f53e814 8
+charts/opentelemetry-collector/examples/eks-fargate-monitoring/rendered/configmap.yaml
+  s_f831f252c737d7::t_681afecb678bcb 9
+charts/opentelemetry-collector/examples/eks-fargate-monitoring/rendered/deployment.yaml
+  s_f831f252c737d7::t_759914f27167eb 9,27
+charts/opentelemetry-collector/examples/eks-fargate-monitoring/rendered/service.yaml
+  s_f831f252c737d7::t_86f4d56f89ff5a 9
+charts/opentelemetry-collector/examples/eks-fargate-monitoring/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_506a7001e8eb4b 9
+charts/opentelemetry-collector/examples/gke-autopilot/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_36c86648d050c8 8
+charts/opentelemetry-collector/examples/gke-autopilot/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_d45c7ea538f672 8
+charts/opentelemetry-collector/examples/gke-autopilot/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_de3c99eee47b78 9
+charts/opentelemetry-collector/examples/gke-autopilot/rendered/daemonset.yaml
+  s_f831f252c737d7::t_f79e8c1229714e 9,25
+charts/opentelemetry-collector/examples/gke-autopilot/rendered/service.yaml
+  s_f831f252c737d7::t_3c61dd2725e9df 9
+charts/opentelemetry-collector/examples/gke-autopilot/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_2aa8d6ce3053f9 9
+charts/opentelemetry-collector/examples/host-entity-events-logic/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_75de76f6cbb7c0 8
+charts/opentelemetry-collector/examples/host-entity-events-logic/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_7777f0f6500d3c 8
+charts/opentelemetry-collector/examples/host-entity-events-logic/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_f85807091ff2b9 9
+charts/opentelemetry-collector/examples/host-entity-events-logic/rendered/daemonset.yaml
+  s_f831f252c737d7::t_c52f3ba44f4950 9,25
+charts/opentelemetry-collector/examples/host-entity-events-logic/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_ee00c054ea52b3 9
+charts/opentelemetry-collector/examples/host-entity-gcp/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_375433e58a38de 8
+charts/opentelemetry-collector/examples/host-entity-gcp/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_3161effb2f2052 8
+charts/opentelemetry-collector/examples/host-entity-gcp/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_ebe63e7e5428e3 9
+charts/opentelemetry-collector/examples/host-entity-gcp/rendered/daemonset.yaml
+  s_f831f252c737d7::t_e5046ec3b4ae60 9,25
+charts/opentelemetry-collector/examples/host-entity-gcp/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_799cb67cc4ed2e 9
+charts/opentelemetry-collector/examples/host-entity/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_3b29c6de93fae0 8
+charts/opentelemetry-collector/examples/host-entity/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_2335081feafe6b 8
+charts/opentelemetry-collector/examples/host-entity/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_ec844c3afbd3f7 9,48
+charts/opentelemetry-collector/examples/host-entity/rendered/daemonset.yaml
+  s_f831f252c737d7::t_28361d7f8696e9 9,25
+charts/opentelemetry-collector/examples/host-entity/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_1a917f90e0bf80 9
+charts/opentelemetry-collector/examples/kubernetesAttributes/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_e4f7e6393278ba 8
+charts/opentelemetry-collector/examples/kubernetesAttributes/rendered/configmap.yaml
+  s_f831f252c737d7::t_f3d609fb47371f 9
+charts/opentelemetry-collector/examples/loadbalancing-aws-cloudmap/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_fb32704a97de59 9
+charts/opentelemetry-collector/examples/loadbalancing-aws-cloudmap/rendered/daemonset.yaml
+  s_f831f252c737d7::t_b43bfba3e0b5b6 9,25
+charts/opentelemetry-collector/examples/loadbalancing-aws-cloudmap/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_4a3a7ea521dfdc 9
+charts/opentelemetry-collector/examples/loadbalancing/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_2ff4814bafffd8 8
+charts/opentelemetry-collector/examples/loadbalancing/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_e99cbfa58d17cd 8
+charts/opentelemetry-collector/examples/loadbalancing/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_b33212808c142b 9
+charts/opentelemetry-collector/examples/loadbalancing/rendered/daemonset.yaml
+  s_f831f252c737d7::t_338c158466b652 9,25
+charts/opentelemetry-collector/examples/loadbalancing/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_2df1a3a83764b6 9
+charts/opentelemetry-collector/examples/macos-system-logs/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_cc31acc9d210ad 9
+charts/opentelemetry-collector/examples/macos-system-logs/rendered/daemonset.yaml
+  s_f831f252c737d7::t_f06d325f696f27 9,25
+charts/opentelemetry-collector/examples/macos-system-logs/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_02abe2b4b7cf00 9
+charts/opentelemetry-collector/examples/metadata/rendered/configmap.yaml
+  s_f831f252c737d7::t_51b5a29dade766 9
+charts/opentelemetry-collector/examples/metadata/rendered/deployment.yaml
+  s_f831f252c737d7::t_433eb8b48b0d94 9,27
+charts/opentelemetry-collector/examples/metadata/rendered/service.yaml
+  s_f831f252c737d7::t_871f6c693ecc89 9
+charts/opentelemetry-collector/examples/metadata/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_a1a8f891aa889f 9
+charts/opentelemetry-collector/examples/networkmode-ipv6/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_cf454d52a10a4b 9
+charts/opentelemetry-collector/examples/networkmode-ipv6/rendered/daemonset.yaml
+  s_f831f252c737d7::t_a517bbf44c4351 9,25
+charts/opentelemetry-collector/examples/networkmode-ipv6/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_be3d6b250abfea 9
+charts/opentelemetry-collector/examples/on-prem-k8s/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_8889cc2f432679 8
+charts/opentelemetry-collector/examples/on-prem-k8s/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_45be7387a05981 8
+charts/opentelemetry-collector/examples/on-prem-k8s/rendered/configmap.yaml
+  s_f831f252c737d7::t_16b59ed88f1ca0 9
+charts/opentelemetry-collector/examples/on-prem-k8s/rendered/deployment.yaml
+  s_f831f252c737d7::t_0214f8152b1d55 9,27
+charts/opentelemetry-collector/examples/on-prem-k8s/rendered/service.yaml
+  s_f831f252c737d7::t_c37020c09bbf61 9
+charts/opentelemetry-collector/examples/on-prem-k8s/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_bce8661cfb3a20 9
+charts/opentelemetry-collector/examples/opentelemetrycollector-daemonset-crd/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_aab742d660ff05 8
+charts/opentelemetry-collector/examples/opentelemetrycollector-daemonset-crd/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_c9816139ec7d63 8
+charts/opentelemetry-collector/examples/opentelemetrycollector-daemonset-crd/rendered/opentelemetrycollector.yaml
+  s_f831f252c737d7::t_733009996797c6 8
+charts/opentelemetry-collector/examples/opentelemetrycollector-daemonset-crd/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_3a1f35995b5f27 9
+charts/opentelemetry-collector/examples/opentelemetrycollector-deployment-crd/rendered/configmap.yaml
+  s_f831f252c737d7::t_cbc9f9d7f36112 9
+charts/opentelemetry-collector/examples/opentelemetrycollector-deployment-crd/rendered/opentelemetrycollector.yaml
+  s_f831f252c737d7::t_a41c3b3ab86b64 8
+charts/opentelemetry-collector/examples/opentelemetrycollector-deployment-crd/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_73bfe6cee225a6 9
+charts/opentelemetry-collector/examples/profiles-with-fleet-managment/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_58eba36a2e44e5 8
+charts/opentelemetry-collector/examples/profiles-with-fleet-managment/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_ae711a3c9669dd 8
+charts/opentelemetry-collector/examples/profiles-with-fleet-managment/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_88fa6bc2facac3 9
+charts/opentelemetry-collector/examples/profiles-with-fleet-managment/rendered/configmap-supervisor.yaml
+  s_f831f252c737d7::t_af6ea32205fd43 9
+charts/opentelemetry-collector/examples/profiles-with-fleet-managment/rendered/daemonset.yaml
+  s_f831f252c737d7::t_9056863d759f1c 9,25,44
+charts/opentelemetry-collector/examples/profiles-with-fleet-managment/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_5fe034e9ce86f5 9
+charts/opentelemetry-collector/examples/profiles-with-resource-detection/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_e9b2bde81bafdb 8
+charts/opentelemetry-collector/examples/profiles-with-resource-detection/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_be7075af7c3b1c 8
+charts/opentelemetry-collector/examples/profiles-with-resource-detection/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_3ae44ba4c6d62a 9
+charts/opentelemetry-collector/examples/profiles-with-resource-detection/rendered/daemonset.yaml
+  s_f831f252c737d7::t_e903b238d7172b 9,25
+charts/opentelemetry-collector/examples/profiles-with-resource-detection/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_ba36965525a396 9
+charts/opentelemetry-collector/examples/profiles-with-service-labels-and-annotations/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_480107c719212c 8
+charts/opentelemetry-collector/examples/profiles-with-service-labels-and-annotations/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_8b7d6245e50de4 8
+charts/opentelemetry-collector/examples/profiles-with-service-labels-and-annotations/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_82cc41489a65d7 9
+charts/opentelemetry-collector/examples/profiles-with-service-labels-and-annotations/rendered/daemonset.yaml
+  s_f831f252c737d7::t_b367d4e7cad78c 9,25
+charts/opentelemetry-collector/examples/profiles-with-service-labels-and-annotations/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_2a328e7718d849 9
+charts/opentelemetry-collector/examples/profiles/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_4d385d30ffaffb 8
+charts/opentelemetry-collector/examples/profiles/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_d72375fc6f5953 8
+charts/opentelemetry-collector/examples/profiles/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_ee3620cb94b4e6 9
+charts/opentelemetry-collector/examples/profiles/rendered/daemonset.yaml
+  s_f831f252c737d7::t_a4d8ac88ddf190 9,25
+charts/opentelemetry-collector/examples/profiles/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_c2fdb958296cef 9
+charts/opentelemetry-collector/examples/reduce-resource-attributes-aws-provider/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_a72ae22a68b9f8 8
+charts/opentelemetry-collector/examples/reduce-resource-attributes-aws-provider/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_6c96e4ae27ec72 8
+charts/opentelemetry-collector/examples/reduce-resource-attributes-aws-provider/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_2517e0219c5530 9
+charts/opentelemetry-collector/examples/reduce-resource-attributes-aws-provider/rendered/daemonset.yaml
+  s_f831f252c737d7::t_91d0ab612ed87d 9,25
+charts/opentelemetry-collector/examples/reduce-resource-attributes-aws-provider/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_5d0a3c74c2800a 9
+charts/opentelemetry-collector/examples/reduce-resource-attributes-conditions/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_3ca595d9a67d60 9
+charts/opentelemetry-collector/examples/reduce-resource-attributes-conditions/rendered/daemonset.yaml
+  s_f831f252c737d7::t_da14f2b6968347 9,25
+charts/opentelemetry-collector/examples/reduce-resource-attributes-conditions/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_6ddc86b132d8e6 9
+charts/opentelemetry-collector/examples/reduce-resource-attributes-gcp-infer/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_068a5dd191b1da 8
+charts/opentelemetry-collector/examples/reduce-resource-attributes-gcp-infer/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_11b70be542548e 8
+charts/opentelemetry-collector/examples/reduce-resource-attributes-gcp-infer/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_0d5b61848082d2 9
+charts/opentelemetry-collector/examples/reduce-resource-attributes-gcp-infer/rendered/daemonset.yaml
+  s_f831f252c737d7::t_9cff709cb25827 9,25
+charts/opentelemetry-collector/examples/reduce-resource-attributes-gcp-infer/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_2b413a36caa011 9
+charts/opentelemetry-collector/examples/reduce-resource-attributes-onprem/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_6115e034f31c3e 9
+charts/opentelemetry-collector/examples/reduce-resource-attributes-onprem/rendered/daemonset.yaml
+  s_f831f252c737d7::t_6f214445847e82 9,25
+charts/opentelemetry-collector/examples/reduce-resource-attributes-onprem/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_0944c8101c0278 9
+charts/opentelemetry-collector/examples/reduce-resource-attributes-traces-provider/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_b8fa28fb426f1e 9
+charts/opentelemetry-collector/examples/reduce-resource-attributes-traces-provider/rendered/daemonset.yaml
+  s_f831f252c737d7::t_e464c839794d0c 9,25
+charts/opentelemetry-collector/examples/reduce-resource-attributes-traces-provider/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_92eb25a6fa942d 9
+charts/opentelemetry-collector/examples/resource-catalog/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_69b7fc5269708e 8
+charts/opentelemetry-collector/examples/resource-catalog/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_af6f5e1c9a53be 8
+charts/opentelemetry-collector/examples/resource-catalog/rendered/configmap.yaml
+  s_f831f252c737d7::t_9e8d494eaaaf8b 9
+charts/opentelemetry-collector/examples/resource-catalog/rendered/deployment.yaml
+  s_f831f252c737d7::t_2c1d0919a9274e 9,27
+charts/opentelemetry-collector/examples/resource-catalog/rendered/service.yaml
+  s_f831f252c737d7::t_d1e647ca083203 9
+charts/opentelemetry-collector/examples/resource-catalog/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_547e1895e416bb 9
+charts/opentelemetry-collector/examples/spanmetrics-apm-dimensions/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_e3280c0665d29c 8
+charts/opentelemetry-collector/examples/spanmetrics-apm-dimensions/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_fb9065cc383377 8
+charts/opentelemetry-collector/examples/spanmetrics-apm-dimensions/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_3b7cf998a1fc6a 9
+charts/opentelemetry-collector/examples/spanmetrics-apm-dimensions/rendered/daemonset.yaml
+  s_f831f252c737d7::t_b1317467c0389b 9,25
+charts/opentelemetry-collector/examples/spanmetrics-apm-dimensions/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_9d64fa948c3e9d 9
+charts/opentelemetry-collector/examples/spanmetrics-multi-apm-dimensions/rendered/clusterrole.yaml
+  s_f831f252c737d7::t_798dc8391e3667 8
+charts/opentelemetry-collector/examples/spanmetrics-multi-apm-dimensions/rendered/clusterrolebinding.yaml
+  s_f831f252c737d7::t_b1ec4020bd43bd 8
+charts/opentelemetry-collector/examples/spanmetrics-multi-apm-dimensions/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_3ac3c61f9b4d3f 9
+charts/opentelemetry-collector/examples/spanmetrics-multi-apm-dimensions/rendered/daemonset.yaml
+  s_f831f252c737d7::t_352dfd8d419341 9,25
+charts/opentelemetry-collector/examples/spanmetrics-multi-apm-dimensions/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_8c73646ee8ab28 9
+charts/opentelemetry-collector/examples/spanmetrics-multiple-preset/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_3d502e51c3c177 9
+charts/opentelemetry-collector/examples/spanmetrics-multiple-preset/rendered/daemonset.yaml
+  s_f831f252c737d7::t_63dcc93896af77 9,25
+charts/opentelemetry-collector/examples/spanmetrics-multiple-preset/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_353a34824f0e7a 9
+charts/opentelemetry-collector/examples/standalone-journald/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_87f0130ef1808b 9
+charts/opentelemetry-collector/examples/standalone-journald/rendered/daemonset.yaml
+  s_f831f252c737d7::t_ee6ff0473f7582 9,25
+charts/opentelemetry-collector/examples/standalone-journald/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_01e87a6f0ec59d 9
+charts/opentelemetry-collector/examples/standalone-systemd/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_d158691edc1a8c 9
+charts/opentelemetry-collector/examples/standalone-systemd/rendered/daemonset.yaml
+  s_f831f252c737d7::t_87bebd2a5ae194 9,25
+charts/opentelemetry-collector/examples/standalone-systemd/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_469347c6624b62 9
+charts/opentelemetry-collector/examples/standalone-windows/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_cb7accfee5ac44 9
+charts/opentelemetry-collector/examples/standalone-windows/rendered/daemonset.yaml
+  s_f831f252c737d7::t_a2707ffdd94a5c 9,25
+charts/opentelemetry-collector/examples/standalone-windows/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_08bb4f2cf65633 9
+charts/opentelemetry-collector/examples/standalone/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_05a0b0063616d0 9
+charts/opentelemetry-collector/examples/standalone/rendered/daemonset.yaml
+  s_f831f252c737d7::t_daaa7706d1d506 9,25
+charts/opentelemetry-collector/examples/standalone/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_51a5557d3f5bc0 9
+charts/opentelemetry-collector/examples/statefulset-only/rendered/configmap-statefulset.yaml
+  s_f831f252c737d7::t_3a15fa5db248fb 9
+charts/opentelemetry-collector/examples/statefulset-only/rendered/service.yaml
+  s_f831f252c737d7::t_d6ed488a2f9eb0 9
+charts/opentelemetry-collector/examples/statefulset-only/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_c46dc8bc14236f 9
+charts/opentelemetry-collector/examples/statefulset-only/rendered/statefulset.yaml
+  s_f831f252c737d7::t_ec1e4661e2abc0 9,28
+charts/opentelemetry-collector/examples/transactions/rendered/configmap-agent.yaml
+  s_f831f252c737d7::t_66ad3b9f1d5ba9 9
+charts/opentelemetry-collector/examples/transactions/rendered/daemonset.yaml
+  s_f831f252c737d7::t_ac2f080ae3345b 9,25
+charts/opentelemetry-collector/examples/transactions/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_c05dfc9fd70eb7 9
+charts/opentelemetry-collector/examples/using-GOMEMLIMIT/rendered/configmap.yaml
+  s_f831f252c737d7::t_147639fb755243 9
+charts/opentelemetry-collector/examples/using-GOMEMLIMIT/rendered/deployment.yaml
+  s_f831f252c737d7::t_4faee5f5ecd5e0 9,27
+charts/opentelemetry-collector/examples/using-GOMEMLIMIT/rendered/service.yaml
+  s_f831f252c737d7::t_4d30c5a9fd1f85 9
+charts/opentelemetry-collector/examples/using-GOMEMLIMIT/rendered/serviceaccount.yaml
+  s_f831f252c737d7::t_283e57410869e6 9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "34d86cf2a8622a2b8e0cc624c30210a47215d02a",
+  "prompts": {},
+  "sessions": {
+    "s_f831f252c737d7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d17d887-0e27-40f9-aede-50f0536246af",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "oded-dd <oded@coralogix.com>"
+    }
+  }
+}
