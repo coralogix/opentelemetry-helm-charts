@@ -1,0 +1,9 @@
+# Extra instance for the rdsLogs cluster-endpoint refusal (EC-12). Synthetic endpoint only.
+presets:
+  databaseMonitoring:
+    instances:
+      - name: aurora
+        endpoint: shop.cluster-abc123.eu-west-1.rds.amazonaws.com:5432
+        databases: [app]
+        credentialsSecret:
+          name: dbm-aurora

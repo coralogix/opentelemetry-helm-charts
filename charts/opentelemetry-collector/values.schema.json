@@ -999,6 +999,40 @@
               "properties": {
                 "enabled": {
                   "type": "boolean"
+                },
+                "instances": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "storageDirectory": {
+                  "type": "string"
+                },
+                "pollInterval": {
+                  "type": "string"
+                },
+                "maxBytesPerPoll": {
+                  "type": "integer",
+                  "minimum": 65536,
+                  "maximum": 268435456
+                },
+                "instanceRequestsPerSecond": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 50
+                },
+                "accountRequestsPerSecond": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 50
+                },
+                "startAt": {
+                  "type": "string",
+                  "enum": [
+                    "end",
+                    "beginning"
+                  ]
                 }
               }
             }

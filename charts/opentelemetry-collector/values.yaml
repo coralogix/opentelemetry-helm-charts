@@ -1087,13 +1087,31 @@ presets:
         format: jsonlog                     # jsonlog | csvlog
         include: []
         startAt: end
-    # RDS / Aurora PostgreSQL log files without CloudWatch (ADR-0018 item 2). Stub: the receiver is task EC-12
-    # and is not in this chart version; enabling it is refused.
-    # Collector AWS permissions (IAM) the receiver will need, on the monitored DB instances:
+    # RDS / Aurora PostgreSQL log files without CloudWatch (ADR-0018 item 2): the cdot `rdslog` receiver (EC-12)
+    # reads new log data per instance with DescribeDBLogFiles and DownloadDBLogFilePortion, from a marker kept in
+    # a file_storage extension. Records pass `dbmkey` and `dbm` (edge redaction) to the DBM exporter. Needs a cdot
+    # image with the `rdslog` receiver.
+    # Collector AWS permissions (IAM, for example through IRSA on the service account), on the monitored DB instances:
     #   rds:DescribeDBLogFiles
     #   rds:DownloadDBLogFilePortion
+    # The receiver also calls sts:GetCallerIdentity (allowed for every AWS identity) for the account id of the
+    # `aws_rds` alias. The instances must be in the account of the collector's AWS identity.
     rdsLogs:
       enabled: false
+      # Names from `instances` to read log files for. Each endpoint must be an RDS or Aurora instance endpoint
+      # (<identifier>.<hash>.<region>.rds.amazonaws.com:<port>); cluster, reader, custom and proxy endpoints are
+      # refused.
+      instances: []
+      # Marker storage. The chart mounts an emptyDir here: markers survive container restarts; a new pod
+      # starts again per startAt.
+      storageDirectory: /var/lib/otelcol/dbm-rdslog
+      pollInterval: 60s
+      # Log data per instance per poll; the rest is read in the next polls.
+      maxBytesPerPoll: 4194304
+      # RDS API rate limits per instance and per AWS account.
+      instanceRequestsPerSecond: 1
+      accountRequestsPerSecond: 5
+      startAt: end                          # end (new data only) | beginning (every listed log file)
 
   # Configures probabilistic head sampling for traces
   headSampling:

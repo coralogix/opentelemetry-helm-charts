@@ -352,14 +352,174 @@ tests:
       - failedTemplate:
           errorPattern: 'filelog.instance'
 
-  # --- RDS log files stub (ADR-0018 item 2, EC-12) -----------------------------
-  - it: refuses rdsLogs until the EC-12 receiver exists
+  # --- RDS log files (ADR-0018 item 2, EC-12 rdslog receiver) -------------------
+  - it: renders no rdslog receiver while rdsLogs is off
+    template: configmap.yaml
+    asserts:
+      - notMatchRegex:
+          path: data.relay
+          pattern: 'rdslog|dbm_rds|file_storage/dbm_rdslog'
+
+  - it: renders the rdslog receiver, its marker storage and the logs/dbm_rds pipeline through dbmkey and dbm
+    template: configmap.yaml
+    set:
+      presets.databaseMonitoring.rdsLogs.enabled: true
+      presets.databaseMonitoring.rdsLogs.instances: [orders]
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^  rdslog/dbm:\n    account_requests_per_second: 5\n    instance_requests_per_second: 1\n    instances:\n    - endpoint: orders\.abc123\.eu-west-1\.rds\.amazonaws\.com:5432\n    max_bytes_per_poll: 4194304\n    poll_interval: 60s\n    start_at: end\n    storage: file_storage/dbm_rdslog\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^  file_storage/dbm_rdslog:\n    create_directory: true\n    directory: /var/lib/otelcol/dbm-rdslog\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^  extensions:\n(  - .*\n)*  - file_storage/dbm_rdslog\n'
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^    logs/dbm_rds:\n      exporters:\n      - coralogix/dbm\n      processors:\n      - memory_limiter\n      - dbmkey\n      - dbm\n      - batch/dbm\n      receivers:\n      - rdslog/dbm\n'
+      - notMatchRegex:
+          path: data.relay
+          pattern: 'billing-db\.billing\.svc\.cluster\.local:5432\n    max_bytes_per_poll'
+
+  - it: passes the rdsLogs limits to the receiver
+    template: configmap.yaml
+    set:
+      presets.databaseMonitoring.rdsLogs.enabled: true
+      presets.databaseMonitoring.rdsLogs.instances: [orders]
+      presets.databaseMonitoring.rdsLogs.maxBytesPerPoll: 1048576
+      presets.databaseMonitoring.rdsLogs.instanceRequestsPerSecond: 0.5
+      presets.databaseMonitoring.rdsLogs.accountRequestsPerSecond: 2
+      presets.databaseMonitoring.rdsLogs.pollInterval: 30s
+      presets.databaseMonitoring.rdsLogs.startAt: beginning
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: '(?s)rdslog/dbm:\n    account_requests_per_second: 2\n    instance_requests_per_second: 0\.5\n.*?max_bytes_per_poll: 1048576\n    poll_interval: 30s\n    start_at: beginning\n'
+
+  - it: mounts an emptyDir for the rdslog markers
+    template: deployment.yaml
+    set:
+      presets.databaseMonitoring.rdsLogs.enabled: true
+      presets.databaseMonitoring.rdsLogs.instances: [orders]
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: dbm-rdslog
+            mountPath: /var/lib/otelcol/dbm-rdslog
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: dbm-rdslog
+            emptyDir:
+              sizeLimit: 64Mi
+
+  - it: refuses rdsLogs without instances
     template: deployment.yaml
     set:
       presets.databaseMonitoring.rdsLogs.enabled: true
     asserts:
       - failedTemplate:
-          errorPattern: 'EC-12'
+          errorPattern: 'rdsLogs: instances must name'
+
+  - it: refuses an rdsLogs instance that is not in instances
+    template: deployment.yaml
+    set:
+      presets.databaseMonitoring.rdsLogs.enabled: true
+      presets.databaseMonitoring.rdsLogs.instances: [nope]
+    asserts:
+      - failedTemplate:
+          errorPattern: '"nope" is not an entry of instances'
+
+  - it: refuses rdsLogs for an endpoint that is not an RDS instance endpoint
+    template: deployment.yaml
+    set:
+      presets.databaseMonitoring.rdsLogs.enabled: true
+      presets.databaseMonitoring.rdsLogs.instances: [billing]
+    asserts:
+      - failedTemplate:
+          errorPattern: 'not an RDS or Aurora instance endpoint'
+
+  - it: refuses rdsLogs for an Aurora cluster endpoint
+    template: deployment.yaml
+    values:
+      - values/database-monitoring-aurora-cluster.yaml
+    set:
+      presets.databaseMonitoring.rdsLogs.enabled: true
+      presets.databaseMonitoring.rdsLogs.instances: [aurora]
+    asserts:
+      - failedTemplate:
+          errorPattern: 'cluster, reader, custom and proxy endpoints are refused'
+
+  - it: refuses the rdslog receiver in a non-owned pipeline
+    template: deployment.yaml
+    set:
+      presets.databaseMonitoring.rdsLogs.enabled: true
+      presets.databaseMonitoring.rdsLogs.instances: [orders]
+      extraConfig:
+        service:
+          pipelines:
+            logs:
+              receivers: [otlp, rdslog/dbm]
+    asserts:
+      - failedTemplate:
+          errorPattern: 'rdslog/dbm.*pipeline logs'
+
+  - it: keeps the preset's rdslog receiver over an extraConfig receiver of the same id
+    template: configmap.yaml
+    set:
+      presets.databaseMonitoring.rdsLogs.enabled: true
+      presets.databaseMonitoring.rdsLogs.instances: [orders]
+      extraConfig:
+        receivers:
+          rdslog/dbm:
+            max_bytes_per_poll: 268435456
+        service:
+          pipelines: {}
+    asserts:
+      - matchRegex:
+          path: data.relay
+          pattern: '(?m)^    max_bytes_per_poll: 4194304\n'
+      - notMatchRegex:
+          path: data.relay
+          pattern: '268435456'
+
+  - it: refuses config changes to the rdslog marker storage
+    template: deployment.yaml
+    set:
+      presets.databaseMonitoring.rdsLogs.enabled: true
+      presets.databaseMonitoring.rdsLogs.instances: [orders]
+      config.extensions.file_storage/dbm_rdslog:
+        directory: /tmp
+    asserts:
+      - failedTemplate:
+          errorPattern: 'config.extensions.file_storage/dbm_rdslog is owned by the preset'
+
+  - it: refuses an extraConfig change to the logs/dbm_rds pipeline
+    template: deployment.yaml
+    set:
+      presets.databaseMonitoring.rdsLogs.enabled: true
+      presets.databaseMonitoring.rdsLogs.instances: [orders]
+      extraConfig:
+        exporters:
+          debug: {}
+        service:
+          pipelines:
+            logs/dbm_rds:
+              exporters: [debug]
+    asserts:
+      - failedTemplate:
+          errorPattern: 'logs/dbm_rds.exporters is owned by the preset'
+
+  - it: refuses config.receivers.rdslog/dbm
+    template: deployment.yaml
+    set:
+      config.receivers.rdslog/dbm:
+        storage: x
+    asserts:
+      - failedTemplate:
+          errorPattern: 'config.receivers.rdslog/dbm is owned by the preset'
 
   # --- topology guards ---------------------------------------------------------
   - it: refuses daemonset mode
