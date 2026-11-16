@@ -408,7 +408,7 @@ tests:
           pattern: '(?m)^    logs/dbm_rds:\n      exporters:\n      - coralogix/dbm\n      processors:\n      - memory_limiter\n      - dbmkey\n      - dbm\n      - filter/dbm_rds_removed\n      - batch/dbm\n'
       - matchRegex:
           path: data.relay
-          pattern: '(?m)^  filter/dbm_rds_removed:\n    error_mode: propagate\n    logs:\n      log_record:\n      - body == "\[cx\.dbm: log entry removed\]"\n'
+          pattern: '(?m)^  filter/dbm_rds_removed:\n    error_mode: propagate\n    logs:\n      log_record:\n      - ''body == "\[cx\.dbm: log entry removed\]"''\n'
 
   - it: refuses rdsLogs with more than one replica (review I3)
     template: deployment.yaml
