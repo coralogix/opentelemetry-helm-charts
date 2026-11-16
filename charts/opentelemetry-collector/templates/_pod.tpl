@@ -64,6 +64,9 @@ containers:
           fieldRef:
             fieldPath: spec.nodeName
       {{- end }}
+      {{- if .Values.presets.databaseMonitoring.enabled }}
+      {{- include "opentelemetry-collector.dbmEnv" . | nindent 6 }}
+      {{- end }}
       {{- if .Values.presets.k8sResourceAttributes.enabled }}
       - name: KUBE_POD_NAME
         valueFrom:
