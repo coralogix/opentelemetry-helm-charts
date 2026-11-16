@@ -142,6 +142,11 @@ Things to know:
             include: ["error.type", "k8s.*", "dns.question.name"]
   ```
 
+- Processes that already export OTLP metrics through an OpenTelemetry SDK get no DNS metrics.
+  OBI's `discovery.exclude_otel_instrumented_services` (enabled by default) suppresses all of
+  its application metrics, DNS included, for a process once it sees that process export OTLP
+  metrics, even though SDKs do not produce `dns.lookup.duration`. Processes whose SDK exports
+  only traces keep their DNS metrics.
 - The preset does not change tracing: spans are still exported as configured.
 
 ### Other configuration options
