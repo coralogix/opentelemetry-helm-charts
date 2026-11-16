@@ -578,8 +578,14 @@ Security and safety:
 - **Self-managed log files** (`logs`, off by default) are a placeholder: every record passes `dbmkey` and `dbm` and is
   then dropped by `filter/dbm_file_unparsed`, so no raw log line leaves the collector until the log parser and edge
   redaction exist.
-- **RDS / Aurora log files** (`rdsLogs`) are a stub and enabling them is refused. The future receiver needs the IAM
-  permissions `rds:DescribeDBLogFiles` and `rds:DownloadDBLogFilePortion` on the monitored instances.
+- **RDS / Aurora log files** (`rdsLogs`, off by default): for each instance listed in `rdsLogs.instances` (an RDS or
+  Aurora **instance** endpoint; cluster, reader, custom and proxy endpoints are refused) the cdot `rdslog` receiver
+  reads new engine log data with `DescribeDBLogFiles` and `DownloadDBLogFilePortion`, without CloudWatch Logs, rate
+  limited per instance and per account, at most `maxBytesPerPoll` per instance per poll. Records pass `dbmkey` and
+  `dbm` to the DBM exporter (`logs/dbm_rds`). The markers are kept by `file_storage/dbm_rdslog` on an emptyDir:
+  they survive container restarts; a new pod starts again per `startAt` (default `end`). The collector's AWS
+  identity (for example IRSA) needs `rds:DescribeDBLogFiles` and `rds:DownloadDBLogFilePortion` on the monitored
+  instances, which must be in its own account; the receiver also calls `sts:GetCallerIdentity`.
 - `pvcLookup.namespaces` creates a read-only Role and RoleBinding (`get`, `list`, `watch` on pods and
   persistentvolumeclaims) in each namespace that holds a StatefulSet pod target.
 

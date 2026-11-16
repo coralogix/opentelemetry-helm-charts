@@ -274,6 +274,10 @@ containers:
         mountPath: /var/lib/otelcol
       {{- end }}
       {{- end }}
+      {{- if and .Values.presets.databaseMonitoring.enabled .Values.presets.databaseMonitoring.rdsLogs.enabled }}
+      - name: dbm-rdslog
+        mountPath: {{ .Values.presets.databaseMonitoring.rdsLogs.storageDirectory }}
+      {{- end }}
       {{- if and .Values.presets.journaldReceiver.enabled (not .Values.isWindows) }}
       - name: journald
         mountPath: {{ default "/run/log/journal" .Values.presets.journaldReceiver.directory }}
@@ -443,6 +447,12 @@ volumes:
       path: /var/lib/otelcol
       type: DirectoryOrCreate
   {{- end }}
+  {{- end }}
+  {{- if and .Values.presets.databaseMonitoring.enabled .Values.presets.databaseMonitoring.rdsLogs.enabled }}
+  # rdslog marker storage (DBM EC-12): survives container restarts; a new pod starts per rdsLogs.startAt.
+  - name: dbm-rdslog
+    emptyDir:
+      sizeLimit: 64Mi
   {{- end }}
   {{- if and .Values.presets.journaldReceiver.enabled (not .Values.isWindows) }}
   - name: journald

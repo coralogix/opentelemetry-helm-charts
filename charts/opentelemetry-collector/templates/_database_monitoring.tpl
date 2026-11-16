@@ -6,6 +6,7 @@ Pipelines (design section 8, ADR-0018):
   logs/dbm:         postgresql/dbm_<name>_events  -> memory_limiter -> [resource/dbm_scope] -> dbmkey -> dbm -> batch/dbm -> coralogix/dbm
   logs/dbm_entity:  dbentity -> nop | coralogix/dbm_entity
   logs/dbm_file:    filelog/dbm -> memory_limiter -> resource/dbm_file -> [resource/dbm_scope] -> dbmkey -> dbm -> filter/dbm_file_unparsed -> coralogix/dbm
+  logs/dbm_rds:     rdslog/dbm -> memory_limiter -> [resource/dbm_scope] -> dbmkey -> dbm -> batch/dbm -> coralogix/dbm (EC-12, rdsLogs)
 
 Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 */}}
@@ -49,7 +50,7 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
        break its guarantees (Secret-only credentials, dbmkey before dbm, fail-closed file logs). */}}
 {{- $cfg := .Values.config | default dict }}
 {{- $pipelines := (($cfg.service | default dict).pipelines) | default dict }}
-{{- range $p := list "metrics/dbm" "logs/dbm" "logs/dbm_entity" "logs/dbm_file" }}
+{{- range $p := list "metrics/dbm" "logs/dbm" "logs/dbm_entity" "logs/dbm_file" "logs/dbm_rds" }}
 {{- if hasKey $pipelines $p }}
 {{- fail (printf "presets.databaseMonitoring: config.service.pipelines.%s is owned by the preset; do not redefine it in config" $p) }}
 {{- end }}
@@ -58,7 +59,8 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
     "processors" (list "dbm" "dbmkey" "batch/dbm" "filter/dbm_file_unparsed" "resource/dbm_scope" "resource/dbm_file")
     "exporters" (list "coralogix/dbm" "coralogix/dbm_entity")
     "connectors" (list "dbentity")
-    "receivers" (list "filelog/dbm") }}
+    "receivers" (list "filelog/dbm" "rdslog/dbm")
+    "extensions" (list "file_storage/dbm_rdslog") }}
 {{- range $section := keys $owned | sortAlpha }}
 {{- $have := (get $cfg $section) | default dict }}
 {{- range $id := get $owned $section }}
@@ -97,7 +99,30 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 {{- fail "presets.databaseMonitoring: exporter.domain or global.domain is required" }}
 {{- end }}
 {{- if $dbm.rdsLogs.enabled }}
-{{- fail "presets.databaseMonitoring.rdsLogs: the RDS log-file receiver (EC-12) is not available in this chart version" }}
+{{- if not $dbm.rdsLogs.instances }}
+{{- fail "presets.databaseMonitoring.rdsLogs: instances must name at least one entry of instances" }}
+{{- end }}
+{{- $rdsSeen := list }}
+{{- range $n := $dbm.rdsLogs.instances }}
+{{- if not (has $n $names) }}
+{{- fail (printf "presets.databaseMonitoring.rdsLogs.instances: %q is not an entry of instances" (toString $n)) }}
+{{- end }}
+{{- if has $n $rdsSeen }}
+{{- fail (printf "presets.databaseMonitoring.rdsLogs.instances: duplicate %q" (toString $n)) }}
+{{- end }}
+{{- $rdsSeen = append $rdsSeen $n }}
+{{- range $dbm.instances }}
+{{- if and (eq .name $n) (not (include "opentelemetry-collector.dbmIsRDSInstanceEndpoint" .endpoint)) }}
+{{- fail (printf "presets.databaseMonitoring.rdsLogs.instances[%s]: endpoint %q is not an RDS or Aurora instance endpoint (<identifier>.<hash>.<region>.rds.amazonaws.com:<port>); cluster, reader, custom and proxy endpoints are refused" .name .endpoint) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if not (has (toString $dbm.rdsLogs.startAt) (list "end" "beginning")) }}
+{{- fail "presets.databaseMonitoring.rdsLogs.startAt must be end or beginning" }}
+{{- end }}
+{{- if not (hasPrefix "/" (toString $dbm.rdsLogs.storageDirectory)) }}
+{{- fail "presets.databaseMonitoring.rdsLogs.storageDirectory must be an absolute path" }}
+{{- end }}
 {{- end }}
 {{- if $dbm.logs.enabled }}
 {{- if not $dbm.logs.filelog.include }}
@@ -109,9 +134,22 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 {{- end }}
 {{- end }}
 
+{{/* "true" when the endpoint (host:port) is an RDS or Aurora instance endpoint, the same rule as the
+     dbentity connector and the rdslog receiver (cluster, reader, custom and proxy endpoints have a hyphen
+     in the hash label and do not match). */}}
+{{- define "opentelemetry-collector.dbmIsRDSInstanceEndpoint" -}}
+{{- $e := lower (toString .) }}
+{{- if or (regexMatch "^[a-z](?:[a-z0-9]|-[a-z0-9]){0,62}\\.[a-z0-9]{6,32}\\.[a-z]{2}(?:-gov|-iso[a-z]?)?-[a-z]+-[0-9]{1,2}\\.rds\\.amazonaws\\.com(?:\\.cn)?:[0-9]{1,5}$" $e) (regexMatch "^[a-z](?:[a-z0-9]|-[a-z0-9]){0,62}\\.[a-z0-9]{6,32}\\.rds\\.cn-[a-z]+-[0-9]{1,2}\\.amazonaws\\.com\\.cn:[0-9]{1,5}$" $e) }}true{{- end }}
+{{- end }}
+
 {{- define "opentelemetry-collector.applyDatabaseMonitoringConfig" -}}
 {{- include "opentelemetry-collector.dbmValidate" .Values }}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.databaseMonitoringConfig" .Values | fromYaml) .config }}
+{{- if .Values.Values.presets.databaseMonitoring.rdsLogs.enabled }}
+{{- /* The rdslog marker storage must be in service.extensions; the user's list is kept. */}}
+{{- $extensions := $config.service.extensions | default (list) }}
+{{- $_ := set $config.service "extensions" (append $extensions "file_storage/dbm_rdslog" | uniq) }}
+{{- end }}
 {{- $config | toYaml }}
 {{- end }}
 
@@ -120,6 +158,7 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 {{- $scope := ne ($dbm.clusterUid | default "") "" }}
 {{- $metricsReceivers := list }}
 {{- $eventsReceivers := list }}
+{{- $rds := $dbm.rdsLogs.enabled }}
 {{- range $dbm.instances }}
 {{- $metricsReceivers = append $metricsReceivers (printf "postgresql/dbm_%s_metrics" .name) }}
 {{- $eventsReceivers = append $eventsReceivers (printf "postgresql/dbm_%s_events" .name) }}
@@ -204,6 +243,25 @@ receivers:
     include: {{ toJson $dbm.logs.filelog.include }}
     start_at: {{ $dbm.logs.filelog.startAt }}
     include_file_path: true
+{{- end }}
+{{- if $rds }}
+  rdslog/dbm:
+    storage: file_storage/dbm_rdslog
+    instances:
+    {{- range $n := $dbm.rdsLogs.instances }}
+    {{- range $dbm.instances }}{{- if eq .name $n }}
+      - endpoint: {{ .endpoint | quote }}
+    {{- end }}{{- end }}
+    {{- end }}
+    poll_interval: {{ $dbm.rdsLogs.pollInterval }}
+    max_bytes_per_poll: {{ $dbm.rdsLogs.maxBytesPerPoll | int64 }}
+    instance_requests_per_second: {{ $dbm.rdsLogs.instanceRequestsPerSecond }}
+    account_requests_per_second: {{ $dbm.rdsLogs.accountRequestsPerSecond }}
+    start_at: {{ $dbm.rdsLogs.startAt }}
+extensions:
+  file_storage/dbm_rdslog:
+    directory: {{ $dbm.rdsLogs.storageDirectory | quote }}
+    create_directory: true
 {{- end }}
 connectors:
   dbentity:
@@ -310,6 +368,12 @@ service:
     logs/dbm_entity:
       receivers: ["dbentity"]
       exporters: [{{ if $dbm.entity.export.enabled }}"coralogix/dbm_entity"{{ else }}"nop"{{ end }}]
+    {{- if $rds }}
+    logs/dbm_rds:
+      receivers: ["rdslog/dbm"]
+      processors: {{ toJson (concat $head (list "dbmkey" "dbm" "batch/dbm")) }}
+      exporters: ["coralogix/dbm"]
+    {{- end }}
     {{- if $dbm.logs.enabled }}
     logs/dbm_file:
       receivers: ["filelog/dbm"]
@@ -353,7 +417,7 @@ Input: dict "config" (merged config) "expected" (the preset's own render).
 {{- $pl := get $pipelines $name | default dict }}
 {{- if not (has $name $ownedPipelines) }}
 {{- range $r := $pl.receivers | default list }}
-{{- if or (hasPrefix "postgresql/dbm_" $r) (eq $r "filelog/dbm") (eq $r "dbentity") }}
+{{- if or (hasPrefix "postgresql/dbm_" $r) (eq $r "filelog/dbm") (eq $r "rdslog/dbm") (eq $r "dbentity") }}
 {{- fail (printf "presets.databaseMonitoring: receiver %s is owned by the preset and must not be used in pipeline %s" $r $name) }}
 {{- end }}
 {{- end }}
@@ -389,8 +453,14 @@ Input: dict "config" (merged config) "expected" (the preset's own render).
 {{- end }}
 {{- end }}
 {{- end }}
+{{- /* 5. The rdslog marker storage stays enabled. */}}
+{{- if hasKey ($expected.extensions | default dict) "file_storage/dbm_rdslog" }}
+{{- if not (has "file_storage/dbm_rdslog" (($config.service | default dict).extensions | default list)) }}
+{{- fail "presets.databaseMonitoring: service.extensions must keep file_storage/dbm_rdslog (rdsLogs marker storage)" }}
+{{- end }}
+{{- end }}
 {{- /* 3. Owned component configurations are exactly what the preset rendered (nop is shared and skipped). */}}
-{{- range $section := list "receivers" "processors" "exporters" "connectors" }}
+{{- range $section := list "receivers" "processors" "exporters" "connectors" "extensions" }}
 {{- $want := get $expected $section | default dict }}
 {{- $have := get $config $section | default dict }}
 {{- range $id := keys $want | sortAlpha }}
