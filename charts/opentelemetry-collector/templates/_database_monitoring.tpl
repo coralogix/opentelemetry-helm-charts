@@ -138,7 +138,7 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
      dbentity connector and the rdslog receiver (cluster, reader, custom and proxy endpoints have a hyphen
      in the hash label and do not match). */}}
 {{- define "opentelemetry-collector.dbmIsRDSInstanceEndpoint" -}}
-{{- $e := lower (toString .) }}
+{{- $e := lower (toString .) }}true
 {{- if or (regexMatch "^[a-z](?:[a-z0-9]|-[a-z0-9]){0,62}\\.[a-z0-9]{6,32}\\.[a-z]{2}(?:-gov|-iso[a-z]?)?-[a-z]+-[0-9]{1,2}\\.rds\\.amazonaws\\.com(?:\\.cn)?:[0-9]{1,5}$" $e) (regexMatch "^[a-z](?:[a-z0-9]|-[a-z0-9]){0,62}\\.[a-z0-9]{6,32}\\.rds\\.cn-[a-z]+-[0-9]{1,2}\\.amazonaws\\.com\\.cn:[0-9]{1,5}$" $e) }}true{{- end }}
 {{- end }}
 
@@ -371,7 +371,7 @@ service:
     {{- if $rds }}
     logs/dbm_rds:
       receivers: ["rdslog/dbm"]
-      processors: {{ toJson (concat $head (list "dbmkey" "dbm" "batch/dbm")) }}
+      processors: {{ toJson (concat $head (list "dbmkey" "batch/dbm")) }}
       exporters: ["coralogix/dbm"]
     {{- end }}
     {{- if $dbm.logs.enabled }}
@@ -417,7 +417,7 @@ Input: dict "config" (merged config) "expected" (the preset's own render).
 {{- $pl := get $pipelines $name | default dict }}
 {{- if not (has $name $ownedPipelines) }}
 {{- range $r := $pl.receivers | default list }}
-{{- if or (hasPrefix "postgresql/dbm_" $r) (eq $r "filelog/dbm") (eq $r "rdslog/dbm") (eq $r "dbentity") }}
+{{- if or (hasPrefix "postgresql/dbm_" $r) (eq $r "filelog/dbm") (eq $r "dbentity") }}
 {{- fail (printf "presets.databaseMonitoring: receiver %s is owned by the preset and must not be used in pipeline %s" $r $name) }}
 {{- end }}
 {{- end }}

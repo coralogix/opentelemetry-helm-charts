@@ -450,7 +450,7 @@ volumes:
   {{- end }}
   {{- if and .Values.presets.databaseMonitoring.enabled .Values.presets.databaseMonitoring.rdsLogs.enabled }}
   # rdslog marker storage (DBM EC-12): survives container restarts; a new pod starts per rdsLogs.startAt.
-  - name: dbm-rdslog
+  - name: dbm-rdslog-mutant
     emptyDir:
       sizeLimit: 64Mi
   {{- end }}
