@@ -552,8 +552,11 @@ Security and safety:
   for the events receiver. The receiver applies these pool settings only with the collector feature gate
   `receiver.postgresql.connectionPool`, a beta gate on by default in the cdot image; the chart does not set it and
   refuses `command.extraArgs` that disable it (`-receiver.postgresql.connectionPool`). Connection limit of the monitoring role:
-  the grant script sets `CONNECTION LIMIT 8`; budget = (1 + N) per receiver + probe + up to 2 EC-07 sweeps; `max_idle: 0` keeps steady use low.
-  The worst case exceeds 8 when N > 1 (for example N = 2: 3 + 3 + 1 + 2 = 9), so keep N small or raise the limit.
+  the grant script sets `CONNECTION LIMIT 8`; budget = (1 + N) connections per receiver (N = configured databases for
+  metrics, databases seen in pg_stat_statements for events) + the dbentity probe + up to 2 EC-07 sweeps; max_idle 0
+  keeps steady use low. Worst case per instance = (1 + N metrics) + (1 + N events) + 1 + 2 = N metrics + N events + 5:
+  one database each gives 7, within 8; it exceeds 8 when the two N add up to more than 3 (N = 2 each gives 9), so
+  raise the limit for such an instance.
 - **Coralogix key:** `exporter.privateKey` defaults to `${env:CORALOGIX_PRIVATE_KEY}`. Provide that env var from a
   Kubernetes Secret with `extraEnvs` and `valueFrom.secretKeyRef`, never as a literal value.
 - **TLS:** the receivers use `tls` and the `dbentity` probe uses `sslmode`/`sslrootcert`. For an in-cluster database
