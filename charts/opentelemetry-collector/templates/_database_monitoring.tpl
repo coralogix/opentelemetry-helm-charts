@@ -56,7 +56,7 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 {{- end }}
 {{- end }}
 {{- $owned := dict
-    "processors" (list "dbm" "dbmkey" "dbmlogparser" "batch/dbm" "filter/dbm_file_unparsed" "resource/dbm_scope" "resource/dbm_file")
+    "processors" (list "dbm" "dbmkey" "batch/dbm" "filter/dbm_file_unparsed" "resource/dbm_scope" "resource/dbm_file")
     "exporters" (list "coralogix/dbm" "coralogix/dbm_entity")
     "connectors" (list "dbentity")
     "receivers" (list "filelog/dbm") }}
@@ -205,7 +205,7 @@ receivers:
     include: {{ toJson $dbm.logs.filelog.include }}
     start_at: {{ $dbm.logs.filelog.startAt }}
     include_file_path: true
-    {{- if eq $dbm.logs.filelog.format "csvlog" }}
+    {{- if false }}
     # A csvlog entry spans lines when a quoted field holds a newline: an entry starts at a timestamp.
     multiline:
       line_start_pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'
@@ -279,7 +279,7 @@ processors:
     error_mode: propagate
     logs:
       log_record:
-        - 'attributes["cx.dbm.log.parser"] == nil'
+        - 'false'
   {{- end }}
 exporters:
   coralogix/dbm:
@@ -367,7 +367,7 @@ Input: dict "config" (merged config) "expected" (the preset's own render).
 {{- end }}
 {{- end }}
 {{- range $p := $pl.processors | default list }}
-{{- if has $p (list "dbm" "dbmkey" "dbmlogparser" "batch/dbm" "filter/dbm_file_unparsed" "resource/dbm_scope" "resource/dbm_file") }}
+{{- if has $p (list "dbm" "dbmkey" "batch/dbm" "filter/dbm_file_unparsed" "resource/dbm_scope" "resource/dbm_file") }}
 {{- fail (printf "presets.databaseMonitoring: processor %s is owned by the preset and must not be used in pipeline %s" $p $name) }}
 {{- end }}
 {{- end }}
