@@ -1075,9 +1075,11 @@ presets:
     # dbentity startup RBAC self-check stops the collector.
     pvcLookup:
       namespaces: []
-    # Self-managed PostgreSQL log files (ADR-0018 item 1). Placeholder: EC-11 adds the jsonlog/csvlog parser
-    # and the edge redaction. Until then every record passes `dbm` and is then dropped by
-    # `filter/dbm_file_unparsed`, so no raw log line leaves the collector (fail closed).
+    # Self-managed PostgreSQL log files (ADR-0018 item 1). The `dbmlogparser` processor (EC-11) turns each
+    # jsonlog/csvlog entry into one record (auto_explain JSON plans into "actual" plan records) before `dbmkey`
+    # and `dbm`, which obfuscates statements, parameters and plans. Entries that do not parse are dropped and
+    # counted; `filter/dbm_file_unparsed` drops any record the parser did not stamp (fail closed).
+    # csvlog gets a filelog multiline rule (an entry starts at a timestamp). Needs an image with dbmlogparser.
     logs:
       enabled: false
       filelog:

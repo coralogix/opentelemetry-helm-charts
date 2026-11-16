@@ -3,7 +3,7 @@
 
 validate-configs.sh ignores the whole validator output as soon as one ignore pattern matches,
 so an unknown DBM component type would hide every other error. Here only the DBM components
-that otelcol-contrib does not ship are removed (processors dbm and dbmkey, connector dbentity,
+that otelcol-contrib does not ship are removed (processors dbm, dbmkey and dbmlogparser, connector dbentity,
 and the entity pipeline that only exists for the connector); everything else, including the
 postgresql receivers, filelog, filter, resource, batch and coralogix exporter, must validate
 with no ignored errors.
@@ -18,7 +18,7 @@ import tempfile
 
 import yaml
 
-DBM_PROCESSORS = ("dbm", "dbmkey")
+DBM_PROCESSORS = ("dbm", "dbmkey", "dbmlogparser")
 DBM_CONNECTORS = ("dbentity",)
 DBM_ONLY_PIPELINES = ("logs/dbm_entity",)
 

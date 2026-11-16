@@ -62,11 +62,13 @@ data:
           top_k: 100
       dbmkey:
         db_system: postgresql
+      dbmlogparser:
+        format: jsonlog
       filter/dbm_file_unparsed:
         error_mode: propagate
         logs:
           log_record:
-          - "true"
+          - attributes["cx.dbm.log.parser"] == nil
       memory_limiter:
         check_interval: 5s
         limit_percentage: 80
@@ -335,6 +337,7 @@ data:
           - coralogix/dbm
           processors:
           - memory_limiter
+          - dbmlogparser
           - resource/dbm_file
           - resource/dbm_scope
           - dbmkey

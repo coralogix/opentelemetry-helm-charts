@@ -537,7 +537,7 @@ per-index metrics off) and `postgresql/dbm_<name>_events` (query samples every 1
 | `metrics/dbm` | `*_metrics` | `memory_limiter`, [`resource/dbm_scope`], `dbmkey` | `dbentity` (+ `coralogix` when the Coralogix exporter preset is on) |
 | `logs/dbm` | `*_events` | `memory_limiter`, [`resource/dbm_scope`], `dbmkey`, `dbm`, `batch/dbm` | `coralogix/dbm` (`x-coralogix-ingress: dbm-as-otlp-logs/v1`) |
 | `logs/dbm_entity` | `dbentity` | | `nop`, or `coralogix/dbm_entity` with `entity.export.enabled` |
-| `logs/dbm_file` (optional) | `filelog/dbm` | `memory_limiter`, `resource/dbm_file`, [`resource/dbm_scope`], `dbmkey`, `dbm`, `filter/dbm_file_unparsed` | `coralogix/dbm` |
+| `logs/dbm_file` (optional) | `filelog/dbm` | `memory_limiter`, `dbmlogparser`, `resource/dbm_file`, [`resource/dbm_scope`], `dbmkey`, `dbm`, `filter/dbm_file_unparsed` | `coralogix/dbm` |
 
 Security and safety:
 
@@ -563,7 +563,7 @@ Security and safety:
   with a self-signed or private CA, mount the CA and set both `tls.caFile` and `sslrootcert` (with `sslmode:
   verify-full` or `verify-ca`); setting only `sslmode` leaves the receivers without the CA.
 - **Owned components:** the preset owns the pipelines `metrics/dbm`, `logs/dbm`, `logs/dbm_entity` and
-  `logs/dbm_file`, the receivers `postgresql/dbm_*` and `filelog/dbm`, the processors `dbm`, `dbmkey`, `batch/dbm`,
+  `logs/dbm_file`, the receivers `postgresql/dbm_*` and `filelog/dbm`, the processors `dbm`, `dbmkey`, `dbmlogparser`, `batch/dbm`,
   `resource/dbm_scope`, `resource/dbm_file` and `filter/dbm_file_unparsed`, the exporters `coralogix/dbm` and
   `coralogix/dbm_entity`, and the connector `dbentity`. Its guarantees hold only if `config:` and `extraConfig` leave
   them alone, so after all merges and after template (`tpl`) expansion the chart checks the final configuration and
@@ -575,9 +575,14 @@ Security and safety:
   conflicting chart configuration. They are not a sandbox against the operator's own configuration: indirect
   references such as nested env expansion (`${env:${env:P}_PASSWORD}`) or `${file:/proc/self/environ}`, or other
   deployment changes, remain under the operator's control.
-- **Self-managed log files** (`logs`, off by default) are a placeholder: every record passes `dbmkey` and `dbm` and is
-  then dropped by `filter/dbm_file_unparsed`, so no raw log line leaves the collector until the log parser and edge
-  redaction exist.
+- **Self-managed log files** (`logs`, off by default): the `dbmlogparser` processor turns each PostgreSQL `jsonlog`
+  (preferred) or `csvlog` entry into one record, and auto_explain JSON plans into `actual` plan records, before `dbmkey`
+  and `dbm`, which obfuscates every statement, parameter and plan part. Entries that do not parse are dropped and
+  counted (`dbm_log_entry_unparsed_total`). `filter/dbm_file_unparsed` drops any record the parser did not stamp
+  (`cx.dbm.log.parser`), so no raw log line leaves the collector. For `csvlog`, `filelog/dbm` starts an entry at a line
+  that begins with a timestamp, so multi-line entries stay whole. Recommended PostgreSQL settings:
+  `log_destination = 'jsonlog'` (15+), `log_timezone = 'UTC'`, and for actual plans `auto_explain.log_format = json`
+  with `auto_explain.log_verbose = on` and `compute_query_id = on` (14+) so plans join on `queryid`.
 - **RDS / Aurora log files** (`rdsLogs`) are a stub and enabling them is refused. The future receiver needs the IAM
   permissions `rds:DescribeDBLogFiles` and `rds:DownloadDBLogFilePortion` on the monitored instances.
 - `pvcLookup.namespaces` creates a read-only Role and RoleBinding (`get`, `list`, `watch` on pods and

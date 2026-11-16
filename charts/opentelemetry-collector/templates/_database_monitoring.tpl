@@ -5,7 +5,8 @@ Pipelines (design section 8, ADR-0018):
   metrics/dbm:      postgresql/dbm_<name>_metrics -> memory_limiter -> [resource/dbm_scope] -> dbmkey -> dbentity (+ coralogix)
   logs/dbm:         postgresql/dbm_<name>_events  -> memory_limiter -> [resource/dbm_scope] -> dbmkey -> dbm -> batch/dbm -> coralogix/dbm
   logs/dbm_entity:  dbentity -> nop | coralogix/dbm_entity
-  logs/dbm_file:    filelog/dbm -> memory_limiter -> resource/dbm_file -> [resource/dbm_scope] -> dbmkey -> dbm -> filter/dbm_file_unparsed -> coralogix/dbm
+  logs/dbm_file:    filelog/dbm -> memory_limiter -> dbmlogparser -> resource/dbm_file -> [resource/dbm_scope] -> dbmkey -> dbm -> filter/dbm_file_unparsed -> coralogix/dbm
+                    (dbmlogparser: PostgreSQL jsonlog/csvlog entries -> one record each, EC-11; the filter drops what it did not stamp)
 
 Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 */}}
@@ -55,7 +56,7 @@ Credentials come only from a Kubernetes Secret, through env vars (SEC-F-19).
 {{- end }}
 {{- end }}
 {{- $owned := dict
-    "processors" (list "dbm" "dbmkey" "batch/dbm" "filter/dbm_file_unparsed" "resource/dbm_scope" "resource/dbm_file")
+    "processors" (list "dbm" "dbmkey" "dbmlogparser" "batch/dbm" "filter/dbm_file_unparsed" "resource/dbm_scope" "resource/dbm_file")
     "exporters" (list "coralogix/dbm" "coralogix/dbm_entity")
     "connectors" (list "dbentity")
     "receivers" (list "filelog/dbm") }}
@@ -204,6 +205,11 @@ receivers:
     include: {{ toJson $dbm.logs.filelog.include }}
     start_at: {{ $dbm.logs.filelog.startAt }}
     include_file_path: true
+    {{- if eq $dbm.logs.filelog.format "csvlog" }}
+    # A csvlog entry spans lines when a quoted field holds a newline: an entry starts at a timestamp.
+    multiline:
+      line_start_pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'
+    {{- end }}
 {{- end }}
 connectors:
   dbentity:
@@ -264,13 +270,16 @@ processors:
       - key: dbm.log.format
         value: {{ $dbm.logs.filelog.format | quote }}
         action: upsert
-  # EC-11 replaces this filter with the jsonlog/csvlog parser and edge redaction (ADR-0018 item 5b).
-  # Until then no raw log line leaves the collector.
+  # EC-11: one record per PostgreSQL log entry; entries that do not parse are dropped and counted.
+  dbmlogparser:
+    format: {{ $dbm.logs.filelog.format }}
+  # Final guard: only records the parser stamped (cx.dbm.log.parser) reach the exporter, so no raw
+  # log line leaves the collector (ADR-0018 item 5b, fail closed).
   filter/dbm_file_unparsed:
     error_mode: propagate
     logs:
       log_record:
-        - "true"
+        - 'attributes["cx.dbm.log.parser"] == nil'
   {{- end }}
 exporters:
   coralogix/dbm:
@@ -313,7 +322,7 @@ service:
     {{- if $dbm.logs.enabled }}
     logs/dbm_file:
       receivers: ["filelog/dbm"]
-      processors: {{ toJson (concat (list "memory_limiter" "resource/dbm_file") (rest $head) (list "dbmkey" "dbm" "filter/dbm_file_unparsed")) }}
+      processors: {{ toJson (concat (list "memory_limiter" "dbmlogparser" "resource/dbm_file") (rest $head) (list "dbmkey" "dbm" "filter/dbm_file_unparsed")) }}
       exporters: ["coralogix/dbm"]
     {{- end }}
 {{- end }}
@@ -358,7 +367,7 @@ Input: dict "config" (merged config) "expected" (the preset's own render).
 {{- end }}
 {{- end }}
 {{- range $p := $pl.processors | default list }}
-{{- if has $p (list "dbm" "dbmkey" "batch/dbm" "filter/dbm_file_unparsed" "resource/dbm_scope" "resource/dbm_file") }}
+{{- if has $p (list "dbm" "dbmkey" "dbmlogparser" "batch/dbm" "filter/dbm_file_unparsed" "resource/dbm_scope" "resource/dbm_file") }}
 {{- fail (printf "presets.databaseMonitoring: processor %s is owned by the preset and must not be used in pipeline %s" $p $name) }}
 {{- end }}
 {{- end }}
