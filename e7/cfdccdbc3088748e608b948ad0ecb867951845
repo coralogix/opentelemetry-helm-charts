@@ -1,0 +1,23 @@
+charts/opentelemetry-collector/CHANGELOG.md
+  s_f831f252c737d7::t_5d5463a343a649 7
+charts/opentelemetry-collector/README.md
+  s_f831f252c737d7::t_6847a99e95f3fa 555-559
+charts/opentelemetry-collector/values.yaml
+  s_f831f252c737d7::t_f506e91f33d245 1045-1050
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e7cfdccdbc3088748e608b948ad0ecb867951845",
+  "prompts": {},
+  "sessions": {
+    "s_f831f252c737d7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d17d887-0e27-40f9-aede-50f0536246af",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "oded-dd <oded@coralogix.com>"
+    }
+  }
+}
