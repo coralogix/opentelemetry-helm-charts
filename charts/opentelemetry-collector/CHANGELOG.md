@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.143.2 / 2026-11-20
+
+- [Feat] Add the opt-in `dbMonitoring` preset for named PostgreSQL targets. Collect performance, health, and table metrics, with optional query samples, top queries, and catalog events. Support password environment variables, TLS, and database resource attributes. Collect schemas through direct database connections without `dblink`. Support dedicated DB collectors with OTLP disabled and include a single-replica example with `Recreate` updates.
+
 ### v0.143.1 / 2026-11-16
 
 - [Fix] Bump the supervised image to 0.20.0 with Supervisor 0.165.1 to apply package and configuration updates together.

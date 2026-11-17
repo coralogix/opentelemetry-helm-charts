@@ -203,6 +203,12 @@ validate_config() {
 
     log "Validating configuration for: $example_name (${collector_binary##*/})"
 
+    # Validate the DB example without requiring its Kubernetes Secrets locally.
+    # The validate command checks configuration only; it does not connect to the DB.
+    if [[ "$example_name" == "db-monitoring" ]]; then
+        local -x ORDERS_DB_PASSWORD=validation-only INVENTORY_DB_PASSWORD=validation-only
+    fi
+
     local validation_output exit_code
     if [[ "$collector_binary" == docker:* ]]; then
         # eBPF profiler distribution: validate inside its published image.

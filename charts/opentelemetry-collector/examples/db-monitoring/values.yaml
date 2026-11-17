@@ -1,0 +1,46 @@
+mode: deployment
+replicaCount: 1
+
+presets:
+  dbMonitoring:
+    enabled: true
+    postgresql:
+      - name: orders
+        host: orders-db.databases.svc.cluster.local
+        username: otel
+        password: ${env:ORDERS_DB_PASSWORD}
+        instanceId: production/databases/orders-db
+        databases: [orders, billing]
+        tls:
+          insecure: true
+        resourceAttributes:
+          k8s.cluster.name: production
+          k8s.namespace.name: databases
+          k8s.statefulset.name: orders-db
+        querySamples:
+          enabled: true
+        topQueries:
+          enabled: true
+        catalog:
+          enabled: true
+      - name: inventory
+        host: inventory-db.example.com
+        port: 5433
+        username: otel
+        password: ${env:INVENTORY_DB_PASSWORD}
+        instanceId: production/inventory-db
+        connectDatabase: inventory
+        resourceAttributes:
+          deployment.environment.name: production
+
+extraEnvs:
+  - name: ORDERS_DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: db-monitoring
+        key: orders-password
+  - name: INVENTORY_DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: db-monitoring
+        key: inventory-password

@@ -1,0 +1,270 @@
+# PostgreSQL receivers and transforms. Connections and pipeline IDs come from the preset.
+receivers:
+  performance:
+    transport: tcp
+    metrics:
+      postgresql.blks_hit:
+        enabled: true
+      postgresql.blks_read:
+        enabled: true
+      postgresql.database.locks:
+        enabled: true
+      postgresql.deadlocks:
+        enabled: true
+      postgresql.sequential_scans:
+        enabled: true
+      postgresql.temp_files:
+        enabled: true
+      postgresql.temp.io:
+        enabled: true
+      postgresql.tup_deleted:
+        enabled: true
+      postgresql.tup_fetched:
+        enabled: true
+      postgresql.tup_inserted:
+        enabled: true
+      postgresql.tup_returned:
+        enabled: true
+      postgresql.tup_updated:
+        enabled: true
+      postgresql.query.execution.time:
+        enabled: true
+      postgresql.wal.delay:
+        enabled: true
+    resource_attributes:
+      db.system.version:
+        enabled: true
+  queries:
+    transport: tcp
+    resource_attributes:
+      db.system.version:
+        enabled: true
+    events:
+      db.server.query_sample:
+        enabled: true
+      db.server.top_query:
+        enabled: true
+    query_sample_collection:
+      max_rows_per_query: 20
+    top_query_collection:
+      max_rows_per_query: 200
+      top_n_query: 50
+      max_explain_each_interval: 10
+      collection_interval: 5m
+  health:
+    driver: postgres
+    queries:
+    - sql: SELECT datname, age(datfrozenxid) AS xid_age FROM pg_database WHERE datallowconn
+      metrics:
+      - metric_name: postgresql.database.xid_age
+        value_column: xid_age
+        attribute_columns:
+        - datname
+        description: Transactions since the oldest unfrozen XID (wraparound at 2^31).
+        unit: '{transaction}'
+    - sql: |
+        SELECT slot_name, slot_type, COALESCE(database, '') AS database, active::text AS active,
+               COALESCE(pg_wal_lsn_diff(CASE WHEN pg_is_in_recovery() THEN pg_last_wal_replay_lsn() ELSE pg_current_wal_lsn() END, restart_lsn), 0)::bigint AS retained_bytes
+        FROM pg_replication_slots
+      metrics:
+      - metric_name: postgresql.replication_slot.retained_wal
+        value_column: retained_bytes
+        attribute_columns:
+        - slot_name
+        - slot_type
+        - database
+        - active
+        unit: By
+    - sql: SELECT COALESCE(sum(size), 0)::bigint AS wal_bytes, count(*) AS wal_files FROM pg_ls_waldir()
+      metrics:
+      - metric_name: postgresql.wal.size
+        value_column: wal_bytes
+        unit: By
+  tables:
+    driver: postgres
+    queries:
+    - sql: |
+        SELECT current_database() AS datname, schemaname, relname,
+               COALESCE(EXTRACT(EPOCH FROM now() - GREATEST(last_vacuum, last_autovacuum)), -1)::bigint AS vacuum_age,
+               COALESCE(EXTRACT(EPOCH FROM now() - GREATEST(last_analyze, last_autoanalyze)), -1)::bigint AS analyze_age
+        FROM pg_stat_user_tables
+      metrics:
+      - metric_name: postgresql.table.vacuum.age
+        value_column: vacuum_age
+        attribute_columns:
+        - datname
+        - schemaname
+        - relname
+        unit: s
+        description: Seconds since the last vacuum or autovacuum, -1 if never.
+      - metric_name: postgresql.table.analyze.age
+        value_column: analyze_age
+        attribute_columns:
+        - datname
+        - schemaname
+        - relname
+        unit: s
+        description: Seconds since the last analyze or autoanalyze, -1 if never.
+  details:
+    driver: postgres
+    queries:
+    - sql: |
+        SELECT 'db.instance' AS state_kind,
+               current_setting('server_version') AS db_version,
+               CASE WHEN pg_is_in_recovery() THEN 'replica' ELSE 'primary' END AS db_role,
+               current_setting('max_connections') AS max_connections,
+               (SELECT json_agg(datname ORDER BY datname) FROM pg_database WHERE datallowconn AND NOT datistemplate)::text AS databases,
+               (SELECT json_agg(json_build_object('name', extname, 'version', extversion) ORDER BY extname) FROM pg_extension)::text AS extensions,
+               COALESCE((SELECT json_agg(json_build_object('name', slot_name, 'type', slot_type, 'plugin', plugin, 'database', database) ORDER BY slot_name)
+                         FROM pg_replication_slots), '[]')::text AS replication_slots,
+               (SELECT json_agg(json_build_object(
+                  'name', name, 'value', setting, 'unit', unit, 'source', source, 'default', boot_val,
+                  'pending_restart', pending_restart, 'context', context) ORDER BY name) FROM pg_settings)::text AS settings
+      logs:
+      - body_column: state_kind
+        attribute_columns:
+        - db_version
+        - db_role
+        - max_connections
+        - databases
+        - extensions
+        - replication_slots
+        - settings
+    initial_delay: 30s
+  schema:
+    driver: postgres
+    initial_delay: 3m
+    queries:
+    - sql: |
+        WITH t AS (
+          SELECT c.oid, n.nspname AS schema, c.relname AS name,
+                 CASE c.relkind WHEN 'r' THEN 'table' WHEN 'p' THEN 'partitioned_table'
+                                WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized_view' END AS kind
+          FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+          WHERE c.relkind IN ('r', 'p', 'v', 'm') AND NOT c.relispartition
+            AND n.nspname NOT IN ('pg_catalog', 'information_schema') AND n.nspname NOT LIKE 'pg_toast%'
+            AND NOT EXISTS (SELECT 1 FROM pg_depend dep WHERE dep.classid = 'pg_class'::regclass AND dep.objid = c.oid AND dep.deptype = 'e')
+          ORDER BY n.nspname, c.relname
+          LIMIT 301
+        ), tables AS (
+          SELECT json_build_object(
+            'schema', t.schema, 'name', t.name, 'kind', t.kind,
+            'columns', (SELECT json_agg(json_build_object('name', a.attname, 'type', format_type(a.atttypid, a.atttypmod),
+                                                          'nullable', NOT a.attnotnull, 'default', pg_get_expr(d.adbin, d.adrelid)) ORDER BY a.attnum)
+                        FROM pg_attribute a LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
+                        WHERE a.attrelid = t.oid AND a.attnum > 0 AND NOT a.attisdropped),
+            'indexes', (SELECT json_agg(json_build_object('name', ic.relname, 'definition', pg_get_indexdef(i.indexrelid),
+                                                          'unique', i.indisunique, 'primary', i.indisprimary, 'valid', i.indisvalid) ORDER BY ic.relname)
+                        FROM pg_index i JOIN pg_class ic ON ic.oid = i.indexrelid WHERE i.indrelid = t.oid),
+            'constraints', (SELECT json_agg(json_build_object('name', co.conname, 'type', co.contype, 'definition', pg_get_constraintdef(co.oid)) ORDER BY co.conname)
+                            FROM pg_constraint co WHERE co.conrelid = t.oid AND co.contype IN ('p', 'f', 'u', 'c')),
+            'partitions', (SELECT count(*) FROM pg_inherits h WHERE h.inhparent = t.oid)
+          ) AS tbl
+          FROM (SELECT * FROM t ORDER BY schema, name LIMIT 300) t
+        ), snapshot AS (
+          SELECT json_build_object(
+            'truncated', (SELECT count(*) FROM t) > 300,
+            'tables', COALESCE((SELECT json_agg(tbl ORDER BY tbl->>'schema', tbl->>'name') FROM tables), '[]'::json)) AS value
+        )
+        SELECT 'db.schema' AS state_kind, current_database() AS datname,
+               '1' AS database_count, '1' AS variant_count,
+               md5((value->'tables')::text) AS schema_hash,
+               json_build_array(json_build_object(
+                 'schema_hash', md5((value->'tables')::text),
+                 'databases', json_build_array(current_database()),
+                 'table_count', json_array_length(value->'tables'),
+                 'truncated', value->'truncated', 'tables', value->'tables'))::text AS schema_variants
+        FROM snapshot
+      logs:
+      - body_column: state_kind
+        attribute_columns:
+        - datname
+        - database_count
+        - variant_count
+        - schema_hash
+        - schema_variants
+processors:
+  semconv:
+    error_mode: ignore
+    metric_statements:
+    - context: resource
+      statements:
+      - set(attributes["db.namespace"], attributes["postgresql.database.name"]) where attributes["postgresql.database.name"] != nil
+      - set(attributes["db.collection.name"], attributes["postgresql.table.name"]) where attributes["postgresql.table.name"] != nil
+      - delete_matching_keys(attributes, "^postgresql\\.(database|table)\\.name$")
+    - context: datapoint
+      statements:
+      - set(attributes["db.namespace"], attributes["datname"]) where attributes["datname"] != nil
+      - set(attributes["postgresql.schema.name"], attributes["schemaname"]) where attributes["schemaname"] != nil
+      - set(attributes["db.collection.name"], attributes["relname"]) where attributes["relname"] != nil
+      - delete_matching_keys(attributes, "^(datname|schemaname|relname)$")
+    log_statements:
+    - context: resource
+      statements:
+      - set(attributes["db.namespace"], attributes["postgresql.database.name"]) where attributes["postgresql.database.name"] != nil
+      - delete_key(attributes, "postgresql.database.name")
+    - context: log
+      statements:
+      - set(attributes["db.event.kind"], event_name) where event_name != nil and event_name != ""
+      - set(attributes["postgresql.queryid"], attributes["postgresql.query_id"]) where attributes["postgresql.query_id"] != nil
+      - set(attributes["postgresql.queryid"], String(attributes["query_id"])) where attributes["query_id"] != nil and attributes["query_id"] != 0
+      - set(attributes["user.name"], attributes["postgresql.rolname"]) where attributes["postgresql.rolname"] != nil
+      - set(attributes["user.name"], attributes["user"]) where attributes["user"] != nil
+      - set(attributes["db.namespace"], attributes["dbname"]) where attributes["dbname"] != nil
+      - set(attributes["postgresql.application_name"], attributes["application_name"]) where attributes["application_name"] != nil
+      - set(attributes["db.response.status_code"], attributes["state_code"]) where attributes["state_code"] != nil
+      - delete_key(attributes, "postgresql.query_plan") where attributes["postgresql.query_plan"] == ""
+      - delete_matching_keys(attributes, "^(postgresql\\.query_id|query_id|postgresql\\.rolname|user|dbname|application_name|state_code)$")
+    - context: log
+      conditions:
+      - resource.attributes["db.system.name"] == "postgresql"
+      statements:
+      - set(attributes["db.query.id"], attributes["postgresql.queryid"]) where attributes["postgresql.queryid"] != nil and attributes["postgresql.queryid"] != ""
+      - set(attributes["db.query.calls"], attributes["postgresql.calls"]) where attributes["postgresql.calls"] != nil
+      - set(attributes["db.query.total_duration_ms"], attributes["postgresql.total_exec_time"] * 1000.0) where attributes["postgresql.calls"] != nil
+      - set(attributes["db.query.rows"], attributes["postgresql.rows"]) where attributes["postgresql.rows"] != nil
+      - set(attributes["db.query.plan"], attributes["postgresql.query_plan"]) where attributes["postgresql.query_plan"] != nil
+      - set(attributes["db.query.cache.hit_blocks"], attributes["postgresql.shared_blks_hit"]) where attributes["postgresql.shared_blks_hit"] != nil
+      - set(attributes["db.query.cache.read_blocks"], attributes["postgresql.shared_blks_read"]) where attributes["postgresql.shared_blks_read"] != nil
+      - set(attributes["db.query.temp_blocks"], attributes["postgresql.temp_blks_read"] + attributes["postgresql.temp_blks_written"]) where attributes["postgresql.temp_blks_read"] != nil and attributes["postgresql.temp_blks_written"] != nil
+      - delete_key(attributes, "postgresql.total_exec_time") where attributes["postgresql.calls"] != nil
+      - delete_matching_keys(attributes, "^postgresql\\.(queryid|calls|rows|query_plan|shared_blks_(hit|read)|temp_blks_(read|written))$")
+      - set(attributes["db.session.id"], attributes["postgresql.pid"]) where attributes["postgresql.pid"] != nil
+      - set(attributes["db.session.state"], attributes["postgresql.state"]) where attributes["postgresql.state"] != nil and attributes["postgresql.state"] != ""
+      - 'set(attributes["db.session.wait_event"], Concat([attributes["postgresql.wait_event_type"], attributes["postgresql.wait_event"]], ": ")) where attributes["postgresql.wait_event_type"] != nil and attributes["postgresql.wait_event_type"] != ""'
+      - set(attributes["db.session.application"], attributes["postgresql.application_name"]) where attributes["db.event.kind"] == "db.server.query_sample" and attributes["postgresql.application_name"] != nil and attributes["postgresql.application_name"] != ""
+      - set(attributes["client.address"], attributes["network.peer.address"]) where attributes["network.peer.address"] != nil and attributes["network.peer.address"] != ""
+      - replace_pattern(attributes["client.address"], "/\\d+$", "") where attributes["client.address"] != nil
+      - set(attributes["db.session.blocked_by"], attributes["postgresql.blocking.pids"]) where attributes["postgresql.blocking.pids"] != nil and attributes["postgresql.blocking.pids"] != "{}" and attributes["postgresql.blocking.pids"] != ""
+      - replace_pattern(attributes["db.session.blocked_by"], "^\\{|\\}$", "") where attributes["db.session.blocked_by"] != nil
+      - set(attributes["db.query.duration_ms"], attributes["postgresql.total_exec_time"]) where attributes["db.event.kind"] == "db.server.query_sample" and attributes["postgresql.total_exec_time"] != nil
+      - delete_matching_keys(attributes, "^postgresql\\.(pid|state|wait_event|wait_event_type|application_name|blocking\\.pids|total_exec_time)$") where attributes["db.event.kind"] == "db.server.query_sample"
+  catalog:
+    error_mode: ignore
+    log_statements:
+    - context: scope
+      statements:
+      - set(attributes["otel.entity.event_as_log"], true)
+    - context: log
+      statements:
+      - merge_maps(attributes, resource.attributes, "insert")
+      - set(attributes["db.namespace"], attributes["datname"]) where attributes["datname"] != nil
+      - set(time, observed_time) where time_unix_nano == 0
+      - set(attributes["otel.entity.event.type"], "entity_state")
+      - set(attributes["otel.entity.type"], body)
+      - set(attributes["db.catalog.version"], "2")
+      - set(attributes["otel.entity.interval"], Milliseconds(Duration("1h")))
+      - 'set(attributes["otel.entity.id"], {"db.instance.id": resource.attributes["cx.db.instance.id"]}) where body == "db.instance"'
+      - 'set(attributes["otel.entity.id"], {"db.schema.instance.id": resource.attributes["cx.db.instance.id"], "db.namespace": attributes["db.namespace"]}) where body == "db.schema"'
+      - set(attributes["db.system.version"], attributes["db_version"]) where body == "db.instance"
+      - set(attributes["db.role"], attributes["db_role"]) where body == "db.instance"
+      - set(attributes["db.max_connections"], attributes["max_connections"]) where body == "db.instance"
+      - set(attributes["db.databases"], ParseJSON(attributes["databases"])) where body == "db.instance"
+      - set(attributes["db.extensions"], ParseJSON(attributes["extensions"])) where body == "db.instance"
+      - set(attributes["db.replication_slots"], ParseJSON(attributes["replication_slots"])) where body == "db.instance"
+      - set(attributes["db.settings"], ParseJSON(attributes["settings"])) where body == "db.instance"
+      - set(attributes["db.schema.database_count"], attributes["database_count"]) where body == "db.schema"
+      - set(attributes["db.schema.variant_count"], attributes["variant_count"]) where body == "db.schema"
+      - set(attributes["db.schema.hash"], attributes["schema_hash"]) where body == "db.schema"
+      - set(attributes["db.schema.variants"], ParseJSON(attributes["schema_variants"])) where body == "db.schema"
+      - delete_matching_keys(attributes, "^(datname|db_version|db_role|max_connections|databases|extensions|replication_slots|settings|database_count|variant_count|schema_hash|schema_variants)$")
