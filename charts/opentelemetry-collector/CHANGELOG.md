@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.143.2 / 2026-11-17
+
+- [Feat] Add `presets.fleetManagement.supervisor.collectorUpgrades`, enabled by default, to enable the `AcceptsPackages` and `ReportsPackageStatuses` OpAMP capabilities in the Supervisor.
+
 ### v0.143.1 / 2026-11-16
 
 - [Fix] Bump the supervised image to 0.20.0 with Supervisor 0.165.1 to apply package and configuration updates together.
