@@ -23,14 +23,11 @@ spec:
     metadata:
       annotations:
         checksum/config: bd8365c24d76baae7ac08348f20b39bb004df308fb507587fa61bfe3d75a782e
-        
       labels:
         app.kubernetes.io/name: opentelemetry-collector
         app.kubernetes.io/instance: example
         component: agent-collector
-        
     spec:
-      
       serviceAccountName: example-opentelemetry-collector
       securityContext:
         {}

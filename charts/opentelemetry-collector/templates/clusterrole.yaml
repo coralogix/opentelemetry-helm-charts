@@ -70,14 +70,16 @@ rules:
     verbs: ["get"]
   {{- end }}
   {{- if .Values.presets.controlPlaneMetrics.enabled }}
-  # k8s_observer/control_plane watches pods; controller-manager and scheduler authorize /metrics through
-  # delegated SubjectAccessReview on the nonResourceURL.
+  # k8s_observer/control_plane watches pods.
   - apiGroups: [""]
     resources: ["pods"]
     verbs: ["get", "watch", "list"]
+  {{- if or .Values.presets.controlPlaneMetrics.controllerManager.enabled .Values.presets.controlPlaneMetrics.scheduler.enabled }}
+  # controller-manager and scheduler authorize /metrics through delegated SubjectAccessReview on the nonResourceURL.
   - nonResourceURLs:
     - "/metrics"
     verbs: ["get"]
+  {{- end }}
   {{- end }}
   {{- if .Values.presets.kubernetesEvents.enabled }}
   - apiGroups: ["events.k8s.io"]

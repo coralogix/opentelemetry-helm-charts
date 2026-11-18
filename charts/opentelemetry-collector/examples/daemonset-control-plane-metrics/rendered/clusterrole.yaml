@@ -11,11 +11,11 @@ metadata:
     app.kubernetes.io/version: "0.165.0"
     app.kubernetes.io/managed-by: Helm
 rules:
-  # k8s_observer/control_plane watches pods; controller-manager and scheduler authorize /metrics through
-  # delegated SubjectAccessReview on the nonResourceURL.
+  # k8s_observer/control_plane watches pods.
   - apiGroups: [""]
     resources: ["pods"]
     verbs: ["get", "watch", "list"]
+  # controller-manager and scheduler authorize /metrics through delegated SubjectAccessReview on the nonResourceURL.
   - nonResourceURLs:
     - "/metrics"
     verbs: ["get"]
