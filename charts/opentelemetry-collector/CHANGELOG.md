@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.143.4 / 2026-11-18
+
+- [Fix] Collect active and rotated Kubernetes container logs on Linux and Windows, preserving file-path metadata for timestamped rotations. Exclude compressed and temporary files and respect `presets.logsCollection.includeCollectorLogs` for active and rotated collector logs.
+
 ### v0.143.3 / 2026-11-18
 
 - [Fix] Grant the target allocator ClusterRole `watch` on secrets when `targetAllocator.prometheusCR.enabled` is true, so it can watch secrets referenced by ServiceMonitor, PodMonitor and Probe auth settings without RBAC errors.
