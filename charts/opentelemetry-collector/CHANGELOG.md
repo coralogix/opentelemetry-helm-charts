@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.143.3 / 2026-11-18
+
+- [Fix] Grant the target allocator ClusterRole `watch` on secrets when `targetAllocator.prometheusCR.enabled` is true, so it can watch secrets referenced by ServiceMonitor, PodMonitor and Probe auth settings without RBAC errors.
+
 ### v0.143.2 / 2026-11-17
 
 - [Feat] Add `presets.fleetManagement.supervisor.collectorUpgrades`, enabled by default, to enable the `AcceptsPackages` and `ReportsPackageStatuses` OpAMP capabilities in the Supervisor.
