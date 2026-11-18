@@ -905,6 +905,8 @@ presets:
       # Version of the Supervised Collector image to use when the Supervisor preset is enabled.
       imageVersion: 0.20.0
       enabled: false
+      # Enables the AcceptsPackages and ReportsPackageStatuses OpAMP capabilities.
+      collectorUpgrades: true
       # Specifies whether to use a minimal Collector config.
       # When enabled, the Collector configuration will not include any other
       # enabled preset, processors, exporters, etc.
