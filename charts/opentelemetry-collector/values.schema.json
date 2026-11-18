@@ -1133,6 +1133,20 @@
                     "enabled": {
                       "description": "Specifies whether the collector should also scrape the NodeLocal DNSCache addon (k8s-app=node-local-dns, port 9253). Requires dns.enabled.",
                       "type": "boolean"
+                    },
+                    "selector": {
+                      "description": "Pod labels (kube-system) replacing the default k8s-app=node-local-dns.",
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "port": {
+                      "description": "NodeLocal DNSCache metrics port. Empty means 9253.",
+                      "type": [
+                        "string",
+                        "integer"
+                      ]
                     }
                   }
                 }

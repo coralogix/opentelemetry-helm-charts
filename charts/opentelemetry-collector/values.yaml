@@ -433,6 +433,9 @@ presets:
   #   * hostNetwork: true  - kubeadm binds controller-manager, scheduler, kube-proxy and etcd metrics to
   #                          127.0.0.1, so they are scraped as 127.0.0.1:<port> from the host network namespace.
   #                          (Not needed when every enabled loopback component sets `endpoint`.)
+  #   * dnsPolicy: ClusterFirstWithHostNet - required together with hostNetwork. A hostNetwork pod otherwise falls
+  #                          back to the node's resolv.conf and cannot resolve in-cluster *.svc names, which breaks
+  #                          exporters that point at cluster service endpoints.
   #   * tolerations for the control-plane taint, so an agent also runs on control-plane nodes. The preset does
   #     NOT add them (no preset changes pod scheduling); see examples/daemonset-control-plane-metrics.
   #
@@ -470,7 +473,10 @@ presets:
   # Curated metrics (scrapeAll: false) are the dashboard/alert inputs of the kubernetes-mixin and kube-prometheus-stack
   # (https://github.com/kubernetes-monitoring/kubernetes-mixin, https://github.com/prometheus-community/helm-charts):
   #   controllerManager: workqueue_*, rest_client_*, leader_election_master_status, process/go basics (mixin: kube-controller-manager dashboard)
-  #   scheduler        : scheduler_* attempts/pending/latency/preemption, workqueue_*, rest_client_* (mixin: scheduler dashboard + alerts)
+  #   scheduler        : scheduler_pending_pods, scheduler_schedule_attempts_total, scheduler_scheduling_attempt_duration_seconds,
+  #                      scheduler_pod_scheduling_sli_duration_seconds, scheduler_e2e_scheduling_duration_seconds,
+  #                      scheduler_preemption_attempts_total, scheduler_preemption_victims, workqueue_*, rest_client_*
+  #                      (mixin: scheduler dashboard + alerts; the per-plugin/extension-point histograms are NOT kept)
   #   proxy            : kubeproxy_sync_proxy_rules_*, kubeproxy_network_programming_duration_seconds, rest_client_* (mixin: proxy dashboard)
   #   etcd             : etcd_server_*, etcd_disk_*, etcd_network_*, etcd_mvcc_db_*, grpc_server_* (mixin: etcd alerts + dashboard)
   #   dns              : coredns_dns_*, coredns_cache_*, coredns_forward_*, coredns_panics_total (kube-prometheus-stack coredns dashboard)
@@ -483,6 +489,9 @@ presets:
     #   selector: {}  Pod labels (kube-system) replacing the default discovery labels, e.g. {k8s-app: my-scheduler}.
     #   endpoint: ""  Full host:port target replacing the default. Receiver-creator variables can be used, e.g.
     #                 "`endpoint`:10257" scrapes the pod IP instead of 127.0.0.1 on clusters that bind 0.0.0.0.
+    #                 Single-stack IPv6 clusters: override `endpoint` with `[::1]:<port>` for loopback components.
+    # Note: service.instance.id is `127.0.0.1:<port>` on every node for the loopback components. To tell nodes apart
+    # in a backend, use k8s.node.name / k8s.pod.* instead.
     # Default labels: component=kube-controller-manager + tier=control-plane (kubeadm) or k8s-app=kube-controller-manager (kops).
     controllerManager:
       enabled: true
@@ -502,6 +511,9 @@ presets:
       selector: {}
       endpoint: ""
     # CoreDNS, default label k8s-app=kube-dns (kept by CoreDNS for compatibility), scraped on the pod IP.
+    # Overlap: kubeadm's kube-dns Service carries prometheus.io/scrape: "true" and port: "9153". If
+    # prometheusAnnotationDiscovery with service rules is enabled, disable dns here to avoid duplicate series
+    # under a different service.name.
     dns:
       enabled: true
       scrapeAll: false
@@ -509,9 +521,15 @@ presets:
       port: ""
       selector: {}
       endpoint: ""
-      # NodeLocal DNSCache addon (label k8s-app=node-local-dns, metrics :9253 on the pod IP). Needs dns.enabled.
+      # NodeLocal DNSCache addon (label k8s-app=node-local-dns, metrics :9253 on the pod IP). Needs dns.enabled
+      # (render fails otherwise). The dns `selector`, `endpoint` and `port` above do NOT apply to nodeLocal, which
+      # has its own defaults and overrides below.
       nodeLocal:
         enabled: false
+        # Pod labels (kube-system) replacing the default k8s-app=node-local-dns.
+        selector: {}
+        # Metrics port, "" means 9253.
+        port: ""
     # Default labels: component=etcd + tier=control-plane (kubeadm).
     etcd:
       enabled: false
@@ -525,9 +543,16 @@ presets:
       # mTLS on :2379 using a client certificate from an EXISTING Secret in the release namespace.
       # The chart never creates Secrets (private keys in values would leak through the Helm release history).
       # The Secret is mounted at /etc/otelcol/control-plane-etcd; the keys below are the key NAMES inside it.
-      # On kubeadm the files live in /etc/kubernetes/pki/etcd (healthcheck-client.crt/.key, ca.crt); e.g.:
-      #   kubectl -n <ns> create secret generic etcd-client --from-file=tls.crt=healthcheck-client.crt \
-      #     --from-file=tls.key=healthcheck-client.key --from-file=ca.crt=ca.crt
+      #
+      # WARNING: on kubeadm the certificate commonly suggested for this, /etc/kubernetes/pki/etcd/healthcheck-client.crt/.key,
+      # is cluster-admin equivalent: etcd has no RBAC there, so any valid client certificate has full read/write
+      # access to etcd, i.e. every Secret in the cluster. Anyone who can read the Secret created from it (or the
+      # collector pod) owns the cluster. Prefer the default plain-http listener on 127.0.0.1:2381 (leave `secret`
+      # empty): it needs no Secret and is loopback-only on kubeadm. If you need mTLS, use a least-privilege
+      # client certificate, or a dedicated etcd user/role limited to metrics if etcd RBAC is enabled. Never reuse
+      # the apiserver-etcd-client or healthcheck-client certificates for a monitoring agent.
+      # Key names below are the keys inside your Secret (e.g. tls.crt, tls.key, ca.crt); the CA is
+      # /etc/kubernetes/pki/etcd/ca.crt on kubeadm.
       secret:
         name: ""
         clientCert: ""

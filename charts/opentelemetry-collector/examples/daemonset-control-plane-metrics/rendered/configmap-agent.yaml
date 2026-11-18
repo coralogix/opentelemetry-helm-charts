@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.144.0
+    helm.sh/chart: opentelemetry-collector-0.143.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.165.0"
@@ -31,7 +31,7 @@ data:
           - resource.attributes["service.name"] == "kubernetes-controller-manager" and
             not IsMatch(metric.name, "^(up|process_cpu_seconds_total|process_resident_memory_bytes|go_goroutines|rest_client_requests_total|rest_client_request_duration_seconds|workqueue_adds_total|workqueue_depth|workqueue_queue_duration_seconds|workqueue_work_duration_seconds|workqueue_retries_total|leader_election_master_status)$")
           - resource.attributes["service.name"] == "kubernetes-scheduler" and not IsMatch(metric.name,
-            "^(up|process_cpu_seconds_total|process_resident_memory_bytes|go_goroutines|rest_client_requests_total|rest_client_request_duration_seconds|scheduler_.*|workqueue_adds_total|workqueue_depth|workqueue_queue_duration_seconds|leader_election_master_status)$")
+            "^(up|process_cpu_seconds_total|process_resident_memory_bytes|go_goroutines|rest_client_requests_total|rest_client_request_duration_seconds|scheduler_pending_pods|scheduler_schedule_attempts_total|scheduler_scheduling_attempt_duration_seconds|scheduler_pod_scheduling_sli_duration_seconds|scheduler_e2e_scheduling_duration_seconds|scheduler_preemption_attempts_total|scheduler_preemption_victims|workqueue_adds_total|workqueue_depth|workqueue_queue_duration_seconds|leader_election_master_status)$")
           - resource.attributes["service.name"] == "kubernetes-proxy" and not IsMatch(metric.name,
             "^(up|process_cpu_seconds_total|process_resident_memory_bytes|go_goroutines|rest_client_requests_total|rest_client_request_duration_seconds|kubeproxy_sync_proxy_rules_.*|kubeproxy_network_programming_duration_seconds)$")
           - resource.attributes["service.name"] == "kubernetes-coredns" and not IsMatch(metric.name,
