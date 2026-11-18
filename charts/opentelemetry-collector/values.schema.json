@@ -1009,6 +1009,195 @@
             }
           }
         },
+        "controlPlaneMetrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "description": "Specifies whether the collector should scrape the Kubernetes control plane (controller-manager, scheduler, kube-proxy, DNS and optionally etcd). Requires mode daemonset and hostNetwork.",
+              "type": "boolean"
+            },
+            "scrapeInterval": {
+              "description": "Scrape interval for every control plane component.",
+              "type": "string"
+            },
+            "controllerManager": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Specifies whether the collector should scrape kube-controller-manager.",
+                  "type": "boolean"
+                },
+                "scrapeAll": {
+                  "description": "When false (default), keeps a curated set of kube-controller-manager metrics. When true, keeps every metric exposed.",
+                  "type": "boolean"
+                },
+                "selector": {
+                  "description": "Pod labels (kube-system) replacing the default discovery labels.",
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "endpoint": {
+                  "description": "Full host:port scrape target replacing the default. Receiver-creator variables such as `endpoint` can be used.",
+                  "type": "string"
+                }
+              }
+            },
+            "scheduler": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Specifies whether the collector should scrape kube-scheduler.",
+                  "type": "boolean"
+                },
+                "scrapeAll": {
+                  "description": "When false (default), keeps a curated set of kube-scheduler metrics. When true, keeps every metric exposed.",
+                  "type": "boolean"
+                },
+                "selector": {
+                  "description": "Pod labels (kube-system) replacing the default discovery labels.",
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "endpoint": {
+                  "description": "Full host:port scrape target replacing the default. Receiver-creator variables such as `endpoint` can be used.",
+                  "type": "string"
+                }
+              }
+            },
+            "proxy": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Specifies whether the collector should scrape kube-proxy.",
+                  "type": "boolean"
+                },
+                "scrapeAll": {
+                  "description": "When false (default), keeps a curated set of kube-proxy metrics. When true, keeps every metric exposed.",
+                  "type": "boolean"
+                },
+                "selector": {
+                  "description": "Pod labels (kube-system) replacing the default discovery labels.",
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "endpoint": {
+                  "description": "Full host:port scrape target replacing the default. Receiver-creator variables such as `endpoint` can be used.",
+                  "type": "string"
+                }
+              }
+            },
+            "dns": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Specifies whether the collector should scrape DNS (CoreDNS).",
+                  "type": "boolean"
+                },
+                "scrapeAll": {
+                  "description": "When false (default), keeps a curated set of DNS (CoreDNS) metrics. When true, keeps every metric exposed.",
+                  "type": "boolean"
+                },
+                "port": {
+                  "description": "CoreDNS metrics port. Empty means 9153.",
+                  "type": [
+                    "string",
+                    "integer"
+                  ]
+                },
+                "selector": {
+                  "description": "Pod labels (kube-system) replacing the default discovery labels.",
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "endpoint": {
+                  "description": "Full host:port scrape target replacing the default. Receiver-creator variables such as `endpoint` can be used.",
+                  "type": "string"
+                },
+                "nodeLocal": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": {
+                      "description": "Specifies whether the collector should also scrape the NodeLocal DNSCache addon (k8s-app=node-local-dns, port 9253). Requires dns.enabled.",
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            },
+            "etcd": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Specifies whether the collector should scrape etcd.",
+                  "type": "boolean"
+                },
+                "scrapeAll": {
+                  "description": "When false (default), keeps a curated set of etcd metrics. When true, keeps every metric exposed.",
+                  "type": "boolean"
+                },
+                "port": {
+                  "description": "etcd metrics port. Empty means 2381 (http), or 2379 (https) when secret.name is set.",
+                  "type": [
+                    "string",
+                    "integer"
+                  ]
+                },
+                "skipVerify": {
+                  "description": "Skip verification of the etcd serving certificate (only used with secret.name). When false, secret.caFile is required.",
+                  "type": "boolean"
+                },
+                "selector": {
+                  "description": "Pod labels (kube-system) replacing the default discovery labels.",
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "endpoint": {
+                  "description": "Full host:port scrape target replacing the default. Receiver-creator variables such as `endpoint` can be used.",
+                  "type": "string"
+                },
+                "secret": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "description": "Name of an EXISTING Secret holding the etcd client certificate. The chart never creates Secrets. Empty means plain http.",
+                      "type": "string"
+                    },
+                    "clientCert": {
+                      "description": "Key name of the client certificate inside the Secret.",
+                      "type": "string"
+                    },
+                    "clientKey": {
+                      "description": "Key name of the client private key inside the Secret.",
+                      "type": "string"
+                    },
+                    "caFile": {
+                      "description": "Key name of the CA certificate inside the Secret.",
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "metadata": {
           "type": "object",
           "additionalProperties": false,

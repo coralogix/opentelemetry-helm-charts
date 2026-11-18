@@ -1,4 +1,4 @@
-{{- if or (.Values.clusterRole.create) (.Values.presets.kubernetesAttributes.enabled) (.Values.presets.clusterMetrics.enabled) (.Values.presets.kubeletMetrics.enabled) (.Values.presets.kubernetesEvents.enabled) (.Values.presets.mysql.metrics.enabled) (.Values.presets.kubernetesResources.enabled) (and (.Values.presets.profilesCollection.enabled) (.Values.presets.profilesK8sAttributes.enabled)) (.Values.presets.loadBalancing.k8s.enabled) (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesApiServerMetrics.enabled) (.Values.presets.kubeletPrometheusMetrics.enabled) (.Values.presets.prometheusAnnotationDiscovery.enabled) (.Values.presets.pprofReceiver.pull.enabled) (eq .Values.distribution "eks/fargate") -}}
+{{- if or (.Values.clusterRole.create) (.Values.presets.kubernetesAttributes.enabled) (.Values.presets.clusterMetrics.enabled) (.Values.presets.kubeletMetrics.enabled) (.Values.presets.kubernetesEvents.enabled) (.Values.presets.mysql.metrics.enabled) (.Values.presets.kubernetesResources.enabled) (and (.Values.presets.profilesCollection.enabled) (.Values.presets.profilesK8sAttributes.enabled)) (.Values.presets.loadBalancing.k8s.enabled) (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesApiServerMetrics.enabled) (.Values.presets.kubeletPrometheusMetrics.enabled) (.Values.presets.controlPlaneMetrics.enabled) (.Values.presets.prometheusAnnotationDiscovery.enabled) (.Values.presets.pprofReceiver.pull.enabled) (eq .Values.distribution "eks/fargate") -}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -60,6 +60,16 @@ rules:
     {{- else }}
     resources: ["pods", "endpoints", "nodes/stats", "nodes/metrics", "nodes", "services"]
     {{- end }}
+    verbs: ["get", "watch", "list"]
+  - nonResourceURLs:
+    - "/metrics"
+    verbs: ["get"]
+  {{- end }}
+  {{- if .Values.presets.controlPlaneMetrics.enabled }}
+  # k8s_observer/control_plane watches pods; controller-manager and scheduler authorize /metrics through
+  # delegated SubjectAccessReview on the nonResourceURL.
+  - apiGroups: [""]
+    resources: ["pods"]
     verbs: ["get", "watch", "list"]
   - nonResourceURLs:
     - "/metrics"

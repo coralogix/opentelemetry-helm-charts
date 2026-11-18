@@ -336,6 +336,32 @@ presets:
     semconv: true
 ```
 
+### Configuration for Retrieving Control Plane Metrics
+
+The collector can scrape the self-managed Kubernetes control plane: kube-controller-manager, kube-scheduler, kube-proxy, DNS (CoreDNS, and optionally the NodeLocal DNSCache addon) and etcd. It complements `kubernetesApiServerMetrics`, which only scrapes the API server.
+
+This feature is disabled by default and has hard requirements, checked when the chart renders:
+
+- `mode: daemonset`. Targets are node-local: each agent scrapes only the control plane pods running on its own node.
+- `hostNetwork: true`. kubeadm binds the controller-manager, scheduler, kube-proxy and etcd metrics endpoints to `127.0.0.1`, so the agent scrapes `127.0.0.1:<port>` from the host network namespace. Components that set `endpoint` (for example the pod IP on clusters that bind `0.0.0.0`) do not need it.
+- A toleration for the control-plane taint, so an agent runs on the control-plane nodes. The preset does not add it, see `examples/daemonset-control-plane-metrics`.
+
+Enabling the preset activates controller-manager, scheduler, kube-proxy and DNS. etcd is opt-in (`etcd.enabled: true`). Each component accepts `enabled`, `scrapeAll` (default `false`: a curated set from the kubernetes-mixin), `selector` (pod labels in `kube-system` for non-kubeadm distributions) and `endpoint` (a full `host:port` target). By default etcd is scraped over plain http on `127.0.0.1:2381`; set `etcd.secret` to the name of an existing Secret (plus the key names of the client certificate, key and CA inside it) to scrape `:2379` over mTLS.
+
+controller-manager and scheduler are scraped over https with the ServiceAccount token, which the chart's ClusterRole authorizes through `nonResourceURLs: ["/metrics"]`. If a component shows no data, the failure mode tells where to look: connection refused means the endpoint is not on loopback or `hostNetwork` is off, a TLS failure means the scheme or certificate is wrong, 401 means the token was not accepted, 403 means the RBAC grant is missing. On managed control planes (EKS, GKE, AKS) controller-manager, scheduler and etcd are hidden: no pod matches and they stay silent, while kube-proxy and DNS work. k3s and RKE2 embed the control plane and are not supported. The support matrix and the source of the curated metrics are documented in `values.yaml`.
+
+```yaml
+mode: daemonset
+hostNetwork: true
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+presets:
+  controlPlaneMetrics:
+    enabled: true
+```
+
 ### Configuration for Kubernetes Cluster Metrics
 
 The collector can be configured to collects cluster-level metrics from the Kubernetes API server. A single instance of this receiver can be used to monitor a cluster.

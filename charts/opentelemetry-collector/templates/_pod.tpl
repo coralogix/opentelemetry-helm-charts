@@ -251,6 +251,11 @@ containers:
         subPath: {{ .subPath }}
         {{- end }}
       {{- end }}
+      {{- if and .Values.presets.controlPlaneMetrics.enabled .Values.presets.controlPlaneMetrics.etcd.enabled .Values.presets.controlPlaneMetrics.etcd.secret.name }}
+      - name: control-plane-etcd
+        mountPath: /etc/otelcol/control-plane-etcd
+        readOnly: true
+      {{- end }}
       {{- if .Values.presets.logsCollection.enabled }}
       {{- if .Values.isWindows }}
       - name: varlogpods
@@ -415,6 +420,11 @@ volumes:
   - name: {{ .name }}
     secret:
       secretName: {{ .secretName }}
+  {{- end }}
+  {{- if and .Values.presets.controlPlaneMetrics.enabled .Values.presets.controlPlaneMetrics.etcd.enabled .Values.presets.controlPlaneMetrics.etcd.secret.name }}
+  - name: control-plane-etcd
+    secret:
+      secretName: {{ .Values.presets.controlPlaneMetrics.etcd.secret.name }}
   {{- end }}
   {{- if .Values.presets.logsCollection.enabled }}
   {{- if .Values.isWindows }}

@@ -1,0 +1,38 @@
+mode: daemonset
+
+# controllerManager, scheduler and etcd metrics are bound to 127.0.0.1 on kubeadm, so the agent must run in the
+# host network namespace to reach them.
+hostNetwork: true
+
+# The control-plane nodes are tainted: tolerate it so an agent also runs there. The preset does not add this itself.
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+
+presets:
+  controlPlaneMetrics:
+    enabled: true
+    scrapeInterval: 30s
+    # etcd is opt-in. Plain http on 127.0.0.1:2381 (kubeadm default); add `secret` for mTLS on :2379.
+    etcd:
+      enabled: true
+    # NodeLocal DNSCache addon, if installed
+    dns:
+      nodeLocal:
+        enabled: true
+
+config:
+  exporters:
+    debug:
+      verbosity: detailed
+  service:
+    pipelines:
+      metrics:
+        exporters:
+          - debug
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 200M

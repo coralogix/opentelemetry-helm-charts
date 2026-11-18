@@ -2,6 +2,11 @@
 
 ## OpenTelemetry Collector
 
+### v0.144.0 / 2026-11-18
+
+- [Feat] Add `presets.controlPlaneMetrics` (CX-41498), a sibling of `kubernetesApiServerMetrics`, that scrapes the self-managed Kubernetes control plane from a `hostNetwork` daemonset: kube-controller-manager, kube-scheduler, kube-proxy, DNS (CoreDNS, plus the NodeLocal DNSCache addon with `dns.nodeLocal.enabled`) and, opt-in, etcd (plain http on `127.0.0.1:2381`, or mTLS on `:2379` with a client certificate from an existing Secret via `etcd.secret`; the chart never creates Secrets). Discovery uses a dedicated `k8s_observer/control_plane` and `receiver_creator/control_plane` scoped to the agent's node. Every component has `enabled`, `scrapeAll` (curated kubernetes-mixin metrics by default), `selector` and `endpoint` overrides. The preset fails at render time unless `mode: daemonset`, `hostNetwork: true` (for loopback targets) and at least one component is enabled. Adds a `daemonset-control-plane-metrics` example.
+- [Fix] The `ClusterRoleBinding` is now also rendered when only `presets.prometheusAnnotationDiscovery` or `presets.pprofReceiver.pull` is enabled, matching the `ClusterRole`.
+
 ### v0.143.1 / 2026-11-16
 
 - [Fix] Bump the supervised image to 0.20.0 with Supervisor 0.165.1 to apply package and configuration updates together.
