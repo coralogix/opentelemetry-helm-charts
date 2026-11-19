@@ -2,13 +2,24 @@
 
 ## OpenTelemetry Collector
 
-### v0.143.2 / 2026-11-18
+### v0.143.5 / 2026-11-19
 
 - [Feat] Add `presets.controlPlaneMetrics` (CX-41498), a sibling of `kubernetesApiServerMetrics`, that scrapes the self-managed Kubernetes control plane from a `hostNetwork` daemonset: kube-controller-manager, kube-scheduler, kube-proxy, DNS (CoreDNS, plus the NodeLocal DNSCache addon with `dns.nodeLocal.enabled`) and, opt-in, etcd (plain http on `127.0.0.1:2381`, or mTLS on `:2379` with a client certificate from an existing Secret via `etcd.secret`; the chart never creates Secrets). Discovery uses a dedicated `k8s_observer/control_plane` and `receiver_creator/control_plane` scoped to the agent's node. Every component has `enabled`, `scrapeAll` (curated kubernetes-mixin metrics by default), `selector` and `endpoint` overrides. The preset fails at render time (also when `configMap.create` is false) unless `mode: daemonset`, at least one component is enabled and, for loopback targets, `hostNetwork: true` with `dnsPolicy: ClusterFirstWithHostNet`; `dns.nodeLocal.enabled` without `dns.enabled` is rejected too. The scheduler keeps only the kubernetes-mixin metric families, and `dns.nodeLocal` accepts `selector` and `port`. The etcd mTLS docs warn that the kubeadm `healthcheck-client` certificate is cluster-admin equivalent. Adds a `daemonset-control-plane-metrics` example and a `ci/preset-controlplanemetrics-values.yaml` test values file.
 - [Fix] The `ClusterRoleBinding` is now also rendered when only `presets.prometheusAnnotationDiscovery` or `presets.pprofReceiver.pull` is enabled, matching the `ClusterRole`.
 - [Fix] The Operator `OpenTelemetryCollector` (`collectorCRD.generate`) now renders `dnsPolicy` from `.Values.dnsPolicy`, as the daemonset, deployment and statefulset already did, so `hostNetwork: true` with `ClusterFirstWithHostNet` works on that path too.
 - [Fix] The `presets.controlPlaneMetrics` ClusterRole grants the `/metrics` nonResourceURL only when `controllerManager` or `scheduler` is enabled, the only components that authorize through delegated SubjectAccessReview.
 - [Fix] The daemonset template no longer renders whitespace-only lines for empty pod annotations, pod labels and the pod spec header (rendered example manifests only).
+### v0.143.4 / 2026-11-18
+
+- [Fix] Collect active and rotated Kubernetes container logs on Linux and Windows, preserving file-path metadata for timestamped rotations. Exclude compressed and temporary files and respect `presets.logsCollection.includeCollectorLogs` for active and rotated collector logs.
+
+### v0.143.3 / 2026-11-18
+
+- [Fix] Grant the target allocator ClusterRole `watch` on secrets when `targetAllocator.prometheusCR.enabled` is true, so it can watch secrets referenced by ServiceMonitor, PodMonitor and Probe auth settings without RBAC errors.
+
+### v0.143.2 / 2026-11-17
+
+- [Feat] Add `presets.fleetManagement.supervisor.collectorUpgrades`, enabled by default, to enable the `AcceptsPackages` and `ReportsPackageStatuses` OpAMP capabilities in the Supervisor.
 
 ### v0.143.1 / 2026-11-16
 

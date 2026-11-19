@@ -25,6 +25,7 @@ capabilities:
   reports_health: true
   accepts_remote_config: true
   accepts_restart_command: true
+  accepts_packages: {{ .Values.presets.fleetManagement.supervisor.collectorUpgrades }}
 
 agent:
   executable: {{ if and .Values.presets.ebpfProfiler.enabled (not .Values.isWindows) }}/otelcol-ebpf-profiler{{ else }}/otelcol-contrib{{ end }}
