@@ -16,6 +16,29 @@ created but the Memory Ballast Extension will still be removed.
 Depending on the progress made in [Issue 891](https://github.com/open-telemetry/opentelemetry-helm-charts/issues/891),
 the use of `GOMEMLIMIT` may completely replace the Memory Ballast Extension in the future.
 
+## 0.143.4 to 0.143.5
+
+A new value, `rewriteDeprecatedComponentNames` (default `true`), automatically rewrites deprecated
+OpenTelemetry Collector component names in the generated config — processors, receivers, exporters
+and `resourcedetection` detectors:
+
+- `k8sattributes` processor -> `k8s_attributes` (including named variants like `k8sattributes/profiles`)
+- `filelog` receiver -> `file_log`, `hostmetrics` receiver -> `host_metrics`
+- `otlp` exporter -> `otlp_grpc`, `otlphttp` exporter -> `otlp_http`
+- `k8snode` resourcedetection detector -> `k8s_api` (including the `k8snode:` config block inside
+  `resourcedetection` processors, e.g. the on-prem default `resourcedetection/env` processor)
+
+Component names in pipeline references are rewritten across all signal pipelines at the same time.
+Deprecation warnings in the helm notes call out every rewritten name so you can update your
+`values.yaml`; the auto-rewrite will be removed in a future chart release.
+
+If you are using a Collector image older than v0.146.0 (which introduced the new component names),
+set `rewriteDeprecatedComponentNames: false` to preserve the deprecated names:
+
+```yaml
+rewriteDeprecatedComponentNames: false
+```
+
 ## 0.124.7 and above
 
 The `kubernetesExtraMetrics` preset has been split into two separate presets:

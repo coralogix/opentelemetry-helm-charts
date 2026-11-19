@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.143.4
+    helm.sh/chart: opentelemetry-collector-0.143.5
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.165.0"
@@ -39,7 +39,7 @@ data:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
     processors:
-      k8sattributes:
+      k8s_attributes:
         extract:
           metadata:
           - k8s.namespace.name
@@ -200,7 +200,7 @@ data:
           - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
             == "opentelemetry-collector"
     receivers:
-      hostmetrics:
+      host_metrics:
         collection_interval: 10s
         root_path: /hostfs
         scrapers:
@@ -287,7 +287,7 @@ data:
           - resourcedetection/region
           - resourcedetection/env
           - resource/metadata
-          - k8sattributes
+          - k8s_attributes
           receivers:
           - otlp
         logs/resource_catalog:
@@ -296,12 +296,12 @@ data:
           processors:
           - memory_limiter
           - resource/metadata
-          - k8sattributes
+          - k8s_attributes
           - resourcedetection/entity
           - resourcedetection/region
           - transform/entity-event
           receivers:
-          - hostmetrics
+          - host_metrics
         metrics:
           exporters:
           - debug
@@ -310,10 +310,10 @@ data:
           - resourcedetection/region
           - resourcedetection/env
           - resource/metadata
-          - k8sattributes
+          - k8s_attributes
           - transform/prometheus
           receivers:
-          - hostmetrics
+          - host_metrics
           - prometheus
           - otlp
         traces:
@@ -324,7 +324,7 @@ data:
           - resourcedetection/region
           - resourcedetection/env
           - resource/metadata
-          - k8sattributes
+          - k8s_attributes
           receivers:
           - otlp
       telemetry:

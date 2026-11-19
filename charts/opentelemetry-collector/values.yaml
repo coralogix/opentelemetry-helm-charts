@@ -1224,6 +1224,13 @@ configMap:
   # Specifies whether a configMap should be created (true by default)
   create: true
 
+# Rewrite deprecated component names (e.g. k8sattributes -> k8s_attributes
+# processor, filelog -> file_log and hostmetrics -> host_metrics receivers,
+# otlp -> otlp_grpc and otlphttp -> otlp_http exporters, k8snode -> k8s_api
+# resourcedetection detector) in the generated config. Set to false if using
+# older Collector images that do not recognize the new names.
+rewriteDeprecatedComponentNames: true
+
 # Base collector configuration.
 # Supports templating. To escape existing instances of {{ }}, use {{` <original content> `}}.
 # For example, {{ REDACTED_EMAIL }} becomes {{` {{ REDACTED_EMAIL }} `}}.
