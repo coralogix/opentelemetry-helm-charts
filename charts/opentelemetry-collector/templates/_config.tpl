@@ -335,6 +335,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- end }}
 {{- $config = (include "opentelemetry-collector.removePipelinesWithoutExporters" (dict "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.removePipelinesWithoutReceivers" (dict "config" $config) | fromYaml) }}
+{{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") (eq (len (default (dict) $config.service.pipelines)) 0) }}
+{{- $config = (include "opentelemetry-collector.applyIdleAgentPipeline" (dict "config" $config) | fromYaml) }}
+{{- end }}
 {{- $supervisorEnabled := and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
 {{- if and ($supervisorEnabled) (.Values.presets.fleetManagement.supervisor.minimalCollectorConfig) }}
 {{- $config = include "opentelemetry-collector.supervisorCollectorConfig" . | fromYaml }}
@@ -551,6 +554,14 @@ Build config file for deployment OpenTelemetry Collector
 {{- $config | toYaml }}
 {{- end }}
 
+{{- define "opentelemetry-collector.applyIdleAgentPipeline" -}}
+{{- $config := deepCopy .config -}}
+{{- $_ := set $config "receivers" (mustMergeOverwrite (dict "nop" (dict)) ($config.receivers | default dict)) }}
+{{- $_ := set $config "exporters" (mustMergeOverwrite (dict "nop" (dict)) ($config.exporters | default dict)) }}
+{{- $_ := set $config.service "pipelines" (dict "metrics" (dict "receivers" (list "nop") "processors" (list) "exporters" (list "nop"))) }}
+{{- $config | toYaml }}
+{{- end }}
+
 {{- define "opentelemetry-collector.removePipelinesWithoutReceivers" -}}
 {{- $config := deepCopy .config -}}
 {{- if and $config.service $config.service.pipelines }}
@@ -710,17 +721,19 @@ Build config file for deployment OpenTelemetry Collector
   {{- end }}
   {{- range $signal, $exporterNames := $exportsBySignal }}
     {{- range $exporter := $exporterNames }}
+      {{- $forwardOnly := or (eq $exporter "forward") (hasPrefix "forward/" $exporter) }}
       {{- range $name, $pipeline := $allPipelines }}
         {{- $consumerSignal := index (splitList "/" $name) 0 }}
-        {{- if and (eq $signal $consumerSignal) (not (hasKey $keep $name)) (has $exporter (default (list) $pipeline.receivers)) }}
+        {{- if and (or (not $forwardOnly) (eq $signal $consumerSignal)) (not (hasKey $keep $name)) (has $exporter (default (list) $pipeline.receivers)) }}
           {{- $_ := set $keep $name $pipeline }}
         {{- end }}
       {{- end }}
     {{- end }}
   {{- end }}
 {{- end }}
-{{- /* Drop connector receivers whose same-signal producer pipelines were not retained. */ -}}
+{{- /* Drop connector receivers whose producer pipelines were not retained. */ -}}
 {{- range $i := until 16 }}
+  {{- $producedAny := list }}
   {{- $producedBySignal := dict }}
   {{- range $name, $pipeline := $keep }}
     {{- $signal := index (splitList "/" $name) 0 }}
@@ -728,25 +741,25 @@ Build config file for deployment OpenTelemetry Collector
     {{- range $exporter := (default (list) $pipeline.exporters) }}
       {{- if hasKey $connectors $exporter }}
         {{- $produced = append $produced $exporter }}
+        {{- $producedAny = append $producedAny $exporter }}
       {{- end }}
     {{- end }}
     {{- $_ := set $producedBySignal $signal ($produced | uniq) }}
   {{- end }}
+  {{- $producedAny = $producedAny | uniq }}
   {{- range $name, $pipeline := $keep }}
     {{- $signal := index (splitList "/" $name) 0 }}
-    {{- $producedConnectors := default (list) (index $producedBySignal $signal) }}
+    {{- $producedSameSignal := default (list) (index $producedBySignal $signal) }}
     {{- $newReceivers := list }}
-    {{- if hasKey $seeded $name }}
-      {{- /* Seeded consumers keep prometheus plus connector edges from retained producers. */ -}}
-      {{- range $receiver := (default (list) $pipeline.receivers) }}
-        {{- if or (eq $receiver "prometheus") (and (hasKey $connectors $receiver) (has $receiver $producedConnectors)) }}
-          {{- $newReceivers = append $newReceivers $receiver }}
-        {{- end }}
-      {{- end }}
-    {{- else }}
-      {{- /* Downstream pool pipelines only keep connector edges from retained producers. */ -}}
-      {{- range $receiver := (default (list) $pipeline.receivers) }}
-        {{- if and (hasKey $connectors $receiver) (has $receiver $producedConnectors) }}
+    {{- range $receiver := (default (list) $pipeline.receivers) }}
+      {{- if and (hasKey $seeded $name) (eq $receiver "prometheus") }}
+        {{- $newReceivers = append $newReceivers $receiver }}
+      {{- else if hasKey $connectors $receiver }}
+        {{- if or (eq $receiver "forward") (hasPrefix "forward/" $receiver) }}
+          {{- if has $receiver $producedSameSignal }}
+            {{- $newReceivers = append $newReceivers $receiver }}
+          {{- end }}
+        {{- else if has $receiver $producedAny }}
           {{- $newReceivers = append $newReceivers $receiver }}
         {{- end }}
       {{- end }}
