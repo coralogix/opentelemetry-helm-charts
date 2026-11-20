@@ -53,7 +53,7 @@ spec:
       {{- /* Keep read-only hostPaths; replace writable queue hostPaths with emptyDir so pool pods are isolated. */ -}}
       {{- $poolHostPathMounts := list }}
       {{- $poolExtraVolumeMounts := deepCopy (.Values.extraVolumeMounts | default list) }}
-      {{- $readOnlyMountNames := dict }}
+      {{- $readOnlyMountNames := dict "etcmachineid" true "varlibdbusmachineid" true }}
       {{- range .Values.extraVolumeMounts }}
         {{- if .readOnly }}
           {{- $_ := set $readOnlyMountNames .name true }}
@@ -79,7 +79,16 @@ spec:
           {{- $poolExtraVolumeMounts = append $poolExtraVolumeMounts $mount }}
         {{- end }}
       {{- end }}
-      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset" "extraHostPathMounts" $poolHostPathMounts "extraVolumes" $poolExtraVolumes "extraVolumeMounts" $poolExtraVolumeMounts) }}
+      {{- $poolPresets := deepCopy .Values.presets }}
+      {{- if and .Values.presets.logsCollection.enabled .Values.presets.logsCollection.storeCheckpoints }}
+      {{- /* Replace the preset hostPath checkpoint volume with isolated emptyDir storage. */ -}}
+      {{- $logsCollection := deepCopy .Values.presets.logsCollection }}
+      {{- $_ := set $logsCollection "storeCheckpoints" false }}
+      {{- $_ := set $poolPresets "logsCollection" $logsCollection }}
+      {{- $poolExtraVolumes = append $poolExtraVolumes (dict "name" "varlibotelcol" "emptyDir" (dict)) }}
+      {{- $poolExtraVolumeMounts = append $poolExtraVolumeMounts (dict "name" "varlibotelcol" "mountPath" "/var/lib/otelcol") }}
+      {{- end }}
+      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset" "presets" $poolPresets "extraHostPathMounts" $poolHostPathMounts "extraVolumes" $poolExtraVolumes "extraVolumeMounts" $poolExtraVolumeMounts) }}
       {{- end }}
       {{- $podCtx := mustMergeOverwrite (deepCopy .) (dict "Values" $podValues "configmapSuffix" "-statefulset" "isAgent" false) }}
       {{- include "opentelemetry-collector.pod" $podCtx | nindent 6 }}
