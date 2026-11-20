@@ -720,7 +720,16 @@ Build config file for deployment OpenTelemetry Collector
     {{- $_ := set $allPipelines $name $pipeline }}
   {{- end }}
 {{- end }}
-{{- $connectors := $config.connectors | default dict }}
+{{- /* Resolve templated connector definition keys so lookups match resolved pipeline refs. */ -}}
+{{- $connectors := dict }}
+{{- range $name, $def := ($config.connectors | default dict) }}
+  {{- $resolvedName := $name }}
+  {{- if and $root (kindIs "string" $name) }}
+    {{- $resolvedName = tpl $name $root }}
+  {{- end }}
+  {{- $_ := set $connectors $resolvedName $def }}
+{{- end }}
+{{- $_ := set $config "connectors" $connectors }}
 {{- $keep := dict }}
 {{- $seeded := dict }}
 {{- range $name, $pipeline := $allPipelines }}
