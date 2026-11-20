@@ -1,0 +1,275 @@
+---
+# Source: opentelemetry-collector/templates/configmap-agent.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-opentelemetry-collector-agent
+  namespace: default
+  labels:
+    helm.sh/chart: opentelemetry-collector-0.143.5
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.165.0"
+    app.kubernetes.io/managed-by: Helm
+data:
+  relay: |
+    exporters:
+      debug:
+        verbosity: detailed
+    extensions:
+      health_check:
+        endpoint: ${env:MY_POD_IP}:13133
+      k8s_observer/control_plane:
+        auth_type: serviceAccount
+        node: ${env:K8S_NODE_NAME}
+        observe_pods: true
+        observe_services: false
+    processors:
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      transform/control_plane:
+        error_mode: ignore
+        metric_statements:
+        - context: resource
+          statements:
+          - set(resource.attributes["k8s.node.name"], "${env:K8S_NODE_NAME}") where IsMatch(resource.attributes["service.name"],
+            "^(kubernetes-scheduler|kubernetes-controller-manager|kubernetes-proxy|kubernetes-coredns|kubernetes-node-local-dns|kubernetes-etcd)$")
+            and resource.attributes["k8s.node.name"] == nil
+      transform/prometheus:
+        error_mode: ignore
+        metric_statements:
+        - context: metric
+          statements:
+          - replace_pattern(metric.name, "_total$", "") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_cpu_seconds_seconds$", "otelcol_process_cpu_seconds")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_heap_alloc_bytes_bytes$",
+            "otelcol_process_runtime_heap_alloc_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_total_alloc_bytes_bytes$",
+            "otelcol_process_runtime_total_alloc_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_total_sys_memory_bytes_bytes$",
+            "otelcol_process_runtime_total_sys_memory_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_fileconsumer_open_files$", "otelcol_fileconsumer_open_files_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_fileconsumer_reading_files$", "otelcol_fileconsumer_reading_files_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_ip_lookup_miss$", "otelcol_otelsvc_k8s_ip_lookup_miss_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_added$", "otelcol_otelsvc_k8s_pod_added_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_updated$", "otelcol_otelsvc_k8s_pod_updated_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_deleted$", "otelcol_otelsvc_k8s_pod_deleted_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_log_records$",
+            "otelcol_processor_accepted_log_records") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_metric_points$",
+            "otelcol_processor_accepted_metric_points") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_spans$",
+            "otelcol_processor_accepted_spans") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_log_records$",
+            "otelcol_processor_refused_log_records") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_metric_points$",
+            "otelcol_processor_refused_metric_points") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_spans$",
+            "otelcol_processor_refused_spans") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_filter_spans\\.filtered$",
+            "otelcol_processor_filter_spans.filtered_ratio") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+        - context: resource
+          statements:
+          - set(resource.attributes["k8s.pod.ip"], resource.attributes["net.host.name"])
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - delete_key(resource.attributes, "service_name") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+        - context: datapoint
+          statements:
+          - delete_key(datapoint.attributes, "service_name") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
+            == "opentelemetry-collector"
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: ${env:MY_POD_IP}:4317
+            max_recv_msg_size_mib: 20
+          http:
+            endpoint: ${env:MY_POD_IP}:4318
+      prometheus:
+        config:
+          scrape_configs:
+          - job_name: opentelemetry-collector
+            scrape_interval: 30s
+            static_configs:
+            - targets:
+              - ${env:MY_POD_IP}:8888
+      receiver_creator/control_plane:
+        receivers:
+          prometheus/controller_manager:
+            config:
+              config:
+                scrape_configs:
+                - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+                  job_name: kubernetes-controller-manager
+                  metrics_path: /metrics
+                  scheme: https
+                  scrape_interval: 30s
+                  static_configs:
+                  - targets:
+                    - 127.0.0.1:10257
+                  tls_config:
+                    insecure_skip_verify: true
+            resource_attributes:
+              k8s.namespace.name: '`namespace`'
+              k8s.pod.name: '`name`'
+              k8s.pod.uid: '`uid`'
+            rule: type == "pod" && namespace == "kube-system" && ((labels["component"]
+              == "kube-controller-manager" && labels["tier"] == "control-plane") || labels["k8s-app"]
+              == "kube-controller-manager")
+          prometheus/coredns:
+            config:
+              config:
+                scrape_configs:
+                - job_name: kubernetes-coredns
+                  metrics_path: /metrics
+                  scheme: http
+                  scrape_interval: 30s
+                  static_configs:
+                  - targets:
+                    - '`endpoint`:9153'
+            resource_attributes:
+              k8s.namespace.name: '`namespace`'
+              k8s.pod.name: '`name`'
+              k8s.pod.uid: '`uid`'
+            rule: type == "pod" && namespace == "kube-system" && labels["k8s-app"] ==
+              "kube-dns"
+          prometheus/etcd:
+            config:
+              config:
+                scrape_configs:
+                - job_name: kubernetes-etcd
+                  metrics_path: /metrics
+                  scheme: http
+                  scrape_interval: 30s
+                  static_configs:
+                  - targets:
+                    - 127.0.0.1:2381
+            resource_attributes:
+              k8s.namespace.name: '`namespace`'
+              k8s.pod.name: '`name`'
+              k8s.pod.uid: '`uid`'
+            rule: type == "pod" && namespace == "kube-system" && labels["component"] ==
+              "etcd" && labels["tier"] == "control-plane"
+          prometheus/node_local_dns:
+            config:
+              config:
+                scrape_configs:
+                - job_name: kubernetes-node-local-dns
+                  metrics_path: /metrics
+                  scheme: http
+                  scrape_interval: 30s
+                  static_configs:
+                  - targets:
+                    - '`endpoint`:9253'
+            resource_attributes:
+              k8s.namespace.name: '`namespace`'
+              k8s.pod.name: '`name`'
+              k8s.pod.uid: '`uid`'
+            rule: type == "pod" && namespace == "kube-system" && labels["k8s-app"] ==
+              "node-local-dns"
+          prometheus/proxy:
+            config:
+              config:
+                scrape_configs:
+                - job_name: kubernetes-proxy
+                  metrics_path: /metrics
+                  scheme: http
+                  scrape_interval: 30s
+                  static_configs:
+                  - targets:
+                    - 127.0.0.1:10249
+            resource_attributes:
+              k8s.namespace.name: '`namespace`'
+              k8s.pod.name: '`name`'
+              k8s.pod.uid: '`uid`'
+            rule: type == "pod" && namespace == "kube-system" && labels["k8s-app"] ==
+              "kube-proxy"
+          prometheus/scheduler:
+            config:
+              config:
+                scrape_configs:
+                - bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+                  job_name: kubernetes-scheduler
+                  metrics_path: /metrics
+                  scheme: https
+                  scrape_interval: 30s
+                  static_configs:
+                  - targets:
+                    - 127.0.0.1:10259
+                  tls_config:
+                    insecure_skip_verify: true
+            resource_attributes:
+              k8s.namespace.name: '`namespace`'
+              k8s.pod.name: '`name`'
+              k8s.pod.uid: '`uid`'
+            rule: type == "pod" && namespace == "kube-system" && ((labels["component"]
+              == "kube-scheduler" && labels["tier"] == "control-plane") || labels["k8s-app"]
+              == "kube-scheduler")
+        watch_observers:
+        - k8s_observer/control_plane
+    service:
+      extensions:
+      - health_check
+      - k8s_observer/control_plane
+      pipelines:
+        logs:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          receivers:
+          - otlp
+        metrics:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          - transform/control_plane
+          - transform/prometheus
+          receivers:
+          - receiver_creator/control_plane
+          - prometheus
+          - otlp
+        traces:
+          exporters:
+          - debug
+          processors:
+          - memory_limiter
+          receivers:
+          - otlp
+      telemetry:
+        logs:
+          encoding: json
+        metrics:
+          readers:
+          - pull:
+              exporter:
+                prometheus:
+                  host: ${env:MY_POD_IP}
+                  port: 8888
+                  without_scope_info: false
+                  without_type_suffix: false
+                  without_units: false
