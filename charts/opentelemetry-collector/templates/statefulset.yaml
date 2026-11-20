@@ -88,11 +88,19 @@ spec:
       {{- if $isolatedVolumeNames }}
         {{- $remappedMounts := list }}
         {{- range $poolExtraVolumeMounts }}
-          {{- if and (hasKey $isolatedVolumeNames .name) (not .readOnly) }}
+          {{- $mountName := .name }}
+          {{- if kindIs "string" .name }}
+            {{- $mountName = tpl .name $ }}
+          {{- end }}
+          {{- $mountSubPath := .subPath | default "" }}
+          {{- if kindIs "string" $mountSubPath }}
+            {{- $mountSubPath = tpl $mountSubPath $ }}
+          {{- end }}
+          {{- if and (hasKey $isolatedVolumeNames $mountName) (not .readOnly) }}
             {{- $mount := deepCopy . }}
-            {{- $_ := set $mount "name" (index $isolatedVolumeNames .name) }}
+            {{- $_ := set $mount "name" (index $isolatedVolumeNames $mountName) }}
             {{- $remappedMounts = append $remappedMounts $mount }}
-            {{- $subKey := printf "%s|%s" .name (.subPath | default "") }}
+            {{- $subKey := printf "%s|%s" $mountName $mountSubPath }}
             {{- $_ := set $isolatedSubpaths $subKey true }}
           {{- else }}
             {{- $remappedMounts = append $remappedMounts . }}
@@ -106,10 +114,18 @@ spec:
           {{- if hasKey $init "volumeMounts" }}
             {{- $initMounts := list }}
             {{- range $init.volumeMounts }}
-              {{- $subKey := printf "%s|%s" .name (.subPath | default "") }}
+              {{- $mountName := .name }}
+              {{- if kindIs "string" .name }}
+                {{- $mountName = tpl .name $ }}
+              {{- end }}
+              {{- $mountSubPath := .subPath | default "" }}
+              {{- if kindIs "string" $mountSubPath }}
+                {{- $mountSubPath = tpl $mountSubPath $ }}
+              {{- end }}
+              {{- $subKey := printf "%s|%s" $mountName $mountSubPath }}
               {{- if hasKey $isolatedSubpaths $subKey }}
                 {{- $mount := deepCopy . }}
-                {{- $_ := set $mount "name" (index $isolatedVolumeNames .name) }}
+                {{- $_ := set $mount "name" (index $isolatedVolumeNames $mountName) }}
                 {{- $initMounts = append $initMounts $mount }}
               {{- else }}
                 {{- $initMounts = append $initMounts . }}
@@ -147,9 +163,9 @@ spec:
       {{- $_ := set $poolResourceDetection "k8sNodeName" (dict "enabled" false) }}
       {{- $poolDetectors := deepCopy ($poolResourceDetection.detectors | default dict) }}
       {{- if kindIs "slice" $poolDetectors.env }}
-        {{- $_ := set $poolDetectors "env" (without $poolDetectors.env "k8snode") }}
+        {{- $_ := set $poolDetectors "env" (without $poolDetectors.env "k8snode" "system") }}
       {{- else if kindIs "invalid" $poolDetectors.env }}
-        {{- $_ := set $poolDetectors "env" (list "system" "env") }}
+        {{- $_ := set $poolDetectors "env" (list "env") }}
       {{- end }}
       {{- $_ := set $poolResourceDetection "detectors" $poolDetectors }}
       {{- $_ := set $poolPresets "resourceDetection" $poolResourceDetection }}
@@ -169,10 +185,18 @@ spec:
         {{- if and $isolatedVolumeNames (hasKey $container "volumeMounts") }}
           {{- $sidecarMounts := list }}
           {{- range $container.volumeMounts }}
-            {{- $subKey := printf "%s|%s" .name (.subPath | default "") }}
+            {{- $mountName := .name }}
+            {{- if kindIs "string" .name }}
+              {{- $mountName = tpl .name $ }}
+            {{- end }}
+            {{- $mountSubPath := .subPath | default "" }}
+            {{- if kindIs "string" $mountSubPath }}
+              {{- $mountSubPath = tpl $mountSubPath $ }}
+            {{- end }}
+            {{- $subKey := printf "%s|%s" $mountName $mountSubPath }}
             {{- if hasKey $isolatedSubpaths $subKey }}
               {{- $mount := deepCopy . }}
-              {{- $_ := set $mount "name" (index $isolatedVolumeNames .name) }}
+              {{- $_ := set $mount "name" (index $isolatedVolumeNames $mountName) }}
               {{- $sidecarMounts = append $sidecarMounts $mount }}
             {{- else }}
               {{- $sidecarMounts = append $sidecarMounts . }}

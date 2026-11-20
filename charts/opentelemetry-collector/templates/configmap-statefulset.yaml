@@ -20,10 +20,10 @@ data:
     {{- $_ := set $poolResourceDetection "k8sNodeName" (dict "enabled" false) }}
     {{- $poolDetectors := deepCopy ($poolResourceDetection.detectors | default dict) }}
     {{- if kindIs "slice" $poolDetectors.env }}
-      {{- $_ := set $poolDetectors "env" (without $poolDetectors.env "k8snode") }}
+      {{- $_ := set $poolDetectors "env" (without $poolDetectors.env "k8snode" "system") }}
     {{- else if kindIs "invalid" $poolDetectors.env }}
-      {{- /* Avoid the on-prem default that injects k8snode onto allocated scrapes. */ -}}
-      {{- $_ := set $poolDetectors "env" (list "system" "env") }}
+      {{- /* Keep env attrs only; drop k8snode/system so allocated scrapes do not inherit the pool host. */ -}}
+      {{- $_ := set $poolDetectors "env" (list "env") }}
     {{- end }}
     {{- $_ := set $poolResourceDetection "detectors" $poolDetectors }}
     {{- $poolPresets := mergeOverwrite (deepCopy .Values.presets) (dict "resourceDetection" $poolResourceDetection) }}
