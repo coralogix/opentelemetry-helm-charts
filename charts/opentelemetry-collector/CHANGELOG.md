@@ -2,9 +2,21 @@
 
 ## OpenTelemetry Collector
 
-### v0.143.2 / 2026-11-20
+### v0.143.5 / 2026-11-20
 
 - [Feat] Add the opt-in `dbMonitoring` preset for named PostgreSQL targets. Collect performance, health, and table metrics, with optional query samples, top queries, and catalog events. Support password environment variables, TLS, and database resource attributes. Collect schemas through direct database connections without `dblink`. Support dedicated DB collectors with OTLP disabled and include a single-replica example with `Recreate` updates.
+
+### v0.143.4 / 2026-11-18
+
+- [Fix] Collect active and rotated Kubernetes container logs on Linux and Windows, preserving file-path metadata for timestamped rotations. Exclude compressed and temporary files and respect `presets.logsCollection.includeCollectorLogs` for active and rotated collector logs.
+
+### v0.143.3 / 2026-11-18
+
+- [Fix] Grant the target allocator ClusterRole `watch` on secrets when `targetAllocator.prometheusCR.enabled` is true, so it can watch secrets referenced by ServiceMonitor, PodMonitor and Probe auth settings without RBAC errors.
+
+### v0.143.2 / 2026-11-17
+
+- [Feat] Add `presets.fleetManagement.supervisor.collectorUpgrades`, enabled by default, to enable the `AcceptsPackages` and `ReportsPackageStatuses` OpAMP capabilities in the Supervisor.
 
 ### v0.143.1 / 2026-11-16
 

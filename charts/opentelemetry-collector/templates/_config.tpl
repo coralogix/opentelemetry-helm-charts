@@ -970,18 +970,23 @@ extensions:
 receivers:
   filelog:
     {{- if .Values.isWindows }}
-    include: ["C:\\var\\log\\pods\\*\\*\\*.log"]
+    include: ["C:\\var\\log\\pods\\*\\*\\*.log", "C:\\var\\log\\pods\\*\\*\\*.log.*"]
     {{- else }}
-    include: [ /var/log/pods/*/*/*.log ]
+    include: [ /var/log/pods/*/*/*.log, /var/log/pods/*/*/*.log.* ]
     {{- end }}
-    {{- if .Values.presets.logsCollection.includeCollectorLogs }}
-    exclude: []
-    {{- else }}
+    exclude:
     {{- if .Values.isWindows }}
-    exclude: [ "C:\\var\\log\\pods\\{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}*_*\\{{ include "opentelemetry-collector.lowercase_chartname" . }}\\*.log" ]
+      - "C:\\var\\log\\pods\\*\\*\\*.gz"
+      - "C:\\var\\log\\pods\\*\\*\\*.tmp"
+    {{- if not .Values.presets.logsCollection.includeCollectorLogs }}
+      - "C:\\var\\log\\pods\\{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}*_*\\{{ include "opentelemetry-collector.lowercase_chartname" . }}\\*.log*"
+    {{- end }}
     {{- else }}
-    # Exclude collector container's logs. The file format is /var/log/pods/<namespace_name>_<pod_name>_<pod_uid>/<container_name>/<run_id>.log
-    exclude: [ /var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}*_*/{{ include "opentelemetry-collector.lowercase_chartname" . }}/*.log ]
+      - /var/log/pods/*/*/*.gz
+      - /var/log/pods/*/*/*.tmp
+    {{- if not .Values.presets.logsCollection.includeCollectorLogs }}
+      # Exclude active and rotated collector logs to avoid ingesting our own output.
+      - /var/log/pods/{{ .Release.Namespace }}_{{ include "opentelemetry-collector.fullname" . }}*_*/{{ include "opentelemetry-collector.lowercase_chartname" . }}/*.log*
     {{- end }}
     {{- end }}
     start_at: beginning
@@ -1060,9 +1065,9 @@ receivers:
       # Extract metadata from file path
       - type: regex_parser
         {{- if .Values.isWindows }}
-        regex: '^C:\\var\\log\\pods\\(?P<namespace>[^_]+)_(?P<pod_name>[^_]+)_(?P<uid>[^\/]+)\\(?P<container_name>[^\._]+)\\(?P<restart_count>\d+)\.log$'
+        regex: '^C:\\var\\log\\pods\\(?P<namespace>[^_]+)_(?P<pod_name>[^_]+)_(?P<uid>[^\/]+)\\(?P<container_name>[^\._]+)\\(?P<restart_count>\d+)\.log(\.\d{8}-\d{6})?$'
         {{- else }}
-        regex: '^.*\/(?P<namespace>[^_]+)_(?P<pod_name>[^_]+)_(?P<uid>[a-f0-9\-]+)\/(?P<container_name>[^\._]+)\/(?P<restart_count>\d+)\.log$'
+        regex: '^.*\/(?P<namespace>[^_]+)_(?P<pod_name>[^_]+)_(?P<uid>[a-f0-9\-]+)\/(?P<container_name>[^\._]+)\/(?P<restart_count>\d+)\.log(\.\d{8}-\d{6})?$'
         {{- end }}
         parse_from: attributes["log.file.path"]
       # Rename attributes

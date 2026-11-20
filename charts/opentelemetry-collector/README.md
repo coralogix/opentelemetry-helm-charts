@@ -955,6 +955,17 @@ presets:
     acceptsRestartCommand: true
 ```
 
+The Supervisor has both the `AcceptsPackages` and `ReportsPackageStatuses` OpAMP capabilities enabled
+by default. This allows Collector upgrades to be triggered remotely via the Fleet Management.
+To disable both capabilities, set:
+
+```yaml
+presets:
+  fleetManagement:
+    supervisor:
+      collectorUpgrades: false
+```
+
 #### Initial fallback configuration
 
 Whenever a new Collector starts and it cannot reach the Fleet Manager to receive remote configuration, the Supervisor can optionally provide an initial fallback configuration to the Collector to ensure that it has a valid configuration to start from. When connection to the Fleet Manager is restored, this configuration will be dropped in favor of the remote configuration received from the Fleet Manager, even if such remote configuration is empty.

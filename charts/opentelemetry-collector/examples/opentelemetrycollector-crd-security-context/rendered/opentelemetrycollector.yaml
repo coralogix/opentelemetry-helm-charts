@@ -5,7 +5,7 @@ kind: OpenTelemetryCollector
 metadata:
   name: example-opentelemetry-collector
   labels:
-    helm.sh/chart: opentelemetry-collector-0.143.2
+    helm.sh/chart: opentelemetry-collector-0.143.5
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.165.0"
@@ -135,10 +135,13 @@ spec:
     receivers:
       filelog:
         exclude:
-        - /var/log/pods/default_example-opentelemetry-collector*_*/opentelemetry-collector/*.log
+        - /var/log/pods/*/*/*.gz
+        - /var/log/pods/*/*/*.tmp
+        - /var/log/pods/default_example-opentelemetry-collector*_*/opentelemetry-collector/*.log*
         force_flush_period: 0
         include:
         - /var/log/pods/*/*/*.log
+        - /var/log/pods/*/*/*.log.*
         include_file_name: false
         include_file_path: true
         operators:
@@ -202,7 +205,7 @@ spec:
           type: add
           value: ""
         - parse_from: attributes["log.file.path"]
-          regex: ^.*\/(?P<namespace>[^_]+)_(?P<pod_name>[^_]+)_(?P<uid>[a-f0-9\-]+)\/(?P<container_name>[^\._]+)\/(?P<restart_count>\d+)\.log$
+          regex: ^.*\/(?P<namespace>[^_]+)_(?P<pod_name>[^_]+)_(?P<uid>[a-f0-9\-]+)\/(?P<container_name>[^\._]+)\/(?P<restart_count>\d+)\.log(\.\d{8}-\d{6})?$
           type: regex_parser
         - from: attributes.stream
           to: attributes["log.iostream"]

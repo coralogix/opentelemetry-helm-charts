@@ -2155,6 +2155,11 @@
                   "description": "Specifies whether to enable the Supervisor for fleet management.",
                   "type": "boolean"
                 },
+                "collectorUpgrades": {
+                  "description": "Enables the AcceptsPackages and ReportsPackageStatuses OpAMP capabilities for the Supervisor.",
+                  "type": "boolean",
+                  "default": true
+                },
                 "minimalCollectorConfig": {
                   "description": "Specifies whether to use a minimal Collector config.",
                   "type": "boolean",
