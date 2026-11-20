@@ -179,8 +179,8 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.kubeletPrometheusMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyKubeletPrometheusMetrics" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if .Values.presets.controlPlaneMetrics.enabled }}
-{{- $config = (include "opentelemetry-collector.applyControlPlaneMetrics" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- if .Values.presets.k8sControlPlaneMetrics.enabled }}
+{{- $config = (include "opentelemetry-collector.applyK8sControlPlaneMetrics" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.clusterMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyClusterMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -1628,163 +1628,58 @@ processors:
 {{- end }}
 
 {{/*
-controlPlaneMetrics — scrapes kube-controller-manager, kube-scheduler, kube-proxy, DNS and etcd.
+k8sControlPlaneMetrics — scrapes kube-controller-manager, kube-scheduler, kube-proxy, DNS and etcd.
 Receives the chart values (.Values), not the preset subtree.
 Fails unless the agent can actually reach the targets: daemonset mode (node-local targets) and,
-for components scraped on 127.0.0.1, hostNetwork plus dnsPolicy ClusterFirstWithHostNet.
+for the components scraped on 127.0.0.1, hostNetwork plus dnsPolicy ClusterFirstWithHostNet.
 Called from clusterrole.yaml, which always renders with the preset, so it also runs when configMap.create is false.
 */}}
-{{- define "opentelemetry-collector.validateControlPlaneMetrics" -}}
-{{- $cp := .presets.controlPlaneMetrics -}}
+{{- define "opentelemetry-collector.validateK8sControlPlaneMetrics" -}}
+{{- $cp := .presets.k8sControlPlaneMetrics -}}
 {{- if ne .mode "daemonset" -}}
-{{- fail (printf "[ERROR] presets.controlPlaneMetrics requires mode: daemonset (found mode: %s). The control plane targets are node-local (127.0.0.1 through hostNetwork), so every node needs its own agent; a deployment would have no working targets and duplicate the rest." .mode) -}}
+{{- fail (printf "[ERROR] presets.k8sControlPlaneMetrics requires mode: daemonset (found mode: %s). The control plane targets are node-local, so every node needs its own agent." .mode) -}}
 {{- end -}}
 {{- if not (or $cp.controllerManager.enabled $cp.scheduler.enabled $cp.proxy.enabled $cp.dns.enabled $cp.etcd.enabled) -}}
-{{- fail "[ERROR] presets.controlPlaneMetrics.enabled is true but every component (controllerManager, scheduler, proxy, dns, etcd) is disabled. Enable at least one component or disable the preset." -}}
+{{- fail "[ERROR] presets.k8sControlPlaneMetrics.enabled is true but every component (controllerManager, scheduler, proxy, dns, etcd) is disabled. Enable at least one component or disable the preset." -}}
 {{- end -}}
 {{- if and $cp.dns.nodeLocal.enabled (not $cp.dns.enabled) -}}
-{{- fail "[ERROR] presets.controlPlaneMetrics.dns.nodeLocal.enabled is true but presets.controlPlaneMetrics.dns.enabled is false, so NodeLocal DNSCache would silently not be scraped. Set dns.enabled: true, or disable dns.nodeLocal." -}}
+{{- fail "[ERROR] presets.k8sControlPlaneMetrics.dns.nodeLocal.enabled requires presets.k8sControlPlaneMetrics.dns.enabled: true, otherwise NodeLocal DNSCache is silently not scraped." -}}
 {{- end -}}
-{{- $loopback := list -}}
-{{- range $name := list "controllerManager" "scheduler" "proxy" "etcd" -}}
-{{- $component := get $cp $name -}}
-{{- if and $component.enabled (not $component.endpoint) -}}
-{{- $loopback = append $loopback $name -}}
-{{- end -}}
-{{- end -}}
-{{- if $loopback -}}
+{{- if or $cp.controllerManager.enabled $cp.scheduler.enabled $cp.proxy.enabled $cp.etcd.enabled -}}
 {{- if not .hostNetwork -}}
-{{- fail (printf "[ERROR] presets.controlPlaneMetrics.%s scrapes 127.0.0.1, which needs hostNetwork: true (kubeadm binds these metrics endpoints to loopback). Set hostNetwork: true, or set presets.controlPlaneMetrics.%s.endpoint to a reachable host:port, or disable the component." (first $loopback) (first $loopback)) -}}
+{{- fail "[ERROR] presets.k8sControlPlaneMetrics scrapes controllerManager, scheduler, proxy and etcd on 127.0.0.1, which needs hostNetwork: true. Set hostNetwork: true or disable those components." -}}
 {{- end -}}
 {{- if ne .dnsPolicy "ClusterFirstWithHostNet" -}}
-{{- fail (printf "[ERROR] presets.controlPlaneMetrics scrapes 127.0.0.1 (%s) from the host network, so set dnsPolicy: ClusterFirstWithHostNet (found dnsPolicy: %q). A hostNetwork pod otherwise falls back to the node's resolv.conf and cannot resolve in-cluster *.svc names, which breaks exporters that use cluster service endpoints." (join ", " $loopback) .dnsPolicy) -}}
+{{- fail (printf "[ERROR] presets.k8sControlPlaneMetrics needs dnsPolicy: ClusterFirstWithHostNet together with hostNetwork (found dnsPolicy: %q). A hostNetwork pod otherwise cannot resolve in-cluster *.svc names." .dnsPolicy) -}}
 {{- end -}}
 {{- end -}}
 {{- if and $cp.etcd.enabled $cp.etcd.secret.name -}}
 {{- if not (and $cp.etcd.secret.clientCert $cp.etcd.secret.clientKey) -}}
-{{- fail "[ERROR] presets.controlPlaneMetrics.etcd.secret.name requires secret.clientCert and secret.clientKey (key names inside the existing Secret)." -}}
+{{- fail "[ERROR] presets.k8sControlPlaneMetrics.etcd.secret.name requires secret.clientCert and secret.clientKey (key names inside the existing Secret)." -}}
 {{- end -}}
 {{- if and (not $cp.etcd.skipVerify) (not $cp.etcd.secret.caFile) -}}
-{{- fail "[ERROR] presets.controlPlaneMetrics.etcd.skipVerify is false, which requires presets.controlPlaneMetrics.etcd.secret.caFile." -}}
+{{- fail "[ERROR] presets.k8sControlPlaneMetrics.etcd.skipVerify is false, which requires presets.k8sControlPlaneMetrics.etcd.secret.caFile." -}}
 {{- end -}}
 {{- end -}}
 {{- end }}
 
-{{- define "opentelemetry-collector.applyControlPlaneMetrics" -}}
+{{- define "opentelemetry-collector.applyK8sControlPlaneMetrics" -}}
 {{- $values := .Values.Values }}
-{{- $config := mustMergeOverwrite (include "opentelemetry-collector.controlPlaneMetricsConfig" $values | fromYaml) .config }}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.k8sControlPlaneMetricsConfig" $values | fromYaml) .config }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "receiver_creator/control_plane" | uniq) }}
-{{- if hasKey $config.processors "filter/control_plane" }}
-{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "filter/control_plane" | uniq) }}
-{{- end }}
 {{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/control_plane" | uniq) }}
 {{- $_ := set $config.service "extensions" (append $config.service.extensions "k8s_observer/control_plane" | uniq) }}
 {{- $config | toYaml }}
 {{- end }}
 
 {{/*
-Pod discovery rule for one control plane component. Always `type == "pod"` in kube-system: kubeadm static pods
-declare no containerPorts, so a `type == "port"` rule would match nothing.
-`.selector` (labels map) replaces `.default` (a ready-made label expression).
+One literal receiver_creator sub-receiver per component: a prometheus receiver with an explicit job_name (it becomes
+service.name). Rules are always `type == "pod"` in kube-system: kubeadm static pods declare no containerPorts, so a
+`type == "port"` rule would match nothing.
 */}}
-{{- define "opentelemetry-collector.controlPlanePodRule" -}}
-{{- $labelRule := .default -}}
-{{- if .selector -}}
-{{- $terms := list -}}
-{{- range $label, $value := .selector -}}
-{{- $terms = append $terms (printf "labels[%s] == %s" ($label | quote) ($value | quote)) -}}
-{{- end -}}
-{{- $labelRule = printf "(%s)" (join " && " $terms) -}}
-{{- end -}}
-{{- printf "type == \"pod\" && namespace == \"kube-system\" && %s" $labelRule -}}
-{{- end }}
-
-{{/*
-One receiver_creator sub-receiver: a prometheus receiver with an explicit job_name (the job_name becomes
-service.name, which the curated filter keys on; receiver_creator resource_attributes never override it).
-Takes: rule, job, interval, scheme, target, bearer (bool), tlsConfig (map or nil).
-*/}}
-{{- define "opentelemetry-collector.controlPlaneReceiver" -}}
-{{- $scrape := dict "job_name" .job "scrape_interval" .interval "metrics_path" "/metrics" "scheme" .scheme "static_configs" (list (dict "targets" (list .target))) -}}
-{{- if .bearer -}}
-{{- $_ := set $scrape "bearer_token_file" "/var/run/secrets/kubernetes.io/serviceaccount/token" -}}
-{{- end -}}
-{{- if .tlsConfig -}}
-{{- $_ := set $scrape "tls_config" .tlsConfig -}}
-{{- end -}}
-{{- $attributes := dict "k8s.pod.name" "`name`" "k8s.pod.uid" "`uid`" "k8s.namespace.name" "`namespace`" -}}
-{{- dict "rule" .rule "config" (dict "config" (dict "scrape_configs" (list $scrape))) "resource_attributes" $attributes | toYaml -}}
-{{- end }}
-
-{{- define "opentelemetry-collector.controlPlaneMetricsConfig" -}}
-{{- $cp := .presets.controlPlaneMetrics -}}
-{{- $interval := $cp.scrapeInterval | default "30s" -}}
+{{- define "opentelemetry-collector.k8sControlPlaneMetricsConfig" -}}
+{{- $cp := .presets.k8sControlPlaneMetrics -}}
 {{- $podHost := ternary "[`endpoint`]" "`endpoint`" (eq .networkMode "ipv6") -}}
-{{- $insecure := dict "insecure_skip_verify" true -}}
-{{- $etcdMount := "/etc/otelcol/control-plane-etcd" -}}
-{{- /* Curated keep-lists (kubernetes-mixin / kube-prometheus-stack inputs). Histograms are listed by base name. */ -}}
-{{- $common := "up|process_cpu_seconds_total|process_resident_memory_bytes|go_goroutines|rest_client_requests_total|rest_client_request_duration_seconds" -}}
-{{- $keep := dict
-  "kubernetes-controller-manager" (printf "%s|workqueue_adds_total|workqueue_depth|workqueue_queue_duration_seconds|workqueue_work_duration_seconds|workqueue_retries_total|leader_election_master_status" $common)
-  "kubernetes-scheduler" (printf "%s|scheduler_pending_pods|scheduler_schedule_attempts_total|scheduler_scheduling_attempt_duration_seconds|scheduler_pod_scheduling_sli_duration_seconds|scheduler_e2e_scheduling_duration_seconds|scheduler_preemption_attempts_total|scheduler_preemption_victims|workqueue_adds_total|workqueue_depth|workqueue_queue_duration_seconds|leader_election_master_status" $common)
-  "kubernetes-proxy" (printf "%s|kubeproxy_sync_proxy_rules_.*|kubeproxy_network_programming_duration_seconds" $common)
-  "kubernetes-etcd" "up|process_cpu_seconds_total|process_resident_memory_bytes|go_goroutines|etcd_server_.*|etcd_disk_.*|etcd_network_.*|etcd_mvcc_db_total_size_in_bytes|etcd_mvcc_db_total_size_in_use_in_bytes|etcd_debugging_mvcc_db_total_size_in_bytes|grpc_server_handled_total|grpc_server_started_total"
-  "kubernetes-coredns" "up|process_cpu_seconds_total|process_resident_memory_bytes|go_goroutines|coredns_dns_.*|coredns_cache_.*|coredns_forward_.*|coredns_panics_total|coredns_health_request_failures_total|coredns_reload_failed_total"
-  "kubernetes-node-local-dns" "up|process_cpu_seconds_total|process_resident_memory_bytes|go_goroutines|coredns_dns_.*|coredns_cache_.*|coredns_forward_.*|coredns_nodecache_.*|coredns_panics_total"
--}}
-{{- $receivers := dict -}}
-{{- $jobs := list -}}
-{{- $conditions := list -}}
-{{- if $cp.controllerManager.enabled -}}
-{{- $c := $cp.controllerManager -}}
-{{- $rule := include "opentelemetry-collector.controlPlanePodRule" (dict "selector" $c.selector "default" "((labels[\"component\"] == \"kube-controller-manager\" && labels[\"tier\"] == \"control-plane\") || labels[\"k8s-app\"] == \"kube-controller-manager\")") -}}
-{{- $_ := set $receivers "prometheus/controller_manager" (include "opentelemetry-collector.controlPlaneReceiver" (dict "rule" $rule "job" "kubernetes-controller-manager" "interval" $interval "scheme" "https" "bearer" true "tlsConfig" $insecure "target" ($c.endpoint | default "127.0.0.1:10257")) | fromYaml) -}}
-{{- $jobs = append $jobs "kubernetes-controller-manager" -}}
-{{- if not $c.scrapeAll -}}{{- $conditions = append $conditions "kubernetes-controller-manager" -}}{{- end -}}
-{{- end -}}
-{{- if $cp.scheduler.enabled -}}
-{{- $c := $cp.scheduler -}}
-{{- $rule := include "opentelemetry-collector.controlPlanePodRule" (dict "selector" $c.selector "default" "((labels[\"component\"] == \"kube-scheduler\" && labels[\"tier\"] == \"control-plane\") || labels[\"k8s-app\"] == \"kube-scheduler\")") -}}
-{{- $_ := set $receivers "prometheus/scheduler" (include "opentelemetry-collector.controlPlaneReceiver" (dict "rule" $rule "job" "kubernetes-scheduler" "interval" $interval "scheme" "https" "bearer" true "tlsConfig" $insecure "target" ($c.endpoint | default "127.0.0.1:10259")) | fromYaml) -}}
-{{- $jobs = append $jobs "kubernetes-scheduler" -}}
-{{- if not $c.scrapeAll -}}{{- $conditions = append $conditions "kubernetes-scheduler" -}}{{- end -}}
-{{- end -}}
-{{- if $cp.proxy.enabled -}}
-{{- $c := $cp.proxy -}}
-{{- $rule := include "opentelemetry-collector.controlPlanePodRule" (dict "selector" $c.selector "default" "labels[\"k8s-app\"] == \"kube-proxy\"") -}}
-{{- $_ := set $receivers "prometheus/proxy" (include "opentelemetry-collector.controlPlaneReceiver" (dict "rule" $rule "job" "kubernetes-proxy" "interval" $interval "scheme" "http" "target" ($c.endpoint | default "127.0.0.1:10249")) | fromYaml) -}}
-{{- $jobs = append $jobs "kubernetes-proxy" -}}
-{{- if not $c.scrapeAll -}}{{- $conditions = append $conditions "kubernetes-proxy" -}}{{- end -}}
-{{- end -}}
-{{- if $cp.dns.enabled -}}
-{{- $c := $cp.dns -}}
-{{- $rule := include "opentelemetry-collector.controlPlanePodRule" (dict "selector" $c.selector "default" "labels[\"k8s-app\"] == \"kube-dns\"") -}}
-{{- $_ := set $receivers "prometheus/coredns" (include "opentelemetry-collector.controlPlaneReceiver" (dict "rule" $rule "job" "kubernetes-coredns" "interval" $interval "scheme" "http" "target" ($c.endpoint | default (printf "%s:%s" $podHost (toString ($c.port | default 9153))))) | fromYaml) -}}
-{{- $jobs = append $jobs "kubernetes-coredns" -}}
-{{- if not $c.scrapeAll -}}{{- $conditions = append $conditions "kubernetes-coredns" -}}{{- end -}}
-{{- if $c.nodeLocal.enabled -}}
-{{- $rule := include "opentelemetry-collector.controlPlanePodRule" (dict "selector" $c.nodeLocal.selector "default" "labels[\"k8s-app\"] == \"node-local-dns\"") -}}
-{{- $_ := set $receivers "prometheus/node_local_dns" (include "opentelemetry-collector.controlPlaneReceiver" (dict "rule" $rule "job" "kubernetes-node-local-dns" "interval" $interval "scheme" "http" "target" (printf "%s:%s" $podHost (toString ($c.nodeLocal.port | default 9253)))) | fromYaml) -}}
-{{- $jobs = append $jobs "kubernetes-node-local-dns" -}}
-{{- if not $c.scrapeAll -}}{{- $conditions = append $conditions "kubernetes-node-local-dns" -}}{{- end -}}
-{{- end -}}
-{{- end -}}
-{{- if $cp.etcd.enabled -}}
-{{- $c := $cp.etcd -}}
-{{- $rule := include "opentelemetry-collector.controlPlanePodRule" (dict "selector" $c.selector "default" "(labels[\"component\"] == \"etcd\" && labels[\"tier\"] == \"control-plane\")") -}}
-{{- $scheme := "http" -}}
-{{- $port := toString ($c.port | default 2381) -}}
-{{- $tlsConfig := dict -}}
-{{- if $c.secret.name -}}
-{{- $scheme = "https" -}}
-{{- $port = toString ($c.port | default 2379) -}}
-{{- $tlsConfig = dict "cert_file" (printf "%s/%s" $etcdMount $c.secret.clientCert) "key_file" (printf "%s/%s" $etcdMount $c.secret.clientKey) "insecure_skip_verify" $c.skipVerify -}}
-{{- if $c.secret.caFile -}}{{- $_ := set $tlsConfig "ca_file" (printf "%s/%s" $etcdMount $c.secret.caFile) -}}{{- end -}}
-{{- end -}}
-{{- $_ := set $receivers "prometheus/etcd" (include "opentelemetry-collector.controlPlaneReceiver" (dict "rule" $rule "job" "kubernetes-etcd" "interval" $interval "scheme" $scheme "tlsConfig" $tlsConfig "target" ($c.endpoint | default (printf "127.0.0.1:%s" $port))) | fromYaml) -}}
-{{- $jobs = append $jobs "kubernetes-etcd" -}}
-{{- if not $c.scrapeAll -}}{{- $conditions = append $conditions "kubernetes-etcd" -}}{{- end -}}
-{{- end -}}
 extensions:
   k8s_observer/control_plane:
     auth_type: serviceAccount
@@ -1795,24 +1690,143 @@ receivers:
   receiver_creator/control_plane:
     watch_observers: [k8s_observer/control_plane]
     receivers:
-      {{- toYaml $receivers | nindent 6 }}
+      {{- if $cp.scheduler.enabled }}
+      # kube-scheduler: kubeadm static pod, https on 127.0.0.1:10259 (needs hostNetwork)
+      prometheus/scheduler:
+        rule: 'type == "pod" && namespace == "kube-system" && ((labels["component"] == "kube-scheduler" && labels["tier"] == "control-plane") || labels["k8s-app"] == "kube-scheduler")'
+        config:
+          config:
+            scrape_configs:
+              - job_name: kubernetes-scheduler
+                metrics_path: /metrics
+                scheme: https
+                scrape_interval: {{ $cp.scrapeInterval | default "30s" | quote }}
+                bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+                tls_config:
+                  insecure_skip_verify: true
+                static_configs:
+                  - targets: ["127.0.0.1:10259"]
+        resource_attributes:
+          k8s.pod.name: '`name`'
+          k8s.pod.uid: '`uid`'
+          k8s.namespace.name: '`namespace`'
+      {{- end }}
+      {{- if $cp.controllerManager.enabled }}
+      # kube-controller-manager: kubeadm static pod, https on 127.0.0.1:10257 (needs hostNetwork)
+      prometheus/controller_manager:
+        rule: 'type == "pod" && namespace == "kube-system" && ((labels["component"] == "kube-controller-manager" && labels["tier"] == "control-plane") || labels["k8s-app"] == "kube-controller-manager")'
+        config:
+          config:
+            scrape_configs:
+              - job_name: kubernetes-controller-manager
+                metrics_path: /metrics
+                scheme: https
+                scrape_interval: {{ $cp.scrapeInterval | default "30s" | quote }}
+                bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+                tls_config:
+                  insecure_skip_verify: true
+                static_configs:
+                  - targets: ["127.0.0.1:10257"]
+        resource_attributes:
+          k8s.pod.name: '`name`'
+          k8s.pod.uid: '`uid`'
+          k8s.namespace.name: '`namespace`'
+      {{- end }}
+      {{- if $cp.proxy.enabled }}
+      # kube-proxy: DaemonSet, plain http on 127.0.0.1:10249 (needs hostNetwork)
+      prometheus/proxy:
+        rule: 'type == "pod" && namespace == "kube-system" && labels["k8s-app"] == "kube-proxy"'
+        config:
+          config:
+            scrape_configs:
+              - job_name: kubernetes-proxy
+                metrics_path: /metrics
+                scheme: http
+                scrape_interval: {{ $cp.scrapeInterval | default "30s" | quote }}
+                static_configs:
+                  - targets: ["127.0.0.1:10249"]
+        resource_attributes:
+          k8s.pod.name: '`name`'
+          k8s.pod.uid: '`uid`'
+          k8s.namespace.name: '`namespace`'
+      {{- end }}
+      {{- if $cp.dns.enabled }}
+      # CoreDNS binds the metrics port on the pod IP (no host port): scraped through `endpoint`.
+      prometheus/coredns:
+        rule: 'type == "pod" && namespace == "kube-system" && labels["k8s-app"] == "kube-dns"'
+        config:
+          config:
+            scrape_configs:
+              - job_name: kubernetes-coredns
+                metrics_path: /metrics
+                scheme: http
+                scrape_interval: {{ $cp.scrapeInterval | default "30s" | quote }}
+                static_configs:
+                  - targets: ["{{ $podHost }}:9153"]
+        resource_attributes:
+          k8s.pod.name: '`name`'
+          k8s.pod.uid: '`uid`'
+          k8s.namespace.name: '`namespace`'
+      {{- if $cp.dns.nodeLocal.enabled }}
+      # NodeLocal DNSCache addon: metrics on the pod IP, port 9253.
+      prometheus/node_local_dns:
+        rule: 'type == "pod" && namespace == "kube-system" && labels["k8s-app"] == "node-local-dns"'
+        config:
+          config:
+            scrape_configs:
+              - job_name: kubernetes-node-local-dns
+                metrics_path: /metrics
+                scheme: http
+                scrape_interval: {{ $cp.scrapeInterval | default "30s" | quote }}
+                static_configs:
+                  - targets: ["{{ $podHost }}:9253"]
+        resource_attributes:
+          k8s.pod.name: '`name`'
+          k8s.pod.uid: '`uid`'
+          k8s.namespace.name: '`namespace`'
+      {{- end }}
+      {{- end }}
+      {{- if $cp.etcd.enabled }}
+      # etcd: plain http on 127.0.0.1:2381 (kubeadm default), or mTLS on 127.0.0.1:2379 with `secret.name`.
+      prometheus/etcd:
+        rule: 'type == "pod" && namespace == "kube-system" && labels["component"] == "etcd" && labels["tier"] == "control-plane"'
+        config:
+          config:
+            scrape_configs:
+              - job_name: kubernetes-etcd
+                metrics_path: /metrics
+                scrape_interval: {{ $cp.scrapeInterval | default "30s" | quote }}
+                {{- if $cp.etcd.secret.name }}
+                scheme: https
+                tls_config:
+                  cert_file: "/etc/otelcol/control-plane-etcd/{{ $cp.etcd.secret.clientCert }}"
+                  key_file: "/etc/otelcol/control-plane-etcd/{{ $cp.etcd.secret.clientKey }}"
+                  insecure_skip_verify: {{ $cp.etcd.skipVerify }}
+                  {{- if $cp.etcd.secret.caFile }}
+                  ca_file: "/etc/otelcol/control-plane-etcd/{{ $cp.etcd.secret.caFile }}"
+                  {{- end }}
+                static_configs:
+                  - targets: ["127.0.0.1:{{ $cp.etcd.port | default 2379 }}"]
+                {{- else }}
+                scheme: http
+                static_configs:
+                  - targets: ["127.0.0.1:{{ $cp.etcd.port | default 2381 }}"]
+                {{- end }}
+        resource_attributes:
+          k8s.pod.name: '`name`'
+          k8s.pod.uid: '`uid`'
+          k8s.namespace.name: '`namespace`'
+      {{- end }}
 processors:
-  {{- if $conditions }}
-  filter/control_plane:
-    metrics:
-      metric:
-        {{- range $job := $conditions }}
-        - {{ printf "resource.attributes[\"service.name\"] == \"%s\" and not IsMatch(metric.name, \"^(%s)$\")" $job (get $keep $job) | quote }}
-        {{- end }}
-  {{- end }}
   # The agent's node name, so the identical 127.0.0.1:<port> targets of different nodes stay distinct series.
   # Set here (not in receiver_creator resource_attributes), where an unset env var is an empty string, not a nil value.
+  # One literal statement: a regex over all job names never matches the jobs of a disabled component.
   transform/control_plane:
     error_mode: ignore
     metric_statements:
       - context: resource
         statements:
-          - {{ printf "set(resource.attributes[\"k8s.node.name\"], \"${env:K8S_NODE_NAME}\") where IsMatch(resource.attributes[\"service.name\"], \"^(%s)$\") and resource.attributes[\"k8s.node.name\"] == nil" (join "|" $jobs) | quote }}
+          - 'set(resource.attributes["k8s.node.name"], "${env:K8S_NODE_NAME}") where IsMatch(resource.attributes["service.name"], "^(kubernetes-scheduler|kubernetes-controller-manager|kubernetes-proxy|kubernetes-coredns|kubernetes-node-local-dns|kubernetes-etcd)$") and resource.attributes["k8s.node.name"] == nil'
 {{- end }}
 
 {{- define "opentelemetry-collector.applyMysqlConfig" -}}

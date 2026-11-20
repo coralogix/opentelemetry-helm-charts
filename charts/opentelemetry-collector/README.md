@@ -338,17 +338,19 @@ presets:
 
 ### Configuration for Retrieving Control Plane Metrics
 
-The collector can scrape the self-managed Kubernetes control plane: kube-controller-manager, kube-scheduler, kube-proxy, DNS (CoreDNS, and optionally the NodeLocal DNSCache addon) and etcd. It complements `kubernetesApiServerMetrics`, which only scrapes the API server.
+The collector can scrape the self-managed Kubernetes control plane: kube-controller-manager, kube-scheduler, kube-proxy, DNS (CoreDNS, and optionally the NodeLocal DNSCache addon) and etcd. It complements `kubernetesApiServerMetrics`: apiserver coverage lives in `kubernetesApiServerMetrics`, so it is deliberately not scraped twice.
 
 This feature is disabled by default and has hard requirements, checked when the chart renders:
 
 - `mode: daemonset`. Targets are node-local: each agent scrapes only the control plane pods running on its own node.
-- `hostNetwork: true`, together with `dnsPolicy: ClusterFirstWithHostNet`. Without the latter a hostNetwork pod uses the node's `resolv.conf` and cannot resolve in-cluster `*.svc` names, which breaks exporters that use cluster service endpoints. kubeadm binds the controller-manager, scheduler, kube-proxy and etcd metrics endpoints to `127.0.0.1`, so the agent scrapes `127.0.0.1:<port>` from the host network namespace. Components that set `endpoint` (for example the pod IP on clusters that bind `0.0.0.0`) do not need it.
+- `hostNetwork: true`, together with `dnsPolicy: ClusterFirstWithHostNet`. Without the latter a hostNetwork pod uses the node's `resolv.conf` and cannot resolve in-cluster `*.svc` names, which breaks exporters that use cluster service endpoints. kubeadm binds the controller-manager, scheduler, kube-proxy and etcd metrics endpoints to `127.0.0.1`, so the agent scrapes `127.0.0.1:<port>` from the host network namespace.
 - A toleration for the control-plane taint, so an agent runs on the control-plane nodes. The preset does not add it, see `examples/daemonset-control-plane-metrics`.
 
-Enabling the preset activates controller-manager, scheduler, kube-proxy and DNS. etcd is opt-in (`etcd.enabled: true`). Each component accepts `enabled`, `scrapeAll` (default `false`: a curated set from the kubernetes-mixin), `selector` (pod labels in `kube-system` for non-kubeadm distributions) and `endpoint` (a full `host:port` target). By default etcd is scraped over plain http on `127.0.0.1:2381` (loopback-only on kubeadm, no Secret needed); set `etcd.secret` to the name of an existing Secret (plus the key names of the client certificate, key and CA inside it) to scrape `:2379` over mTLS. **Warning:** on kubeadm the commonly suggested `healthcheck-client` certificate is cluster-admin equivalent (etcd has no RBAC, so it can read and write every Secret); prefer the plain-http listener, or use a least-privilege client certificate.
+Enabling the preset activates controller-manager, scheduler, kube-proxy and DNS. etcd is opt-in (`etcd.enabled: true`), and NodeLocal DNSCache is opt-in too (`dns.nodeLocal.enabled: true`). Each component only accepts `enabled`. The preset ships every metric a component exposes (no filtering; expect a few hundred series per enabled component per node). By default etcd is scraped over plain http on `127.0.0.1:2381` (loopback-only on kubeadm, no Secret needed); set `etcd.secret` to the name of an existing Secret (plus the key names of the client certificate, key and CA inside it) to scrape `:2379` over mTLS. **Warning:** on kubeadm the commonly suggested `healthcheck-client` certificate is cluster-admin equivalent (etcd has no RBAC, so it can read and write every Secret); prefer the plain-http listener, or use a least-privilege client certificate.
 
-controller-manager and scheduler are scraped over https with the ServiceAccount token, which the chart's ClusterRole authorizes through `nonResourceURLs: ["/metrics"]`. If a component shows no data, the failure mode tells where to look: connection refused means the endpoint is not on loopback or `hostNetwork` is off, a TLS failure means the scheme or certificate is wrong, 401 means the token was not accepted, 403 means the RBAC grant is missing. On managed control planes (EKS, GKE, AKS) controller-manager, scheduler and etcd are hidden: no pod matches and they stay silent, while kube-proxy and DNS work. k3s and RKE2 embed the control plane and are not supported. The support matrix and the source of the curated metrics are documented in `values.yaml`.
+Targets, ports and pod label rules are not configurable through values. To change them (for example kube-proxy pods without the `k8s-app` label, which some kops configurations use, or etcd-manager on kops), deep-merge your own entry for the same receiver (such as `prometheus/proxy`) into `config.receivers["receiver_creator/control_plane"].receivers`. CoreDNS is also scraped by `prometheusAnnotationDiscovery` when service rules are enabled, because the kubeadm kube-dns Service carries `prometheus.io/scrape`: disable `dns` here in that case (see the note in `values.yaml`).
+
+controller-manager and scheduler are scraped over https with the ServiceAccount token, which the chart's ClusterRole authorizes through `nonResourceURLs: ["/metrics"]`. If a component shows no data, the failure mode tells where to look: connection refused means the component is not on loopback or `hostNetwork` is off, a TLS failure means the scheme or certificate is wrong, 401 means the token was not accepted, 403 means the RBAC grant is missing. On managed control planes (EKS, GKE, AKS) controller-manager, scheduler and etcd are hidden: no pod matches and they stay silent (the chart prints a warning in NOTES), while kube-proxy and DNS work. k3s and RKE2 embed the control plane and are not supported. On OpenShift only the API server is supported, through `kubernetesApiServerMetrics`: controller-manager, scheduler and etcd metrics require operator-reserved TLS client certificates. The support matrix is documented in `values.yaml`.
 
 ```yaml
 mode: daemonset
@@ -359,7 +361,7 @@ tolerations:
     operator: Exists
     effect: NoSchedule
 presets:
-  controlPlaneMetrics:
+  k8sControlPlaneMetrics:
     enabled: true
 ```
 

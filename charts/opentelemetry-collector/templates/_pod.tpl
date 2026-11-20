@@ -251,7 +251,7 @@ containers:
         subPath: {{ .subPath }}
         {{- end }}
       {{- end }}
-      {{- if and .Values.presets.controlPlaneMetrics.enabled .Values.presets.controlPlaneMetrics.etcd.enabled .Values.presets.controlPlaneMetrics.etcd.secret.name }}
+      {{- if and .Values.presets.k8sControlPlaneMetrics.enabled .Values.presets.k8sControlPlaneMetrics.etcd.enabled .Values.presets.k8sControlPlaneMetrics.etcd.secret.name }}
       - name: control-plane-etcd
         mountPath: /etc/otelcol/control-plane-etcd
         readOnly: true
@@ -421,10 +421,10 @@ volumes:
     secret:
       secretName: {{ .secretName }}
   {{- end }}
-  {{- if and .Values.presets.controlPlaneMetrics.enabled .Values.presets.controlPlaneMetrics.etcd.enabled .Values.presets.controlPlaneMetrics.etcd.secret.name }}
+  {{- if and .Values.presets.k8sControlPlaneMetrics.enabled .Values.presets.k8sControlPlaneMetrics.etcd.enabled .Values.presets.k8sControlPlaneMetrics.etcd.secret.name }}
   - name: control-plane-etcd
     secret:
-      secretName: {{ .Values.presets.controlPlaneMetrics.etcd.secret.name }}
+      secretName: {{ .Values.presets.k8sControlPlaneMetrics.etcd.secret.name }}
   {{- end }}
   {{- if .Values.presets.logsCollection.enabled }}
   {{- if .Values.isWindows }}

@@ -25,21 +25,6 @@ data:
         observe_pods: true
         observe_services: false
     processors:
-      filter/control_plane:
-        metrics:
-          metric:
-          - resource.attributes["service.name"] == "kubernetes-controller-manager" and
-            not IsMatch(metric.name, "^(up|process_cpu_seconds_total|process_resident_memory_bytes|go_goroutines|rest_client_requests_total|rest_client_request_duration_seconds|workqueue_adds_total|workqueue_depth|workqueue_queue_duration_seconds|workqueue_work_duration_seconds|workqueue_retries_total|leader_election_master_status)$")
-          - resource.attributes["service.name"] == "kubernetes-scheduler" and not IsMatch(metric.name,
-            "^(up|process_cpu_seconds_total|process_resident_memory_bytes|go_goroutines|rest_client_requests_total|rest_client_request_duration_seconds|scheduler_pending_pods|scheduler_schedule_attempts_total|scheduler_scheduling_attempt_duration_seconds|scheduler_pod_scheduling_sli_duration_seconds|scheduler_e2e_scheduling_duration_seconds|scheduler_preemption_attempts_total|scheduler_preemption_victims|workqueue_adds_total|workqueue_depth|workqueue_queue_duration_seconds|leader_election_master_status)$")
-          - resource.attributes["service.name"] == "kubernetes-proxy" and not IsMatch(metric.name,
-            "^(up|process_cpu_seconds_total|process_resident_memory_bytes|go_goroutines|rest_client_requests_total|rest_client_request_duration_seconds|kubeproxy_sync_proxy_rules_.*|kubeproxy_network_programming_duration_seconds)$")
-          - resource.attributes["service.name"] == "kubernetes-coredns" and not IsMatch(metric.name,
-            "^(up|process_cpu_seconds_total|process_resident_memory_bytes|go_goroutines|coredns_dns_.*|coredns_cache_.*|coredns_forward_.*|coredns_panics_total|coredns_health_request_failures_total|coredns_reload_failed_total)$")
-          - resource.attributes["service.name"] == "kubernetes-node-local-dns" and not
-            IsMatch(metric.name, "^(up|process_cpu_seconds_total|process_resident_memory_bytes|go_goroutines|coredns_dns_.*|coredns_cache_.*|coredns_forward_.*|coredns_nodecache_.*|coredns_panics_total)$")
-          - resource.attributes["service.name"] == "kubernetes-etcd" and not IsMatch(metric.name,
-            "^(up|process_cpu_seconds_total|process_resident_memory_bytes|go_goroutines|etcd_server_.*|etcd_disk_.*|etcd_network_.*|etcd_mvcc_db_total_size_in_bytes|etcd_mvcc_db_total_size_in_use_in_bytes|etcd_debugging_mvcc_db_total_size_in_bytes|grpc_server_handled_total|grpc_server_started_total)$")
       memory_limiter:
         check_interval: 5s
         limit_percentage: 80
@@ -50,7 +35,7 @@ data:
         - context: resource
           statements:
           - set(resource.attributes["k8s.node.name"], "${env:K8S_NODE_NAME}") where IsMatch(resource.attributes["service.name"],
-            "^(kubernetes-controller-manager|kubernetes-scheduler|kubernetes-proxy|kubernetes-coredns|kubernetes-node-local-dns|kubernetes-etcd)$")
+            "^(kubernetes-scheduler|kubernetes-controller-manager|kubernetes-proxy|kubernetes-coredns|kubernetes-node-local-dns|kubernetes-etcd)$")
             and resource.attributes["k8s.node.name"] == nil
       transform/prometheus:
         error_mode: ignore
@@ -186,8 +171,8 @@ data:
               k8s.namespace.name: '`namespace`'
               k8s.pod.name: '`name`'
               k8s.pod.uid: '`uid`'
-            rule: type == "pod" && namespace == "kube-system" && (labels["component"]
-              == "etcd" && labels["tier"] == "control-plane")
+            rule: type == "pod" && namespace == "kube-system" && labels["component"] ==
+              "etcd" && labels["tier"] == "control-plane"
           prometheus/node_local_dns:
             config:
               config:
@@ -262,7 +247,6 @@ data:
           - debug
           processors:
           - memory_limiter
-          - filter/control_plane
           - transform/control_plane
           - transform/prometheus
           receivers:

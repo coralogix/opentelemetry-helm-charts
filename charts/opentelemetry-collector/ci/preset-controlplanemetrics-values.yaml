@@ -9,7 +9,7 @@ tolerations:
     effect: NoSchedule
 
 presets:
-  controlPlaneMetrics:
+  k8sControlPlaneMetrics:
     enabled: true
 
 resources:

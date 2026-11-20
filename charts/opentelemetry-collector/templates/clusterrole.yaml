@@ -1,7 +1,7 @@
-{{- if or (.Values.clusterRole.create) (.Values.presets.kubernetesAttributes.enabled) (.Values.presets.clusterMetrics.enabled) (.Values.presets.kubeletMetrics.enabled) (.Values.presets.kubernetesEvents.enabled) (.Values.presets.mysql.metrics.enabled) (.Values.presets.kubernetesResources.enabled) (and (.Values.presets.profilesCollection.enabled) (.Values.presets.profilesK8sAttributes.enabled)) (.Values.presets.loadBalancing.k8s.enabled) (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesApiServerMetrics.enabled) (.Values.presets.kubeletPrometheusMetrics.enabled) (.Values.presets.controlPlaneMetrics.enabled) (.Values.presets.prometheusAnnotationDiscovery.enabled) (.Values.presets.pprofReceiver.pull.enabled) (eq .Values.distribution "eks/fargate") -}}
-{{- if .Values.presets.controlPlaneMetrics.enabled -}}
+{{- if or (.Values.clusterRole.create) (.Values.presets.kubernetesAttributes.enabled) (.Values.presets.clusterMetrics.enabled) (.Values.presets.kubeletMetrics.enabled) (.Values.presets.kubernetesEvents.enabled) (.Values.presets.mysql.metrics.enabled) (.Values.presets.kubernetesResources.enabled) (and (.Values.presets.profilesCollection.enabled) (.Values.presets.profilesK8sAttributes.enabled)) (.Values.presets.loadBalancing.k8s.enabled) (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesApiServerMetrics.enabled) (.Values.presets.kubeletPrometheusMetrics.enabled) (.Values.presets.k8sControlPlaneMetrics.enabled) (.Values.presets.prometheusAnnotationDiscovery.enabled) (.Values.presets.pprofReceiver.pull.enabled) (eq .Values.distribution "eks/fargate") -}}
+{{- if .Values.presets.k8sControlPlaneMetrics.enabled -}}
 {{- /* Validated here, not in the config helpers, so the guards also fire when configMap.create is false. */ -}}
-{{- $_ := include "opentelemetry-collector.validateControlPlaneMetrics" .Values -}}
+{{- $_ := include "opentelemetry-collector.validateK8sControlPlaneMetrics" .Values -}}
 {{- end -}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -69,12 +69,12 @@ rules:
     - "/metrics"
     verbs: ["get"]
   {{- end }}
-  {{- if .Values.presets.controlPlaneMetrics.enabled }}
+  {{- if .Values.presets.k8sControlPlaneMetrics.enabled }}
   # k8s_observer/control_plane watches pods.
   - apiGroups: [""]
     resources: ["pods"]
     verbs: ["get", "watch", "list"]
-  {{- if or .Values.presets.controlPlaneMetrics.controllerManager.enabled .Values.presets.controlPlaneMetrics.scheduler.enabled }}
+  {{- if or .Values.presets.k8sControlPlaneMetrics.controllerManager.enabled .Values.presets.k8sControlPlaneMetrics.scheduler.enabled }}
   # controller-manager and scheduler authorize /metrics through delegated SubjectAccessReview on the nonResourceURL.
   - nonResourceURLs:
     - "/metrics"

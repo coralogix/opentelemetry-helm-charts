@@ -424,15 +424,14 @@ presets:
     # (e.g. namespace -> k8s.namespace.name, pod -> k8s.pod.name). k8s.node.name is always set on the resource.
     semconv: true
 
-  # Configures the collector to scrape the self-managed Kubernetes control plane (CX-41498):
+  # Configures the collector to scrape the Kubernetes control plane (CX-41498):
   # kube-controller-manager, kube-scheduler, kube-proxy, DNS (CoreDNS, optionally NodeLocal DNSCache) and etcd.
-  # Sibling of kubernetesApiServerMetrics (which scrapes only the API server).
+  # kube-apiserver is NOT part of this preset: apiserver coverage lives in `kubernetesApiServerMetrics`.
   #
   # Requirements (hard-checked at render time):
   #   * mode: daemonset    - targets are node-local, every agent scrapes only the pods on its own node.
   #   * hostNetwork: true  - kubeadm binds controller-manager, scheduler, kube-proxy and etcd metrics to
   #                          127.0.0.1, so they are scraped as 127.0.0.1:<port> from the host network namespace.
-  #                          (Not needed when every enabled loopback component sets `endpoint`.)
   #   * dnsPolicy: ClusterFirstWithHostNet - required together with hostNetwork. A hostNetwork pod otherwise falls
   #                          back to the node's resolv.conf and cannot resolve in-cluster *.svc names, which breaks
   #                          exporters that point at cluster service endpoints.
@@ -441,9 +440,12 @@ presets:
   #
   # Discovery: a dedicated k8s_observer/control_plane + receiver_creator/control_plane pair (node-scoped through
   # K8S_NODE_NAME) matches `type == "pod"` in kube-system by label. A `prometheus` receiver with an explicit
-  # job_name is used per component, so `service.name` (the job_name) is stable and the curated filters can key on it.
+  # job_name is used per component, so `service.name` (the job_name) is stable.
   # Resource attributes k8s.pod.name, k8s.pod.uid and k8s.namespace.name (receiver_creator) and k8s.node.name
   # (transform/control_plane) keep the identical 127.0.0.1:<port> targets of different nodes apart.
+  #
+  # No metric filtering: every metric a component exposes is shipped (expect a few hundred series per enabled
+  # component per node). Drop what you do not need with a `filter` processor in `config`.
   #
   # Authentication:
   #   * controller-manager / scheduler (https): the ServiceAccount token. kubeadm configures delegated authorization
@@ -453,93 +455,63 @@ presets:
   #   * etcd with `secret.name`: mTLS on :2379 with a client certificate from an EXISTING Secret.
   #
   # Troubleshooting a silent component (check the collector log / `up` metric):
-  #   * connection refused   -> the component is not on 127.0.0.1 (set `endpoint`) or hostNetwork is off.
+  #   * connection refused   -> the component is not on 127.0.0.1 or hostNetwork is off.
   #   * TLS failure          -> serving certificate not trusted / wrong scheme; etcd needs `secret` for :2379.
   #   * 401                  -> ServiceAccount token not presented or not accepted by the component.
   #   * 403                  -> RBAC: ClusterRole is missing `nonResourceURLs: ["/metrics"] get`.
-  #   * no target at all     -> no pod matched the label rule: check `selector` and the kube-system labels.
+  #   * no target at all     -> no pod matched the label rule in kube-system (see the support matrix).
   #
   # Support matrix (component x distribution):
   #   kubeadm / kind / minikube : controllerManager, scheduler, proxy, dns, etcd (default labels and ports).
   #   kops                      : controllerManager/scheduler use `k8s-app=kube-controller-manager|kube-scheduler`
   #                               (matched by default). etcd runs as etcd-manager (`k8s-app=etcd-manager-main`,
-  #                               `etcd-manager-events`): set `etcd.selector`/`etcd.port` for your setup.
+  #                               `etcd-manager-events`) and kube-proxy may lack the `k8s-app` label: these need a
+  #                               raw `config` override of receiver_creator/control_plane (see below).
   #   EKS / GKE / AKS           : proxy and dns work. controllerManager, scheduler and etcd run on the hidden managed
   #                               control plane: no pod matches, they stay silent (harmless; disable them to be explicit).
   #                               GKE ships kube-dns (not CoreDNS, same `k8s-app=kube-dns` label, different metrics
-  #                               ports): set `dns.enabled: false` there until kube-dns support lands.
+  #                               ports): set `dns.enabled: false` there.
   #   k3s / RKE2                : not supported, the control plane is embedded in one process (no pods).
+  #   OpenShift                 : apiserver only (scrapes `kubernetes.default.svc`, needs only the /metrics
+  #                               nonResourceURL RBAC). controllerManager/scheduler/etcd unsupported: metrics require
+  #                               operator-reserved TLS client certificates; label conventions differ (no
+  #                               component/tier/k8s-app on kubeadm-style static pods).
   #
-  # Curated metrics (scrapeAll: false) are the dashboard/alert inputs of the kubernetes-mixin and kube-prometheus-stack
-  # (https://github.com/kubernetes-monitoring/kubernetes-mixin, https://github.com/prometheus-community/helm-charts):
-  #   controllerManager: workqueue_*, rest_client_*, leader_election_master_status, process/go basics (mixin: kube-controller-manager dashboard)
-  #   scheduler        : scheduler_pending_pods, scheduler_schedule_attempts_total, scheduler_scheduling_attempt_duration_seconds,
-  #                      scheduler_pod_scheduling_sli_duration_seconds, scheduler_e2e_scheduling_duration_seconds,
-  #                      scheduler_preemption_attempts_total, scheduler_preemption_victims, workqueue_*, rest_client_*
-  #                      (mixin: scheduler dashboard + alerts; the per-plugin/extension-point histograms are NOT kept)
-  #   proxy            : kubeproxy_sync_proxy_rules_*, kubeproxy_network_programming_duration_seconds, rest_client_* (mixin: proxy dashboard)
-  #   etcd             : etcd_server_*, etcd_disk_*, etcd_network_*, etcd_mvcc_db_*, grpc_server_* (mixin: etcd alerts + dashboard)
-  #   dns              : coredns_dns_*, coredns_cache_*, coredns_forward_*, coredns_panics_total (kube-prometheus-stack coredns dashboard)
-  # `up` is always kept. Set scrapeAll: true on a component to keep every metric it exposes.
-  controlPlaneMetrics:
+  # Escape hatch: the targets, ports and label rules are not configurable here. To change them, deep-merge your own
+  # `config.receivers["receiver_creator/control_plane"].receivers` entries (same receiver names, e.g.
+  # `prometheus/scheduler`) over the preset output through `config`.
+  k8sControlPlaneMetrics:
     # Flipping this on activates controllerManager + scheduler + proxy + dns. etcd stays opt-in.
     enabled: false
     scrapeInterval: 30s
-    # Every component also accepts:
-    #   selector: {}  Pod labels (kube-system) replacing the default discovery labels, e.g. {k8s-app: my-scheduler}.
-    #   endpoint: ""  Full host:port target replacing the default. Receiver-creator variables can be used, e.g.
-    #                 "`endpoint`:10257" scrapes the pod IP instead of 127.0.0.1 on clusters that bind 0.0.0.0.
-    #                 Single-stack IPv6 clusters: override `endpoint` with `[::1]:<port>` for loopback components.
     # Note: service.instance.id is `127.0.0.1:<port>` on every node for the loopback components. To tell nodes apart
     # in a backend, use k8s.node.name / k8s.pod.* instead.
-    # Default labels: component=kube-controller-manager + tier=control-plane (kubeadm) or k8s-app=kube-controller-manager (kops).
+    # Labels: component=kube-controller-manager + tier=control-plane (kubeadm) or k8s-app=kube-controller-manager (kops).
     controllerManager:
       enabled: true
-      scrapeAll: false
-      selector: {}
-      endpoint: ""
-    # Default labels: component=kube-scheduler + tier=control-plane (kubeadm) or k8s-app=kube-scheduler (kops).
+    # Labels: component=kube-scheduler + tier=control-plane (kubeadm) or k8s-app=kube-scheduler (kops).
     scheduler:
       enabled: true
-      scrapeAll: false
-      selector: {}
-      endpoint: ""
-    # Default labels: k8s-app=kube-proxy (kube-proxy DaemonSet, metrics on 127.0.0.1:10249).
+    # Labels: k8s-app=kube-proxy (kube-proxy DaemonSet, metrics on 127.0.0.1:10249).
     proxy:
       enabled: true
-      scrapeAll: false
-      selector: {}
-      endpoint: ""
-    # CoreDNS, default label k8s-app=kube-dns (kept by CoreDNS for compatibility), scraped on the pod IP.
+    # CoreDNS, label k8s-app=kube-dns (kept by CoreDNS for compatibility), scraped on the pod IP, port 9153.
     # Overlap: kubeadm's kube-dns Service carries prometheus.io/scrape: "true" and port: "9153". If
     # prometheusAnnotationDiscovery with service rules is enabled, disable dns here to avoid duplicate series
     # under a different service.name.
     dns:
       enabled: true
-      scrapeAll: false
-      # CoreDNS metrics port, "" means 9153.
-      port: ""
-      selector: {}
-      endpoint: ""
       # NodeLocal DNSCache addon (label k8s-app=node-local-dns, metrics :9253 on the pod IP). Needs dns.enabled
-      # (render fails otherwise). The dns `selector`, `endpoint` and `port` above do NOT apply to nodeLocal, which
-      # has its own defaults and overrides below.
+      # (render fails otherwise).
       nodeLocal:
         enabled: false
-        # Pod labels (kube-system) replacing the default k8s-app=node-local-dns.
-        selector: {}
-        # Metrics port, "" means 9253.
-        port: ""
-    # Default labels: component=etcd + tier=control-plane (kubeadm).
+    # Labels: component=etcd + tier=control-plane (kubeadm).
     etcd:
       enabled: false
-      scrapeAll: false
       # "" means 2381 (http, kubeadm listen-metrics-urls=http://127.0.0.1:2381), or 2379 (https) when secret.name is set.
       port: ""
       # Skip verifying the etcd serving certificate (only used with secret.name). When false, secret.caFile is required.
       skipVerify: true
-      selector: {}
-      endpoint: ""
       # mTLS on :2379 using a client certificate from an EXISTING Secret in the release namespace.
       # The chart never creates Secrets (private keys in values would leak through the Helm release history).
       # The Secret is mounted at /etc/otelcol/control-plane-etcd; the keys below are the key NAMES inside it.
