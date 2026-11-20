@@ -146,7 +146,22 @@ spec:
       {{- end }}
       {{- $_ := set $poolResourceDetection "detectors" $poolDetectors }}
       {{- $_ := set $poolPresets "resourceDetection" $poolResourceDetection }}
-      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset" "presets" $poolPresets "extraHostPathMounts" $poolHostPathMounts "extraVolumes" $poolExtraVolumes "extraVolumeMounts" $poolExtraVolumeMounts "initContainers" $poolInitContainers) }}
+      {{- /* Sidecar hostPorts collide with the per-node agent; drop them from the pool. */ -}}
+      {{- $poolExtraContainers := list }}
+      {{- range .Values.extraContainers }}
+        {{- $container := deepCopy . }}
+        {{- if hasKey $container "ports" }}
+          {{- $ports := list }}
+          {{- range $container.ports }}
+            {{- $port := deepCopy . }}
+            {{- $_ := unset $port "hostPort" }}
+            {{- $ports = append $ports $port }}
+          {{- end }}
+          {{- $_ := set $container "ports" $ports }}
+        {{- end }}
+        {{- $poolExtraContainers = append $poolExtraContainers $container }}
+      {{- end }}
+      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset" "presets" $poolPresets "extraHostPathMounts" $poolHostPathMounts "extraVolumes" $poolExtraVolumes "extraVolumeMounts" $poolExtraVolumeMounts "initContainers" $poolInitContainers "extraContainers" $poolExtraContainers) }}
       {{- end }}
       {{- $podCtx := mustMergeOverwrite (deepCopy .) (dict "Values" $podValues "configmapSuffix" "-statefulset" "isAgent" false) }}
       {{- include "opentelemetry-collector.pod" $podCtx | nindent 6 }}

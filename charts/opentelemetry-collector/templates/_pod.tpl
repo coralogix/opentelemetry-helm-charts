@@ -114,7 +114,7 @@ containers:
         {{- end }}
       {{- end -}}
       {{- end -}}
-      {{- $kubeNodeNeeded := or (and .Values.presets.resourceDetection.enabled .Values.presets.resourceDetection.k8sNodeName.enabled) .Values.presets.fleetManagement.enabled -}}
+      {{- $kubeNodeNeeded := or (and .Values.presets.resourceDetection.enabled .Values.presets.resourceDetection.k8sNodeName.enabled) .Values.presets.fleetManagement.enabled .Values.presets.k8sResourceAttributes.enabled -}}
       {{- if and $kubeNodeNeeded (not $kubeNodeExists) }}
       - name: KUBE_NODE_NAME
         valueFrom:
