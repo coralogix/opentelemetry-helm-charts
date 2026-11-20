@@ -6,10 +6,10 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.142.3
+    helm.sh/chart: opentelemetry-collector-0.143.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "0.164.0"
+    app.kubernetes.io/version: "0.165.0"
     app.kubernetes.io/managed-by: Helm
 spec:
   replicas: 1
@@ -20,11 +20,11 @@ spec:
       app.kubernetes.io/instance: example
       component: standalone-collector
   strategy:
-    type: RollingUpdate
+    type: Recreate
   template:
     metadata:
       annotations:
-        checksum/config: ffeb0df7e88a5e8a813a5387624a8b13541249d23074e009a90064c995d975fa
+        checksum/config: e033d28250631d611e3d7a3955c39e794d479efd70e92a5e91daead8aa07a580
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -43,15 +43,8 @@ spec:
             - --config=/conf/relay.yaml
           securityContext:
             {}
-          image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.164.0"
+          image: "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.165.0"
           imagePullPolicy: IfNotPresent
-          ports:
-            - name: otlp
-              containerPort: 4317
-              protocol: TCP
-            - name: otlp-http
-              containerPort: 4318
-              protocol: TCP
           env:
             - name: MY_POD_IP
               valueFrom:

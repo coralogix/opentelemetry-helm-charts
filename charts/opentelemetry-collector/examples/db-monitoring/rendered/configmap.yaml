@@ -6,10 +6,10 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.142.3
+    helm.sh/chart: opentelemetry-collector-0.143.2
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
-    app.kubernetes.io/version: "0.164.0"
+    app.kubernetes.io/version: "0.165.0"
     app.kubernetes.io/managed-by: Helm
 data:
   relay: |
@@ -272,13 +272,6 @@ data:
           - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
             == "opentelemetry-collector"
     receivers:
-      otlp:
-        protocols:
-          grpc:
-            endpoint: ${env:MY_POD_IP}:4317
-            max_recv_msg_size_mib: 20
-          http:
-            endpoint: ${env:MY_POD_IP}:4318
       postgresql/db_monitoring_postgresql_inventory_metrics:
         collection_interval: 5m
         connect_database: inventory
@@ -737,13 +730,6 @@ data:
       extensions:
       - health_check
       pipelines:
-        logs:
-          exporters:
-          - debug
-          processors:
-          - memory_limiter
-          receivers:
-          - otlp
         logs/db_monitoring_postgresql_orders_catalog:
           exporters:
           - debug
@@ -775,7 +761,6 @@ data:
           - transform/prometheus
           receivers:
           - prometheus
-          - otlp
         metrics/db_monitoring_postgresql_inventory:
           exporters:
           - debug
@@ -801,13 +786,6 @@ data:
           - sql_query/db_monitoring_postgresql_orders_health
           - sql_query/db_monitoring_postgresql_orders_tables_orders
           - sql_query/db_monitoring_postgresql_orders_tables_billing
-        traces:
-          exporters:
-          - debug
-          processors:
-          - memory_limiter
-          receivers:
-          - otlp
       telemetry:
         logs:
           encoding: json
