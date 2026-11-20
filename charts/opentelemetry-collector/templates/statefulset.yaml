@@ -66,15 +66,17 @@ spec:
       {{- $poolExtraVolumes := list }}
       {{- $isolatedVolumeNames := dict }}
       {{- range .Values.extraVolumes }}
-        {{- $isMixedHostPath := and (hasKey . "hostPath") (hasKey $readOnlyMountNames .name) (hasKey $writableMountNames .name) }}
-        {{- $keepHostPath := or (hasKey $presetReadOnlyNames .name) (and (hasKey $readOnlyMountNames .name) (not (hasKey $writableMountNames .name))) }}
-        {{- if $isMixedHostPath }}
-          {{- /* Keep hostPath for RO mounts; give RW mounts an isolated emptyDir twin. */ -}}
+        {{- $isSharedPath := or (hasKey . "hostPath") (hasKey . "persistentVolumeClaim") }}
+        {{- $isMixedShared := and $isSharedPath (hasKey $readOnlyMountNames .name) (hasKey $writableMountNames .name) }}
+        {{- $keepShared := or (hasKey $presetReadOnlyNames .name) (and (hasKey $readOnlyMountNames .name) (not (hasKey $writableMountNames .name))) }}
+        {{- if $isMixedShared }}
+          {{- /* Keep shared RO data; give RW mounts an isolated emptyDir twin. */ -}}
           {{- $poolExtraVolumes = append $poolExtraVolumes . }}
           {{- $isolatedName := printf "%s-pool-data" .name }}
           {{- $_ := set $isolatedVolumeNames .name $isolatedName }}
           {{- $poolExtraVolumes = append $poolExtraVolumes (dict "name" $isolatedName "emptyDir" (dict)) }}
-        {{- else if and (hasKey . "hostPath") (not $keepHostPath) }}
+        {{- else if and $isSharedPath (not $keepShared) }}
+          {{- /* Isolate writable hostPath/PVC queues from the co-located agent. */ -}}
           {{- $poolExtraVolumes = append $poolExtraVolumes (dict "name" .name "emptyDir" (dict)) }}
         {{- else }}
           {{- $poolExtraVolumes = append $poolExtraVolumes . }}
@@ -158,6 +160,19 @@ spec:
             {{- $ports = append $ports $port }}
           {{- end }}
           {{- $_ := set $container "ports" $ports }}
+        {{- end }}
+        {{- if and $isolatedVolumeNames (hasKey $container "volumeMounts") }}
+          {{- $sidecarMounts := list }}
+          {{- range $container.volumeMounts }}
+            {{- if and (hasKey $isolatedVolumeNames .name) (not .readOnly) }}
+              {{- $mount := deepCopy . }}
+              {{- $_ := set $mount "name" (index $isolatedVolumeNames .name) }}
+              {{- $sidecarMounts = append $sidecarMounts $mount }}
+            {{- else }}
+              {{- $sidecarMounts = append $sidecarMounts . }}
+            {{- end }}
+          {{- end }}
+          {{- $_ := set $container "volumeMounts" $sidecarMounts }}
         {{- end }}
         {{- $poolExtraContainers = append $poolExtraContainers $container }}
       {{- end }}

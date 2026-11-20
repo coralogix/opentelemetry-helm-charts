@@ -644,8 +644,8 @@ Build config file for deployment OpenTelemetry Collector
         {{- end }}
         {{- if not (hasKey $connectors $receiverName) }}
           {{- $newReceivers = append $newReceivers $receiver }}
-        {{- else if or (eq $receiverName "forward") (hasPrefix "forward/" $receiverName) }}
-          {{- /* forward connectors only move data within a signal */ -}}
+        {{- else if or (eq $receiverName "forward") (hasPrefix "forward/" $receiverName) (eq $receiverName "roundrobin") (hasPrefix "roundrobin/" $receiverName) }}
+          {{- /* Same-signal connectors must keep a producer in this signal. */ -}}
           {{- if has $receiverName $producedSameSignal }}
             {{- $newReceivers = append $newReceivers $receiver }}
           {{- end }}
@@ -806,10 +806,10 @@ Build config file for deployment OpenTelemetry Collector
   {{- end }}
   {{- range $signal, $exporterNames := $exportsBySignal }}
     {{- range $exporter := $exporterNames }}
-      {{- $forwardOnly := or (eq $exporter "forward") (hasPrefix "forward/" $exporter) }}
+      {{- $sameSignalOnly := or (eq $exporter "forward") (hasPrefix "forward/" $exporter) (eq $exporter "roundrobin") (hasPrefix "roundrobin/" $exporter) }}
       {{- range $name, $pipeline := $allPipelines }}
         {{- $consumerSignal := index (splitList "/" $name) 0 }}
-        {{- if and (or (not $forwardOnly) (eq $signal $consumerSignal)) (not (hasKey $keep $name)) (has $exporter (default (list) $pipeline.receivers)) }}
+        {{- if and (or (not $sameSignalOnly) (eq $signal $consumerSignal)) (not (hasKey $keep $name)) (has $exporter (default (list) $pipeline.receivers)) }}
           {{- $_ := set $keep $name $pipeline }}
         {{- end }}
       {{- end }}
@@ -840,7 +840,7 @@ Build config file for deployment OpenTelemetry Collector
       {{- if and (hasKey $seeded $name) (eq $receiver "prometheus") }}
         {{- $newReceivers = append $newReceivers $receiver }}
       {{- else if hasKey $connectors $receiver }}
-        {{- if or (eq $receiver "forward") (hasPrefix "forward/" $receiver) }}
+        {{- if or (eq $receiver "forward") (hasPrefix "forward/" $receiver) (eq $receiver "roundrobin") (hasPrefix "roundrobin/" $receiver) }}
           {{- if has $receiver $producedSameSignal }}
             {{- $newReceivers = append $newReceivers $receiver }}
           {{- end }}
