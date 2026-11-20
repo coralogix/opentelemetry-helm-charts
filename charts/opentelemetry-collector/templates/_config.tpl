@@ -334,7 +334,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- end }}
 {{- end }}
 {{- $config = (include "opentelemetry-collector.removePipelinesWithoutExporters" (dict "config" $config) | fromYaml) }}
-{{- $config = (include "opentelemetry-collector.removePipelinesWithoutReceivers" (dict "config" $config) | fromYaml) }}
+{{- $config = (include "opentelemetry-collector.removePipelinesWithoutReceivers" (dict "config" $config "root" .) | fromYaml) }}
 {{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") (eq (len (default (dict) $config.service.pipelines)) 0) }}
 {{- $config = (include "opentelemetry-collector.applyIdleAgentPipeline" (dict "config" $config) | fromYaml) }}
 {{- end }}
@@ -515,9 +515,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.applyMemoryLimiterProcessorAsFirst" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.removePipelinesWithoutExporters" (dict "config" $config) | fromYaml) }}
-{{- $config = (include "opentelemetry-collector.removePipelinesWithoutReceivers" (dict "config" $config) | fromYaml) }}
+{{- $config = (include "opentelemetry-collector.removePipelinesWithoutReceivers" (dict "config" $config "root" .) | fromYaml) }}
 {{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") .isTargetAllocatorPool }}
-{{- $config = (include "opentelemetry-collector.applyTargetAllocatorPoolConfig" (dict "config" $config "fullname" (include "opentelemetry-collector.fullname" $data) "workloadKind" "statefulset") | fromYaml) }}
+{{- $config = (include "opentelemetry-collector.applyTargetAllocatorPoolConfig" (dict "config" $config "fullname" (include "opentelemetry-collector.fullname" $data) "workloadKind" "statefulset" "root" .) | fromYaml) }}
 {{- end }}
 {{- $supervisorEnabled := and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
 {{- if and ($supervisorEnabled) (.Values.presets.fleetManagement.supervisor.minimalCollectorConfig) }}
@@ -567,6 +567,7 @@ Build config file for deployment OpenTelemetry Collector
 
 {{- define "opentelemetry-collector.removePipelinesWithoutReceivers" -}}
 {{- $config := deepCopy .config -}}
+{{- $root := .root -}}
 {{- if and $config.service $config.service.pipelines }}
   {{- $connectors := $config.connectors | default dict }}
   {{- /* Drop empty pipelines, then prune orphaned connector inputs and newly emptied consumers. */ -}}
@@ -588,9 +589,13 @@ Build config file for deployment OpenTelemetry Collector
       {{- $signal := index (splitList "/" $pipelineName) 0 }}
       {{- $produced := default (list) (index $producedBySignal $signal) }}
       {{- range $exporter := (default (list) $pipeline.exporters) }}
-        {{- if hasKey $connectors $exporter }}
-          {{- $produced = append $produced $exporter }}
-          {{- $producedAny = append $producedAny $exporter }}
+        {{- $exporterName := $exporter }}
+        {{- if and $root (kindIs "string" $exporter) }}
+          {{- $exporterName = tpl $exporter $root }}
+        {{- end }}
+        {{- if hasKey $connectors $exporterName }}
+          {{- $produced = append $produced $exporterName }}
+          {{- $producedAny = append $producedAny $exporterName }}
         {{- end }}
       {{- end }}
       {{- $_ := set $producedBySignal $signal ($produced | uniq) }}
@@ -601,14 +606,18 @@ Build config file for deployment OpenTelemetry Collector
       {{- $producedSameSignal := default (list) (index $producedBySignal $signal) }}
       {{- $newReceivers := list }}
       {{- range $receiver := (default (list) $pipeline.receivers) }}
-        {{- if not (hasKey $connectors $receiver) }}
+        {{- $receiverName := $receiver }}
+        {{- if and $root (kindIs "string" $receiver) }}
+          {{- $receiverName = tpl $receiver $root }}
+        {{- end }}
+        {{- if not (hasKey $connectors $receiverName) }}
           {{- $newReceivers = append $newReceivers $receiver }}
-        {{- else if or (eq $receiver "forward") (hasPrefix "forward/" $receiver) }}
+        {{- else if or (eq $receiverName "forward") (hasPrefix "forward/" $receiverName) }}
           {{- /* forward connectors only move data within a signal */ -}}
-          {{- if has $receiver $producedSameSignal }}
+          {{- if has $receiverName $producedSameSignal }}
             {{- $newReceivers = append $newReceivers $receiver }}
           {{- end }}
-        {{- else if has $receiver $producedAny }}
+        {{- else if has $receiverName $producedAny }}
           {{- /* Preserve cross-signal connectors such as spanmetrics. */ -}}
           {{- $newReceivers = append $newReceivers $receiver }}
         {{- end }}
@@ -685,8 +694,32 @@ Build config file for deployment OpenTelemetry Collector
 
 {{- define "opentelemetry-collector.applyTargetAllocatorPoolConfig" -}}
 {{- $config := .config }}
+{{- $root := .root -}}
 {{- /* Keep metrics pipelines that consume the allocated prometheus receiver, plus same-signal connector consumers. */ -}}
 {{- $allPipelines := $config.service.pipelines | default dict }}
+{{- if $root }}
+  {{- range $name, $pipeline := $allPipelines }}
+    {{- $resolvedReceivers := list }}
+    {{- range $receiver := (default (list) $pipeline.receivers) }}
+      {{- if kindIs "string" $receiver }}
+        {{- $resolvedReceivers = append $resolvedReceivers (tpl $receiver $root) }}
+      {{- else }}
+        {{- $resolvedReceivers = append $resolvedReceivers $receiver }}
+      {{- end }}
+    {{- end }}
+    {{- $resolvedExporters := list }}
+    {{- range $exporter := (default (list) $pipeline.exporters) }}
+      {{- if kindIs "string" $exporter }}
+        {{- $resolvedExporters = append $resolvedExporters (tpl $exporter $root) }}
+      {{- else }}
+        {{- $resolvedExporters = append $resolvedExporters $exporter }}
+      {{- end }}
+    {{- end }}
+    {{- $_ := set $pipeline "receivers" $resolvedReceivers }}
+    {{- $_ := set $pipeline "exporters" $resolvedExporters }}
+    {{- $_ := set $allPipelines $name $pipeline }}
+  {{- end }}
+{{- end }}
 {{- $connectors := $config.connectors | default dict }}
 {{- $keep := dict }}
 {{- $seeded := dict }}

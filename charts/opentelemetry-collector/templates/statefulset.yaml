@@ -53,15 +53,20 @@ spec:
       {{- /* Keep read-only hostPaths; replace writable queue hostPaths with emptyDir so pool pods are isolated. */ -}}
       {{- $poolHostPathMounts := list }}
       {{- $poolExtraVolumeMounts := deepCopy (.Values.extraVolumeMounts | default list) }}
-      {{- $readOnlyMountNames := dict "etcmachineid" true "varlibdbusmachineid" true }}
+      {{- $presetReadOnlyNames := dict "etcmachineid" true "varlibdbusmachineid" true }}
+      {{- $writableMountNames := dict }}
+      {{- $readOnlyMountNames := dict }}
       {{- range .Values.extraVolumeMounts }}
         {{- if .readOnly }}
           {{- $_ := set $readOnlyMountNames .name true }}
+        {{- else }}
+          {{- $_ := set $writableMountNames .name true }}
         {{- end }}
       {{- end }}
       {{- $poolExtraVolumes := list }}
       {{- range .Values.extraVolumes }}
-        {{- if and (hasKey . "hostPath") (not (hasKey $readOnlyMountNames .name)) }}
+        {{- $keepHostPath := or (hasKey $presetReadOnlyNames .name) (and (hasKey $readOnlyMountNames .name) (not (hasKey $writableMountNames .name))) }}
+        {{- if and (hasKey . "hostPath") (not $keepHostPath) }}
           {{- $poolExtraVolumes = append $poolExtraVolumes (dict "name" .name "emptyDir" (dict)) }}
         {{- else }}
           {{- $poolExtraVolumes = append $poolExtraVolumes . }}
