@@ -83,6 +83,8 @@ spec:
         {{- end }}
       {{- end }}
       {{- $poolInitContainers := deepCopy (.Values.initContainers | default list) }}
+      {{- /* Track which volume+subPath pairs were isolated so writers of RO subpaths stay put. */ -}}
+      {{- $isolatedSubpaths := dict }}
       {{- if $isolatedVolumeNames }}
         {{- $remappedMounts := list }}
         {{- range $poolExtraVolumeMounts }}
@@ -90,19 +92,22 @@ spec:
             {{- $mount := deepCopy . }}
             {{- $_ := set $mount "name" (index $isolatedVolumeNames .name) }}
             {{- $remappedMounts = append $remappedMounts $mount }}
+            {{- $subKey := printf "%s|%s" .name (.subPath | default "") }}
+            {{- $_ := set $isolatedSubpaths $subKey true }}
           {{- else }}
             {{- $remappedMounts = append $remappedMounts . }}
           {{- end }}
         {{- end }}
         {{- $poolExtraVolumeMounts = $remappedMounts }}
-        {{- /* Keep init writers on the same isolated twin as the main container RW mounts. */ -}}
+        {{- /* Remap writers only for subpaths the collector isolated, not every writable mount. */ -}}
         {{- $remappedInits := list }}
         {{- range $poolInitContainers }}
           {{- $init := deepCopy . }}
           {{- if hasKey $init "volumeMounts" }}
             {{- $initMounts := list }}
             {{- range $init.volumeMounts }}
-              {{- if and (hasKey $isolatedVolumeNames .name) (not .readOnly) }}
+              {{- $subKey := printf "%s|%s" .name (.subPath | default "") }}
+              {{- if hasKey $isolatedSubpaths $subKey }}
                 {{- $mount := deepCopy . }}
                 {{- $_ := set $mount "name" (index $isolatedVolumeNames .name) }}
                 {{- $initMounts = append $initMounts $mount }}
@@ -164,7 +169,8 @@ spec:
         {{- if and $isolatedVolumeNames (hasKey $container "volumeMounts") }}
           {{- $sidecarMounts := list }}
           {{- range $container.volumeMounts }}
-            {{- if and (hasKey $isolatedVolumeNames .name) (not .readOnly) }}
+            {{- $subKey := printf "%s|%s" .name (.subPath | default "") }}
+            {{- if hasKey $isolatedSubpaths $subKey }}
               {{- $mount := deepCopy . }}
               {{- $_ := set $mount "name" (index $isolatedVolumeNames .name) }}
               {{- $sidecarMounts = append $sidecarMounts $mount }}
@@ -176,9 +182,20 @@ spec:
         {{- end }}
         {{- $poolExtraContainers = append $poolExtraContainers $container }}
       {{- end }}
-      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset" "presets" $poolPresets "extraHostPathMounts" $poolHostPathMounts "extraVolumes" $poolExtraVolumes "extraVolumeMounts" $poolExtraVolumeMounts "initContainers" $poolInitContainers "extraContainers" $poolExtraContainers) }}
+      {{- /* Agent anti-affinity would keep pool pods Pending beside healthy agents. */ -}}
+      {{- $poolAffinity := deepCopy (.Values.affinity | default dict) }}
+      {{- if hasKey $poolAffinity "podAntiAffinity" }}
+        {{- $_ := unset $poolAffinity "podAntiAffinity" }}
       {{- end }}
-      {{- $podCtx := mustMergeOverwrite (deepCopy .) (dict "Values" $podValues "configmapSuffix" "-statefulset" "isAgent" false) }}
+      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset" "presets" $poolPresets "extraHostPathMounts" $poolHostPathMounts "extraVolumes" $poolExtraVolumes "extraVolumeMounts" $poolExtraVolumeMounts "initContainers" $poolInitContainers "extraContainers" $poolExtraContainers) }}
+      {{- /* Replace affinity wholesale; mergeOverwrite would otherwise keep podAntiAffinity. */ -}}
+      {{- $_ := set $podValues "affinity" $poolAffinity }}
+      {{- end }}
+      {{- /* Replace Values wholesale so stripped affinity/volumes are not re-merged from root. */ -}}
+      {{- $podCtx := deepCopy . }}
+      {{- $_ := set $podCtx "Values" $podValues }}
+      {{- $_ := set $podCtx "configmapSuffix" "-statefulset" }}
+      {{- $_ := set $podCtx "isAgent" false }}
       {{- include "opentelemetry-collector.pod" $podCtx | nindent 6 }}
       {{- if not .Values.isWindows }}
       hostNetwork: {{ and .Values.hostNetwork (not (and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset"))) }}
