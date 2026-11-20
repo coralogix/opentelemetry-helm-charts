@@ -80,6 +80,7 @@ spec:
           {{- $poolExtraVolumes = append $poolExtraVolumes . }}
         {{- end }}
       {{- end }}
+      {{- $poolInitContainers := deepCopy (.Values.initContainers | default list) }}
       {{- if $isolatedVolumeNames }}
         {{- $remappedMounts := list }}
         {{- range $poolExtraVolumeMounts }}
@@ -92,6 +93,26 @@ spec:
           {{- end }}
         {{- end }}
         {{- $poolExtraVolumeMounts = $remappedMounts }}
+        {{- /* Keep init writers on the same isolated twin as the main container RW mounts. */ -}}
+        {{- $remappedInits := list }}
+        {{- range $poolInitContainers }}
+          {{- $init := deepCopy . }}
+          {{- if hasKey $init "volumeMounts" }}
+            {{- $initMounts := list }}
+            {{- range $init.volumeMounts }}
+              {{- if and (hasKey $isolatedVolumeNames .name) (not .readOnly) }}
+                {{- $mount := deepCopy . }}
+                {{- $_ := set $mount "name" (index $isolatedVolumeNames .name) }}
+                {{- $initMounts = append $initMounts $mount }}
+              {{- else }}
+                {{- $initMounts = append $initMounts . }}
+              {{- end }}
+            {{- end }}
+            {{- $_ := set $init "volumeMounts" $initMounts }}
+          {{- end }}
+          {{- $remappedInits = append $remappedInits $init }}
+        {{- end }}
+        {{- $poolInitContainers = $remappedInits }}
       {{- end }}
       {{- range .Values.extraHostPathMounts }}
         {{- if .readOnly }}
@@ -114,7 +135,18 @@ spec:
       {{- $poolExtraVolumes = append $poolExtraVolumes (dict "name" "varlibotelcol" "emptyDir" (dict)) }}
       {{- $poolExtraVolumeMounts = append $poolExtraVolumeMounts (dict "name" "varlibotelcol" "mountPath" "/var/lib/otelcol") }}
       {{- end }}
-      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset" "presets" $poolPresets "extraHostPathMounts" $poolHostPathMounts "extraVolumes" $poolExtraVolumes "extraVolumeMounts" $poolExtraVolumeMounts) }}
+      {{- /* Pool pods must not stamp allocated scrapes with the scraper node's identity. */ -}}
+      {{- $poolResourceDetection := deepCopy .Values.presets.resourceDetection }}
+      {{- $_ := set $poolResourceDetection "k8sNodeName" (dict "enabled" false) }}
+      {{- $poolDetectors := deepCopy ($poolResourceDetection.detectors | default dict) }}
+      {{- if kindIs "slice" $poolDetectors.env }}
+        {{- $_ := set $poolDetectors "env" (without $poolDetectors.env "k8snode") }}
+      {{- else if kindIs "invalid" $poolDetectors.env }}
+        {{- $_ := set $poolDetectors "env" (list "system" "env") }}
+      {{- end }}
+      {{- $_ := set $poolResourceDetection "detectors" $poolDetectors }}
+      {{- $_ := set $poolPresets "resourceDetection" $poolResourceDetection }}
+      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset" "presets" $poolPresets "extraHostPathMounts" $poolHostPathMounts "extraVolumes" $poolExtraVolumes "extraVolumeMounts" $poolExtraVolumeMounts "initContainers" $poolInitContainers) }}
       {{- end }}
       {{- $podCtx := mustMergeOverwrite (deepCopy .) (dict "Values" $podValues "configmapSuffix" "-statefulset" "isAgent" false) }}
       {{- include "opentelemetry-collector.pod" $podCtx | nindent 6 }}

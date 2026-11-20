@@ -12,7 +12,19 @@ metadata:
 data:
   relay: |
     {{- /* Evaluate pool presets as StatefulSet mode so node-local filters are not forced. */ -}}
-    {{- $poolValues := mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset") -}}
+    {{- /* Disable scraper-node enrichment: allocated targets must not inherit the pool pod's node. */ -}}
+    {{- $poolResourceDetection := deepCopy .Values.presets.resourceDetection }}
+    {{- $_ := set $poolResourceDetection "k8sNodeName" (dict "enabled" false) }}
+    {{- $poolDetectors := deepCopy ($poolResourceDetection.detectors | default dict) }}
+    {{- if kindIs "slice" $poolDetectors.env }}
+      {{- $_ := set $poolDetectors "env" (without $poolDetectors.env "k8snode") }}
+    {{- else if kindIs "invalid" $poolDetectors.env }}
+      {{- /* Avoid the on-prem default that injects k8snode onto allocated scrapes. */ -}}
+      {{- $_ := set $poolDetectors "env" (list "system" "env") }}
+    {{- end }}
+    {{- $_ := set $poolResourceDetection "detectors" $poolDetectors }}
+    {{- $poolPresets := mergeOverwrite (deepCopy .Values.presets) (dict "resourceDetection" $poolResourceDetection) }}
+    {{- $poolValues := mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset" "presets" $poolPresets) -}}
     {{- $poolData := mustMergeOverwrite (deepCopy .) (dict "Values" $poolValues "isTargetAllocatorPool" true) -}}
     {{- include "opentelemetry-collector.deploymentConfig" $poolData | nindent 4 -}}
 {{- end }}

@@ -569,7 +569,28 @@ Build config file for deployment OpenTelemetry Collector
 {{- $config := deepCopy .config -}}
 {{- $root := .root -}}
 {{- if and $config.service $config.service.pipelines }}
-  {{- $connectors := $config.connectors | default dict }}
+  {{- /* Resolve templated pipeline IDs before signal-aware connector pruning. */ -}}
+  {{- if $root }}
+    {{- $resolvedPipelines := dict }}
+    {{- range $pipelineName, $pipeline := $config.service.pipelines }}
+      {{- $resolvedName := $pipelineName }}
+      {{- if kindIs "string" $pipelineName }}
+        {{- $resolvedName = tpl $pipelineName $root }}
+      {{- end }}
+      {{- $_ := set $resolvedPipelines $resolvedName $pipeline }}
+    {{- end }}
+    {{- $_ := set $config.service "pipelines" $resolvedPipelines }}
+  {{- end }}
+  {{- /* Resolve templated connector definition keys so producer lookups match rendered refs. */ -}}
+  {{- $connectors := dict }}
+  {{- range $name, $def := ($config.connectors | default dict) }}
+    {{- $resolvedName := $name }}
+    {{- if and $root (kindIs "string" $name) }}
+      {{- $resolvedName = tpl $name $root }}
+    {{- end }}
+    {{- $_ := set $connectors $resolvedName $def }}
+  {{- end }}
+  {{- $_ := set $config "connectors" $connectors }}
   {{- /* Drop empty pipelines, then prune orphaned connector inputs and newly emptied consumers. */ -}}
   {{- $pipelinePasses := int (add (len $config.service.pipelines) 1) }}
   {{- range $i := until $pipelinePasses }}
@@ -698,7 +719,12 @@ Build config file for deployment OpenTelemetry Collector
 {{- /* Keep metrics pipelines that consume the allocated prometheus receiver, plus same-signal connector consumers. */ -}}
 {{- $allPipelines := $config.service.pipelines | default dict }}
 {{- if $root }}
+  {{- $resolvedPipelines := dict }}
   {{- range $name, $pipeline := $allPipelines }}
+    {{- $resolvedName := $name }}
+    {{- if kindIs "string" $name }}
+      {{- $resolvedName = tpl $name $root }}
+    {{- end }}
     {{- $resolvedReceivers := list }}
     {{- range $receiver := (default (list) $pipeline.receivers) }}
       {{- if kindIs "string" $receiver }}
@@ -717,8 +743,9 @@ Build config file for deployment OpenTelemetry Collector
     {{- end }}
     {{- $_ := set $pipeline "receivers" $resolvedReceivers }}
     {{- $_ := set $pipeline "exporters" $resolvedExporters }}
-    {{- $_ := set $allPipelines $name $pipeline }}
+    {{- $_ := set $resolvedPipelines $resolvedName $pipeline }}
   {{- end }}
+  {{- $allPipelines = $resolvedPipelines }}
 {{- end }}
 {{- /* Resolve templated connector definition keys so lookups match resolved pipeline refs. */ -}}
 {{- $connectors := dict }}
