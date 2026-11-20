@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.143.5 / 2026-11-20
+
+- [Feat] Add the opt-in `dbMonitoring` preset for named PostgreSQL targets. Collect performance, health, and table metrics, with optional query samples, top queries, and catalog events. Support password environment variables, TLS, and database resource attributes. Collect schemas through direct database connections without `dblink`. Support dedicated DB collectors with OTLP disabled and include a single-replica example with `Recreate` updates.
+
 ### v0.143.4 / 2026-11-18
 
 - [Fix] Collect active and rotated Kubernetes container logs on Linux and Windows, preserving file-path metadata for timestamped rotations. Exclude compressed and temporary files and respect `presets.logsCollection.includeCollectorLogs` for active and rotated collector logs.
