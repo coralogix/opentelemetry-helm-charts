@@ -1,4 +1,13 @@
 {{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") (or (eq (include "opentelemetry-collector.serviceEnabled" .) "true") (.Values.ingress.enabled)) -}}
+{{- $poolValues := mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset") -}}
+{{- $cleanPorts := dict -}}
+{{- range $key, $port := ($poolValues.ports | default dict) }}
+  {{- $_ := set $cleanPorts $key (omit (deepCopy $port) "nodePort") }}
+{{- end }}
+{{- $_ := set $poolValues "ports" $cleanPorts -}}
+{{- /* Replace Values wholesale; mustMergeOverwrite would reintroduce nodePort via recursive merge. */ -}}
+{{- $poolCtx := deepCopy . -}}
+{{- $_ := set $poolCtx "Values" $poolValues -}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -15,7 +24,7 @@ metadata:
   {{- end }}
 spec:
   type: ClusterIP
-  {{- $ports := include "opentelemetry-collector.servicePortsConfig" . }}
+  {{- $ports := include "opentelemetry-collector.servicePortsConfig" $poolCtx }}
   {{- if $ports }}
   ports:
     {{- $ports | nindent 4}}
@@ -23,5 +32,5 @@ spec:
   selector:
     {{- include "opentelemetry-collector.selectorLabels" . | nindent 4 }}
     component: statefulset-collector
-  internalTrafficPolicy: {{ include "opentelemetry-collector.serviceInternalTrafficPolicy" . }}
+  internalTrafficPolicy: {{ include "opentelemetry-collector.serviceInternalTrafficPolicy" $poolCtx }}
 {{- end }}
