@@ -29,8 +29,10 @@ and `resourcedetection` detectors:
   `resourcedetection` processors, e.g. the on-prem default `resourcedetection/env` processor)
 
 Component names in pipeline references are rewritten across all signal pipelines at the same time.
-Deprecation warnings in the helm notes call out every rewritten name so you can update your
-`values.yaml`; the auto-rewrite will be removed in a future chart release.
+Deprecation warnings in the helm notes call out every deprecated name found in your
+`values.yaml` so you can update it; the auto-rewrite will be removed in a future chart
+release. (Names the chart itself emits from presets are rewritten silently — nothing for
+you to update there.)
 
 Each new name requires a minimum Collector version:
 
