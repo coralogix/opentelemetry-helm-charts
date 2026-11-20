@@ -16,6 +16,52 @@ created but the Memory Ballast Extension will still be removed.
 Depending on the progress made in [Issue 891](https://github.com/open-telemetry/opentelemetry-helm-charts/issues/891),
 the use of `GOMEMLIMIT` may completely replace the Memory Ballast Extension in the future.
 
+## 0.143.4 to 0.143.5
+
+A new value, `rewriteDeprecatedComponentNames` (default `true`), automatically rewrites deprecated
+OpenTelemetry Collector component names in the generated config — processors, receivers, exporters
+and `resourcedetection` detectors:
+
+- `k8sattributes` processor -> `k8s_attributes` (including named variants like `k8sattributes/profiles`)
+- `filelog` receiver -> `file_log`, `hostmetrics` receiver -> `host_metrics`
+- `otlp` exporter -> `otlp_grpc`, `otlphttp` exporter -> `otlp_http`
+- `k8snode` resourcedetection detector -> `k8s_api` (including the `k8snode:` config block inside
+  `resourcedetection` processors, e.g. the on-prem default `resourcedetection/env` processor)
+
+Component names in pipeline references are rewritten across all signal pipelines at the same time.
+Deprecation warnings in the helm notes call out every deprecated name found in your
+`values.yaml` so you can update it; the auto-rewrite will be removed in a future chart
+release. (Names the chart itself emits from presets are rewritten silently — nothing for
+you to update there.)
+
+Each new name requires a minimum Collector version:
+
+| Rename | Minimum Collector version |
+| --- | --- |
+| `otlp` -> `otlp_grpc`, `otlphttp` -> `otlp_http` (exporters) | v0.144.0 |
+| `k8sattributes` -> `k8s_attributes` (processor) | v0.146.0 |
+| `filelog` -> `file_log` (receiver) | v0.149.0 |
+| `hostmetrics` -> `host_metrics` (receiver) | v0.151.0 |
+| `k8snode` -> `k8s_api` (resourcedetection detector) | v0.154.0 |
+
+Because the rewrite applies to all renames at once, the single safe cutoff is Collector v0.154.0.
+If you are using a Collector image older than v0.154.0, set `rewriteDeprecatedComponentNames: false`
+to preserve the deprecated names:
+
+```yaml
+rewriteDeprecatedComponentNames: false
+```
+
+Checkpoint and storage note: renaming `filelog` to `file_log` (and renaming any exporter that uses a
+persistent `sending_queue.storage`) orphans the `file_storage` files named `receiver_<type>_<name>`.
+With `presets.logsCollection.storeCheckpoints: true`, the first rollout after the upgrade re-reads
+log files, producing a burst of duplicate logs. Delete or rename the old checkpoint directories if
+replay is unacceptable.
+
+Internal telemetry note: the `receiver` and `exporter` component labels on the Collector's internal
+metrics change (for example `receiver="file_log"` and `exporter="otlp_grpc"`), so update dashboards
+and alerts keyed on the `otelcol` receiver and exporter labels.
+
 ## 0.124.7 and above
 
 The `kubernetesExtraMetrics` preset has been split into two separate presets:

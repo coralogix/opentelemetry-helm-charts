@@ -1,0 +1,18 @@
+mode: daemonset
+
+config:
+  processors:
+    k8s_attributes:
+      passthrough: true
+  service:
+    pipelines:
+      logs:
+        processors:
+          - memory_limiter
+          - batch
+          - k8s_attributes
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 200M

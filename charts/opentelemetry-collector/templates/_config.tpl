@@ -332,6 +332,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if and ($supervisorEnabled) (.Values.presets.fleetManagement.supervisor.minimalCollectorConfig) }}
 {{- $config = include "opentelemetry-collector.supervisorCollectorConfig" . | fromYaml }}
 {{- end }}
+{{- if .Values.rewriteDeprecatedComponentNames }}
+{{- $config = (include "opentelemetry-collector.rewriteDeprecatedComponentNames" (dict "config" $config) | fromYaml) }}
+{{- end }}
 {{- tpl (toYaml $config) . }}
 {{- end }}
 
@@ -505,6 +508,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- $supervisorEnabled := and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
 {{- if and ($supervisorEnabled) (.Values.presets.fleetManagement.supervisor.minimalCollectorConfig) }}
 {{- $config = include "opentelemetry-collector.supervisorCollectorConfig" .  | fromYaml }}
+{{- end }}
+{{- if .Values.rewriteDeprecatedComponentNames }}
+{{- $config = (include "opentelemetry-collector.rewriteDeprecatedComponentNames" (dict "config" $config) | fromYaml) }}
 {{- end }}
 {{- tpl (toYaml $config) . }}
 {{- end }}
@@ -3707,6 +3713,80 @@ processors:
 {{- end }}
 {{- $config | toYaml }}
 {{- end }}
+
+{{/*
+Rewrite deprecated component names in the generated config, both the
+component section keys (including named variants like `<old>/...`) and the
+references in every service pipeline, plus the `detectors:` lists inside any
+`resourcedetection` processor. The rename table lives in
+opentelemetry-collector.deprecatedComponentRenames.
+*/}}
+{{- define "opentelemetry-collector.rewriteDeprecatedComponentNames" -}}
+{{- $config := .config }}
+{{- $renames := include "opentelemetry-collector.deprecatedComponentRenames" . | fromYaml }}
+{{- range $kind, $table := (dig "components" dict $renames) }}
+  {{- $section := index $config $kind }}
+  {{- range $old, $new := $table }}
+    {{- if $section }}
+      {{- range $key, $val := $section }}
+        {{- if or (eq $key $old) (hasPrefix (printf "%s/" $old) $key) }}
+          {{- $newKey := $new }}
+          {{- if hasPrefix (printf "%s/" $old) $key }}
+            {{- $newKey = printf "%s/%s" $new (trimPrefix (printf "%s/" $old) $key) }}
+          {{- end }}
+          {{- $existing := index $section $newKey | default dict }}
+          {{- $_ := set $section $newKey (mustMergeOverwrite ($val | default dict) $existing) }}
+          {{- $_ := unset $section $key }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- range $signal, $pipeline := $config.service.pipelines }}
+      {{- $refs := index $pipeline $kind }}
+      {{- if and $pipeline $refs }}
+        {{- $newRefs := list }}
+        {{- range $refs }}
+          {{- if eq . $old }}
+            {{- $newRefs = append $newRefs $new }}
+          {{- else if hasPrefix (printf "%s/" $old) . }}
+            {{- $newRefs = append $newRefs (printf "%s/%s" $new (trimPrefix (printf "%s/" $old) .)) }}
+          {{- else }}
+            {{- $newRefs = append $newRefs . }}
+          {{- end }}
+        {{- end }}
+        {{- $_ := set $pipeline $kind ($newRefs | uniq) }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- $detectorRenames := dig "detectors" dict $renames }}
+{{- if $detectorRenames }}
+  {{- range $key, $proc := (index $config "processors") }}
+    {{- if and $proc (or (eq $key "resourcedetection") (hasPrefix "resourcedetection/" $key)) (index $proc "detectors") }}
+      {{- $newDetectors := list }}
+      {{- range (index $proc "detectors") }}
+        {{- $name := . }}
+        {{- range $old, $new := $detectorRenames }}
+          {{- if eq $name $old }}
+            {{- $name = $new }}
+          {{- end }}
+        {{- end }}
+        {{- $newDetectors = append $newDetectors $name }}
+      {{- end }}
+      {{- $_ := set $proc "detectors" ($newDetectors | uniq) }}
+      {{- /* Fork: the chart also emits per-detector config blocks (e.g. k8snode.node_from_env_var) inside resourcedetection processors — rename those keys too, else the rewritten detectors list would point at k8s_api while its config stays under the deprecated k8snode key. */}}
+      {{- range $oldDetector, $newDetector := $detectorRenames }}
+        {{- if hasKey $proc $oldDetector }}
+          {{- $detectorCfg := index $proc $oldDetector }}
+          {{- $merged := mustMergeOverwrite ($detectorCfg | default dict) (index $proc $newDetector | default dict) }}
+          {{- $_ := unset $proc $oldDetector }}
+          {{- $_ := set $proc $newDetector $merged }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end -}}
 
 {{- define "opentelemetry-collector.resourceDetectionConfig" -}}
 {{- $distribution := .Values.distribution | default "" }}

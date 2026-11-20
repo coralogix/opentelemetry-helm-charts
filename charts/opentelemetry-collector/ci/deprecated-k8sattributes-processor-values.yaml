@@ -1,0 +1,22 @@
+mode: daemonset
+
+presets:
+  kubernetesAttributes:
+    enabled: true
+
+config:
+  processors:
+    k8sattributes:
+      passthrough: true
+  service:
+    pipelines:
+      logs:
+        processors:
+          - memory_limiter
+          - batch
+          - k8sattributes
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 200M
