@@ -547,6 +547,7 @@ Build config file for deployment OpenTelemetry Collector
     {{- range $pipelineName := $pipelinesToRemove }}
       {{- $_ := unset $config.service.pipelines $pipelineName }}
     {{- end }}
+    {{- $producedAny := list }}
     {{- $producedBySignal := dict }}
     {{- range $pipelineName, $pipeline := $config.service.pipelines }}
       {{- $signal := index (splitList "/" $pipelineName) 0 }}
@@ -554,16 +555,26 @@ Build config file for deployment OpenTelemetry Collector
       {{- range $exporter := (default (list) $pipeline.exporters) }}
         {{- if hasKey $connectors $exporter }}
           {{- $produced = append $produced $exporter }}
+          {{- $producedAny = append $producedAny $exporter }}
         {{- end }}
       {{- end }}
       {{- $_ := set $producedBySignal $signal ($produced | uniq) }}
     {{- end }}
+    {{- $producedAny = $producedAny | uniq }}
     {{- range $pipelineName, $pipeline := $config.service.pipelines }}
       {{- $signal := index (splitList "/" $pipelineName) 0 }}
-      {{- $producedConnectors := default (list) (index $producedBySignal $signal) }}
+      {{- $producedSameSignal := default (list) (index $producedBySignal $signal) }}
       {{- $newReceivers := list }}
       {{- range $receiver := (default (list) $pipeline.receivers) }}
-        {{- if or (not (hasKey $connectors $receiver)) (has $receiver $producedConnectors) }}
+        {{- if not (hasKey $connectors $receiver) }}
+          {{- $newReceivers = append $newReceivers $receiver }}
+        {{- else if or (eq $receiver "forward") (hasPrefix "forward/" $receiver) }}
+          {{- /* forward connectors only move data within a signal */ -}}
+          {{- if has $receiver $producedSameSignal }}
+            {{- $newReceivers = append $newReceivers $receiver }}
+          {{- end }}
+        {{- else if has $receiver $producedAny }}
+          {{- /* Preserve cross-signal connectors such as spanmetrics. */ -}}
           {{- $newReceivers = append $newReceivers $receiver }}
         {{- end }}
       {{- end }}
