@@ -191,7 +191,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.spanMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applySpanMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if .Values.targetAllocator.enabled }}
+{{- if and .Values.targetAllocator.enabled (ne .Values.targetAllocator.collectionMode "statefulset") }}
 {{- $config = (include "opentelemetry-collector.applyTargetAllocatorConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.spanMetricsMulti.enabled }}
@@ -328,6 +328,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.applyMemoryLimiterProcessorAsFirst" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.removePipelinesWithoutExporters" (dict "config" $config) | fromYaml) }}
+{{- $config = (include "opentelemetry-collector.removePipelinesWithoutReceivers" (dict "config" $config) | fromYaml) }}
 {{- $supervisorEnabled := and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
 {{- if and ($supervisorEnabled) (.Values.presets.fleetManagement.supervisor.minimalCollectorConfig) }}
 {{- $config = include "opentelemetry-collector.supervisorCollectorConfig" . | fromYaml }}
@@ -417,8 +418,8 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.otlpExporter.enabled }}
 {{- $config = (include "opentelemetry-collector.applyOtlpExporterConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
-{{- if .Values.targetAllocator.enabled }}
-{{- $config = (include "opentelemetry-collector.applyTargetAllocatorConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- if and .Values.targetAllocator.enabled (or (ne .Values.targetAllocator.collectionMode "statefulset") .isTargetAllocatorPool) }}
+{{- $config = (include "opentelemetry-collector.applyTargetAllocatorConfig" (dict "Values" $data "config" $config "isTargetAllocatorPool" .isTargetAllocatorPool) | fromYaml) }}
 {{- end }}
 {{- if .Values.presets.spanMetricsMulti.enabled }}
 {{- $config = (include "opentelemetry-collector.applySpanMetricsMultiConfig" (dict "Values" $data "config" $config) | fromYaml) }}
@@ -502,6 +503,10 @@ Build config file for deployment OpenTelemetry Collector
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.applyMemoryLimiterProcessorAsFirst" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.removePipelinesWithoutExporters" (dict "config" $config) | fromYaml) }}
+{{- $config = (include "opentelemetry-collector.removePipelinesWithoutReceivers" (dict "config" $config) | fromYaml) }}
+{{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") .isTargetAllocatorPool }}
+{{- $config = (include "opentelemetry-collector.applyTargetAllocatorPoolConfig" (dict "config" $config "fullname" (include "opentelemetry-collector.fullname" $data) "workloadKind" "statefulset") | fromYaml) }}
+{{- end }}
 {{- $supervisorEnabled := and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
 {{- if and ($supervisorEnabled) (.Values.presets.fleetManagement.supervisor.minimalCollectorConfig) }}
 {{- $config = include "opentelemetry-collector.supervisorCollectorConfig" .  | fromYaml }}
@@ -516,6 +521,23 @@ Build config file for deployment OpenTelemetry Collector
   {{- range $pipelineName, $pipeline := $config.service.pipelines }}
     {{- $exporters := default (list) $pipeline.exporters }}
     {{- if eq (len $exporters) 0 }}
+      {{- $pipelinesToRemove = append $pipelinesToRemove $pipelineName }}
+    {{- end }}
+  {{- end }}
+  {{- range $pipelineName := $pipelinesToRemove }}
+    {{- $_ := unset $config.service.pipelines $pipelineName }}
+  {{- end }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.removePipelinesWithoutReceivers" -}}
+{{- $config := deepCopy .config -}}
+{{- if and $config.service $config.service.pipelines }}
+  {{- $pipelinesToRemove := list }}
+  {{- range $pipelineName, $pipeline := $config.service.pipelines }}
+    {{- $receivers := default (list) $pipeline.receivers }}
+    {{- if eq (len $receivers) 0 }}
       {{- $pipelinesToRemove = append $pipelinesToRemove $pipelineName }}
     {{- end }}
   {{- end }}
@@ -581,14 +603,52 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 
 {{- define "opentelemetry-collector.applyTargetAllocatorConfig" -}}
-{{- $config := mustMergeOverwrite (include "opentelemetry-collector.targetAllocatorConfig" .Values | fromYaml) .config }}
+{{- $targetAllocatorConfig := deepCopy .Values }}
+{{- $_ := set $targetAllocatorConfig "isTargetAllocatorPool" .isTargetAllocatorPool }}
+{{- $config := mustMergeOverwrite (include "opentelemetry-collector.targetAllocatorConfig" $targetAllocatorConfig | fromYaml) .config }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus" | uniq)  }}
+{{- $config | toYaml }}
+{{- end }}
+
+{{- define "opentelemetry-collector.applyTargetAllocatorPoolConfig" -}}
+{{- $config := .config }}
+{{- /* Keep the metrics pipeline and any downstream metrics pipelines fed by its connector exporters. */ -}}
+{{- $allPipelines := $config.service.pipelines | default dict }}
+{{- $connectors := $config.connectors | default dict }}
+{{- $keep := dict }}
+{{- $metrics := index $allPipelines "metrics" | default (dict "exporters" (list) "processors" (list)) }}
+{{- $_ := set $metrics "receivers" (list "prometheus") }}
+{{- $_ := set $keep "metrics" $metrics }}
+{{- range $i := until 16 }}
+  {{- $exporterNames := list }}
+  {{- range $name, $pipeline := $keep }}
+    {{- range $exporter := (default (list) $pipeline.exporters) }}
+      {{- $exporterNames = append $exporterNames $exporter }}
+    {{- end }}
+  {{- end }}
+  {{- range $exporter := ($exporterNames | uniq) }}
+    {{- if hasKey $connectors $exporter }}
+      {{- range $name, $pipeline := $allPipelines }}
+        {{- if and (not (hasKey $keep $name)) (has $exporter (default (list) $pipeline.receivers)) }}
+          {{- $_ := set $keep $name $pipeline }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- $_ := set $config.service "pipelines" $keep }}
+{{- $resource := deepCopy ($config.service.telemetry.resource | default dict) }}
+{{- $_ := unset $resource "k8s.daemonset.name" }}
+{{- $_ := set $resource (printf "k8s.%s.name" .workloadKind) .fullname }}
+{{- $_ := set $config.service.telemetry "resource" $resource }}
 {{- $config | toYaml }}
 {{- end }}
 
 {{- define "opentelemetry-collector.targetAllocatorConfig" -}}
 receivers:
   prometheus:
+    {{- $collectorMetricsScrapesSelf := and .isTargetAllocatorPool .Values.presets.collectorMetrics.enabled (not .Values.presets.collectorMetrics.disablePrometheusReceiver) (not (or .Values.podMonitor.enabled .Values.serviceMonitor.enabled)) }}
+    {{- if not $collectorMetricsScrapesSelf }}
     config:
       scrape_configs:
       - job_name: opentelemetry-collector
@@ -596,6 +656,7 @@ receivers:
         static_configs:
           - targets:
               - {{ include "opentelemetry-collector.envEndpoint" (dict "env" "MY_POD_IP" "port" "8888" "context" $) | quote }}
+    {{- end }}
     target_allocator:
       endpoint: http://{{ include "opentelemetry-collector.fullname" . }}-targetallocator
       interval: 30s
