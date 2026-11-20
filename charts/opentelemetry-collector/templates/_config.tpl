@@ -650,13 +650,26 @@ Build config file for deployment OpenTelemetry Collector
 
 {{- define "opentelemetry-collector.applyTargetAllocatorPoolConfig" -}}
 {{- $config := .config }}
-{{- /* Keep metrics and same-signal downstream pipelines fed by its connector exporters. */ -}}
+{{- /* Keep metrics pipelines that consume the allocated prometheus receiver, plus same-signal connector consumers. */ -}}
 {{- $allPipelines := $config.service.pipelines | default dict }}
 {{- $connectors := $config.connectors | default dict }}
 {{- $keep := dict }}
-{{- $metrics := index $allPipelines "metrics" | default (dict "exporters" (list) "processors" (list)) }}
-{{- $_ := set $metrics "receivers" (list "prometheus") }}
-{{- $_ := set $keep "metrics" $metrics }}
+{{- $seeded := dict }}
+{{- range $name, $pipeline := $allPipelines }}
+  {{- $signal := index (splitList "/" $name) 0 }}
+  {{- if and (eq $signal "metrics") (has "prometheus" (default (list) $pipeline.receivers)) }}
+    {{- $copy := deepCopy $pipeline }}
+    {{- $_ := set $copy "receivers" (list "prometheus") }}
+    {{- $_ := set $keep $name $copy }}
+    {{- $_ := set $seeded $name true }}
+  {{- end }}
+{{- end }}
+{{- if not (hasKey $keep "metrics") }}
+  {{- $metrics := index $allPipelines "metrics" | default (dict "exporters" (list) "processors" (list)) }}
+  {{- $_ := set $metrics "receivers" (list "prometheus") }}
+  {{- $_ := set $keep "metrics" $metrics }}
+  {{- $_ := set $seeded "metrics" true }}
+{{- end }}
 {{- range $i := until 16 }}
   {{- $exportsBySignal := dict }}
   {{- range $name, $pipeline := $keep }}
@@ -697,8 +710,8 @@ Build config file for deployment OpenTelemetry Collector
     {{- $signal := index (splitList "/" $name) 0 }}
     {{- $producedConnectors := default (list) (index $producedBySignal $signal) }}
     {{- $newReceivers := list }}
-    {{- if eq $name "metrics" }}
-      {{- /* Root pool pipeline keeps its prometheus scrape receiver. */ -}}
+    {{- if hasKey $seeded $name }}
+      {{- /* Seeded prometheus consumers keep the allocated scrape receiver. */ -}}
       {{- $newReceivers = default (list) $pipeline.receivers }}
     {{- else }}
       {{- /* Downstream pool pipelines only keep connector edges from retained producers. */ -}}
@@ -708,7 +721,7 @@ Build config file for deployment OpenTelemetry Collector
         {{- end }}
       {{- end }}
     {{- end }}
-    {{- if and (eq (len $newReceivers) 0) (ne $name "metrics") }}
+    {{- if and (eq (len $newReceivers) 0) (not (hasKey $seeded $name)) }}
       {{- $_ := unset $keep $name }}
     {{- else }}
       {{- $_ := set $pipeline "receivers" $newReceivers }}

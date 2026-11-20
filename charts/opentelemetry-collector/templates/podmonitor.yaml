@@ -1,4 +1,5 @@
 {{- if and .Values.podMonitor.enabled .Values.podMonitor.metricsEndpoints (eq .Values.mode "daemonset") }}
+{{- $isTargetAllocatorPool := and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") }}
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
@@ -13,7 +14,17 @@ spec:
   selector:
     matchLabels:
       {{- include "opentelemetry-collector.selectorLabels" . | nindent 6 }}
+      {{- if not $isTargetAllocatorPool }}
       {{- include "opentelemetry-collector.component" . | nindent 6 }}
+      {{- end }}
+    {{- if $isTargetAllocatorPool }}
+    matchExpressions:
+      - key: component
+        operator: In
+        values:
+          - agent-collector
+          - statefulset-collector
+    {{- end }}
   {{- if .Values.podMonitor.targetLabels }}
   podTargetLabels:
   {{- toYaml .Values.podMonitor.targetLabels | nindent 2 }}
