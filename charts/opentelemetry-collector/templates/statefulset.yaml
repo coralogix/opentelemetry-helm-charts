@@ -50,8 +50,14 @@ spec:
       {{- end }}
       {{- $podValues := .Values }}
       {{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") }}
-      {{- /* Do not share agent hostPath mounts (for example file_storage queues) with pool pods. */ -}}
-      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset" "extraHostPathMounts" (list)) }}
+      {{- /* Keep read-only hostPath mounts (for example TLS CAs); drop writable ones that share agent queue storage. */ -}}
+      {{- $poolHostPathMounts := list }}
+      {{- range .Values.extraHostPathMounts }}
+        {{- if .readOnly }}
+          {{- $poolHostPathMounts = append $poolHostPathMounts . }}
+        {{- end }}
+      {{- end }}
+      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset" "extraHostPathMounts" $poolHostPathMounts) }}
       {{- end }}
       {{- $podCtx := mustMergeOverwrite (deepCopy .) (dict "Values" $podValues "configmapSuffix" "-statefulset" "isAgent" false) }}
       {{- include "opentelemetry-collector.pod" $podCtx | nindent 6 }}
