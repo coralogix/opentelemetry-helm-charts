@@ -858,6 +858,19 @@ Build config file for deployment OpenTelemetry Collector
   {{- end }}
 {{- end }}
 {{- $_ := set $config.service "pipelines" $keep }}
+{{- /* Isolated emptyDir queue volumes start empty; ensure file_storage creates its directory. */ -}}
+{{- if $config.extensions }}
+  {{- range $name, $ext := $config.extensions }}
+    {{- if or (eq $name "file_storage") (hasPrefix "file_storage/" $name) }}
+      {{- $copy := deepCopy $ext }}
+      {{- if not (kindIs "map" $copy) }}
+        {{- $copy = dict }}
+      {{- end }}
+      {{- $_ := set $copy "create_directory" true }}
+      {{- $_ := set $config.extensions $name $copy }}
+    {{- end }}
+  {{- end }}
+{{- end }}
 {{- $telemetry := $config.service.telemetry | default dict }}
 {{- $resource := deepCopy ($telemetry.resource | default dict) }}
 {{- $_ := unset $resource "k8s.daemonset.name" }}
