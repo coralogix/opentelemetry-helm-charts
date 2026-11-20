@@ -637,10 +637,12 @@ Build config file for deployment OpenTelemetry Collector
   {{- end }}
 {{- end }}
 {{- $_ := set $config.service "pipelines" $keep }}
-{{- $resource := deepCopy ($config.service.telemetry.resource | default dict) }}
+{{- $telemetry := $config.service.telemetry | default dict }}
+{{- $resource := deepCopy ($telemetry.resource | default dict) }}
 {{- $_ := unset $resource "k8s.daemonset.name" }}
 {{- $_ := set $resource (printf "k8s.%s.name" .workloadKind) .fullname }}
-{{- $_ := set $config.service.telemetry "resource" $resource }}
+{{- $_ := set $telemetry "resource" $resource }}
+{{- $_ := set $config.service "telemetry" $telemetry }}
 {{- $config | toYaml }}
 {{- end }}
 
