@@ -1,0 +1,27 @@
+{{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") (or (eq (include "opentelemetry-collector.serviceEnabled" .) "true") (.Values.ingress.enabled)) -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "opentelemetry-collector.fullname" . }}-statefulset
+  namespace: {{ template "opentelemetry-collector.namespace" . }}
+  labels:
+    {{- include "opentelemetry-collector.labels" . | nindent 4 }}
+    component: statefulset-collector
+  {{- if .Values.service.annotations }}
+  annotations:
+    {{- range $key, $value := .Values.service.annotations }}
+    {{- printf "%s: %s" $key (tpl $value $ | quote) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+spec:
+  type: ClusterIP
+  {{- $ports := include "opentelemetry-collector.servicePortsConfig" . }}
+  {{- if $ports }}
+  ports:
+    {{- $ports | nindent 4}}
+  {{- end }}
+  selector:
+    {{- include "opentelemetry-collector.selectorLabels" . | nindent 4 }}
+    component: statefulset-collector
+  internalTrafficPolicy: {{ include "opentelemetry-collector.serviceInternalTrafficPolicy" . }}
+{{- end }}
