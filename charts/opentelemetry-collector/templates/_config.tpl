@@ -570,7 +570,8 @@ Build config file for deployment OpenTelemetry Collector
 {{- if and $config.service $config.service.pipelines }}
   {{- $connectors := $config.connectors | default dict }}
   {{- /* Drop empty pipelines, then prune orphaned connector inputs and newly emptied consumers. */ -}}
-  {{- range $i := until 16 }}
+  {{- $pipelinePasses := int (add (len $config.service.pipelines) 1) }}
+  {{- range $i := until $pipelinePasses }}
     {{- $pipelinesToRemove := list }}
     {{- range $pipelineName, $pipeline := $config.service.pipelines }}
       {{- $receivers := default (list) $pipeline.receivers }}
@@ -710,7 +711,8 @@ Build config file for deployment OpenTelemetry Collector
   {{- $_ := set $keep "metrics" $metrics }}
   {{- $_ := set $seeded "metrics" true }}
 {{- end }}
-{{- range $i := until 16 }}
+{{- $pipelinePasses := int (add (len $allPipelines) 1) }}
+{{- range $i := until $pipelinePasses }}
   {{- $exportsBySignal := dict }}
   {{- range $name, $pipeline := $keep }}
     {{- $signal := index (splitList "/" $name) 0 }}
@@ -735,7 +737,7 @@ Build config file for deployment OpenTelemetry Collector
   {{- end }}
 {{- end }}
 {{- /* Drop connector receivers whose producer pipelines were not retained. */ -}}
-{{- range $i := until 16 }}
+{{- range $i := until $pipelinePasses }}
   {{- $producedAny := list }}
   {{- $producedBySignal := dict }}
   {{- range $name, $pipeline := $keep }}

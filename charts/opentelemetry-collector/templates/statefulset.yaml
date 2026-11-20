@@ -50,29 +50,23 @@ spec:
       {{- end }}
       {{- $podValues := .Values }}
       {{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") }}
-      {{- /* Keep read-only hostPath mounts (for example TLS CAs); drop writable ones that share agent queue storage. */ -}}
+      {{- /* Keep read-only hostPaths; replace writable ones with emptyDir so queue storage is isolated per pool pod. */ -}}
       {{- $poolHostPathMounts := list }}
-      {{- $droppedHostPathNames := dict }}
+      {{- $poolExtraVolumes := deepCopy (.Values.extraVolumes | default list) }}
+      {{- $poolExtraVolumeMounts := deepCopy (.Values.extraVolumeMounts | default list) }}
       {{- range .Values.extraHostPathMounts }}
         {{- if .readOnly }}
           {{- $poolHostPathMounts = append $poolHostPathMounts . }}
         {{- else }}
-          {{- $_ := set $droppedHostPathNames .name true }}
-        {{- end }}
-      {{- end }}
-      {{- $poolInitContainers := list }}
-      {{- range .Values.initContainers }}
-        {{- $refsDropped := false }}
-        {{- range (default (list) .volumeMounts) }}
-          {{- if hasKey $droppedHostPathNames .name }}
-            {{- $refsDropped = true }}
+          {{- $poolExtraVolumes = append $poolExtraVolumes (dict "name" .name "emptyDir" (dict)) }}
+          {{- $mount := dict "name" .name "mountPath" .mountPath }}
+          {{- if hasKey . "readOnly" }}
+            {{- $_ := set $mount "readOnly" .readOnly }}
           {{- end }}
-        {{- end }}
-        {{- if not $refsDropped }}
-          {{- $poolInitContainers = append $poolInitContainers . }}
+          {{- $poolExtraVolumeMounts = append $poolExtraVolumeMounts $mount }}
         {{- end }}
       {{- end }}
-      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset" "extraHostPathMounts" $poolHostPathMounts "initContainers" $poolInitContainers) }}
+      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset" "extraHostPathMounts" $poolHostPathMounts "extraVolumes" $poolExtraVolumes "extraVolumeMounts" $poolExtraVolumeMounts) }}
       {{- end }}
       {{- $podCtx := mustMergeOverwrite (deepCopy .) (dict "Values" $podValues "configmapSuffix" "-statefulset" "isAgent" false) }}
       {{- include "opentelemetry-collector.pod" $podCtx | nindent 6 }}
