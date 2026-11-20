@@ -415,6 +415,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.metadata.enabled }}
 {{- $config = (include "opentelemetry-collector.applyMetadataConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.deltaToCumulative.enabled }}
+{{- $config = (include "opentelemetry-collector.applyDeltaToCumulativeConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.presets.spanMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applySpanMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}

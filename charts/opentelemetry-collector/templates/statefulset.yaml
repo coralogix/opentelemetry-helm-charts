@@ -52,12 +52,27 @@ spec:
       {{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") }}
       {{- /* Keep read-only hostPath mounts (for example TLS CAs); drop writable ones that share agent queue storage. */ -}}
       {{- $poolHostPathMounts := list }}
+      {{- $droppedHostPathNames := dict }}
       {{- range .Values.extraHostPathMounts }}
         {{- if .readOnly }}
           {{- $poolHostPathMounts = append $poolHostPathMounts . }}
+        {{- else }}
+          {{- $_ := set $droppedHostPathNames .name true }}
         {{- end }}
       {{- end }}
-      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset" "extraHostPathMounts" $poolHostPathMounts) }}
+      {{- $poolInitContainers := list }}
+      {{- range .Values.initContainers }}
+        {{- $refsDropped := false }}
+        {{- range (default (list) .volumeMounts) }}
+          {{- if hasKey $droppedHostPathNames .name }}
+            {{- $refsDropped = true }}
+          {{- end }}
+        {{- end }}
+        {{- if not $refsDropped }}
+          {{- $poolInitContainers = append $poolInitContainers . }}
+        {{- end }}
+      {{- end }}
+      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset" "extraHostPathMounts" $poolHostPathMounts "initContainers" $poolInitContainers) }}
       {{- end }}
       {{- $podCtx := mustMergeOverwrite (deepCopy .) (dict "Values" $podValues "configmapSuffix" "-statefulset" "isAgent" false) }}
       {{- include "opentelemetry-collector.pod" $podCtx | nindent 6 }}
