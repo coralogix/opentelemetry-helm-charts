@@ -18,7 +18,8 @@
 {{- fail "[ERROR] targetAllocator.collectionMode: statefulset requires configMap.create: true for its pool configuration." }}
 {{- end }}
 
-{{- $resourceRequests := .Values.resources.requests | default dict }}
+{{- $resources := .Values.resources | default dict }}
+{{- $resourceRequests := $resources.requests | default dict }}
 {{- $targetAllocatorPoolHPA := and .Values.autoscaling.enabled .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") (eq .Values.autoscaling.mode "hpa") }}
 {{- if and $targetAllocatorPoolHPA .Values.autoscaling.targetCPUUtilizationPercentage (not $resourceRequests.cpu) }}
 {{- fail "[ERROR] targetAllocator.collectionMode: statefulset requires resources.requests.cpu for its HPA." }}
