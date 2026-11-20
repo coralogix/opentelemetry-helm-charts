@@ -329,6 +329,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- $config = (include "opentelemetry-collector.applyMemoryLimiterProcessorAsFirst" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") }}
 {{- $config = (include "opentelemetry-collector.removeAllocatedPrometheusReceivers" (dict "config" $config) | fromYaml) }}
+{{- if .Values.presets.collectorMetrics.enabled }}
+{{- $config = (include "opentelemetry-collector.applyCollectorMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- end }}
 {{- end }}
 {{- $config = (include "opentelemetry-collector.removePipelinesWithoutExporters" (dict "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.removePipelinesWithoutReceivers" (dict "config" $config) | fromYaml) }}
@@ -687,7 +690,7 @@ Build config file for deployment OpenTelemetry Collector
     {{- $_ := set $seeded $name true }}
   {{- end }}
 {{- end }}
-{{- if not (hasKey $keep "metrics") }}
+{{- if eq (len $seeded) 0 }}
   {{- $metrics := index $allPipelines "metrics" | default (dict "exporters" (list) "processors" (list)) }}
   {{- $_ := set $metrics "receivers" (list "prometheus") }}
   {{- $_ := set $keep "metrics" $metrics }}

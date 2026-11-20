@@ -20,12 +20,16 @@
 
 {{- $resources := .Values.resources | default dict }}
 {{- $resourceRequests := $resources.requests | default dict }}
+{{- $resourceLimits := $resources.limits | default dict }}
+{{- /* Kubernetes defaults an omitted request to the matching limit when only limits are set. */ -}}
+{{- $effectiveCPURequest := $resourceRequests.cpu | default $resourceLimits.cpu }}
+{{- $effectiveMemoryRequest := $resourceRequests.memory | default $resourceLimits.memory }}
 {{- $targetAllocatorPoolHPA := and .Values.autoscaling.enabled .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") (eq .Values.autoscaling.mode "hpa") }}
-{{- if and $targetAllocatorPoolHPA .Values.autoscaling.targetCPUUtilizationPercentage (not $resourceRequests.cpu) }}
-{{- fail "[ERROR] targetAllocator.collectionMode: statefulset requires resources.requests.cpu for its HPA." }}
+{{- if and $targetAllocatorPoolHPA .Values.autoscaling.targetCPUUtilizationPercentage (not $effectiveCPURequest) }}
+{{- fail "[ERROR] targetAllocator.collectionMode: statefulset requires resources.requests.cpu (or limits.cpu) for its HPA." }}
 {{- end }}
-{{- if and $targetAllocatorPoolHPA .Values.autoscaling.targetMemoryUtilizationPercentage (not $resourceRequests.memory) }}
-{{- fail "[ERROR] targetAllocator.collectionMode: statefulset requires resources.requests.memory for its HPA." }}
+{{- if and $targetAllocatorPoolHPA .Values.autoscaling.targetMemoryUtilizationPercentage (not $effectiveMemoryRequest) }}
+{{- fail "[ERROR] targetAllocator.collectionMode: statefulset requires resources.requests.memory (or limits.memory) for its HPA." }}
 {{- end }}
 
 {{- if and (eq .Values.dnsPolicy "None") (not .Values.dnsConfig) }}
