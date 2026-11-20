@@ -1655,7 +1655,7 @@ Called from clusterrole.yaml, which always renders with the preset, so it also r
 {{- end -}}
 {{- if and $cp.etcd.enabled $cp.etcd.secret.name -}}
 {{- if not (and $cp.etcd.secret.clientCert $cp.etcd.secret.clientKey) -}}
-{{- fail "[ERROR] presets.k8sControlPlaneMetrics.etcd.secret.name requires secret.clientCert and secret.clientKey (key names inside the existing Secret)." -}}
+{{- fail "[ERROR] presets.k8sControlPlaneMetrics.etcd.secret.name requires presets.k8sControlPlaneMetrics.etcd.secret.clientCert and presets.k8sControlPlaneMetrics.etcd.secret.clientKey (key names inside the existing Secret)." -}}
 {{- end -}}
 {{- if and (not $cp.etcd.skipVerify) (not $cp.etcd.secret.caFile) -}}
 {{- fail "[ERROR] presets.k8sControlPlaneMetrics.etcd.skipVerify is false, which requires presets.k8sControlPlaneMetrics.etcd.secret.caFile." -}}

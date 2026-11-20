@@ -445,7 +445,8 @@ presets:
   # (transform/control_plane) keep the identical 127.0.0.1:<port> targets of different nodes apart.
   #
   # No metric filtering: every metric a component exposes is shipped (expect a few hundred series per enabled
-  # component per node). Drop what you do not need with a `filter` processor in `config`.
+  # component per node). Drop what you do not need with a `filter` processor in `config`
+  # (adding one replaces the default `config.service.pipelines.metrics.processors` list, so restate memory_limiter etc.).
   #
   # Authentication:
   #   * controller-manager / scheduler (https): the ServiceAccount token. kubeadm configures delegated authorization
@@ -472,14 +473,15 @@ presets:
   #                               GKE ships kube-dns (not CoreDNS, same `k8s-app=kube-dns` label, different metrics
   #                               ports): set `dns.enabled: false` there.
   #   k3s / RKE2                : not supported, the control plane is embedded in one process (no pods).
-  #   OpenShift                 : apiserver only (scrapes `kubernetes.default.svc`, needs only the /metrics
-  #                               nonResourceURL RBAC). controllerManager/scheduler/etcd unsupported: metrics require
-  #                               operator-reserved TLS client certificates; label conventions differ (no
-  #                               component/tier/k8s-app on kubeadm-style static pods).
+  #   OpenShift                 : this preset finds nothing (no kube-system kube-proxy/CoreDNS; cm/sched/etcd use
+  #                               operator-reserved TLS client certs; apiserver coverage is
+  #                               `kubernetesApiServerMetrics`). Note hostNetwork DaemonSets need the `hostnetwork` SCC.
   #
   # Escape hatch: the targets, ports and label rules are not configurable here. To change them, deep-merge your own
   # `config.receivers["receiver_creator/control_plane"].receivers` entries (same receiver names, e.g.
-  # `prometheus/scheduler`) over the preset output through `config`.
+  # `prometheus/scheduler`) over the preset output through `config`. Single-stack IPv6 clusters need this override
+  # too: the loopback components (controllerManager, scheduler, proxy, etcd) target `127.0.0.1`, so point them
+  # at `[::1]:<port>`.
   k8sControlPlaneMetrics:
     # Flipping this on activates controllerManager + scheduler + proxy + dns. etcd stays opt-in.
     enabled: false
