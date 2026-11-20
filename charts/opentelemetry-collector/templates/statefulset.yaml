@@ -50,10 +50,23 @@ spec:
       {{- end }}
       {{- $podValues := .Values }}
       {{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") }}
-      {{- /* Keep read-only hostPaths; replace writable ones with emptyDir so queue storage is isolated per pool pod. */ -}}
+      {{- /* Keep read-only hostPaths; replace writable queue hostPaths with emptyDir so pool pods are isolated. */ -}}
       {{- $poolHostPathMounts := list }}
-      {{- $poolExtraVolumes := deepCopy (.Values.extraVolumes | default list) }}
       {{- $poolExtraVolumeMounts := deepCopy (.Values.extraVolumeMounts | default list) }}
+      {{- $readOnlyMountNames := dict }}
+      {{- range .Values.extraVolumeMounts }}
+        {{- if .readOnly }}
+          {{- $_ := set $readOnlyMountNames .name true }}
+        {{- end }}
+      {{- end }}
+      {{- $poolExtraVolumes := list }}
+      {{- range .Values.extraVolumes }}
+        {{- if and (hasKey . "hostPath") (not (hasKey $readOnlyMountNames .name)) }}
+          {{- $poolExtraVolumes = append $poolExtraVolumes (dict "name" .name "emptyDir" (dict)) }}
+        {{- else }}
+          {{- $poolExtraVolumes = append $poolExtraVolumes . }}
+        {{- end }}
+      {{- end }}
       {{- range .Values.extraHostPathMounts }}
         {{- if .readOnly }}
           {{- $poolHostPathMounts = append $poolHostPathMounts . }}
