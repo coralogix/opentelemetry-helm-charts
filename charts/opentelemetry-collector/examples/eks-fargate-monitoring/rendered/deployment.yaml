@@ -24,7 +24,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 340f576e73db7e56678ae4d300215042e3573c69b71407f1586ce5454101ca3c
+        checksum/config: e4aa6676ac53d4eb65f3c82384824cf87ce418c300197f99809b329b73ef5fab
         
       labels:
         app.kubernetes.io/name: cx-otel-collector-monitor

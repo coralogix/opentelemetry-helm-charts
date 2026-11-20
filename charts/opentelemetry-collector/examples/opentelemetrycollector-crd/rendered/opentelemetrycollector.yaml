@@ -81,6 +81,7 @@ spec:
   serviceAccount: default
   hostNetwork: false
   config:
+    connectors: {}
     exporters:
       debug: {}
     extensions:

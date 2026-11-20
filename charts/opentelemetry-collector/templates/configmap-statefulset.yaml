@@ -11,6 +11,9 @@ metadata:
     {{- include "opentelemetry-collector.labels" . | nindent 4 }}
 data:
   relay: |
+    {{- $isTargetAllocatorPool := and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") -}}
+    {{- $poolValues := mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset") -}}
+    {{- if $isTargetAllocatorPool }}
     {{- /* Evaluate pool presets as StatefulSet mode so node-local filters are not forced. */ -}}
     {{- /* Disable scraper-node enrichment: allocated targets must not inherit the pool pod's node. */ -}}
     {{- $poolResourceDetection := deepCopy .Values.presets.resourceDetection }}
@@ -24,7 +27,8 @@ data:
     {{- end }}
     {{- $_ := set $poolResourceDetection "detectors" $poolDetectors }}
     {{- $poolPresets := mergeOverwrite (deepCopy .Values.presets) (dict "resourceDetection" $poolResourceDetection) }}
-    {{- $poolValues := mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset" "presets" $poolPresets) -}}
-    {{- $poolData := mustMergeOverwrite (deepCopy .) (dict "Values" $poolValues "isTargetAllocatorPool" true) -}}
+    {{- $poolValues = mergeOverwrite $poolValues (dict "presets" $poolPresets) }}
+    {{- end }}
+    {{- $poolData := mustMergeOverwrite (deepCopy .) (dict "Values" $poolValues "isTargetAllocatorPool" $isTargetAllocatorPool) -}}
     {{- include "opentelemetry-collector.deploymentConfig" $poolData | nindent 4 -}}
 {{- end }}

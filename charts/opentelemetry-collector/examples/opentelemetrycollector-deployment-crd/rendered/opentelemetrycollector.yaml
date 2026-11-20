@@ -33,6 +33,7 @@ spec:
   serviceAccount: example-opentelemetry-collector
   hostNetwork: false
   config:
+    connectors: {}
     exporters:
       debug: {}
     extensions:

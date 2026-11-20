@@ -110,6 +110,7 @@ spec:
   serviceAccount: otel-collector
   hostNetwork: false
   config:
+    connectors: {}
     exporters:
       debug: {}
     extensions:

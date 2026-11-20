@@ -13,6 +13,7 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 data:
   relay: |
+    connectors: {}
     exporters:
       debug: {}
     extensions:

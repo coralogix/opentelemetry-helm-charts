@@ -328,7 +328,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.applyMemoryLimiterProcessorAsFirst" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") }}
-{{- $config = (include "opentelemetry-collector.removeAllocatedPrometheusReceivers" (dict "config" $config) | fromYaml) }}
+{{- $config = (include "opentelemetry-collector.removeAllocatedPrometheusReceivers" (dict "config" $config "root" .) | fromYaml) }}
 {{- if .Values.presets.collectorMetrics.enabled }}
 {{- $config = (include "opentelemetry-collector.applyCollectorMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -545,9 +545,20 @@ Build config file for deployment OpenTelemetry Collector
 
 {{- define "opentelemetry-collector.removeAllocatedPrometheusReceivers" -}}
 {{- $config := deepCopy .config -}}
+{{- $root := .root -}}
 {{- if and $config.service $config.service.pipelines }}
   {{- range $pipelineName, $pipeline := $config.service.pipelines }}
-    {{- $_ := set $pipeline "receivers" (without (default (list) $pipeline.receivers) "prometheus") }}
+    {{- $resolvedReceivers := list }}
+    {{- range $receiver := (default (list) $pipeline.receivers) }}
+      {{- $receiverName := $receiver }}
+      {{- if and $root (kindIs "string" $receiver) }}
+        {{- $receiverName = tpl $receiver $root }}
+      {{- end }}
+      {{- if ne $receiverName "prometheus" }}
+        {{- $resolvedReceivers = append $resolvedReceivers $receiverName }}
+      {{- end }}
+    {{- end }}
+    {{- $_ := set $pipeline "receivers" $resolvedReceivers }}
     {{- $_ := set $config.service.pipelines $pipelineName $pipeline }}
   {{- end }}
 {{- end }}
