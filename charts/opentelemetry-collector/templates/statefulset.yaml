@@ -23,7 +23,7 @@ spec:
     matchLabels:
       {{- include "opentelemetry-collector.selectorLabels" . | nindent 6 }}
       component: statefulset-collector
-      {{- if eq .Values.targetAllocator.collectionMode "statefulset" }}
+      {{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") }}
       opentelemetry.io/target-allocator-pool: "true"
       {{- end }}
   updateStrategy:
@@ -36,7 +36,7 @@ spec:
       labels:
         {{- include "opentelemetry-collector.selectorLabels" . | nindent 8 }}
         component: statefulset-collector
-        {{- if eq .Values.targetAllocator.collectionMode "statefulset" }}
+        {{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") }}
         opentelemetry.io/target-allocator-pool: "true"
         {{- end }}
         {{- include "opentelemetry-collector.podLabels" . | nindent 8 }}

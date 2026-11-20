@@ -534,15 +534,38 @@ Build config file for deployment OpenTelemetry Collector
 {{- define "opentelemetry-collector.removePipelinesWithoutReceivers" -}}
 {{- $config := deepCopy .config -}}
 {{- if and $config.service $config.service.pipelines }}
-  {{- $pipelinesToRemove := list }}
-  {{- range $pipelineName, $pipeline := $config.service.pipelines }}
-    {{- $receivers := default (list) $pipeline.receivers }}
-    {{- if eq (len $receivers) 0 }}
-      {{- $pipelinesToRemove = append $pipelinesToRemove $pipelineName }}
+  {{- $connectors := $config.connectors | default dict }}
+  {{- /* Drop empty pipelines, then prune orphaned connector inputs and newly emptied consumers. */ -}}
+  {{- range $i := until 16 }}
+    {{- $pipelinesToRemove := list }}
+    {{- range $pipelineName, $pipeline := $config.service.pipelines }}
+      {{- $receivers := default (list) $pipeline.receivers }}
+      {{- if eq (len $receivers) 0 }}
+        {{- $pipelinesToRemove = append $pipelinesToRemove $pipelineName }}
+      {{- end }}
     {{- end }}
-  {{- end }}
-  {{- range $pipelineName := $pipelinesToRemove }}
-    {{- $_ := unset $config.service.pipelines $pipelineName }}
+    {{- range $pipelineName := $pipelinesToRemove }}
+      {{- $_ := unset $config.service.pipelines $pipelineName }}
+    {{- end }}
+    {{- $producedConnectors := list }}
+    {{- range $pipelineName, $pipeline := $config.service.pipelines }}
+      {{- range $exporter := (default (list) $pipeline.exporters) }}
+        {{- if hasKey $connectors $exporter }}
+          {{- $producedConnectors = append $producedConnectors $exporter }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- $producedConnectors = $producedConnectors | uniq }}
+    {{- range $pipelineName, $pipeline := $config.service.pipelines }}
+      {{- $newReceivers := list }}
+      {{- range $receiver := (default (list) $pipeline.receivers) }}
+        {{- if or (not (hasKey $connectors $receiver)) (has $receiver $producedConnectors) }}
+          {{- $newReceivers = append $newReceivers $receiver }}
+        {{- end }}
+      {{- end }}
+      {{- $_ := set $pipeline "receivers" $newReceivers }}
+      {{- $_ := set $config.service.pipelines $pipelineName $pipeline }}
+    {{- end }}
   {{- end }}
 {{- end }}
 {{- $config | toYaml }}
@@ -633,6 +656,32 @@ Build config file for deployment OpenTelemetry Collector
           {{- $_ := set $keep $name $pipeline }}
         {{- end }}
       {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- /* Drop connector receivers whose producer pipelines were not retained. */ -}}
+{{- range $i := until 16 }}
+  {{- $producedConnectors := list }}
+  {{- range $name, $pipeline := $keep }}
+    {{- range $exporter := (default (list) $pipeline.exporters) }}
+      {{- if hasKey $connectors $exporter }}
+        {{- $producedConnectors = append $producedConnectors $exporter }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- $producedConnectors = $producedConnectors | uniq }}
+  {{- range $name, $pipeline := $keep }}
+    {{- $newReceivers := list }}
+    {{- range $receiver := (default (list) $pipeline.receivers) }}
+      {{- if or (not (hasKey $connectors $receiver)) (has $receiver $producedConnectors) }}
+        {{- $newReceivers = append $newReceivers $receiver }}
+      {{- end }}
+    {{- end }}
+    {{- if and (eq (len $newReceivers) 0) (ne $name "metrics") }}
+      {{- $_ := unset $keep $name }}
+    {{- else }}
+      {{- $_ := set $pipeline "receivers" $newReceivers }}
+      {{- $_ := set $keep $name $pipeline }}
     {{- end }}
   {{- end }}
 {{- end }}
