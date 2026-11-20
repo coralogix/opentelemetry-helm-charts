@@ -547,16 +547,20 @@ Build config file for deployment OpenTelemetry Collector
     {{- range $pipelineName := $pipelinesToRemove }}
       {{- $_ := unset $config.service.pipelines $pipelineName }}
     {{- end }}
-    {{- $producedConnectors := list }}
+    {{- $producedBySignal := dict }}
     {{- range $pipelineName, $pipeline := $config.service.pipelines }}
+      {{- $signal := index (splitList "/" $pipelineName) 0 }}
+      {{- $produced := default (list) (index $producedBySignal $signal) }}
       {{- range $exporter := (default (list) $pipeline.exporters) }}
         {{- if hasKey $connectors $exporter }}
-          {{- $producedConnectors = append $producedConnectors $exporter }}
+          {{- $produced = append $produced $exporter }}
         {{- end }}
       {{- end }}
+      {{- $_ := set $producedBySignal $signal ($produced | uniq) }}
     {{- end }}
-    {{- $producedConnectors = $producedConnectors | uniq }}
     {{- range $pipelineName, $pipeline := $config.service.pipelines }}
+      {{- $signal := index (splitList "/" $pipelineName) 0 }}
+      {{- $producedConnectors := default (list) (index $producedBySignal $signal) }}
       {{- $newReceivers := list }}
       {{- range $receiver := (default (list) $pipeline.receivers) }}
         {{- if or (not (hasKey $connectors $receiver)) (has $receiver $producedConnectors) }}
@@ -682,9 +686,15 @@ Build config file for deployment OpenTelemetry Collector
     {{- $signal := index (splitList "/" $name) 0 }}
     {{- $producedConnectors := default (list) (index $producedBySignal $signal) }}
     {{- $newReceivers := list }}
-    {{- range $receiver := (default (list) $pipeline.receivers) }}
-      {{- if or (not (hasKey $connectors $receiver)) (has $receiver $producedConnectors) }}
-        {{- $newReceivers = append $newReceivers $receiver }}
+    {{- if eq $name "metrics" }}
+      {{- /* Root pool pipeline keeps its prometheus scrape receiver. */ -}}
+      {{- $newReceivers = default (list) $pipeline.receivers }}
+    {{- else }}
+      {{- /* Downstream pool pipelines only keep connector edges from retained producers. */ -}}
+      {{- range $receiver := (default (list) $pipeline.receivers) }}
+        {{- if and (hasKey $connectors $receiver) (has $receiver $producedConnectors) }}
+          {{- $newReceivers = append $newReceivers $receiver }}
+        {{- end }}
       {{- end }}
     {{- end }}
     {{- if and (eq (len $newReceivers) 0) (ne $name "metrics") }}
