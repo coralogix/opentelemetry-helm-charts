@@ -66,9 +66,10 @@ spec:
       {{- $poolExtraVolumes := list }}
       {{- $isolatedVolumeNames := dict }}
       {{- range .Values.extraVolumes }}
+        {{- $pvcReadOnly := and (hasKey . "persistentVolumeClaim") (dig "persistentVolumeClaim" "readOnly" false .) }}
         {{- $isSharedPath := or (hasKey . "hostPath") (hasKey . "persistentVolumeClaim") }}
-        {{- $isMixedShared := and $isSharedPath (hasKey $readOnlyMountNames .name) (hasKey $writableMountNames .name) }}
-        {{- $keepShared := or (hasKey $presetReadOnlyNames .name) (and (hasKey $readOnlyMountNames .name) (not (hasKey $writableMountNames .name))) }}
+        {{- $isMixedShared := and $isSharedPath (not $pvcReadOnly) (hasKey $readOnlyMountNames .name) (hasKey $writableMountNames .name) }}
+        {{- $keepShared := or $pvcReadOnly (hasKey $presetReadOnlyNames .name) (and (hasKey $readOnlyMountNames .name) (not (hasKey $writableMountNames .name))) }}
         {{- if $isMixedShared }}
           {{- /* Keep shared RO data; give RW mounts an isolated emptyDir twin. */ -}}
           {{- $poolExtraVolumes = append $poolExtraVolumes . }}
@@ -115,40 +116,43 @@ spec:
           {{- end }}
         {{- end }}
         {{- $poolExtraVolumeMounts = $remappedMounts }}
-        {{- /* Remap writers for isolated subpaths; reject ambiguous root mounts on mixed volumes. */ -}}
-        {{- $remappedInits := list }}
-        {{- range $poolInitContainers }}
-          {{- $init := deepCopy . }}
-          {{- if hasKey $init "volumeMounts" }}
-            {{- $initMounts := list }}
-            {{- range $init.volumeMounts }}
-              {{- $mountName := .name }}
-              {{- if kindIs "string" .name }}
-                {{- $mountName = tpl .name $ }}
-              {{- end }}
-              {{- $mountSubPath := .subPath | default "" }}
-              {{- if kindIs "string" $mountSubPath }}
-                {{- $mountSubPath = tpl $mountSubPath $ }}
-              {{- end }}
-              {{- $subKey := printf "%s|%s" $mountName $mountSubPath }}
-              {{- if and (eq $mountSubPath "") (hasKey $volumesWithIsolated $mountName) (hasKey $volumesWithRetained $mountName) }}
-                {{- fail (printf "[ERROR] targetAllocator.collectionMode: statefulset cannot remap root-mounted init/sidecar writers on mixed volume %q; mount isolated and retained subpaths separately." $mountName) }}
-              {{- end }}
-              {{- $rootWritesIsolated := and (eq $mountSubPath "") (hasKey $volumesWithIsolated $mountName) (not (hasKey $volumesWithRetained $mountName)) }}
-              {{- if or (hasKey $isolatedSubpaths $subKey) $rootWritesIsolated }}
-                {{- $mount := deepCopy . }}
-                {{- $_ := set $mount "name" (index $isolatedVolumeNames $mountName) }}
-                {{- $initMounts = append $initMounts $mount }}
-              {{- else }}
-                {{- $initMounts = append $initMounts . }}
-              {{- end }}
-            {{- end }}
-            {{- $_ := set $init "volumeMounts" $initMounts }}
-          {{- end }}
-          {{- $remappedInits = append $remappedInits $init }}
-        {{- end }}
-        {{- $poolInitContainers = $remappedInits }}
       {{- end }}
+      {{- /* Freeze resolved init mount names before pool volume reordering changes tpl indices. */ -}}
+      {{- $remappedInits := list }}
+      {{- range $poolInitContainers }}
+        {{- $init := deepCopy . }}
+        {{- if hasKey $init "volumeMounts" }}
+          {{- $initMounts := list }}
+          {{- range $init.volumeMounts }}
+            {{- $mountName := .name }}
+            {{- if kindIs "string" .name }}
+              {{- $mountName = tpl .name $ }}
+            {{- end }}
+            {{- $mountSubPath := .subPath | default "" }}
+            {{- if kindIs "string" $mountSubPath }}
+              {{- $mountSubPath = tpl $mountSubPath $ }}
+            {{- end }}
+            {{- $subKey := printf "%s|%s" $mountName $mountSubPath }}
+            {{- if and (eq $mountSubPath "") (hasKey $volumesWithIsolated $mountName) (hasKey $volumesWithRetained $mountName) }}
+              {{- fail (printf "[ERROR] targetAllocator.collectionMode: statefulset cannot remap root-mounted init/sidecar writers on mixed volume %q; mount isolated and retained subpaths separately." $mountName) }}
+            {{- end }}
+            {{- $rootWritesIsolated := and (eq $mountSubPath "") (hasKey $volumesWithIsolated $mountName) (not (hasKey $volumesWithRetained $mountName)) }}
+            {{- $mount := deepCopy . }}
+            {{- if or (hasKey $isolatedSubpaths $subKey) $rootWritesIsolated }}
+              {{- $_ := set $mount "name" (index $isolatedVolumeNames $mountName) }}
+            {{- else }}
+              {{- $_ := set $mount "name" $mountName }}
+            {{- end }}
+            {{- if ne $mountSubPath "" }}
+              {{- $_ := set $mount "subPath" $mountSubPath }}
+            {{- end }}
+            {{- $initMounts = append $initMounts $mount }}
+          {{- end }}
+          {{- $_ := set $init "volumeMounts" $initMounts }}
+        {{- end }}
+        {{- $remappedInits = append $remappedInits $init }}
+      {{- end }}
+      {{- $poolInitContainers = $remappedInits }}
       {{- range .Values.extraHostPathMounts }}
         {{- if .readOnly }}
           {{- $poolHostPathMounts = append $poolHostPathMounts . }}
@@ -197,7 +201,7 @@ spec:
           {{- end }}
           {{- $_ := set $container "ports" $ports }}
         {{- end }}
-        {{- if and $isolatedVolumeNames (hasKey $container "volumeMounts") }}
+        {{- if hasKey $container "volumeMounts" }}
           {{- $sidecarMounts := list }}
           {{- range $container.volumeMounts }}
             {{- $mountName := .name }}
@@ -213,13 +217,16 @@ spec:
               {{- fail (printf "[ERROR] targetAllocator.collectionMode: statefulset cannot remap root-mounted init/sidecar writers on mixed volume %q; mount isolated and retained subpaths separately." $mountName) }}
             {{- end }}
             {{- $rootWritesIsolated := and (eq $mountSubPath "") (hasKey $volumesWithIsolated $mountName) (not (hasKey $volumesWithRetained $mountName)) }}
+            {{- $mount := deepCopy . }}
             {{- if or (hasKey $isolatedSubpaths $subKey) $rootWritesIsolated }}
-              {{- $mount := deepCopy . }}
               {{- $_ := set $mount "name" (index $isolatedVolumeNames $mountName) }}
-              {{- $sidecarMounts = append $sidecarMounts $mount }}
             {{- else }}
-              {{- $sidecarMounts = append $sidecarMounts . }}
+              {{- $_ := set $mount "name" $mountName }}
             {{- end }}
+            {{- if ne $mountSubPath "" }}
+              {{- $_ := set $mount "subPath" $mountSubPath }}
+            {{- end }}
+            {{- $sidecarMounts = append $sidecarMounts $mount }}
           {{- end }}
           {{- $_ := set $container "volumeMounts" $sidecarMounts }}
         {{- end }}
