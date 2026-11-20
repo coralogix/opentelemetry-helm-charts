@@ -327,6 +327,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- end }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.applyMemoryLimiterProcessorAsFirst" (dict "Values" $data "config" $config) | fromYaml) }}
+{{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") }}
+{{- $config = (include "opentelemetry-collector.removeAllocatedPrometheusReceivers" (dict "config" $config) | fromYaml) }}
+{{- end }}
 {{- $config = (include "opentelemetry-collector.removePipelinesWithoutExporters" (dict "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.removePipelinesWithoutReceivers" (dict "config" $config) | fromYaml) }}
 {{- $supervisorEnabled := and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
@@ -531,6 +534,20 @@ Build config file for deployment OpenTelemetry Collector
 {{- $config | toYaml }}
 {{- end }}
 
+{{- define "opentelemetry-collector.removeAllocatedPrometheusReceivers" -}}
+{{- $config := deepCopy .config -}}
+{{- if and $config.service $config.service.pipelines }}
+  {{- range $pipelineName, $pipeline := $config.service.pipelines }}
+    {{- $_ := set $pipeline "receivers" (without (default (list) $pipeline.receivers) "prometheus") }}
+    {{- $_ := set $config.service.pipelines $pipelineName $pipeline }}
+  {{- end }}
+{{- end }}
+{{- if and $config.receivers (hasKey $config.receivers "prometheus") }}
+  {{- $_ := unset $config.receivers "prometheus" }}
+{{- end }}
+{{- $config | toYaml }}
+{{- end }}
+
 {{- define "opentelemetry-collector.removePipelinesWithoutReceivers" -}}
 {{- $config := deepCopy .config -}}
 {{- if and $config.service $config.service.pipelines }}
@@ -659,7 +676,13 @@ Build config file for deployment OpenTelemetry Collector
   {{- $signal := index (splitList "/" $name) 0 }}
   {{- if and (eq $signal "metrics") (has "prometheus" (default (list) $pipeline.receivers)) }}
     {{- $copy := deepCopy $pipeline }}
-    {{- $_ := set $copy "receivers" (list "prometheus") }}
+    {{- $seedReceivers := list "prometheus" }}
+    {{- range $receiver := (default (list) $pipeline.receivers) }}
+      {{- if and (hasKey $connectors $receiver) (not (has $receiver $seedReceivers)) }}
+        {{- $seedReceivers = append $seedReceivers $receiver }}
+      {{- end }}
+    {{- end }}
+    {{- $_ := set $copy "receivers" $seedReceivers }}
     {{- $_ := set $keep $name $copy }}
     {{- $_ := set $seeded $name true }}
   {{- end }}
@@ -711,8 +734,12 @@ Build config file for deployment OpenTelemetry Collector
     {{- $producedConnectors := default (list) (index $producedBySignal $signal) }}
     {{- $newReceivers := list }}
     {{- if hasKey $seeded $name }}
-      {{- /* Seeded prometheus consumers keep the allocated scrape receiver. */ -}}
-      {{- $newReceivers = default (list) $pipeline.receivers }}
+      {{- /* Seeded consumers keep prometheus plus connector edges from retained producers. */ -}}
+      {{- range $receiver := (default (list) $pipeline.receivers) }}
+        {{- if or (eq $receiver "prometheus") (and (hasKey $connectors $receiver) (has $receiver $producedConnectors)) }}
+          {{- $newReceivers = append $newReceivers $receiver }}
+        {{- end }}
+      {{- end }}
     {{- else }}
       {{- /* Downstream pool pipelines only keep connector edges from retained producers. */ -}}
       {{- range $receiver := (default (list) $pipeline.receivers) }}
