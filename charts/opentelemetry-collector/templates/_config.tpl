@@ -635,7 +635,7 @@ Build config file for deployment OpenTelemetry Collector
 
 {{- define "opentelemetry-collector.applyTargetAllocatorPoolConfig" -}}
 {{- $config := .config }}
-{{- /* Keep the metrics pipeline and any downstream metrics pipelines fed by its connector exporters. */ -}}
+{{- /* Keep metrics and same-signal downstream pipelines fed by its connector exporters. */ -}}
 {{- $allPipelines := $config.service.pipelines | default dict }}
 {{- $connectors := $config.connectors | default dict }}
 {{- $keep := dict }}
@@ -643,34 +643,44 @@ Build config file for deployment OpenTelemetry Collector
 {{- $_ := set $metrics "receivers" (list "prometheus") }}
 {{- $_ := set $keep "metrics" $metrics }}
 {{- range $i := until 16 }}
-  {{- $exporterNames := list }}
+  {{- $exportsBySignal := dict }}
   {{- range $name, $pipeline := $keep }}
+    {{- $signal := index (splitList "/" $name) 0 }}
+    {{- $exporterNames := default (list) (index $exportsBySignal $signal) }}
     {{- range $exporter := (default (list) $pipeline.exporters) }}
-      {{- $exporterNames = append $exporterNames $exporter }}
+      {{- if hasKey $connectors $exporter }}
+        {{- $exporterNames = append $exporterNames $exporter }}
+      {{- end }}
     {{- end }}
+    {{- $_ := set $exportsBySignal $signal ($exporterNames | uniq) }}
   {{- end }}
-  {{- range $exporter := ($exporterNames | uniq) }}
-    {{- if hasKey $connectors $exporter }}
+  {{- range $signal, $exporterNames := $exportsBySignal }}
+    {{- range $exporter := $exporterNames }}
       {{- range $name, $pipeline := $allPipelines }}
-        {{- if and (not (hasKey $keep $name)) (has $exporter (default (list) $pipeline.receivers)) }}
+        {{- $consumerSignal := index (splitList "/" $name) 0 }}
+        {{- if and (eq $signal $consumerSignal) (not (hasKey $keep $name)) (has $exporter (default (list) $pipeline.receivers)) }}
           {{- $_ := set $keep $name $pipeline }}
         {{- end }}
       {{- end }}
     {{- end }}
   {{- end }}
 {{- end }}
-{{- /* Drop connector receivers whose producer pipelines were not retained. */ -}}
+{{- /* Drop connector receivers whose same-signal producer pipelines were not retained. */ -}}
 {{- range $i := until 16 }}
-  {{- $producedConnectors := list }}
+  {{- $producedBySignal := dict }}
   {{- range $name, $pipeline := $keep }}
+    {{- $signal := index (splitList "/" $name) 0 }}
+    {{- $produced := default (list) (index $producedBySignal $signal) }}
     {{- range $exporter := (default (list) $pipeline.exporters) }}
       {{- if hasKey $connectors $exporter }}
-        {{- $producedConnectors = append $producedConnectors $exporter }}
+        {{- $produced = append $produced $exporter }}
       {{- end }}
     {{- end }}
+    {{- $_ := set $producedBySignal $signal ($produced | uniq) }}
   {{- end }}
-  {{- $producedConnectors = $producedConnectors | uniq }}
   {{- range $name, $pipeline := $keep }}
+    {{- $signal := index (splitList "/" $name) 0 }}
+    {{- $producedConnectors := default (list) (index $producedBySignal $signal) }}
     {{- $newReceivers := list }}
     {{- range $receiver := (default (list) $pipeline.receivers) }}
       {{- if or (not (hasKey $connectors $receiver)) (has $receiver $producedConnectors) }}
