@@ -50,10 +50,11 @@ spec:
       {{- end }}
       {{- $podValues := .Values }}
       {{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") }}
-      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset") }}
+      {{- /* Do not share agent hostPath mounts (for example file_storage queues) with pool pods. */ -}}
+      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset" "extraHostPathMounts" (list)) }}
       {{- end }}
-      {{- $podData := dict "Values" $podValues "configmapSuffix" "-statefulset" "isAgent" false }}
-      {{- include "opentelemetry-collector.pod" ($podData | mustMergeOverwrite (deepCopy .)) | nindent 6 }}
+      {{- $podCtx := mustMergeOverwrite (deepCopy .) (dict "Values" $podValues "configmapSuffix" "-statefulset" "isAgent" false) }}
+      {{- include "opentelemetry-collector.pod" $podCtx | nindent 6 }}
       {{- if not .Values.isWindows }}
       hostNetwork: {{ and .Values.hostNetwork (not (and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset"))) }}
       {{- if .Values.presets.ebpfProfiler.enabled }}
