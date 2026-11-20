@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.143.5 / 2026-11-20
+
+- [Feat] Add `targetAllocator.collectionMode: statefulset`, moving Target Allocator Prometheus targets from the agent DaemonSet to an HPA-managed metrics-only StatefulSet pool. The pool forces `least-weighted` allocation and selects collectors with `opentelemetry.io/target-allocator-pool: "true"`.
+
 ### v0.143.4 / 2026-11-18
 
 - [Fix] Collect active and rotated Kubernetes container logs on Linux and Windows, preserving file-path metadata for timestamped rotations. Exclude compressed and temporary files and respect `presets.logsCollection.includeCollectorLogs` for active and rotated collector logs.
