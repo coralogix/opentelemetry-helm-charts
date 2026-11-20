@@ -2,9 +2,9 @@
 
 ## OpenTelemetry Collector
 
-### v0.143.5 / 2026-11-19
+### v0.143.5 / 2026-11-20
 
-- [Feat] Add `rewriteDeprecatedComponentNames` (default `true`), which automatically rewrites deprecated component names in the generated config: `k8sattributes` -> `k8s_attributes` processors, `filelog` -> `file_log` and `hostmetrics` -> `host_metrics` receivers, `otlp` -> `otlp_grpc` and `otlphttp` -> `otlp_http` exporters, and `k8snode` -> `k8s_api` resourcedetection detectors (including the `k8snode:` config block and pipeline references across all signal pipelines). Deprecation warnings in the helm notes flag every rewritten name so `values.yaml` can be updated before the auto-rewrite is removed in a future release. Set the value to `false` when using Collector images older than v0.146.0.
+- [Feat] Add `rewriteDeprecatedComponentNames` (default `true`), which automatically rewrites deprecated component names in the generated config: `k8sattributes` -> `k8s_attributes` processors, `filelog` -> `file_log` and `hostmetrics` -> `host_metrics` receivers, `otlp` -> `otlp_grpc` and `otlphttp` -> `otlp_http` exporters, and `k8snode` -> `k8s_api` resourcedetection detectors (including the `k8snode:` config block and pipeline references across all signal pipelines). Deprecation warnings in the helm notes flag every rewritten name so `values.yaml` can be updated before the auto-rewrite is removed in a future release. Each new name has its own minimum Collector version (`otlp_grpc`/`otlp_http` v0.144.0, `k8s_attributes` v0.146.0, `file_log` v0.149.0, `host_metrics` v0.151.0, `k8s_api` v0.154.0); set the value to `false` when using Collector images older than v0.154.0. Config you set under a new name now takes precedence over content merged from a deprecated name (including preset output), and null bodies on deprecated keys no longer fail the render.
 
 ### v0.143.4 / 2026-11-18
 

@@ -3732,10 +3732,10 @@ opentelemetry-collector.deprecatedComponentRenames.
         {{- if or (eq $key $old) (hasPrefix (printf "%s/" $old) $key) }}
           {{- $newKey := $new }}
           {{- if hasPrefix (printf "%s/" $old) $key }}
-            {{- $newKey = $key | replace (printf "%s/" $old) (printf "%s/" $new) }}
+            {{- $newKey = printf "%s/%s" $new (trimPrefix (printf "%s/" $old) $key) }}
           {{- end }}
           {{- $existing := index $section $newKey | default dict }}
-          {{- $_ := set $section $newKey (mustMergeOverwrite $existing $val) }}
+          {{- $_ := set $section $newKey (mustMergeOverwrite ($val | default dict) $existing) }}
           {{- $_ := unset $section $key }}
         {{- end }}
       {{- end }}
@@ -3748,7 +3748,7 @@ opentelemetry-collector.deprecatedComponentRenames.
           {{- if eq . $old }}
             {{- $newRefs = append $newRefs $new }}
           {{- else if hasPrefix (printf "%s/" $old) . }}
-            {{- $newRefs = append $newRefs (. | replace (printf "%s/" $old) (printf "%s/" $new)) }}
+            {{- $newRefs = append $newRefs (printf "%s/%s" $new (trimPrefix (printf "%s/" $old) .)) }}
           {{- else }}
             {{- $newRefs = append $newRefs . }}
           {{- end }}
@@ -3777,8 +3777,9 @@ opentelemetry-collector.deprecatedComponentRenames.
       {{- range $oldDetector, $newDetector := $detectorRenames }}
         {{- if hasKey $proc $oldDetector }}
           {{- $detectorCfg := index $proc $oldDetector }}
+          {{- $merged := mustMergeOverwrite ($detectorCfg | default dict) (index $proc $newDetector | default dict) }}
           {{- $_ := unset $proc $oldDetector }}
-          {{- $_ := set $proc $newDetector $detectorCfg }}
+          {{- $_ := set $proc $newDetector $merged }}
         {{- end }}
       {{- end }}
     {{- end }}

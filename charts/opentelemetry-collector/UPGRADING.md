@@ -32,12 +32,33 @@ Component names in pipeline references are rewritten across all signal pipelines
 Deprecation warnings in the helm notes call out every rewritten name so you can update your
 `values.yaml`; the auto-rewrite will be removed in a future chart release.
 
-If you are using a Collector image older than v0.146.0 (which introduced the new component names),
-set `rewriteDeprecatedComponentNames: false` to preserve the deprecated names:
+Each new name requires a minimum Collector version:
+
+| Rename | Minimum Collector version |
+| --- | --- |
+| `otlp` -> `otlp_grpc`, `otlphttp` -> `otlp_http` (exporters) | v0.144.0 |
+| `k8sattributes` -> `k8s_attributes` (processor) | v0.146.0 |
+| `filelog` -> `file_log` (receiver) | v0.149.0 |
+| `hostmetrics` -> `host_metrics` (receiver) | v0.151.0 |
+| `k8snode` -> `k8s_api` (resourcedetection detector) | v0.154.0 |
+
+Because the rewrite applies to all renames at once, the single safe cutoff is Collector v0.154.0.
+If you are using a Collector image older than v0.154.0, set `rewriteDeprecatedComponentNames: false`
+to preserve the deprecated names:
 
 ```yaml
 rewriteDeprecatedComponentNames: false
 ```
+
+Checkpoint and storage note: renaming `filelog` to `file_log` (and renaming any exporter that uses a
+persistent `sending_queue.storage`) orphans the `file_storage` files named `receiver_<type>_<name>`.
+With `presets.logsCollection.storeCheckpoints: true`, the first rollout after the upgrade re-reads
+log files, producing a burst of duplicate logs. Delete or rename the old checkpoint directories if
+replay is unacceptable.
+
+Internal telemetry note: the `receiver` and `exporter` component labels on the Collector's internal
+metrics change (for example `receiver="file_log"` and `exporter="otlp_grpc"`), so update dashboards
+and alerts keyed on the `otelcol` receiver and exporter labels.
 
 ## 0.124.7 and above
 
