@@ -67,9 +67,11 @@ spec:
       {{- $isolatedVolumeNames := dict }}
       {{- range .Values.extraVolumes }}
         {{- $pvcReadOnly := and (hasKey . "persistentVolumeClaim") (dig "persistentVolumeClaim" "readOnly" false .) }}
+        {{- $hostPathType := dig "hostPath" "type" "" . }}
+        {{- $isFileHostPath := and (hasKey . "hostPath") (or (eq $hostPathType "File") (eq $hostPathType "FileOrCreate")) }}
         {{- $isSharedPath := or (hasKey . "hostPath") (hasKey . "persistentVolumeClaim") }}
-        {{- $isMixedShared := and $isSharedPath (not $pvcReadOnly) (hasKey $readOnlyMountNames .name) (hasKey $writableMountNames .name) }}
-        {{- $keepShared := or $pvcReadOnly (hasKey $presetReadOnlyNames .name) (and (hasKey $readOnlyMountNames .name) (not (hasKey $writableMountNames .name))) }}
+        {{- $isMixedShared := and $isSharedPath (not $pvcReadOnly) (not $isFileHostPath) (hasKey $readOnlyMountNames .name) (hasKey $writableMountNames .name) }}
+        {{- $keepShared := or $pvcReadOnly $isFileHostPath (hasKey $presetReadOnlyNames .name) (and (hasKey $readOnlyMountNames .name) (not (hasKey $writableMountNames .name))) }}
         {{- if $isMixedShared }}
           {{- /* Keep shared RO data; give RW mounts an isolated emptyDir twin. */ -}}
           {{- $poolExtraVolumes = append $poolExtraVolumes . }}

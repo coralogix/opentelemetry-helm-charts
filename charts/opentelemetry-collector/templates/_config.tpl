@@ -625,7 +625,17 @@ Build config file for deployment OpenTelemetry Collector
         {{- if and $root (kindIs "string" $exporter) }}
           {{- $exporterName = tpl $exporter $root }}
         {{- end }}
-        {{- if hasKey $connectors $exporterName }}
+        {{- if hasPrefix "${" (toString $exporterName) }}
+          {{- /* Runtime env refs may resolve to connectors; keep same/cross-signal edges. */ -}}
+          {{- $produced = append $produced $exporterName }}
+          {{- $producedAny = append $producedAny $exporterName }}
+          {{- range $connectorName, $_ := $connectors }}
+            {{- $producedAny = append $producedAny $connectorName }}
+            {{- if or (eq $connectorName "forward") (hasPrefix "forward/" $connectorName) (eq $connectorName "roundrobin") (hasPrefix "roundrobin/" $connectorName) }}
+              {{- $produced = append $produced $connectorName }}
+            {{- end }}
+          {{- end }}
+        {{- else if hasKey $connectors $exporterName }}
           {{- $produced = append $produced $exporterName }}
           {{- $producedAny = append $producedAny $exporterName }}
         {{- end }}
@@ -642,7 +652,7 @@ Build config file for deployment OpenTelemetry Collector
         {{- if and $root (kindIs "string" $receiver) }}
           {{- $receiverName = tpl $receiver $root }}
         {{- end }}
-        {{- if not (hasKey $connectors $receiverName) }}
+        {{- if or (not (hasKey $connectors $receiverName)) (hasPrefix "${" (toString $receiverName)) }}
           {{- $newReceivers = append $newReceivers $receiver }}
         {{- else if or (eq $receiverName "forward") (hasPrefix "forward/" $receiverName) (eq $receiverName "roundrobin") (hasPrefix "roundrobin/" $receiverName) }}
           {{- /* Same-signal connectors must keep a producer in this signal. */ -}}
@@ -798,7 +808,7 @@ Build config file for deployment OpenTelemetry Collector
     {{- $signal := index (splitList "/" $name) 0 }}
     {{- $exporterNames := default (list) (index $exportsBySignal $signal) }}
     {{- range $exporter := (default (list) $pipeline.exporters) }}
-      {{- if hasKey $connectors $exporter }}
+      {{- if or (hasPrefix "${" (toString $exporter)) (hasKey $connectors $exporter) }}
         {{- $exporterNames = append $exporterNames $exporter }}
       {{- end }}
     {{- end }}
@@ -807,9 +817,19 @@ Build config file for deployment OpenTelemetry Collector
   {{- range $signal, $exporterNames := $exportsBySignal }}
     {{- range $exporter := $exporterNames }}
       {{- $sameSignalOnly := or (eq $exporter "forward") (hasPrefix "forward/" $exporter) (eq $exporter "roundrobin") (hasPrefix "roundrobin/" $exporter) }}
+      {{- $unresolvedExporter := hasPrefix "${" (toString $exporter) }}
       {{- range $name, $pipeline := $allPipelines }}
         {{- $consumerSignal := index (splitList "/" $name) 0 }}
-        {{- if and (or (not $sameSignalOnly) (eq $signal $consumerSignal)) (not (hasKey $keep $name)) (has $exporter (default (list) $pipeline.receivers)) }}
+        {{- $receivesExporter := has $exporter (default (list) $pipeline.receivers) }}
+        {{- if and $unresolvedExporter (not $receivesExporter) }}
+          {{- /* Runtime env exporter may resolve to any same-signal connector receiver. */ -}}
+          {{- range $receiver := (default (list) $pipeline.receivers) }}
+            {{- if and (hasKey $connectors $receiver) (or (eq $receiver "forward") (hasPrefix "forward/" $receiver) (eq $receiver "roundrobin") (hasPrefix "roundrobin/" $receiver)) }}
+              {{- $receivesExporter = true }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+        {{- if and (or (not $sameSignalOnly) (eq $signal $consumerSignal) $unresolvedExporter) (not (hasKey $keep $name)) $receivesExporter }}
           {{- $_ := set $keep $name $pipeline }}
         {{- end }}
       {{- end }}
@@ -824,7 +844,16 @@ Build config file for deployment OpenTelemetry Collector
     {{- $signal := index (splitList "/" $name) 0 }}
     {{- $produced := default (list) (index $producedBySignal $signal) }}
     {{- range $exporter := (default (list) $pipeline.exporters) }}
-      {{- if hasKey $connectors $exporter }}
+      {{- if hasPrefix "${" (toString $exporter) }}
+        {{- $produced = append $produced $exporter }}
+        {{- $producedAny = append $producedAny $exporter }}
+        {{- range $connectorName, $_ := $connectors }}
+          {{- $producedAny = append $producedAny $connectorName }}
+          {{- if or (eq $connectorName "forward") (hasPrefix "forward/" $connectorName) (eq $connectorName "roundrobin") (hasPrefix "roundrobin/" $connectorName) }}
+            {{- $produced = append $produced $connectorName }}
+          {{- end }}
+        {{- end }}
+      {{- else if hasKey $connectors $exporter }}
         {{- $produced = append $produced $exporter }}
         {{- $producedAny = append $producedAny $exporter }}
       {{- end }}
@@ -839,8 +868,10 @@ Build config file for deployment OpenTelemetry Collector
     {{- range $receiver := (default (list) $pipeline.receivers) }}
       {{- if and (hasKey $seeded $name) (eq $receiver "prometheus") }}
         {{- $newReceivers = append $newReceivers $receiver }}
-      {{- else if hasKey $connectors $receiver }}
-        {{- if or (eq $receiver "forward") (hasPrefix "forward/" $receiver) (eq $receiver "roundrobin") (hasPrefix "roundrobin/" $receiver) }}
+      {{- else if or (hasPrefix "${" (toString $receiver)) (hasKey $connectors $receiver) }}
+        {{- if hasPrefix "${" (toString $receiver) }}
+          {{- $newReceivers = append $newReceivers $receiver }}
+        {{- else if or (eq $receiver "forward") (hasPrefix "forward/" $receiver) (eq $receiver "roundrobin") (hasPrefix "roundrobin/" $receiver) }}
           {{- if has $receiver $producedSameSignal }}
             {{- $newReceivers = append $newReceivers $receiver }}
           {{- end }}
