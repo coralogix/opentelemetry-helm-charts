@@ -26,9 +26,15 @@ data:
       {{- $_ := set $poolDetectors "env" (list "env") }}
     {{- end }}
     {{- $_ := set $poolResourceDetection "detectors" $poolDetectors }}
-    {{- $poolPresets := mergeOverwrite (deepCopy .Values.presets) (dict "resourceDetection" $poolResourceDetection) }}
-    {{- $poolValues = mergeOverwrite $poolValues (dict "presets" $poolPresets) }}
+    {{- /* least-weighted pool scrapes cross-node; drop node-only k8sattributes filtering. */ -}}
+    {{- $poolK8sAttrs := deepCopy .Values.presets.kubernetesAttributes }}
+    {{- $_ := set $poolK8sAttrs "nodeFilter" (dict "enabled" false) }}
+    {{- $poolPresets := mergeOverwrite (deepCopy .Values.presets) (dict "resourceDetection" $poolResourceDetection "kubernetesAttributes" $poolK8sAttrs) }}
+    {{- $_ := set $poolValues "presets" $poolPresets }}
     {{- end }}
-    {{- $poolData := mustMergeOverwrite (deepCopy .) (dict "Values" $poolValues "isTargetAllocatorPool" $isTargetAllocatorPool) -}}
+    {{- /* Replace Values wholesale so pool preset overrides are not re-merged from root. */ -}}
+    {{- $poolData := deepCopy . -}}
+    {{- $_ := set $poolData "Values" $poolValues -}}
+    {{- $_ := set $poolData "isTargetAllocatorPool" $isTargetAllocatorPool -}}
     {{- include "opentelemetry-collector.deploymentConfig" $poolData | nindent 4 -}}
 {{- end }}

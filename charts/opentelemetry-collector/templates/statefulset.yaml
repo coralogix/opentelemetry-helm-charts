@@ -123,7 +123,8 @@ spec:
                 {{- $mountSubPath = tpl $mountSubPath $ }}
               {{- end }}
               {{- $subKey := printf "%s|%s" $mountName $mountSubPath }}
-              {{- if hasKey $isolatedSubpaths $subKey }}
+              {{- $rootWritesIsolated := and (eq $mountSubPath "") (hasKey $isolatedVolumeNames $mountName) }}
+              {{- if or (hasKey $isolatedSubpaths $subKey) $rootWritesIsolated }}
                 {{- $mount := deepCopy . }}
                 {{- $_ := set $mount "name" (index $isolatedVolumeNames $mountName) }}
                 {{- $initMounts = append $initMounts $mount }}
@@ -169,6 +170,9 @@ spec:
       {{- end }}
       {{- $_ := set $poolResourceDetection "detectors" $poolDetectors }}
       {{- $_ := set $poolPresets "resourceDetection" $poolResourceDetection }}
+      {{- $poolK8sAttrs := deepCopy .Values.presets.kubernetesAttributes }}
+      {{- $_ := set $poolK8sAttrs "nodeFilter" (dict "enabled" false) }}
+      {{- $_ := set $poolPresets "kubernetesAttributes" $poolK8sAttrs }}
       {{- /* Sidecar hostPorts collide with the per-node agent; drop them from the pool. */ -}}
       {{- $poolExtraContainers := list }}
       {{- range .Values.extraContainers }}
@@ -194,7 +198,8 @@ spec:
               {{- $mountSubPath = tpl $mountSubPath $ }}
             {{- end }}
             {{- $subKey := printf "%s|%s" $mountName $mountSubPath }}
-            {{- if hasKey $isolatedSubpaths $subKey }}
+            {{- $rootWritesIsolated := and (eq $mountSubPath "") (hasKey $isolatedVolumeNames $mountName) }}
+            {{- if or (hasKey $isolatedSubpaths $subKey) $rootWritesIsolated }}
               {{- $mount := deepCopy . }}
               {{- $_ := set $mount "name" (index $isolatedVolumeNames $mountName) }}
               {{- $sidecarMounts = append $sidecarMounts $mount }}
