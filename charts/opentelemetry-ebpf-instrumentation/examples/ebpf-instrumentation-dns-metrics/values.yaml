@@ -1,0 +1,3 @@
+presets:
+  dnsMetrics:
+    enabled: true

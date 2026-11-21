@@ -148,6 +148,34 @@ data:
     {{- $_ := set $attributes "select" $select }}
     {{- $_ := set $configData "attributes" $attributes }}
   {{- end }}
+  {{- if .Values.presets.dnsMetrics.enabled }}
+    {{- if ne .Values.preset "application" }}
+      {{- fail "presets.dnsMetrics requires preset to be \"application\"" }}
+    {{- end }}
+    {{- /* DNS lookups are exported by the application metrics pipeline, which only runs with an
+           application feature. Without one already exported, add application_red and restrict
+           the exported application metrics to DNS; with one, DNS is already exported unless the
+           user narrowed the exporter's instrumentations, so only extend an explicit list. */ -}}
+    {{- $dnsOnly := not (or (has "application" $globalFeatures) (has "application_red" $globalFeatures) (has "all" $globalFeatures) (has "*" $globalFeatures)) }}
+    {{- if $dnsOnly }}
+      {{- $globalFeatures = append $globalFeatures "application_red" }}
+    {{- end }}
+    {{- $writeGlobalFeatures = true }}
+    {{- range $exporter := list "otel_metrics_export" "prometheus_export" }}
+      {{- if hasKey $configData $exporter }}
+        {{- $exporterConfig := (index $configData $exporter) | default dict }}
+        {{- $instrumentations := (index $exporterConfig "instrumentations") | default list }}
+        {{- if $instrumentations }}
+          {{- if not (or (has "dns" $instrumentations) (has "*" $instrumentations)) }}
+            {{- $_ := set $exporterConfig "instrumentations" (append $instrumentations "dns") }}
+          {{- end }}
+        {{- else if $dnsOnly }}
+          {{- $_ := set $exporterConfig "instrumentations" (list "dns") }}
+        {{- end }}
+        {{- $_ := set $configData $exporter $exporterConfig }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
   {{- $runtimeMetrics := .Values.presets.runtimeMetrics }}
   {{- if and $runtimeMetrics.enabled (eq .Values.preset "application") }}
     {{- $languages := $runtimeMetrics.languages | default list }}

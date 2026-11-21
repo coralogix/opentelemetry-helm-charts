@@ -2,6 +2,10 @@
 
 ## OpenTelemetry eBPF Instrumentation
 
+### v0.1.31 / 2026-11-09
+
+- [Feature] Add a `presets.dnsMetrics` preset, exporting the `dns.lookup.duration` histogram for the DNS lookups made by the instrumented processes, labeled with `error.type` and the Kubernetes metadata of the client. It is disabled by default and requires `preset: application`, failing the render otherwise, since DNS lookups are captured by the application pipeline. When `metrics.features` does not already export OBI's application metrics (the default), it adds the `application_red` feature and sets `instrumentations: [dns]` on the metrics exporters, so no other application metrics are exported; with `application` or `application_red` already enabled, DNS metrics are already exported, and the preset only adds `dns` to an explicit `instrumentations` list. Tracing is not affected
+
 ### v0.1.30 / 2026-11-04
 
 - [Change] Bump OBI image to v1.0.0, OBI's first stable release. It includes the changes of the v0.15.2 release; the chart's configuration renders unchanged (Config v1 stays supported but frozen)
