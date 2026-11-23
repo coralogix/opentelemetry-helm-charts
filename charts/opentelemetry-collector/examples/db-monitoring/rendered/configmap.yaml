@@ -14,7 +14,88 @@ metadata:
 data:
   relay: |
     exporters:
-      debug: {}
+      coralogix:
+        application_name: db-monitoring
+        application_name_attributes:
+        - k8s.namespace.name
+        - service.namespace
+        domain: coralogix.com
+        domain_settings:
+          keepalive:
+            enabled: true
+            permit_without_stream: false
+            time: 30s
+            timeout: 10s
+        logs:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        metrics:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        private_key: ${env:CORALOGIX_PRIVATE_KEY}
+        profiles:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+            x-coralogix-ingress: otlp/v1.10.0
+        sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
+          enabled: true
+          num_consumers: 20
+          queue_size: 209715200
+          sizer: bytes
+        subsystem_name: postgresql
+        subsystem_name_attributes:
+        - k8s.deployment.name
+        - k8s.statefulset.name
+        - k8s.daemonset.name
+        - k8s.cronjob.name
+        - service.name
+        timeout: 30s
+        traces:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+      coralogix/coralogix_db_monitoring_catalog:
+        application_name: resource
+        application_name_attributes: []
+        domain: coralogix.com
+        domain_settings:
+          keepalive:
+            enabled: true
+            permit_without_stream: false
+            time: 30s
+            timeout: 10s
+        logs:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+            x-coralogix-ingress: metadata-as-otlp-logs/v1
+        metrics:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        private_key: ${env:CORALOGIX_PRIVATE_KEY}
+        profiles:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+            x-coralogix-ingress: otlp/v1.10.0
+        sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
+          enabled: true
+          num_consumers: 20
+          queue_size: 209715200
+          sizer: bytes
+        subsystem_name: catalog
+        subsystem_name_attributes: []
+        timeout: 30s
+        traces:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
     extensions:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
@@ -754,7 +835,7 @@ data:
       pipelines:
         logs/db_monitoring_postgresql_orders_catalog:
           exporters:
-          - debug
+          - coralogix/coralogix_db_monitoring_catalog
           processors:
           - memory_limiter
           - resource/db_monitoring_postgresql_orders
@@ -766,7 +847,7 @@ data:
           - sql_query/db_monitoring_postgresql_orders_schema_billing
         logs/db_monitoring_postgresql_orders_queries:
           exporters:
-          - debug
+          - coralogix
           processors:
           - memory_limiter
           - filter/db_monitoring_postgresql_orders_own_queries
@@ -777,7 +858,7 @@ data:
           - postgresql/db_monitoring_postgresql_orders_queries
         metrics:
           exporters:
-          - debug
+          - coralogix
           processors:
           - memory_limiter
           - transform/prometheus
@@ -785,7 +866,7 @@ data:
           - prometheus
         metrics/db_monitoring_postgresql_inventory:
           exporters:
-          - debug
+          - coralogix
           processors:
           - memory_limiter
           - resource/db_monitoring_postgresql_inventory
@@ -797,7 +878,7 @@ data:
           - sql_query/db_monitoring_postgresql_inventory_tables_inventory
         metrics/db_monitoring_postgresql_orders:
           exporters:
-          - debug
+          - coralogix
           processors:
           - memory_limiter
           - resource/db_monitoring_postgresql_orders

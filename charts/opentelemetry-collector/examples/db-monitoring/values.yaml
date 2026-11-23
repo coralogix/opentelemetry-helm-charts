@@ -15,6 +15,12 @@ ports:
 presets:
   otlpReceiver:
     enabled: false
+  coralogixExporter:
+    enabled: true
+    pipelines: [metrics, logs]
+    domain: coralogix.com
+    defaultApplicationName: db-monitoring
+    defaultSubsystemName: postgresql
   dbMonitoring:
     enabled: true
     postgresql:
@@ -46,7 +52,22 @@ presets:
         resourceAttributes:
           deployment.environment.name: production
 
+config:
+  exporters:
+    debug: null
+  service:
+    pipelines:
+      logs:
+        exporters: []
+      metrics:
+        exporters: []
+
 extraEnvs:
+  - name: CORALOGIX_PRIVATE_KEY
+    valueFrom:
+      secretKeyRef:
+        name: coralogix-keys
+        key: PRIVATE_KEY
   - name: ORDERS_DB_PASSWORD
     valueFrom:
       secretKeyRef:

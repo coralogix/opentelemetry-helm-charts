@@ -186,6 +186,13 @@ class DbMonitoringTests(unittest.TestCase):
     @unittest.skipUnless(os.environ.get("OTELCOL_BINARY"), "Set OTELCOL_BINARY to the collector version in Chart.yaml")
     def test_collector_accepts_example_in_each_mode(self):
         configured = yaml.safe_load((CHART / "examples/db-monitoring/values.yaml").read_text())
+        env = dict(
+            os.environ,
+            MY_POD_IP="127.0.0.1",
+            ORDERS_DB_PASSWORD="test",
+            INVENTORY_DB_PASSWORD="test",
+            CORALOGIX_PRIVATE_KEY="test",
+        )
         for mode in ["daemonset", "deployment", "statefulset"]:
             configured["mode"] = mode
             if mode != "deployment":
@@ -195,8 +202,7 @@ class DbMonitoringTests(unittest.TestCase):
                 yaml.safe_dump(config, output)
                 output.flush()
                 result = subprocess.run([os.environ["OTELCOL_BINARY"], "validate", "--config", output.name],
-                                        env=dict(os.environ, MY_POD_IP="127.0.0.1", ORDERS_DB_PASSWORD="test", INVENTORY_DB_PASSWORD="test"),
-                                        capture_output=True, text=True)
+                                        env=env, capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stderr)
 
     @unittest.skipUnless(os.environ.get("DB_MONITORING_TEST_DSN"), "Set DB_MONITORING_TEST_DSN to a scratch PostgreSQL database")
