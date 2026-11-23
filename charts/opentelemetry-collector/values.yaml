@@ -1530,6 +1530,7 @@ hostNetwork: false
 networkMode: ipv4
 
 # Pod DNS policy ClusterFirst, ClusterFirstWithHostNet, None, Default, None
+# Left empty, it renders ClusterFirstWithHostNet when hostNetwork is true and presets.k8sControlPlaneMetrics is enabled.
 dnsPolicy: ""
 
 # Custom DNS config. Required when DNS policy is None.

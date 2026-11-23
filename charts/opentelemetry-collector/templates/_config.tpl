@@ -1676,7 +1676,8 @@ One literal receiver_creator sub-receiver per component: a prometheus receiver w
 service.name). Rules are pod-level (`type == "pod"` in kube-system, matched on labels) and the scrape target is the
 discovered pod IP plus the component's fixed port, `joinHostPort(endpoint, <port>)` (receiver_creator README, "Rule
 expressions": `endpoint` of a pod is its IP, joinHostPort brackets IPv6). A `type == "port"` rule is not used: it only
-matches pods that declare the port as a containerPort, which kube-proxy never does and kubeadm does only in recent releases.
+matches pods that declare the port as a containerPort. Pod-level rules with explicit ports are used because they are stable
+across kubeadm versions and distros (kube-proxy and etcd:2379 declare no ports), matching Splunk's approach.
 */}}
 {{- define "opentelemetry-collector.k8sControlPlaneMetricsConfig" -}}
 {{- $cp := .presets.k8sControlPlaneMetrics -}}
