@@ -83,6 +83,107 @@ config:
 
 The chart also provides several presets, detailed below, to help configure importantKubernetes components. For more details on each component, see [Kubernetes Collector Components](https://opentelemetry.io/docs/kubernetes/collector/components/).
 
+### Database monitoring
+
+Use `presets.dbMonitoring` to monitor PostgreSQL targets. Each target creates its own
+pipelines. Use one collector replica to avoid collecting the same database more than once.
+For a dedicated DB collector, disable OTLP and autoscaling. Use `rollout.strategy: Recreate`
+to avoid overlapping collectors during upgrades. Upgrades will have a short collection gap.
+The preset supports password authentication. MySQL, IAM authentication, and server log
+files are outside this first version.
+
+```yaml
+mode: deployment
+replicaCount: 1
+presets:
+  dbMonitoring:
+    enabled: true
+    postgresql:
+      - name: orders
+        host: orders-db.example.com
+        username: otel
+        password: ${env:ORDERS_DB_PASSWORD}
+        instanceId: production/orders
+        databases: [orders, billing]
+extraEnvs:
+  - name: ORDERS_DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: db-monitoring
+        key: orders-password
+```
+
+Create the Secret before deploying the chart. The password stays as an environment
+variable reference in the collector ConfigMap. Do not put a real password in chart values.
+
+Target names must be unique within `postgresql`. Use lowercase letters, digits, and
+hyphens. Names form the receiver and pipeline IDs. Reordering targets does not change
+those IDs. Set `instanceId` to a stable database identity. It becomes `cx.db.instance.id`.
+
+The port defaults to `5432`. `connectDatabase` defaults to `postgres`.
+`databases` defaults to `[connectDatabase]`. List all databases whose table metrics,
+query events, and schemas you want to collect. Instance health and settings can include
+other databases on that server. The collection interval defaults to `5m`.
+
+TLS is enabled and verifies the server certificate and name by default. Use
+`tls.ca_file` for a private CA. Mount certificate files with `extraVolumes` and
+`extraVolumeMounts`. Client certificates use `tls.cert_file` and `tls.key_file`.
+Set `tls.insecure: true` only for a database connection that does not use TLS.
+The preset applies these settings to both native PostgreSQL and SQL receivers.
+
+Add database metadata through `resourceAttributes`, such as `k8s.cluster.name`,
+`k8s.namespace.name`, `k8s.statefulset.name`, or cloud attributes. These attributes describe
+the database. Database pipelines do not use the collector's host enrichment processors.
+The preset sets `db.system.name`, `server.address`, `server.port`, and `cx.db.instance.id`
+from the connection and identity fields.
+
+Each target supports these collection switches:
+
+| Setting | Default | Collection |
+| --- | --- | --- |
+| `metrics.enabled` | `true` | Performance, health, and per-database table metrics |
+| `querySamples.enabled` | `false` | Active query samples |
+| `topQueries.enabled` | `false` | Top queries and plans, every 5 minutes |
+| `catalog.enabled` | `false` | Instance settings and database schemas, every 10 minutes |
+
+The monitoring role needs `CONNECT` on each selected database and `pg_monitor`.
+The WAL size metric also needs `EXECUTE` on `pg_catalog.pg_ls_waldir()`.
+The database administrator must grant these permissions. The chart does not change the database.
+Top query collection needs `pg_stat_statements` loaded on the server and created in
+`connectDatabase`. See the [PostgreSQL receiver prerequisites](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.164.0/receiver/postgresqlreceiver/README.md).
+Query plans also need permission to access the referenced tables.
+The preset excludes the monitoring user's queries from query events.
+
+Catalog collection opens a direct connection to each selected database. It does not
+need `dblink`. It emits one `db.instance` entity per target and one `db.schema` entity
+per database. Schema entity IDs include both the instance ID and `db.namespace`.
+Each schema snapshot contains at most 300 tables or views and reports truncation.
+Schemas from different databases remain separate, even when their definitions match.
+
+Metrics use the exporters from `config.service.pipelines.metrics`. Query events use the
+exporters from `config.service.pipelines.logs`. Keep those base pipelines configured for
+the features you enable, even when OTLP is disabled. After the DB pipelines inherit their
+exporters, the chart removes pipelines without receivers or exporters. This keeps the
+DB pipelines and any collector self metrics without an unused OTLP receiver.
+Catalog events use the log exporters too. For each Coralogix
+destination, the preset creates a catalog exporter with application `resource`, subsystem
+`catalog`, and the metadata ingress header. Other exporters receive catalog events as logs.
+
+Use `config` to override a generated receiver or pipeline. For example, the metrics
+receiver for target `orders` is `postgresql/db_monitoring_postgresql_orders_metrics`.
+See [the dedicated collector example](examples/db-monitoring/values.yaml). It disables the
+OTLP receiver, Service, and OTLP ports. It uses one replica with `Recreate` updates.
+
+If you enable Fleet Management with Supervisor, set
+`presets.fleetManagement.supervisor.minimalCollectorConfig: false` to keep the DB preset
+in the generated configuration. Minimal mode replaces all collection presets.
+
+To check this preset, run `python3 -m unittest discover -s tests -v` with Helm and PyYAML
+installed. Set `OTELCOL_BINARY` to the collector version in `Chart.yaml` to validate all three modes.
+Set `DB_MONITORING_TEST_DSN` to a scratch PostgreSQL database to run the SQL checks.
+That test creates and removes a uniquely named schema. Its database role needs
+`CREATE`, `pg_monitor`, and access to `pg_ls_waldir()`.
+
 ### Configuration for Resource Detection
 
 The resource detection preset can add infrastructure metadata such as the host ID and cloud provider attributes to your telemetry. To enable it, set `presets.resourceDetection.enabled` to `true`.

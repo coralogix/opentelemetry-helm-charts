@@ -222,6 +222,9 @@ Build config file for daemonset OpenTelemetry Collector
 {{- if .Values.presets.transactions.enabled }}
 {{- $config = (include "opentelemetry-collector.applyTransactionsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.dbMonitoring.enabled }}
+{{- $config = (include "opentelemetry-collector.applyDbMonitoringConfig" (dict "root" . "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.extraConfig }}
 {{- $config = (include "opentelemetry-collector.applyExtraConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -327,7 +330,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- end }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.applyMemoryLimiterProcessorAsFirst" (dict "Values" $data "config" $config) | fromYaml) }}
-{{- $config = (include "opentelemetry-collector.removePipelinesWithoutExporters" (dict "config" $config) | fromYaml) }}
+{{- $config = (include "opentelemetry-collector.removeEmptyPipelines" (dict "config" $config) | fromYaml) }}
 {{- $supervisorEnabled := and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
 {{- if and ($supervisorEnabled) (.Values.presets.fleetManagement.supervisor.minimalCollectorConfig) }}
 {{- $config = include "opentelemetry-collector.supervisorCollectorConfig" . | fromYaml }}
@@ -451,6 +454,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- if .Values.presets.transactions.enabled }}
 {{- $config = (include "opentelemetry-collector.applyTransactionsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
+{{- if .Values.presets.dbMonitoring.enabled }}
+{{- $config = (include "opentelemetry-collector.applyDbMonitoringConfig" (dict "root" . "config" $config) | fromYaml) }}
+{{- end }}
 {{- if .Values.extraConfig }}
 {{- $config = (include "opentelemetry-collector.applyExtraConfig" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- end }}
@@ -504,7 +510,7 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- $config = (include "opentelemetry-collector.applyBatchProcessorAsLast" (dict "Values" $data "config" $config) | fromYaml) }}
 {{- $config = (include "opentelemetry-collector.applyMemoryLimiterProcessorAsFirst" (dict "Values" $data "config" $config) | fromYaml) }}
-{{- $config = (include "opentelemetry-collector.removePipelinesWithoutExporters" (dict "config" $config) | fromYaml) }}
+{{- $config = (include "opentelemetry-collector.removeEmptyPipelines" (dict "config" $config) | fromYaml) }}
 {{- $supervisorEnabled := and (.Values.presets.fleetManagement.enabled) (.Values.presets.fleetManagement.supervisor.enabled) }}
 {{- if and ($supervisorEnabled) (.Values.presets.fleetManagement.supervisor.minimalCollectorConfig) }}
 {{- $config = include "opentelemetry-collector.supervisorCollectorConfig" .  | fromYaml }}
@@ -515,13 +521,15 @@ Build config file for deployment OpenTelemetry Collector
 {{- tpl (toYaml $config) . }}
 {{- end }}
 
-{{- define "opentelemetry-collector.removePipelinesWithoutExporters" -}}
+{{/* Remove pipelines with no input or output after all presets and extraConfig are applied. */}}
+{{- define "opentelemetry-collector.removeEmptyPipelines" -}}
 {{- $config := deepCopy .config -}}
 {{- if and $config.service $config.service.pipelines }}
   {{- $pipelinesToRemove := list }}
   {{- range $pipelineName, $pipeline := $config.service.pipelines }}
     {{- $exporters := default (list) $pipeline.exporters }}
-    {{- if eq (len $exporters) 0 }}
+    {{- $receivers := default (list) $pipeline.receivers }}
+    {{- if or (eq (len $exporters) 0) (eq (len $receivers) 0) }}
       {{- $pipelinesToRemove = append $pipelinesToRemove $pipelineName }}
     {{- end }}
   {{- end }}
