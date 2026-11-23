@@ -16,7 +16,7 @@ created but the Memory Ballast Extension will still be removed.
 Depending on the progress made in [Issue 891](https://github.com/open-telemetry/opentelemetry-helm-charts/issues/891),
 the use of `GOMEMLIMIT` may completely replace the Memory Ballast Extension in the future.
 
-## 0.143.4 to 0.143.5
+## 0.143.5 to 0.143.6
 
 A new value, `rewriteDeprecatedComponentNames` (default `true`), automatically rewrites deprecated
 OpenTelemetry Collector component names in the generated config — processors, receivers, exporters
