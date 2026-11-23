@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.143.6 / 2026-11-23
+
+- [Feat] Add PostgreSQL multixact age to database health metrics and server start time to catalog events. Include table options in schema snapshots and report zero variants for empty databases.
+
 ### v0.143.5 / 2026-11-20
 
 - [Feat] Add the opt-in `dbMonitoring` preset for named PostgreSQL targets. Collect performance, health, and table metrics, with optional query samples, top queries, and catalog events. Support password environment variables, TLS, and database resource attributes. Collect schemas through direct database connections without `dblink`. Support dedicated DB collectors with OTLP disabled and include a single-replica example with `Recreate` updates.
