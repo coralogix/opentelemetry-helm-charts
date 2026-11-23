@@ -1149,10 +1149,10 @@
         "k8sControlPlaneMetrics": {
           "type": "object",
           "additionalProperties": false,
-          "description": "Scrapes the Kubernetes control plane (controller-manager, scheduler, kube-proxy, DNS and optionally etcd) through node-scoped pod discovery. Requires mode daemonset; loopback components (controller-manager, scheduler, kube-proxy, etcd) also require hostNetwork and dnsPolicy ClusterFirstWithHostNet. No metric filtering: every metric a component exposes is shipped. On managed control planes (EKS/GKE/AKS) controller-manager, scheduler and etcd stay silent. Targets, ports and label rules can be overridden by deep-merging receivers of receiver_creator/control_plane through `config`.",
+          "description": "Scrapes the Kubernetes control plane (controller-manager, scheduler, kube-proxy, DNS and optionally etcd) through node-scoped pod discovery. Requires mode daemonset. No metric filtering: every metric a component exposes is shipped. On managed control planes (EKS/GKE/AKS) controller-manager, scheduler and etcd stay silent. Targets, ports and label rules can be overridden by deep-merging receivers of receiver_creator/control_plane through `config`.",
           "properties": {
             "enabled": {
-              "description": "Specifies whether the collector should scrape the Kubernetes control plane (controller-manager, scheduler, kube-proxy, DNS and optionally etcd). Requires mode daemonset and hostNetwork.",
+              "description": "Specifies whether the collector should scrape the Kubernetes control plane (controller-manager, scheduler, kube-proxy, DNS and optionally etcd). Requires mode daemonset.",
               "type": "boolean"
             },
             "scrapeInterval": {

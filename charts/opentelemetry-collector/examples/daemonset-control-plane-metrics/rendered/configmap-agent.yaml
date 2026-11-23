@@ -129,7 +129,7 @@ data:
                   scrape_interval: 30s
                   static_configs:
                   - targets:
-                    - 127.0.0.1:10257
+                    - '`joinHostPort(endpoint, 10257)`'
                   tls_config:
                     insecure_skip_verify: true
             resource_attributes:
@@ -149,7 +149,7 @@ data:
                   scrape_interval: 30s
                   static_configs:
                   - targets:
-                    - '`endpoint`:9153'
+                    - '`joinHostPort(endpoint, 9153)`'
             resource_attributes:
               k8s.namespace.name: '`namespace`'
               k8s.pod.name: '`name`'
@@ -166,7 +166,7 @@ data:
                   scrape_interval: 30s
                   static_configs:
                   - targets:
-                    - 127.0.0.1:2381
+                    - '`joinHostPort(endpoint, 2381)`'
             resource_attributes:
               k8s.namespace.name: '`namespace`'
               k8s.pod.name: '`name`'
@@ -183,7 +183,7 @@ data:
                   scrape_interval: 30s
                   static_configs:
                   - targets:
-                    - '`endpoint`:9253'
+                    - '`joinHostPort(endpoint, 9253)`'
             resource_attributes:
               k8s.namespace.name: '`namespace`'
               k8s.pod.name: '`name`'
@@ -200,7 +200,7 @@ data:
                   scrape_interval: 30s
                   static_configs:
                   - targets:
-                    - 127.0.0.1:10249
+                    - '`joinHostPort(endpoint, 10249)`'
             resource_attributes:
               k8s.namespace.name: '`namespace`'
               k8s.pod.name: '`name`'
@@ -218,7 +218,7 @@ data:
                   scrape_interval: 30s
                   static_configs:
                   - targets:
-                    - 127.0.0.1:10259
+                    - '`joinHostPort(endpoint, 10259)`'
                   tls_config:
                     insecure_skip_verify: true
             resource_attributes:

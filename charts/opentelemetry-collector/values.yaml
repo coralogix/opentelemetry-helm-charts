@@ -455,19 +455,15 @@ presets:
   #
   # Requirements (hard-checked at render time):
   #   * mode: daemonset    - targets are node-local, every agent scrapes only the pods on its own node.
-  #   * hostNetwork: true  - kubeadm binds controller-manager, scheduler, kube-proxy and etcd metrics to
-  #                          127.0.0.1, so they are scraped as 127.0.0.1:<port> from the host network namespace.
-  #   * dnsPolicy: ClusterFirstWithHostNet - required together with hostNetwork. A hostNetwork pod otherwise falls
-  #                          back to the node's resolv.conf and cannot resolve in-cluster *.svc names, which breaks
-  #                          exporters that point at cluster service endpoints.
   #   * tolerations for the control-plane taint, so an agent also runs on control-plane nodes. The preset does
   #     NOT add them (no preset changes pod scheduling); see examples/daemonset-control-plane-metrics.
   #
   # Discovery: a dedicated k8s_observer/control_plane + receiver_creator/control_plane pair (node-scoped through
-  # K8S_NODE_NAME) matches `type == "pod"` in kube-system by label. A `prometheus` receiver with an explicit
+  # K8S_NODE_NAME) matches `type == "pod"` in kube-system by label and scrapes the discovered pod IP on the
+  # component's port (`joinHostPort(endpoint, <port>)`). A `prometheus` receiver with an explicit
   # job_name is used per component, so `service.name` (the job_name) is stable.
   # Resource attributes k8s.pod.name, k8s.pod.uid and k8s.namespace.name (receiver_creator) and k8s.node.name
-  # (transform/control_plane) keep the identical 127.0.0.1:<port> targets of different nodes apart.
+  # (transform/control_plane) say which pod and node a series comes from.
   #
   # No metric filtering: every metric a component exposes is shipped (expect a few hundred series per enabled
   # component per node). Drop what you do not need with a `filter` processor in `config`
@@ -481,7 +477,7 @@ presets:
   #   * etcd with `secret.name`: mTLS on :2379 with a client certificate from an EXISTING Secret.
   #
   # Troubleshooting a silent component (check the collector log / `up` metric):
-  #   * connection refused   -> the component is not on 127.0.0.1 or hostNetwork is off.
+  #   * connection refused   -> the component does not listen on its pod IP (see the support matrix).
   #   * TLS failure          -> serving certificate not trusted / wrong scheme; etcd needs `secret` for :2379.
   #   * 401                  -> ServiceAccount token not presented or not accepted by the component.
   #   * 403                  -> RBAC: ClusterRole is missing `nonResourceURLs: ["/metrics"] get`.
@@ -489,6 +485,7 @@ presets:
   #
   # Support matrix (component x distribution):
   #   kubeadm / kind / minikube : controllerManager, scheduler, proxy, dns, etcd (default labels and ports).
+  #                               kubeadm binds controllerManager, scheduler, proxy and etcd to loopback (`up == 0`).
   #   kops                      : controllerManager/scheduler use `k8s-app=kube-controller-manager|kube-scheduler`
   #                               (matched by default). etcd runs as etcd-manager (`k8s-app=etcd-manager-main`,
   #                               `etcd-manager-events`) and kube-proxy may lack the `k8s-app` label: these need a
@@ -500,26 +497,22 @@ presets:
   #   k3s / RKE2                : not supported, the control plane is embedded in one process (no pods).
   #   OpenShift                 : this preset finds nothing (no kube-system kube-proxy/CoreDNS; cm/sched/etcd use
   #                               operator-reserved TLS client certs; apiserver coverage is
-  #                               `kubernetesApiServerMetrics`). Note hostNetwork DaemonSets need the `hostnetwork` SCC.
+  #                               `kubernetesApiServerMetrics`).
   #
   # Escape hatch: the targets, ports and label rules are not configurable here. To change them, deep-merge your own
   # `config.receivers["receiver_creator/control_plane"].receivers` entries (same receiver names, e.g.
-  # `prometheus/scheduler`) over the preset output through `config`. Single-stack IPv6 clusters need this override
-  # too: the loopback components (controllerManager, scheduler, proxy, etcd) target `127.0.0.1`, so point them
-  # at `[::1]:<port>`.
+  # `prometheus/scheduler`) over the preset output through `config`.
   k8sControlPlaneMetrics:
     # Flipping this on activates controllerManager + scheduler + proxy + dns. etcd stays opt-in.
     enabled: false
     scrapeInterval: 30s
-    # Note: service.instance.id is `127.0.0.1:<port>` on every node for the loopback components. To tell nodes apart
-    # in a backend, use k8s.node.name / k8s.pod.* instead.
     # Labels: component=kube-controller-manager + tier=control-plane (kubeadm) or k8s-app=kube-controller-manager (kops).
     controllerManager:
       enabled: true
     # Labels: component=kube-scheduler + tier=control-plane (kubeadm) or k8s-app=kube-scheduler (kops).
     scheduler:
       enabled: true
-    # Labels: k8s-app=kube-proxy (kube-proxy DaemonSet, metrics on 127.0.0.1:10249).
+    # Labels: k8s-app=kube-proxy (kube-proxy DaemonSet, metrics :10249).
     proxy:
       enabled: true
     # CoreDNS, label k8s-app=kube-dns (kept by CoreDNS for compatibility), scraped on the pod IP, port 9153.
@@ -535,7 +528,7 @@ presets:
     # Labels: component=etcd + tier=control-plane (kubeadm).
     etcd:
       enabled: false
-      # "" means 2381 (http, kubeadm listen-metrics-urls=http://127.0.0.1:2381), or 2379 (https) when secret.name is set.
+      # "" means 2381 (http), or 2379 (https) when secret.name is set.
       port: ""
       # Skip verifying the etcd serving certificate (only used with secret.name). When false, secret.caFile is required.
       skipVerify: true
@@ -546,8 +539,8 @@ presets:
       # WARNING: on kubeadm the certificate commonly suggested for this, /etc/kubernetes/pki/etcd/healthcheck-client.crt/.key,
       # is cluster-admin equivalent: etcd has no RBAC there, so any valid client certificate has full read/write
       # access to etcd, i.e. every Secret in the cluster. Anyone who can read the Secret created from it (or the
-      # collector pod) owns the cluster. Prefer the default plain-http listener on 127.0.0.1:2381 (leave `secret`
-      # empty): it needs no Secret and is loopback-only on kubeadm. If you need mTLS, use a least-privilege
+      # collector pod) owns the cluster. Prefer the default plain-http listener on :2381 (leave `secret`
+      # empty): it needs no Secret. If you need mTLS, use a least-privilege
       # client certificate, or a dedicated etcd user/role limited to metrics if etcd RBAC is enabled. Never reuse
       # the apiserver-etcd-client or healthcheck-client certificates for a monitoring agent.
       # Key names below are the keys inside your Secret (e.g. tls.crt, tls.key, ca.crt); the CA is

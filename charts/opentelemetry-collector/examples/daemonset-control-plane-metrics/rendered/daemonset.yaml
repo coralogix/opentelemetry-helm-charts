@@ -22,7 +22,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 953e91de7be96c887eea37161baa79bf49476349c8677c87c31aa772e99091c3
+        checksum/config: 88c734f4e46f3a73032e378772bb7629d0b6cecb528ccbf1315055362f6ab16f
       labels:
         app.kubernetes.io/name: opentelemetry-collector
         app.kubernetes.io/instance: example
@@ -89,5 +89,4 @@ spec:
         - effect: NoSchedule
           key: node-role.kubernetes.io/control-plane
           operator: Exists
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: false
