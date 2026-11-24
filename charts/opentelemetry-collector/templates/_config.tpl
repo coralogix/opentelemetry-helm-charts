@@ -336,7 +336,7 @@ Build config file for daemonset OpenTelemetry Collector
 {{- $config = include "opentelemetry-collector.supervisorCollectorConfig" . | fromYaml }}
 {{- end }}
 {{- if .Values.rewriteDeprecatedComponentNames }}
-{{- $config = (include "opentelemetry-collector.rewriteDeprecatedComponentNames" (dict "config" $config) | fromYaml) }}
+{{- $config = (include "opentelemetry-collector.rewriteDeprecatedComponentNames" (dict "config" $config "root" .) | fromYaml) }}
 {{- end }}
 {{- tpl (toYaml $config) . }}
 {{- end }}
@@ -516,7 +516,7 @@ Build config file for deployment OpenTelemetry Collector
 {{- $config = include "opentelemetry-collector.supervisorCollectorConfig" .  | fromYaml }}
 {{- end }}
 {{- if .Values.rewriteDeprecatedComponentNames }}
-{{- $config = (include "opentelemetry-collector.rewriteDeprecatedComponentNames" (dict "config" $config) | fromYaml) }}
+{{- $config = (include "opentelemetry-collector.rewriteDeprecatedComponentNames" (dict "config" $config "root" .) | fromYaml) }}
 {{- end }}
 {{- tpl (toYaml $config) . }}
 {{- end }}
@@ -3731,6 +3731,7 @@ opentelemetry-collector.deprecatedComponentRenames.
 */}}
 {{- define "opentelemetry-collector.rewriteDeprecatedComponentNames" -}}
 {{- $config := .config }}
+{{- $root := .root }}
 {{- $renames := include "opentelemetry-collector.deprecatedComponentRenames" . | fromYaml }}
 {{- range $kind, $table := (dig "components" dict $renames) }}
   {{- $section := index $config $kind }}
@@ -3753,12 +3754,16 @@ opentelemetry-collector.deprecatedComponentRenames.
       {{- if and $pipeline $refs }}
         {{- $newRefs := list }}
         {{- range $refs }}
-          {{- if eq . $old }}
+          {{- $ref := . }}
+          {{- if and $root (contains "{{" $ref) }}
+          {{- $ref = tpl $ref $root }}
+          {{- end }}
+          {{- if eq $ref $old }}
             {{- $newRefs = append $newRefs $new }}
-          {{- else if hasPrefix (printf "%s/" $old) . }}
-            {{- $newRefs = append $newRefs (printf "%s/%s" $new (trimPrefix (printf "%s/" $old) .)) }}
+          {{- else if hasPrefix (printf "%s/" $old) $ref }}
+            {{- $newRefs = append $newRefs (printf "%s/%s" $new (trimPrefix (printf "%s/" $old) $ref)) }}
           {{- else }}
-            {{- $newRefs = append $newRefs . }}
+            {{- $newRefs = append $newRefs $ref }}
           {{- end }}
         {{- end }}
         {{- $_ := set $pipeline $kind ($newRefs | uniq) }}
