@@ -1,5 +1,11 @@
 mode: daemonset
 
+# controllerManager, scheduler and etcd metrics are bound to 127.0.0.1 on kubeadm, so the agent must run in the
+# host network namespace to reach them.
+hostNetwork: true
+# A hostNetwork pod needs this to keep resolving in-cluster *.svc names; the preset refuses to render without it.
+dnsPolicy: ClusterFirstWithHostNet
+
 # The control-plane nodes are tainted: tolerate it so an agent also runs there. The preset does not add this itself.
 tolerations:
   - key: node-role.kubernetes.io/control-plane
@@ -10,7 +16,7 @@ presets:
   k8sControlPlaneMetrics:
     enabled: true
     scrapeInterval: 30s
-    # etcd is opt-in. Plain http on :2381; add `secret` for mTLS on :2379.
+    # etcd is opt-in. Plain http on 127.0.0.1:2381 (kubeadm default); add `secret` for mTLS on :2379.
     etcd:
       enabled: true
     # NodeLocal DNSCache addon, if installed

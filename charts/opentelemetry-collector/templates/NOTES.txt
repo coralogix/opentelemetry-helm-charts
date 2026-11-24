@@ -88,7 +88,7 @@
 [WARNING] presets.k8sControlPlaneMetrics.dns on GKE: GKE ships kube-dns, which exposes its metrics on different ports than CoreDNS, so the dns targets stay silent. Set dns.enabled to false.
 {{ end }}
 {{- if eq .Values.distribution "gke/autopilot" }}
-[WARNING] presets.k8sControlPlaneMetrics on GKE Autopilot: Google manages the control plane and its kube-system workloads, so expect no control plane metrics.
+[WARNING] presets.k8sControlPlaneMetrics on GKE Autopilot: hostNetwork is not admitted on Autopilot, so the daemonset this preset needs cannot run.
 {{ end }}
 {{- end }}
 {{- if or .Values.isWindows (has .Values.distribution (list "standalone" "macos" "ecs" "eks/fargate")) }}
