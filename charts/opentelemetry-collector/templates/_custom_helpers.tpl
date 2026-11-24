@@ -218,9 +218,9 @@ Generate default OTEL_RESOURCE_ATTRIBUTES value when resourceDetection preset is
 {{- $needsCloudAttrs = true -}}
 {{- $cloudProvider = "azure" -}}
 {{- if hasPrefix "aks" $distribution -}}
-{{- $cloudPlatform = "azure.aks" -}}
+{{- $cloudPlatform = "azure_aks" -}}
 {{- else -}}
-{{- $cloudPlatform = "azure.vm" -}}
+{{- $cloudPlatform = "azure_vm" -}}
 {{- end -}}
 {{- else if and .Values.presets.resourceDetection.enabled (eq $provider "gcp") $isK8s (ne .Values.mode "daemonset") -}}
 {{- /* Non-daemonset GCP/GKE: same pool-safe cloud identity fallback without host/zone detectors. */}}
