@@ -55,8 +55,11 @@ rewriteDeprecatedComponentNames: false
 Checkpoint and storage note: renaming `filelog` to `file_log` (and renaming any exporter that uses a
 persistent `sending_queue.storage`) orphans the `file_storage` files named `receiver_<type>_<name>`.
 With `presets.logsCollection.storeCheckpoints: true`, the first rollout after the upgrade re-reads
-log files, producing a burst of duplicate logs. Delete or rename the old checkpoint directories if
-replay is unacceptable.
+log files, producing a burst of duplicate logs. To avoid replay, migrate the checkpoint files to the
+new component identity instead of deleting them — deleting the old checkpoints destroys the offsets
+needed for migration and guarantees the duplicate burst (the logsCollection preset reads existing
+files from the beginning when no checkpoint exists). Alternatively, set
+`rewriteDeprecatedComponentNames: false` until the checkpoints can be migrated.
 
 Internal telemetry note: the `receiver` and `exporter` component labels on the Collector's internal
 metrics change (for example `receiver="file_log"` and `exporter="otlp_grpc"`), so update dashboards
