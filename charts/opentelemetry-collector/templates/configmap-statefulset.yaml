@@ -11,6 +11,7 @@ metadata:
     {{- include "opentelemetry-collector.labels" . | nindent 4 }}
 data:
   relay: |
-    {{- $poolData := deepCopy . | mergeOverwrite (dict "isTargetAllocatorPool" true) -}}
+    {{- $poolValues := mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset") -}}
+    {{- $poolData := mergeOverwrite (deepCopy .) (dict "Values" $poolValues "isTargetAllocatorPool" true) -}}
     {{- include "opentelemetry-collector.deploymentConfig" $poolData | nindent 4 -}}
 {{- end }}

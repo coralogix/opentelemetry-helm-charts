@@ -23,9 +23,6 @@ spec:
     matchLabels:
       {{- include "opentelemetry-collector.selectorLabels" . | nindent 6 }}
       component: statefulset-collector
-      {{- if eq .Values.targetAllocator.collectionMode "statefulset" }}
-      opentelemetry.io/target-allocator-pool: "true"
-      {{- end }}
   updateStrategy:
     type: {{ .Values.rollout.strategy }}
   template:
