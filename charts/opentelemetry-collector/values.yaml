@@ -446,7 +446,7 @@ presets:
     # When false (default), collects a curated set of kubelet health metrics. When true, collect all kubelet metrics.
     scrapeAll: false
     # When true (default), maps kubelet labels to OpenTelemetry semantic conventions
-    # (e.g. namespace -> k8s.namespace.name, pod -> k8s.pod.name). k8s.node.name is always set on the resource.
+    # (e.g. namespace -> k8s.namespace.name, pod -> k8s.pod.name).
     semconv: true
 
   # Configures the collector to scrape the Kubernetes control plane (CX-41498):
@@ -466,8 +466,8 @@ presets:
   # Discovery: a dedicated k8s_observer/control_plane + receiver_creator/control_plane pair (node-scoped through
   # K8S_NODE_NAME) matches `type == "pod"` in kube-system by label. A `prometheus` receiver with an explicit
   # job_name is used per component, so `service.name` (the job_name) is stable.
-  # Resource attributes k8s.pod.name, k8s.pod.uid and k8s.namespace.name (receiver_creator) and k8s.node.name
-  # (transform/control_plane) keep the identical 127.0.0.1:<port> targets of different nodes apart.
+  # Resource attributes k8s.pod.name, k8s.pod.uid and k8s.namespace.name (receiver_creator) identify the scraped pod.
+  # For k8s.node.name, enable `presets.kubernetesAttributes`.
   #
   # No metric filtering: every metric a component exposes is shipped (expect a few hundred series per enabled
   # component per node). Drop what you do not need with a `filter` processor in `config`
@@ -512,7 +512,7 @@ presets:
     enabled: false
     scrapeInterval: 30s
     # Note: service.instance.id is `127.0.0.1:<port>` on every node for the loopback components. To tell nodes apart
-    # in a backend, use k8s.node.name / k8s.pod.* instead.
+    # in a backend, enable `presets.kubernetesAttributes` (k8s.node.name) or use k8s.pod.* instead.
     # Labels: component=kube-controller-manager + tier=control-plane (kubeadm) or k8s-app=kube-controller-manager (kops).
     controllerManager:
       enabled: true

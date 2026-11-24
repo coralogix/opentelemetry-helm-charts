@@ -1675,7 +1675,6 @@ Called from clusterrole.yaml, which always renders with the preset, so it also r
 {{- $values := .Values.Values }}
 {{- $config := mustMergeOverwrite (include "opentelemetry-collector.k8sControlPlaneMetricsConfig" $values | fromYaml) .config }}
 {{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "receiver_creator/control_plane" | uniq) }}
-{{- $_ := set $config.service.pipelines.metrics "processors" (append $config.service.pipelines.metrics.processors "transform/control_plane" | uniq) }}
 {{- $_ := set $config.service "extensions" (append $config.service.extensions "k8s_observer/control_plane" | uniq) }}
 {{- $config | toYaml }}
 {{- end }}
@@ -1825,16 +1824,6 @@ receivers:
           k8s.pod.uid: '`uid`'
           k8s.namespace.name: '`namespace`'
       {{- end }}
-processors:
-  # The agent's node name, so the identical 127.0.0.1:<port> targets of different nodes stay distinct series.
-  # Set here (not in receiver_creator resource_attributes), where an unset env var is an empty string, not a nil value.
-  # One literal statement: a regex over all job names never matches the jobs of a disabled component.
-  transform/control_plane:
-    error_mode: ignore
-    metric_statements:
-      - context: resource
-        statements:
-          - 'set(resource.attributes["k8s.node.name"], "${env:K8S_NODE_NAME}") where IsMatch(resource.attributes["service.name"], "^(kubernetes-scheduler|kubernetes-controller-manager|kubernetes-proxy|kubernetes-coredns|kubernetes-node-local-dns|kubernetes-etcd)$") and resource.attributes["k8s.node.name"] == nil'
 {{- end }}
 
 {{- define "opentelemetry-collector.applyMysqlConfig" -}}

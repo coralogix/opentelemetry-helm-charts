@@ -29,14 +29,6 @@ data:
         check_interval: 5s
         limit_percentage: 80
         spike_limit_percentage: 25
-      transform/control_plane:
-        error_mode: ignore
-        metric_statements:
-        - context: resource
-          statements:
-          - set(resource.attributes["k8s.node.name"], "${env:K8S_NODE_NAME}") where IsMatch(resource.attributes["service.name"],
-            "^(kubernetes-scheduler|kubernetes-controller-manager|kubernetes-proxy|kubernetes-coredns|kubernetes-node-local-dns|kubernetes-etcd)$")
-            and resource.attributes["k8s.node.name"] == nil
       transform/prometheus:
         error_mode: ignore
         metric_statements:
@@ -247,7 +239,6 @@ data:
           - debug
           processors:
           - memory_limiter
-          - transform/control_plane
           - transform/prometheus
           receivers:
           - receiver_creator/control_plane
