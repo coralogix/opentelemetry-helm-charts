@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.143.6 / 2026-11-24
+
+- [Feat] Add `targetAllocator.collectionMode: statefulset`, moving Target Allocator Prometheus targets from the agent DaemonSet to an HPA-managed metrics-only StatefulSet pool. The pool forces `least-weighted` allocation, sets the collector ID from `${env:MY_POD_NAME}`, and selects collectors with `opentelemetry.io/target-allocator-pool: "true"`.
+
 ### v0.143.5 / 2026-11-20
 
 - [Feat] Add the opt-in `dbMonitoring` preset for named PostgreSQL targets. Collect performance, health, and table metrics, with optional query samples, top queries, and catalog events. Support password environment variables, TLS, and database resource attributes. Collect schemas through direct database connections without `dblink`. Support dedicated DB collectors with OTLP disabled and include a single-replica example with `Recreate` updates.

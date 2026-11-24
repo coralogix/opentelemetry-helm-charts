@@ -1,4 +1,7 @@
-{{- if and (eq .Values.mode "statefulset") (.Values.configMap.create) -}}
+{{- if and (or (eq .Values.mode "statefulset") (and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset"))) (.Values.configMap.create) -}}
+{{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") .Values.presets.ebpfProfiler.enabled }}
+{{- fail "[ERROR] targetAllocator.collectionMode: statefulset does not support presets.ebpfProfiler.enabled: true." }}
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -8,5 +11,6 @@ metadata:
     {{- include "opentelemetry-collector.labels" . | nindent 4 }}
 data:
   relay: |
-    {{- include "opentelemetry-collector.deploymentConfig" . | nindent 4 -}}
+    {{- $poolData := deepCopy . | mergeOverwrite (dict "isTargetAllocatorPool" true) -}}
+    {{- include "opentelemetry-collector.deploymentConfig" $poolData | nindent 4 -}}
 {{- end }}
