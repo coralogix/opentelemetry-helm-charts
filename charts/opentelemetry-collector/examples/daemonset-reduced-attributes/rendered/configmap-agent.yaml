@@ -40,7 +40,7 @@ data:
             and metric.name != "container_fs_writes_bytes_total" and metric.name != "container_fs_reads_bytes_total"
             and metric.name != "container_fs_usage_bytes" and metric.name != "container_cpu_cfs_throttled_periods_total"
             and metric.name != "container_cpu_cfs_periods_total")
-      k8s_attributes:
+      k8sattributes:
         extract:
           metadata:
           - k8s.namespace.name
@@ -68,7 +68,7 @@ data:
         - sources:
           - from: resource_attribute
             name: k8s.job.name
-      k8s_attributes/profiles:
+      k8sattributes/profiles:
         extract:
           labels:
           - from: pod
@@ -354,7 +354,7 @@ data:
           - set(span.attributes["http.response.status_code"], span.attributes["http.status_code"])
             where span.attributes["http.response.status_code"] == nil
     receivers:
-      file_log:
+      filelog:
         exclude:
         - /var/log/pods/*/*/*.gz
         - /var/log/pods/*/*/*.tmp
@@ -637,12 +637,12 @@ data:
           - memory_limiter
           - resourcedetection/region
           - resourcedetection/env
-          - k8s_attributes
+          - k8sattributes
           - transform/reduce_log_attributes
           - transform/reduce
           - batch
           receivers:
-          - file_log
+          - filelog
           - otlp
         metrics:
           exporters:
@@ -651,7 +651,7 @@ data:
           - memory_limiter
           - resourcedetection/region
           - resourcedetection/env
-          - k8s_attributes
+          - k8sattributes
           - filter/k8s_extra_metrics
           - transform/reduce
           - batch
@@ -667,7 +667,7 @@ data:
           - memory_limiter
           - resourcedetection/region
           - resourcedetection/env
-          - k8s_attributes
+          - k8sattributes
           - transform/reduce
           - transform/test
           - batch

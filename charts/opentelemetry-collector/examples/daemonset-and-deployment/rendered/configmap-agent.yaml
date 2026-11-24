@@ -15,7 +15,7 @@ data:
   relay: |
     exporters:
       debug: {}
-      otlp_grpc:
+      otlp:
         endpoint: example-opentelemetry-collector:4317
         tls:
           insecure: true
@@ -153,7 +153,7 @@ data:
       pipelines:
         logs:
           exporters:
-          - otlp_grpc
+          - otlp
           - debug
           processors:
           - memory_limiter
@@ -161,7 +161,7 @@ data:
           - otlp
         metrics:
           exporters:
-          - otlp_grpc
+          - otlp
           - debug
           processors:
           - memory_limiter
@@ -173,7 +173,7 @@ data:
           - otlp
         traces:
           exporters:
-          - otlp_grpc
+          - otlp
           - debug
           processors:
           - memory_limiter

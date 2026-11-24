@@ -147,7 +147,7 @@ spec:
           - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
             == "opentelemetry-collector"
     receivers:
-      file_log:
+      filelog:
         exclude:
         - /var/log/pods/*/*/*.gz
         - /var/log/pods/*/*/*.tmp
@@ -308,7 +308,7 @@ spec:
           enabled: true
         start_at: beginning
         storage: file_storage
-      host_metrics:
+      hostmetrics:
         collection_interval: 10s
         root_path: /hostfs
         scrapers:
@@ -394,7 +394,7 @@ spec:
           processors:
           - memory_limiter
           receivers:
-          - file_log
+          - filelog
           - otlp
         metrics:
           exporters:
@@ -403,7 +403,7 @@ spec:
           - memory_limiter
           - transform/prometheus
           receivers:
-          - host_metrics
+          - hostmetrics
           - prometheus
           - otlp
         traces:

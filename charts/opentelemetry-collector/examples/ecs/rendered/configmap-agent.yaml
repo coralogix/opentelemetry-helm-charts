@@ -268,7 +268,7 @@ data:
             == "grpc") and span.cache["grpc_codes"][span.cache["rpc_status"]] != nil
     receivers:
       awsecscontainermetricsd: {}
-      file_log:
+      filelog:
         force_flush_period: 0
         include:
         - /hostfs/var/lib/docker/containers/*/*.log
@@ -305,7 +305,7 @@ data:
           to: resource["log.file.path"]
           type: move
         start_at: end
-      host_metrics:
+      hostmetrics:
         collection_interval: 30s
         root_path: /
         scrapers:
@@ -423,7 +423,7 @@ data:
           - resource/metadata
           - batch
           receivers:
-          - file_log
+          - filelog
           - otlp
         logs/resource_catalog:
           exporters:
@@ -435,7 +435,7 @@ data:
           - resourcedetection/region
           - transform/entity-event
           receivers:
-          - host_metrics
+          - hostmetrics
         metrics:
           exporters:
           - coralogix
@@ -447,7 +447,7 @@ data:
           - transform/prometheus
           - batch
           receivers:
-          - host_metrics
+          - hostmetrics
           - prometheus
           - awsecscontainermetricsd
           - otlp

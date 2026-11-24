@@ -20,7 +20,7 @@ data:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
     processors:
-      k8s_attributes:
+      k8sattributes:
         extract:
           metadata:
           - k8s.namespace.name
@@ -296,7 +296,7 @@ data:
           - delete_key(resource.attributes, "process.runtime.name")
           - delete_key(resource.attributes, "process.runtime.version")
     receivers:
-      file_log:
+      filelog:
         exclude:
         - /var/log/pods/*/*/*.gz
         - /var/log/pods/*/*/*.tmp
@@ -423,10 +423,10 @@ data:
           - memory_limiter
           - resourcedetection/region
           - resourcedetection/env
-          - k8s_attributes
+          - k8sattributes
           - transform/reduce
           receivers:
-          - file_log
+          - filelog
           - otlp
         metrics:
           exporters:
@@ -435,7 +435,7 @@ data:
           - memory_limiter
           - resourcedetection/region
           - resourcedetection/env
-          - k8s_attributes
+          - k8sattributes
           - transform/reduce
           - transform/prometheus
           receivers:
@@ -448,7 +448,7 @@ data:
           - memory_limiter
           - resourcedetection/region
           - resourcedetection/env
-          - k8s_attributes
+          - k8sattributes
           - transform/reduce
           receivers:
           - otlp

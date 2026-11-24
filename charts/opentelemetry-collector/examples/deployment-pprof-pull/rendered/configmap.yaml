@@ -67,7 +67,7 @@ data:
         observe_pods: true
         observe_services: false
     processors:
-      k8s_attributes/profiles:
+      k8sattributes/profiles:
         extract:
           labels:
           - from: pod
@@ -291,7 +291,7 @@ data:
           processors:
           - memory_limiter
           - resource/metadata
-          - k8s_attributes/profiles
+          - k8sattributes/profiles
           - transform/profiles
           receivers:
           - receiver_creator/pprof

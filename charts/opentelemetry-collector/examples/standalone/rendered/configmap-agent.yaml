@@ -24,7 +24,7 @@ data:
         limit_percentage: 80
         spike_limit_percentage: 25
     receivers:
-      host_metrics:
+      hostmetrics:
         collection_interval: 10s
         root_path: /
         scrapers:
@@ -137,7 +137,7 @@ data:
           processors:
           - memory_limiter
           receivers:
-          - host_metrics
+          - hostmetrics
           - prometheus/multi
           - otlp
         traces:

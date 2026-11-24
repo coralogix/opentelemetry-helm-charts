@@ -89,7 +89,7 @@ data:
           - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
             == "opentelemetry-collector"
     receivers:
-      file_log:
+      filelog:
         exclude:
         - /var/log/pods/*/*/*.gz
         - /var/log/pods/*/*/*.tmp
@@ -217,7 +217,7 @@ data:
           processors:
           - memory_limiter
           receivers:
-          - file_log
+          - filelog
           - otlp
         metrics:
           exporters:

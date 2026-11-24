@@ -24,7 +24,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: fe819d105e4d1ed460f3309b67bdcfd012f44c34f19ebd0a8819525dbe15df93
+        checksum/config: 83969a0c1b67034b9247e04873f88cbc968e0ba5b113aa7ec4d43cea5965e82d
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -55,6 +55,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: CORALOGIX_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: PRIVATE_KEY
+                  name: coralogix-keys
             - name: ORDERS_DB_PASSWORD
               valueFrom:
                 secretKeyRef:

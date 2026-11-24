@@ -49,7 +49,7 @@ data:
             ".*StatefulSet.*|.*ReplicaSet.*|.*Job.*|.*DaemonSet.*")
           - log.body["kind"] == "Pod" and not IsMatch(String(log.body["metadata"]["ownerReferences"]),
             ".*StatefulSet.*|.*ReplicaSet.*|.*Job.*|.*DaemonSet.*")
-      k8s_attributes:
+      k8sattributes:
         extract:
           metadata:
           - k8s.namespace.name
@@ -82,9 +82,9 @@ data:
       resourcedetection/env:
         detectors:
         - env
-        - k8s_api
+        - k8snode
         - system
-        k8s_api:
+        k8snode:
           node_from_env_var: K8S_NODE_NAME
         override: false
         system:
@@ -94,8 +94,8 @@ data:
         timeout: 2s
       resourcedetection/resource_catalog:
         detectors:
-        - k8s_api
-        k8s_api:
+        - k8snode
+        k8snode:
           node_from_env_var: K8S_NODE_NAME
         override: true
         timeout: 2s
@@ -310,7 +310,7 @@ data:
           processors:
           - memory_limiter
           - resourcedetection/env
-          - k8s_attributes
+          - k8sattributes
           receivers:
           - otlp
         logs/resource_catalog:
@@ -331,7 +331,7 @@ data:
           processors:
           - memory_limiter
           - resourcedetection/env
-          - k8s_attributes
+          - k8sattributes
           - transform/prometheus
           receivers:
           - prometheus
@@ -342,7 +342,7 @@ data:
           processors:
           - memory_limiter
           - resourcedetection/env
-          - k8s_attributes
+          - k8sattributes
           receivers:
           - otlp
       telemetry:

@@ -179,7 +179,7 @@ data:
           - delete_key(resource.attributes, "process.runtime.name")
           - delete_key(resource.attributes, "process.runtime.version")
     receivers:
-      host_metrics:
+      hostmetrics:
         collection_interval: 10s
         root_path: /
         scrapers:
@@ -276,7 +276,7 @@ data:
           - transform/reduce
           - transform/prometheus
           receivers:
-          - host_metrics
+          - hostmetrics
           - prometheus
           - otlp
         traces:

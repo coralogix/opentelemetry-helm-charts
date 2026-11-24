@@ -39,7 +39,7 @@ data:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
     processors:
-      k8s_attributes:
+      k8sattributes:
         extract:
           metadata:
           - k8s.namespace.name
@@ -200,7 +200,7 @@ data:
           - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
             == "opentelemetry-collector"
     receivers:
-      host_metrics:
+      hostmetrics:
         collection_interval: 10s
         root_path: /hostfs
         scrapers:
@@ -287,7 +287,7 @@ data:
           - resourcedetection/region
           - resourcedetection/env
           - resource/metadata
-          - k8s_attributes
+          - k8sattributes
           receivers:
           - otlp
         logs/resource_catalog:
@@ -296,12 +296,12 @@ data:
           processors:
           - memory_limiter
           - resource/metadata
-          - k8s_attributes
+          - k8sattributes
           - resourcedetection/entity
           - resourcedetection/region
           - transform/entity-event
           receivers:
-          - host_metrics
+          - hostmetrics
         metrics:
           exporters:
           - debug
@@ -310,10 +310,10 @@ data:
           - resourcedetection/region
           - resourcedetection/env
           - resource/metadata
-          - k8s_attributes
+          - k8sattributes
           - transform/prometheus
           receivers:
-          - host_metrics
+          - hostmetrics
           - prometheus
           - otlp
         traces:
@@ -324,7 +324,7 @@ data:
           - resourcedetection/region
           - resourcedetection/env
           - resource/metadata
-          - k8s_attributes
+          - k8sattributes
           receivers:
           - otlp
       telemetry:

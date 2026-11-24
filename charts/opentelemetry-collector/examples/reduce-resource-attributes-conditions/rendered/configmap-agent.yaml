@@ -104,7 +104,7 @@ data:
             "^process\\.")
           - delete_key(resource.attributes, "service.instance.id")
     receivers:
-      file_log:
+      filelog:
         exclude:
         - /var/log/pods/*/*/*.gz
         - /var/log/pods/*/*/*.tmp
@@ -290,7 +290,7 @@ data:
           - memory_limiter
           - transform/reduce
           receivers:
-          - file_log
+          - filelog
           - otlp
         metrics:
           exporters:

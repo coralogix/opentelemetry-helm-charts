@@ -34,7 +34,7 @@ data:
         send_batch_max_size: 2048
         send_batch_size: 1024
         timeout: 1s
-      k8s_attributes/profiles:
+      k8sattributes/profiles:
         extract:
           labels:
           - from: pod
@@ -216,7 +216,7 @@ data:
           processors:
           - memory_limiter
           - resource/metadata
-          - k8s_attributes/profiles
+          - k8sattributes/profiles
           - transform/profiles
           receivers:
           - otlp

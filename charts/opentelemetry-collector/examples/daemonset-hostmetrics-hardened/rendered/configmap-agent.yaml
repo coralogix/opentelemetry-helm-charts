@@ -87,7 +87,7 @@ data:
           - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
             == "opentelemetry-collector"
     receivers:
-      host_metrics:
+      hostmetrics:
         collection_interval: 10s
         root_path: /hostfs
         scrapers:
@@ -153,7 +153,7 @@ data:
           - memory_limiter
           - transform/prometheus
           receivers:
-          - host_metrics
+          - hostmetrics
           - prometheus
           - otlp
         traces:

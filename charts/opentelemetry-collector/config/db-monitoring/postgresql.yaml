@@ -54,7 +54,7 @@ receivers:
   health:
     driver: postgres
     queries:
-    - sql: SELECT datname, age(datfrozenxid) AS xid_age FROM pg_database WHERE datallowconn
+    - sql: SELECT datname, age(datfrozenxid) AS xid_age, mxid_age(datminmxid) AS mxid_age FROM pg_database WHERE datallowconn
       metrics:
       - metric_name: postgresql.database.xid_age
         value_column: xid_age
@@ -62,6 +62,12 @@ receivers:
         - datname
         description: Transactions since the oldest unfrozen XID (wraparound at 2^31).
         unit: '{transaction}'
+      - metric_name: postgresql.database.multixact_age
+        value_column: mxid_age
+        attribute_columns:
+        - datname
+        description: Multixacts since the oldest unfrozen multixact ID (wraparound at 2^31).
+        unit: '{multixact}'
     - sql: |
         SELECT slot_name, slot_type, COALESCE(database, '') AS database, active::text AS active,
                COALESCE(pg_wal_lsn_diff(CASE WHEN pg_is_in_recovery() THEN pg_last_wal_replay_lsn() ELSE pg_current_wal_lsn() END, restart_lsn), 0)::bigint AS retained_bytes
@@ -112,6 +118,7 @@ receivers:
         SELECT 'db.instance' AS state_kind,
                current_setting('server_version') AS db_version,
                CASE WHEN pg_is_in_recovery() THEN 'replica' ELSE 'primary' END AS db_role,
+               pg_postmaster_start_time()::text AS db_start_time,
                current_setting('max_connections') AS max_connections,
                (SELECT json_agg(datname ORDER BY datname) FROM pg_database WHERE datallowconn AND NOT datistemplate)::text AS databases,
                (SELECT json_agg(json_build_object('name', extname, 'version', extversion) ORDER BY extname) FROM pg_extension)::text AS extensions,
@@ -125,6 +132,7 @@ receivers:
         attribute_columns:
         - db_version
         - db_role
+        - db_start_time
         - max_connections
         - databases
         - extensions
@@ -137,7 +145,7 @@ receivers:
     queries:
     - sql: |
         WITH t AS (
-          SELECT c.oid, n.nspname AS schema, c.relname AS name,
+          SELECT c.oid, n.nspname AS schema, c.relname AS name, c.reloptions AS options,
                  CASE c.relkind WHEN 'r' THEN 'table' WHEN 'p' THEN 'partitioned_table'
                                 WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized_view' END AS kind
           FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
@@ -148,7 +156,7 @@ receivers:
           LIMIT 301
         ), tables AS (
           SELECT json_build_object(
-            'schema', t.schema, 'name', t.name, 'kind', t.kind,
+            'schema', t.schema, 'name', t.name, 'kind', t.kind, 'options', t.options,
             'columns', (SELECT json_agg(json_build_object('name', a.attname, 'type', format_type(a.atttypid, a.atttypmod),
                                                           'nullable', NOT a.attnotnull, 'default', pg_get_expr(d.adbin, d.adrelid)) ORDER BY a.attnum)
                         FROM pg_attribute a LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
@@ -162,18 +170,19 @@ receivers:
           ) AS tbl
           FROM (SELECT * FROM t ORDER BY schema, name LIMIT 300) t
         ), snapshot AS (
-          SELECT json_build_object(
-            'truncated', (SELECT count(*) FROM t) > 300,
-            'tables', COALESCE((SELECT json_agg(tbl ORDER BY tbl->>'schema', tbl->>'name') FROM tables), '[]'::json)) AS value
+          SELECT (SELECT count(*) FROM t) > 300 AS truncated,
+                 count(*) AS table_count,
+                 COALESCE(json_agg(tbl ORDER BY tbl->>'schema', tbl->>'name'), '[]'::json) AS tables
+          FROM tables
         )
         SELECT 'db.schema' AS state_kind, current_database() AS datname,
-               '1' AS database_count, '1' AS variant_count,
-               md5((value->'tables')::text) AS schema_hash,
-               json_build_array(json_build_object(
-                 'schema_hash', md5((value->'tables')::text),
+               '1' AS database_count,
+               CASE WHEN table_count = 0 THEN '0' ELSE '1' END AS variant_count,
+               md5(tables::text) AS schema_hash,
+               CASE WHEN table_count = 0 THEN '[]' ELSE json_build_array(json_build_object(
+                 'schema_hash', md5(tables::text),
                  'databases', json_build_array(current_database()),
-                 'table_count', json_array_length(value->'tables'),
-                 'truncated', value->'truncated', 'tables', value->'tables'))::text AS schema_variants
+                 'table_count', table_count, 'truncated', truncated, 'tables', tables))::text END AS schema_variants
         FROM snapshot
       logs:
       - body_column: state_kind
@@ -258,6 +267,7 @@ processors:
       - 'set(attributes["otel.entity.id"], {"db.schema.instance.id": resource.attributes["cx.db.instance.id"], "db.namespace": attributes["db.namespace"]}) where body == "db.schema"'
       - set(attributes["db.system.version"], attributes["db_version"]) where body == "db.instance"
       - set(attributes["db.role"], attributes["db_role"]) where body == "db.instance"
+      - set(attributes["db.start_time"], attributes["db_start_time"]) where body == "db.instance"
       - set(attributes["db.max_connections"], attributes["max_connections"]) where body == "db.instance"
       - set(attributes["db.databases"], ParseJSON(attributes["databases"])) where body == "db.instance"
       - set(attributes["db.extensions"], ParseJSON(attributes["extensions"])) where body == "db.instance"
@@ -267,4 +277,4 @@ processors:
       - set(attributes["db.schema.variant_count"], attributes["variant_count"]) where body == "db.schema"
       - set(attributes["db.schema.hash"], attributes["schema_hash"]) where body == "db.schema"
       - set(attributes["db.schema.variants"], ParseJSON(attributes["schema_variants"])) where body == "db.schema"
-      - delete_matching_keys(attributes, "^(datname|db_version|db_role|max_connections|databases|extensions|replication_slots|settings|database_count|variant_count|schema_hash|schema_variants)$")
+      - delete_matching_keys(attributes, "^(datname|db_version|db_role|db_start_time|max_connections|databases|extensions|replication_slots|settings|database_count|variant_count|schema_hash|schema_variants)$")

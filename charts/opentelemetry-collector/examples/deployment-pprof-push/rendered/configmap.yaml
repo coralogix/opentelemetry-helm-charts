@@ -63,7 +63,7 @@ data:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
     processors:
-      k8s_attributes/profiles:
+      k8sattributes/profiles:
         extract:
           labels:
           - from: pod
@@ -242,7 +242,7 @@ data:
           processors:
           - memory_limiter
           - resource/metadata
-          - k8s_attributes/profiles
+          - k8sattributes/profiles
           - transform/profiles
           receivers:
           - pprof/server
