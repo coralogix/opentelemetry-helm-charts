@@ -193,26 +193,48 @@ Generate default OTEL_RESOURCE_ATTRIBUTES value when resourceDetection preset is
 {{- $provider := include "opentelemetry-collector.inferProvider" (dict "distribution" $distribution "topLevelProvider" .Values.provider "explicitProvider" .Values.presets.resourceDetection.provider) -}}
 {{- $isK8s := and (ne $distribution "standalone") (ne $distribution "ecs") (ne $distribution "macos") -}}
 {{- $needsCloudAttrs := false -}}
+{{- $cloudProvider := "" -}}
 {{- $cloudPlatform := "" -}}
 {{- if and .Values.presets.resourceDetection.enabled (eq $provider "aws") -}}
 {{- if eq $distribution "eks/fargate" -}}
 {{- $needsCloudAttrs = true -}}
+{{- $cloudProvider = "aws" -}}
 {{- $cloudPlatform = "aws_eks" -}}
 {{- else if eq $distribution "ecs" -}}
 {{- $needsCloudAttrs = true -}}
+{{- $cloudProvider = "aws" -}}
 {{- $cloudPlatform = "aws_ecs" -}}
 {{- else if and $isK8s (ne .Values.mode "daemonset") -}}
 {{- $needsCloudAttrs = true -}}
+{{- $cloudProvider = "aws" -}}
 {{- if hasPrefix "eks" $distribution -}}
 {{- $cloudPlatform = "aws_eks" -}}
 {{- else -}}
 {{- $cloudPlatform = "aws_ec2" -}}
 {{- end -}}
 {{- end -}}
+{{- else if and .Values.presets.resourceDetection.enabled (eq $provider "azure") $isK8s (ne .Values.mode "daemonset") -}}
+{{- /* Non-daemonset Azure/AKS lacks IMDS-free detectors once resourcedetection/region is dropped (TA pool); inject constants like AWS. */}}
+{{- $needsCloudAttrs = true -}}
+{{- $cloudProvider = "azure" -}}
+{{- if hasPrefix "aks" $distribution -}}
+{{- $cloudPlatform = "azure.aks" -}}
+{{- else -}}
+{{- $cloudPlatform = "azure.vm" -}}
+{{- end -}}
+{{- else if and .Values.presets.resourceDetection.enabled (eq $provider "gcp") $isK8s (ne .Values.mode "daemonset") -}}
+{{- /* Non-daemonset GCP/GKE: same pool-safe cloud identity fallback without host/zone detectors. */}}
+{{- $needsCloudAttrs = true -}}
+{{- $cloudProvider = "gcp" -}}
+{{- if hasPrefix "gke" $distribution -}}
+{{- $cloudPlatform = "gcp_kubernetes_engine" -}}
+{{- else -}}
+{{- $cloudPlatform = "gcp_compute_engine" -}}
+{{- end -}}
 {{- end -}}
 {{- $userSetCloudDetectors := and .Values.presets.resourceDetection.detectors .Values.presets.resourceDetection.detectors.cloud (gt (len .Values.presets.resourceDetection.detectors.cloud) 0) -}}
 {{- if and $needsCloudAttrs (not $userSetCloudDetectors) -}}
-{{- $attrs = append $attrs "cloud.provider=aws" -}}
+{{- $attrs = append $attrs (printf "cloud.provider=%s" $cloudProvider) -}}
 {{- $attrs = append $attrs (printf "cloud.platform=%s" $cloudPlatform) -}}
 {{- end -}}
 {{- join "," $attrs -}}

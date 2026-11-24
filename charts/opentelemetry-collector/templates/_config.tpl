@@ -625,6 +625,47 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- end }}
 {{- end }}
+{{- /* Drop scraper-local K8S_NODE_NAME assignment from transform/kubelet_metrics; keep target-derived custom statements. */}}
+{{- $kubeletXform := index ($config.processors | default dict) "transform/kubelet_metrics" }}
+{{- if and $kubeletXform (kindIs "map" $kubeletXform) (has "transform/kubelet_metrics" ($metrics.processors | default list)) }}
+{{- $metricStatements := index $kubeletXform "metric_statements" | default list }}
+{{- if kindIs "slice" $metricStatements }}
+{{- $filteredBlocks := list }}
+{{- $keptAny := false }}
+{{- range $metricStatements }}
+{{- if kindIs "map" . }}
+{{- $stmts := index . "statements" | default list }}
+{{- if kindIs "slice" $stmts }}
+{{- $keptStmts := list }}
+{{- range $stmts }}
+{{- if not (contains "K8S_NODE_NAME" .) }}
+{{- $keptStmts = append $keptStmts . }}
+{{- end }}
+{{- end }}
+{{- if $keptStmts }}
+{{- $block := deepCopy . }}
+{{- $_ := set $block "statements" $keptStmts }}
+{{- $filteredBlocks = append $filteredBlocks $block }}
+{{- $keptAny = true }}
+{{- end }}
+{{- else }}
+{{- $filteredBlocks = append $filteredBlocks . }}
+{{- $keptAny = true }}
+{{- end }}
+{{- else }}
+{{- $filteredBlocks = append $filteredBlocks . }}
+{{- $keptAny = true }}
+{{- end }}
+{{- end }}
+{{- if $keptAny }}
+{{- $newXform := deepCopy $kubeletXform }}
+{{- $_ := set $newXform "metric_statements" $filteredBlocks }}
+{{- $_ := set $config.processors "transform/kubelet_metrics" $newXform }}
+{{- else }}
+{{- $_ := set $metrics "processors" (without ($metrics.processors | default list) "transform/kubelet_metrics") }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{- $_ := set $config.service "pipelines" (dict "metrics" $metrics) }}
 {{- /* Preserve opaque provider-backed telemetry.resource expressions; only mutate map values. */}}
 {{- $resourceVal := index ($config.service.telemetry | default dict) "resource" | default dict }}
