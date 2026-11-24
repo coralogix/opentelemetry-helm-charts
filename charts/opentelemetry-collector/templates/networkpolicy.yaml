@@ -1,39 +1,54 @@
 {{- if .Values.networkPolicy.enabled }}
+{{- $component := "statefulset-collector" }}
+{{- if eq .Values.mode "daemonset" }}
+{{- $component = "agent-collector" }}
+{{- else if eq .Values.mode "deployment" }}
+{{- $component = "standalone-collector" }}
+{{- end }}
+{{- $components := list $component }}
+{{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") }}
+{{- $components = append $components "statefulset-collector" }}
+{{- end }}
+{{- range $index, $component := $components }}
+{{- if $index }}
+---
+{{- end }}
 kind: NetworkPolicy
 apiVersion: networking.k8s.io/v1
 metadata:
-  name: {{ include "opentelemetry-collector.fullname" . }}
-  namespace: {{ template "opentelemetry-collector.namespace" . }}
+  name: {{ include "opentelemetry-collector.fullname" $ }}{{ if $index }}-statefulset{{ end }}
+  namespace: {{ template "opentelemetry-collector.namespace" $ }}
   labels:
-    {{- include "opentelemetry-collector.labels" . | nindent 4 }}
-  {{- if .Values.networkPolicy.annotations }}
+    {{- include "opentelemetry-collector.labels" $ | nindent 4 }}
+  {{- if $.Values.networkPolicy.annotations }}
   annotations:
-    {{- range $key, $value := .Values.networkPolicy.annotations }}
+    {{- range $key, $value := $.Values.networkPolicy.annotations }}
     {{- printf "%s: %s" $key (tpl $value $ | quote) | nindent 4 }}
     {{- end }}
   {{- end }}
 spec:
   podSelector:
     matchLabels:
-      {{- include "opentelemetry-collector.selectorLabels" . | nindent 6 }}
-      {{- include "opentelemetry-collector.component" . | nindent 6 }}
+      {{- include "opentelemetry-collector.selectorLabels" $ | nindent 6 }}
+      component: {{ $component }}
   ingress:
     - ports:
-        {{- range $port := .Values.ports }}
+        {{- range $port := $.Values.ports }}
         {{- if $port.enabled }}
         - port: {{ $port.containerPort }}
           protocol: {{ $port.protocol }}
         {{- end }}
         {{- end }}
-      {{- if .Values.networkPolicy.allowIngressFrom }}
+      {{- if $.Values.networkPolicy.allowIngressFrom }}
       from:
-        {{- toYaml .Values.networkPolicy.allowIngressFrom | nindent 8 }}
+        {{- toYaml $.Values.networkPolicy.allowIngressFrom | nindent 8 }}
       {{- end }}
-    {{- if .Values.networkPolicy.extraIngressRules }}
-    {{- toYaml .Values.networkPolicy.extraIngressRules | nindent 4 }}
+    {{- if $.Values.networkPolicy.extraIngressRules }}
+    {{- toYaml $.Values.networkPolicy.extraIngressRules | nindent 4 }}
     {{- end }}
-  {{- if .Values.networkPolicy.egressRules }}
+  {{- if $.Values.networkPolicy.egressRules }}
   egress:
-    {{- toYaml .Values.networkPolicy.egressRules | nindent 4 }}
+    {{- toYaml $.Values.networkPolicy.egressRules | nindent 4 }}
   {{- end }}
+{{- end }}
 {{- end }}
