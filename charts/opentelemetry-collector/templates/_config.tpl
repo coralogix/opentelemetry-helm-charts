@@ -1645,7 +1645,7 @@ processors:
 k8sControlPlaneMetrics — scrapes kube-controller-manager, kube-scheduler, kube-proxy, DNS and etcd.
 Receives the chart values (.Values), not the preset subtree.
 Fails unless the agent can actually reach the targets: daemonset mode (node-local targets) and,
-for the components scraped on 127.0.0.1, hostNetwork plus dnsPolicy ClusterFirstWithHostNet.
+for the components scraped on 127.0.0.1, hostNetwork.
 Called from clusterrole.yaml, which always renders with the preset, so it also runs when configMap.create is false.
 */}}
 {{- define "opentelemetry-collector.validateK8sControlPlaneMetrics" -}}
@@ -1662,9 +1662,6 @@ Called from clusterrole.yaml, which always renders with the preset, so it also r
 {{- if or $cp.controllerManager.enabled $cp.scheduler.enabled $cp.proxy.enabled $cp.etcd.enabled -}}
 {{- if not .hostNetwork -}}
 {{- fail "[ERROR] presets.k8sControlPlaneMetrics scrapes controllerManager, scheduler, proxy and etcd on 127.0.0.1, which needs hostNetwork: true. Set hostNetwork: true or disable those components." -}}
-{{- end -}}
-{{- if ne .dnsPolicy "ClusterFirstWithHostNet" -}}
-{{- fail (printf "[ERROR] presets.k8sControlPlaneMetrics needs dnsPolicy: ClusterFirstWithHostNet together with hostNetwork (found dnsPolicy: %q). A hostNetwork pod otherwise cannot resolve in-cluster *.svc names." .dnsPolicy) -}}
 {{- end -}}
 {{- end -}}
 {{- if and $cp.etcd.enabled $cp.etcd.secret.name -}}

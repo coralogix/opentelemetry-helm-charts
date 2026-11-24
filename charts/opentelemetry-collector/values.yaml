@@ -457,9 +457,6 @@ presets:
   #   * mode: daemonset    - targets are node-local, every agent scrapes only the pods on its own node.
   #   * hostNetwork: true  - kubeadm binds controller-manager, scheduler, kube-proxy and etcd metrics to
   #                          127.0.0.1, so they are scraped as 127.0.0.1:<port> from the host network namespace.
-  #   * dnsPolicy: ClusterFirstWithHostNet - required together with hostNetwork. A hostNetwork pod otherwise falls
-  #                          back to the node's resolv.conf and cannot resolve in-cluster *.svc names, which breaks
-  #                          exporters that point at cluster service endpoints.
   #   * tolerations for the control-plane taint, so an agent also runs on control-plane nodes. The preset does
   #     NOT add them (no preset changes pod scheduling); see examples/daemonset-control-plane-metrics.
   #
