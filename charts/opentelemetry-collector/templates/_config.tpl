@@ -603,9 +603,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- $config := .config }}
 {{- $metrics := $config.service.pipelines.metrics }}
 {{- $_ := set $metrics "receivers" (list "prometheus") }}
-{{- /* Keep env-capable resource detection for deployment-wide OTEL_RESOURCE_ATTRIBUTES, but drop scraper-local host/node enrichment and azure host-name transform so least-weighted targets are not stamped with the pool pod's identity. */}}
+{{- /* Keep env-capable resource detection for deployment-wide OTEL_RESOURCE_ATTRIBUTES, but drop scraper-local host/node enrichment, cloud region detectors (host/zone), and azure host-name transform so least-weighted targets are not stamped with the pool pod's identity. */}}
 {{- if $metrics.processors }}
-{{- $_ := set $metrics "processors" (without $metrics.processors "transform/azure-host-name") }}
+{{- $_ := set $metrics "processors" (without $metrics.processors "transform/azure-host-name" "resourcedetection/region") }}
 {{- end }}
 {{- $rdEnv := index ($config.processors | default dict) "resourcedetection/env" }}
 {{- /* Preserve opaque provider-backed resourcedetection/env expressions; only rewrite map processors with a detectors list. */}}
