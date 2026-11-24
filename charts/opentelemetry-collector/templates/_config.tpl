@@ -603,9 +603,9 @@ Build config file for deployment OpenTelemetry Collector
 {{- $config := .config }}
 {{- $metrics := $config.service.pipelines.metrics }}
 {{- $_ := set $metrics "receivers" (list "prometheus") }}
-{{- /* Keep env-capable resource detection for deployment-wide OTEL_RESOURCE_ATTRIBUTES, but drop scraper-local host/node enrichment, cloud region detectors (host/zone), and azure host-name transform so least-weighted targets are not stamped with the pool pod's identity. */}}
+{{- /* Keep env-capable resource detection for deployment-wide OTEL_RESOURCE_ATTRIBUTES, but drop scraper-local host/node enrichment and cloud region detectors (host/zone) so least-weighted targets are not stamped with the pool pod's identity. Keep transform/azure-host-name: it only maps target-derived azure.vm.name → host.name. */}}
 {{- if $metrics.processors }}
-{{- $_ := set $metrics "processors" (without $metrics.processors "transform/azure-host-name" "resourcedetection/region") }}
+{{- $_ := set $metrics "processors" (without $metrics.processors "resourcedetection/region") }}
 {{- end }}
 {{- $rdEnv := index ($config.processors | default dict) "resourcedetection/env" }}
 {{- /* Preserve opaque provider-backed resourcedetection/env expressions; only rewrite map processors with a detectors list. */}}
@@ -622,6 +622,50 @@ Build config file for deployment OpenTelemetry Collector
 {{- $_ := set $config.processors "resourcedetection/env" (dict "detectors" $envOnly "timeout" ($rdEnv.timeout | default "2s") "override" false) }}
 {{- else }}
 {{- $_ := set $metrics "processors" (without ($metrics.processors | default list) "resourcedetection/env") }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- /* Drop scraper-local env assignments from transform/azure-host-name; keep target-derived azure.vm.name → host.name. */}}
+{{- $azureHostXform := index ($config.processors | default dict) "transform/azure-host-name" }}
+{{- if and $azureHostXform (kindIs "map" $azureHostXform) (has "transform/azure-host-name" ($metrics.processors | default list)) }}
+{{- $azureMetricStatements := index $azureHostXform "metric_statements" | default list }}
+{{- if kindIs "slice" $azureMetricStatements }}
+{{- $azureFilteredBlocks := list }}
+{{- $azureKeptAny := false }}
+{{- $azureStrippedAny := false }}
+{{- range $azureMetricStatements }}
+{{- if kindIs "map" . }}
+{{- $stmts := index . "statements" | default list }}
+{{- if kindIs "slice" $stmts }}
+{{- $keptStmts := list }}
+{{- range $stmts }}
+{{- if or (contains "K8S_NODE_NAME" .) (contains "${env:" .) }}
+{{- $azureStrippedAny = true }}
+{{- else }}
+{{- $keptStmts = append $keptStmts . }}
+{{- end }}
+{{- end }}
+{{- if $keptStmts }}
+{{- $block := deepCopy . }}
+{{- $_ := set $block "statements" $keptStmts }}
+{{- $azureFilteredBlocks = append $azureFilteredBlocks $block }}
+{{- $azureKeptAny = true }}
+{{- end }}
+{{- else }}
+{{- $azureFilteredBlocks = append $azureFilteredBlocks . }}
+{{- $azureKeptAny = true }}
+{{- end }}
+{{- else }}
+{{- $azureFilteredBlocks = append $azureFilteredBlocks . }}
+{{- $azureKeptAny = true }}
+{{- end }}
+{{- end }}
+{{- if and $azureKeptAny $azureStrippedAny }}
+{{- $newAzureXform := deepCopy $azureHostXform }}
+{{- $_ := set $newAzureXform "metric_statements" $azureFilteredBlocks }}
+{{- $_ := set $config.processors "transform/azure-host-name" $newAzureXform }}
+{{- else if not $azureKeptAny }}
+{{- $_ := set $metrics "processors" (without ($metrics.processors | default list) "transform/azure-host-name") }}
 {{- end }}
 {{- end }}
 {{- end }}
