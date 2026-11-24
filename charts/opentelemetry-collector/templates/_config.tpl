@@ -603,9 +603,23 @@ Build config file for deployment OpenTelemetry Collector
 {{- $config := .config }}
 {{- $metrics := $config.service.pipelines.metrics }}
 {{- $_ := set $metrics "receivers" (list "prometheus") }}
-{{- /* Drop scraper-local node/host enrichment so least-weighted targets are not stamped with the pool pod's identity. */}}
+{{- /* Keep env-capable resource detection for deployment-wide OTEL_RESOURCE_ATTRIBUTES, but drop scraper-local host/node enrichment and azure host-name transform so least-weighted targets are not stamped with the pool pod's identity. */}}
 {{- if $metrics.processors }}
-{{- $_ := set $metrics "processors" (without $metrics.processors "resourcedetection/env" "transform/azure-host-name") }}
+{{- $_ := set $metrics "processors" (without $metrics.processors "transform/azure-host-name") }}
+{{- end }}
+{{- $rdEnv := index ($config.processors | default dict) "resourcedetection/env" }}
+{{- if and $rdEnv (has "resourcedetection/env" ($metrics.processors | default list)) }}
+{{- $envOnly := list }}
+{{- range ($rdEnv.detectors | default list) }}
+{{- if eq . "env" }}
+{{- $envOnly = append $envOnly . }}
+{{- end }}
+{{- end }}
+{{- if $envOnly }}
+{{- $_ := set $config.processors "resourcedetection/env" (dict "detectors" $envOnly "timeout" ($rdEnv.timeout | default "2s") "override" false) }}
+{{- else }}
+{{- $_ := set $metrics "processors" (without ($metrics.processors | default list) "resourcedetection/env") }}
+{{- end }}
 {{- end }}
 {{- $_ := set $config.service "pipelines" (dict "metrics" $metrics) }}
 {{- /* Preserve opaque provider-backed telemetry.resource expressions; only mutate map values. */}}
