@@ -603,11 +603,19 @@ Build config file for deployment OpenTelemetry Collector
 {{- $config := .config }}
 {{- $metrics := $config.service.pipelines.metrics }}
 {{- $_ := set $metrics "receivers" (list "prometheus") }}
+{{- /* Drop scraper-local node/host enrichment so least-weighted targets are not stamped with the pool pod's identity. */}}
+{{- if $metrics.processors }}
+{{- $_ := set $metrics "processors" (without $metrics.processors "resourcedetection/env" "transform/azure-host-name") }}
+{{- end }}
 {{- $_ := set $config.service "pipelines" (dict "metrics" $metrics) }}
-{{- $resource := deepCopy ($config.service.telemetry.resource | default dict) }}
+{{- /* Preserve opaque provider-backed telemetry.resource expressions; only mutate map values. */}}
+{{- $resourceVal := index ($config.service.telemetry | default dict) "resource" | default dict }}
+{{- if kindIs "map" $resourceVal }}
+{{- $resource := deepCopy $resourceVal }}
 {{- $_ := unset $resource "k8s.daemonset.name" }}
 {{- $_ := set $resource (printf "k8s.%s.name" .workloadKind) .fullname }}
 {{- $_ := set $config.service.telemetry "resource" $resource }}
+{{- end }}
 {{- $config | toYaml }}
 {{- end }}
 

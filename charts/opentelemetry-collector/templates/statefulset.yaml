@@ -45,7 +45,12 @@ spec:
       dnsConfig:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- $podData := dict "Values" .Values "configmapSuffix" "-statefulset" "isAgent" false }}
+      {{- /* TA pool pods must not inject scraper-local k8s.node.name into OTEL_RESOURCE_ATTRIBUTES. */}}
+      {{- $podValues := .Values }}
+      {{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") }}
+      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "presets" (dict "resourceDetection" (dict "k8sNodeName" (dict "enabled" false)))) }}
+      {{- end }}
+      {{- $podData := dict "Values" $podValues "configmapSuffix" "-statefulset" "isAgent" false }}
       {{- include "opentelemetry-collector.pod" ($podData | mustMergeOverwrite (deepCopy .)) | nindent 6 }}
       {{- if not .Values.isWindows }}
       hostNetwork: {{ and .Values.hostNetwork (not (and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset"))) }}
