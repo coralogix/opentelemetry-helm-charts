@@ -338,11 +338,11 @@ presets:
   # /run/udev/data, and /sys.
   # The filesystem scraper is disabled by default because /hostfs is not the host root.
   # To enable it, use extraVolumes and extraVolumeMounts to expose each filesystem
-  # under /hostfs, then configure config.receivers.hostmetrics.scrapers.filesystem.
+  # under /hostfs, then configure config.receivers.host_metrics.scrapers.filesystem.
   hardenedMode:
     enabled: false
   # Configures the collector to collect host metrics.
-  # Adds the hostmetrics receiver to the metrics pipeline
+  # Adds the host_metrics receiver to the metrics pipeline
   # and adds the necessary volumes and volume mounts.
   # Best used with mode = daemonset.
   # See https://opentelemetry.io/docs/kubernetes/collector/components/#host-metrics-receiver for details on the receiver.
@@ -1357,6 +1357,13 @@ presets:
 configMap:
   # Specifies whether a configMap should be created (true by default)
   create: true
+
+# Rewrite deprecated component names (e.g. k8sattributes -> k8s_attributes
+# processor, filelog -> file_log and hostmetrics -> host_metrics receivers,
+# otlp -> otlp_grpc and otlphttp -> otlp_http exporters, k8snode -> k8s_api
+# resourcedetection detector) in the generated config. Set to false if using
+# older Collector images that do not recognize the new names.
+rewriteDeprecatedComponentNames: true
 
 # Base collector configuration.
 # Supports templating. To escape existing instances of {{ }}, use {{` <original content> `}}.

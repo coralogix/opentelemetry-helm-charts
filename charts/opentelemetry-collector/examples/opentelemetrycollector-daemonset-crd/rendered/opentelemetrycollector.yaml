@@ -5,7 +5,7 @@ kind: OpenTelemetryCollector
 metadata:
   name: example-opentelemetry-collector
   labels:
-    helm.sh/chart: opentelemetry-collector-0.143.6
+    helm.sh/chart: opentelemetry-collector-0.143.8
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.165.0"
@@ -118,7 +118,7 @@ spec:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
     processors:
-      k8sattributes:
+      k8s_attributes:
         extract:
           metadata:
           - k8s.namespace.name
@@ -233,7 +233,7 @@ spec:
           - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
             == "opentelemetry-collector"
     receivers:
-      filelog:
+      file_log:
         exclude:
         - /var/log/pods/*/*/*.gz
         - /var/log/pods/*/*/*.tmp
@@ -394,7 +394,7 @@ spec:
           enabled: true
         start_at: beginning
         storage: file_storage
-      hostmetrics:
+      host_metrics:
         collection_interval: '30s'
         root_path: /hostfs
         scrapers:
@@ -488,9 +488,9 @@ spec:
           processors:
           - memory_limiter
           - resource/metadata
-          - k8sattributes
+          - k8s_attributes
           receivers:
-          - filelog
+          - file_log
           - otlp
         metrics:
           exporters:
@@ -498,11 +498,11 @@ spec:
           processors:
           - memory_limiter
           - resource/metadata
-          - k8sattributes
+          - k8s_attributes
           - transform/kubeletstatscpu
           - transform/prometheus
           receivers:
-          - hostmetrics
+          - host_metrics
           - kubeletstats
           - prometheus
           - otlp
@@ -512,7 +512,7 @@ spec:
           processors:
           - memory_limiter
           - resource/metadata
-          - k8sattributes
+          - k8s_attributes
           receivers:
           - otlp
       telemetry:

@@ -85,6 +85,9 @@ The chart also provides several presets, detailed below, to help configure impor
 
 ### Database monitoring
 
+> [!WARNING]
+> Database monitoring is highly experimental. It may introduce breaking changes, not work or be removed at any time.
+
 Use `presets.dbMonitoring` to monitor PostgreSQL targets. Each target creates its own
 pipelines. Use one collector replica to avoid collecting the same database more than once.
 For a dedicated DB collector, disable OTLP and autoscaling. Use `rollout.strategy: Recreate`
@@ -577,7 +580,7 @@ extraVolumeMounts:
 
 config:
   receivers:
-    hostmetrics:
+    host_metrics:
       scrapers:
         filesystem:
           include_mount_points:

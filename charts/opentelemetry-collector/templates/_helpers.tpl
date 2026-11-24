@@ -317,3 +317,151 @@ The capitalization is important for StatefulSet.
 {{- print "StatefulSet" -}}
 {{- end -}}
 {{- end }}
+
+{{/*
+Full table of deprecated OpenTelemetry Collector component names and their
+current replacements, used by the config rewrite pass and the deprecation
+warnings. Verify against the upstream table when porting new renames:
+https://github.com/open-telemetry/opentelemetry-helm-charts/blob/main/charts/opentelemetry-collector/templates/_helpers.tpl
+*/}}
+{{- define "opentelemetry-collector.deprecatedComponentRenames" -}}
+components:
+  receivers:
+    filelog: file_log
+    hostmetrics: host_metrics
+  processors:
+    k8sattributes: k8s_attributes
+  exporters:
+    otlp: otlp_grpc
+    otlphttp: otlp_http
+detectors:
+  k8snode: k8s_api
+{{- end -}}
+
+{{/*
+Collect deprecation warnings for deprecated component names found in the
+user's config. When rewriteDeprecatedComponentNames is enabled the rewrite
+pass fixes the generated config automatically and the warnings say so;
+when it is disabled the warnings ask the user to update values.yaml.
+*/}}
+{{- define "opentelemetry-collector.deprecations" -}}
+{{- $warnings := list -}}
+{{- $renames := include "opentelemetry-collector.deprecatedComponentRenames" . | fromYaml -}}
+{{- $rewriteEnabled := $.Values.rewriteDeprecatedComponentNames -}}
+{{- range $oldName, $newName := (dig "components" "exporters" dict $renames) }}
+  {{- $hasOldExporter := false -}}
+  {{- range $key, $_ := $.Values.config.exporters }}
+    {{- if or (eq $key $oldName) (hasPrefix (printf "%s/" $oldName) $key) }}
+      {{- $hasOldExporter = true -}}
+    {{- end }}
+  {{- end }}
+  {{- if $hasOldExporter }}
+    {{- if $rewriteEnabled }}
+      {{- $warnings = append $warnings (printf "[DEPRECATION] Exporter '%s' has been renamed to '%s'. Your config has been automatically rewritten for this release. Please update your values.yaml — auto-rewrite will be removed in a future release. See UPGRADING.md." $oldName $newName) -}}
+    {{- else }}
+      {{- $warnings = append $warnings (printf "[DEPRECATION] Exporter '%s' has been renamed to '%s'. Please update your values.yaml to use the new name — support for the old name will be removed in a future release. See UPGRADING.md." $oldName $newName) -}}
+    {{- end }}
+  {{- end }}
+  {{- range $signal, $pipeline := $.Values.config.service.pipelines }}
+    {{- if and $pipeline $pipeline.exporters }}
+      {{- $hasOldPipelineRef := false -}}
+      {{- range $pipeline.exporters }}
+        {{- if or (eq . $oldName) (hasPrefix (printf "%s/" $oldName) .) }}
+          {{- $hasOldPipelineRef = true -}}
+        {{- end }}
+      {{- end }}
+      {{- if $hasOldPipelineRef }}
+        {{- if $rewriteEnabled }}
+          {{- $warnings = append $warnings (printf "[DEPRECATION] Pipeline '%s' references renamed exporter '%s'. It has been automatically rewritten to '%s' for this release. Please update your values.yaml — auto-rewrite will be removed in a future release. See UPGRADING.md." $signal $oldName $newName) -}}
+        {{- else }}
+          {{- $warnings = append $warnings (printf "[DEPRECATION] Pipeline '%s' references renamed exporter '%s'. Please update your values.yaml to use '%s' — support for the old name will be removed in a future release. See UPGRADING.md." $signal $oldName $newName) -}}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- range $oldName, $newName := (dig "components" "processors" dict $renames) }}
+  {{- $hasOldProcessor := false -}}
+  {{- range $key, $_ := $.Values.config.processors }}
+    {{- if or (eq $key $oldName) (hasPrefix (printf "%s/" $oldName) $key) }}
+      {{- $hasOldProcessor = true -}}
+    {{- end }}
+  {{- end }}
+  {{- if $hasOldProcessor }}
+    {{- if $rewriteEnabled }}
+      {{- $warnings = append $warnings (printf "[DEPRECATION] Processor '%s' has been renamed to '%s'. Your config has been automatically rewritten for this release. Please update your values.yaml — auto-rewrite will be removed in a future release. See UPGRADING.md." $oldName $newName) -}}
+    {{- else }}
+      {{- $warnings = append $warnings (printf "[DEPRECATION] Processor '%s' has been renamed to '%s'. Please update your values.yaml to use the new name — support for the old name will be removed in a future release. See UPGRADING.md." $oldName $newName) -}}
+    {{- end }}
+  {{- end }}
+  {{- range $signal, $pipeline := $.Values.config.service.pipelines }}
+    {{- if and $pipeline $pipeline.processors }}
+      {{- $hasOldPipelineRef := false -}}
+      {{- range $pipeline.processors }}
+        {{- if or (eq . $oldName) (hasPrefix (printf "%s/" $oldName) .) }}
+          {{- $hasOldPipelineRef = true -}}
+        {{- end }}
+      {{- end }}
+      {{- if $hasOldPipelineRef }}
+        {{- if $rewriteEnabled }}
+          {{- $warnings = append $warnings (printf "[DEPRECATION] Pipeline '%s' references renamed processor '%s'. It has been automatically rewritten to '%s' for this release. Please update your values.yaml — auto-rewrite will be removed in a future release. See UPGRADING.md." $signal $oldName $newName) -}}
+        {{- else }}
+          {{- $warnings = append $warnings (printf "[DEPRECATION] Pipeline '%s' references renamed processor '%s'. Please update your values.yaml to use '%s' — support for the old name will be removed in a future release. See UPGRADING.md." $signal $oldName $newName) -}}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- range $oldName, $newName := (dig "components" "receivers" dict $renames) }}
+  {{- $hasOldReceiver := false -}}
+  {{- range $key, $_ := $.Values.config.receivers }}
+    {{- if or (eq $key $oldName) (hasPrefix (printf "%s/" $oldName) $key) }}
+      {{- $hasOldReceiver = true -}}
+    {{- end }}
+  {{- end }}
+  {{- if $hasOldReceiver }}
+    {{- if $rewriteEnabled }}
+      {{- $warnings = append $warnings (printf "[DEPRECATION] Receiver '%s' has been renamed to '%s'. Your config has been automatically rewritten for this release. Please update your values.yaml — auto-rewrite will be removed in a future release. See UPGRADING.md." $oldName $newName) -}}
+    {{- else }}
+      {{- $warnings = append $warnings (printf "[DEPRECATION] Receiver '%s' has been renamed to '%s'. Please update your values.yaml to use the new name — support for the old name will be removed in a future release. See UPGRADING.md." $oldName $newName) -}}
+    {{- end }}
+  {{- end }}
+  {{- range $signal, $pipeline := $.Values.config.service.pipelines }}
+    {{- if and $pipeline $pipeline.receivers }}
+      {{- $hasOldPipelineRef := false -}}
+      {{- range $pipeline.receivers }}
+        {{- if or (eq . $oldName) (hasPrefix (printf "%s/" $oldName) .) }}
+          {{- $hasOldPipelineRef = true -}}
+        {{- end }}
+      {{- end }}
+      {{- if $hasOldPipelineRef }}
+        {{- if $rewriteEnabled }}
+          {{- $warnings = append $warnings (printf "[DEPRECATION] Pipeline '%s' references renamed receiver '%s'. It has been automatically rewritten to '%s' for this release. Please update your values.yaml — auto-rewrite will be removed in a future release. See UPGRADING.md." $signal $oldName $newName) -}}
+        {{- else }}
+          {{- $warnings = append $warnings (printf "[DEPRECATION] Pipeline '%s' references renamed receiver '%s'. Please update your values.yaml to use '%s' — support for the old name will be removed in a future release. See UPGRADING.md." $signal $oldName $newName) -}}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- range $oldName, $newName := (dig "detectors" dict $renames) }}
+  {{- $hasOldDetector := false -}}
+  {{- range $key, $proc := $.Values.config.processors }}
+    {{- if and $proc (or (eq $key "resourcedetection") (hasPrefix "resourcedetection/" $key)) (index $proc "detectors") }}
+      {{- range (index $proc "detectors") }}
+        {{- if eq . $oldName }}
+          {{- $hasOldDetector = true -}}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- if $hasOldDetector }}
+    {{- if $rewriteEnabled }}
+      {{- $warnings = append $warnings (printf "[DEPRECATION] Detector '%s' has been renamed to '%s'. Your config has been automatically rewritten for this release. Please update your values.yaml — auto-rewrite will be removed in a future release. See UPGRADING.md." $oldName $newName) -}}
+    {{- else }}
+      {{- $warnings = append $warnings (printf "[DEPRECATION] Detector '%s' has been renamed to '%s'. Please update your values.yaml to use the new name — support for the old name will be removed in a future release. See UPGRADING.md." $oldName $newName) -}}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- join "\n" $warnings -}}
+{{- end -}}

@@ -47,6 +47,10 @@
       "type": "string",
       "description": "Name of the namespace to deploy the resources into."
     },
+    "rewriteDeprecatedComponentNames": {
+      "type": "boolean",
+      "description": "When true, deprecated component names (processors, receivers, exporters and resourcedetection detectors) are rewritten in the generated config."
+    },
     "mode": {
       "type": "string",
       "enum": [

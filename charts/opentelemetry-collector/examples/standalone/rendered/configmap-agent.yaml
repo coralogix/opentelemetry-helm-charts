@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector-agent
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.143.6
+    helm.sh/chart: opentelemetry-collector-0.143.8
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.165.0"
@@ -24,7 +24,7 @@ data:
         limit_percentage: 80
         spike_limit_percentage: 25
     receivers:
-      hostmetrics:
+      host_metrics:
         collection_interval: 10s
         root_path: /
         scrapers:
@@ -137,7 +137,7 @@ data:
           processors:
           - memory_limiter
           receivers:
-          - hostmetrics
+          - host_metrics
           - prometheus/multi
           - otlp
         traces:

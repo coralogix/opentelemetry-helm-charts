@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.143.6
+    helm.sh/chart: opentelemetry-collector-0.143.8
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.165.0"
@@ -14,7 +14,88 @@ metadata:
 data:
   relay: |
     exporters:
-      debug: {}
+      coralogix:
+        application_name: db-monitoring
+        application_name_attributes:
+        - k8s.namespace.name
+        - service.namespace
+        domain: coralogix.com
+        domain_settings:
+          keepalive:
+            enabled: true
+            permit_without_stream: false
+            time: 30s
+            timeout: 10s
+        logs:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        metrics:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        private_key: ${env:CORALOGIX_PRIVATE_KEY}
+        profiles:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+            x-coralogix-ingress: otlp/v1.10.0
+        sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
+          enabled: true
+          num_consumers: 20
+          queue_size: 209715200
+          sizer: bytes
+        subsystem_name: postgresql
+        subsystem_name_attributes:
+        - k8s.deployment.name
+        - k8s.statefulset.name
+        - k8s.daemonset.name
+        - k8s.cronjob.name
+        - service.name
+        timeout: 30s
+        traces:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+      coralogix/coralogix_db_monitoring_catalog:
+        application_name: resource
+        application_name_attributes: []
+        domain: coralogix.com
+        domain_settings:
+          keepalive:
+            enabled: true
+            permit_without_stream: false
+            time: 30s
+            timeout: 10s
+        logs:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+            x-coralogix-ingress: metadata-as-otlp-logs/v1
+        metrics:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        private_key: ${env:CORALOGIX_PRIVATE_KEY}
+        profiles:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+            x-coralogix-ingress: otlp/v1.10.0
+        sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
+          enabled: true
+          num_consumers: 20
+          queue_size: 209715200
+          sizer: bytes
+        subsystem_name: catalog
+        subsystem_name_attributes: []
+        timeout: 30s
+        traces:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
     extensions:
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
@@ -93,6 +174,8 @@ data:
           - set(attributes["db.system.version"], attributes["db_version"]) where body
             == "db.instance"
           - set(attributes["db.role"], attributes["db_role"]) where body == "db.instance"
+          - set(attributes["db.start_time"], attributes["db_start_time"]) where body ==
+            "db.instance"
           - set(attributes["db.max_connections"], attributes["max_connections"]) where
             body == "db.instance"
           - set(attributes["db.databases"], ParseJSON(attributes["databases"])) where
@@ -111,7 +194,7 @@ data:
             "db.schema"
           - set(attributes["db.schema.variants"], ParseJSON(attributes["schema_variants"]))
             where body == "db.schema"
-          - delete_matching_keys(attributes, "^(datname|db_version|db_role|max_connections|databases|extensions|replication_slots|settings|database_count|variant_count|schema_hash|schema_variants)$")
+          - delete_matching_keys(attributes, "^(datname|db_version|db_role|db_start_time|max_connections|databases|extensions|replication_slots|settings|database_count|variant_count|schema_hash|schema_variants)$")
       transform/db_monitoring_postgresql:
         error_mode: ignore
         log_statements:
@@ -414,7 +497,15 @@ data:
             metric_name: postgresql.database.xid_age
             unit: '{transaction}'
             value_column: xid_age
-          sql: SELECT datname, age(datfrozenxid) AS xid_age FROM pg_database WHERE datallowconn
+          - attribute_columns:
+            - datname
+            description: Multixacts since the oldest unfrozen multixact ID (wraparound
+              at 2^31).
+            metric_name: postgresql.database.multixact_age
+            unit: '{multixact}'
+            value_column: mxid_age
+          sql: SELECT datname, age(datfrozenxid) AS xid_age, mxid_age(datminmxid) AS mxid_age
+            FROM pg_database WHERE datallowconn
         - metrics:
           - attribute_columns:
             - slot_name
@@ -483,6 +574,7 @@ data:
           - attribute_columns:
             - db_version
             - db_role
+            - db_start_time
             - max_connections
             - databases
             - extensions
@@ -493,6 +585,7 @@ data:
             SELECT 'db.instance' AS state_kind,
                    current_setting('server_version') AS db_version,
                    CASE WHEN pg_is_in_recovery() THEN 'replica' ELSE 'primary' END AS db_role,
+                   pg_postmaster_start_time()::text AS db_start_time,
                    current_setting('max_connections') AS max_connections,
                    (SELECT json_agg(datname ORDER BY datname) FROM pg_database WHERE datallowconn AND NOT datistemplate)::text AS databases,
                    (SELECT json_agg(json_build_object('name', extname, 'version', extversion) ORDER BY extname) FROM pg_extension)::text AS extensions,
@@ -519,7 +612,15 @@ data:
             metric_name: postgresql.database.xid_age
             unit: '{transaction}'
             value_column: xid_age
-          sql: SELECT datname, age(datfrozenxid) AS xid_age FROM pg_database WHERE datallowconn
+          - attribute_columns:
+            - datname
+            description: Multixacts since the oldest unfrozen multixact ID (wraparound
+              at 2^31).
+            metric_name: postgresql.database.multixact_age
+            unit: '{multixact}'
+            value_column: mxid_age
+          sql: SELECT datname, age(datfrozenxid) AS xid_age, mxid_age(datminmxid) AS mxid_age
+            FROM pg_database WHERE datallowconn
         - metrics:
           - attribute_columns:
             - slot_name
@@ -561,7 +662,7 @@ data:
             body_column: state_kind
           sql: |
             WITH t AS (
-              SELECT c.oid, n.nspname AS schema, c.relname AS name,
+              SELECT c.oid, n.nspname AS schema, c.relname AS name, c.reloptions AS options,
                      CASE c.relkind WHEN 'r' THEN 'table' WHEN 'p' THEN 'partitioned_table'
                                     WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized_view' END AS kind
               FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
@@ -572,7 +673,7 @@ data:
               LIMIT 301
             ), tables AS (
               SELECT json_build_object(
-                'schema', t.schema, 'name', t.name, 'kind', t.kind,
+                'schema', t.schema, 'name', t.name, 'kind', t.kind, 'options', t.options,
                 'columns', (SELECT json_agg(json_build_object('name', a.attname, 'type', format_type(a.atttypid, a.atttypmod),
                                                               'nullable', NOT a.attnotnull, 'default', pg_get_expr(d.adbin, d.adrelid)) ORDER BY a.attnum)
                             FROM pg_attribute a LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
@@ -586,18 +687,19 @@ data:
               ) AS tbl
               FROM (SELECT * FROM t ORDER BY schema, name LIMIT 300) t
             ), snapshot AS (
-              SELECT json_build_object(
-                'truncated', (SELECT count(*) FROM t) > 300,
-                'tables', COALESCE((SELECT json_agg(tbl ORDER BY tbl->>'schema', tbl->>'name') FROM tables), '[]'::json)) AS value
+              SELECT (SELECT count(*) FROM t) > 300 AS truncated,
+                     count(*) AS table_count,
+                     COALESCE(json_agg(tbl ORDER BY tbl->>'schema', tbl->>'name'), '[]'::json) AS tables
+              FROM tables
             )
             SELECT 'db.schema' AS state_kind, current_database() AS datname,
-                   '1' AS database_count, '1' AS variant_count,
-                   md5((value->'tables')::text) AS schema_hash,
-                   json_build_array(json_build_object(
-                     'schema_hash', md5((value->'tables')::text),
+                   '1' AS database_count,
+                   CASE WHEN table_count = 0 THEN '0' ELSE '1' END AS variant_count,
+                   md5(tables::text) AS schema_hash,
+                   CASE WHEN table_count = 0 THEN '[]' ELSE json_build_array(json_build_object(
+                     'schema_hash', md5(tables::text),
                      'databases', json_build_array(current_database()),
-                     'table_count', json_array_length(value->'tables'),
-                     'truncated', value->'truncated', 'tables', value->'tables'))::text AS schema_variants
+                     'table_count', table_count, 'truncated', truncated, 'tables', tables))::text END AS schema_variants
             FROM snapshot
         username: otel
       sql_query/db_monitoring_postgresql_orders_schema_orders:
@@ -621,7 +723,7 @@ data:
             body_column: state_kind
           sql: |
             WITH t AS (
-              SELECT c.oid, n.nspname AS schema, c.relname AS name,
+              SELECT c.oid, n.nspname AS schema, c.relname AS name, c.reloptions AS options,
                      CASE c.relkind WHEN 'r' THEN 'table' WHEN 'p' THEN 'partitioned_table'
                                     WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized_view' END AS kind
               FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
@@ -632,7 +734,7 @@ data:
               LIMIT 301
             ), tables AS (
               SELECT json_build_object(
-                'schema', t.schema, 'name', t.name, 'kind', t.kind,
+                'schema', t.schema, 'name', t.name, 'kind', t.kind, 'options', t.options,
                 'columns', (SELECT json_agg(json_build_object('name', a.attname, 'type', format_type(a.atttypid, a.atttypmod),
                                                               'nullable', NOT a.attnotnull, 'default', pg_get_expr(d.adbin, d.adrelid)) ORDER BY a.attnum)
                             FROM pg_attribute a LEFT JOIN pg_attrdef d ON d.adrelid = a.attrelid AND d.adnum = a.attnum
@@ -646,18 +748,19 @@ data:
               ) AS tbl
               FROM (SELECT * FROM t ORDER BY schema, name LIMIT 300) t
             ), snapshot AS (
-              SELECT json_build_object(
-                'truncated', (SELECT count(*) FROM t) > 300,
-                'tables', COALESCE((SELECT json_agg(tbl ORDER BY tbl->>'schema', tbl->>'name') FROM tables), '[]'::json)) AS value
+              SELECT (SELECT count(*) FROM t) > 300 AS truncated,
+                     count(*) AS table_count,
+                     COALESCE(json_agg(tbl ORDER BY tbl->>'schema', tbl->>'name'), '[]'::json) AS tables
+              FROM tables
             )
             SELECT 'db.schema' AS state_kind, current_database() AS datname,
-                   '1' AS database_count, '1' AS variant_count,
-                   md5((value->'tables')::text) AS schema_hash,
-                   json_build_array(json_build_object(
-                     'schema_hash', md5((value->'tables')::text),
+                   '1' AS database_count,
+                   CASE WHEN table_count = 0 THEN '0' ELSE '1' END AS variant_count,
+                   md5(tables::text) AS schema_hash,
+                   CASE WHEN table_count = 0 THEN '[]' ELSE json_build_array(json_build_object(
+                     'schema_hash', md5(tables::text),
                      'databases', json_build_array(current_database()),
-                     'table_count', json_array_length(value->'tables'),
-                     'truncated', value->'truncated', 'tables', value->'tables'))::text AS schema_variants
+                     'table_count', table_count, 'truncated', truncated, 'tables', tables))::text END AS schema_variants
             FROM snapshot
         username: otel
       sql_query/db_monitoring_postgresql_orders_tables_billing:
@@ -732,7 +835,7 @@ data:
       pipelines:
         logs/db_monitoring_postgresql_orders_catalog:
           exporters:
-          - debug
+          - coralogix/coralogix_db_monitoring_catalog
           processors:
           - memory_limiter
           - resource/db_monitoring_postgresql_orders
@@ -744,7 +847,7 @@ data:
           - sql_query/db_monitoring_postgresql_orders_schema_billing
         logs/db_monitoring_postgresql_orders_queries:
           exporters:
-          - debug
+          - coralogix
           processors:
           - memory_limiter
           - filter/db_monitoring_postgresql_orders_own_queries
@@ -755,7 +858,7 @@ data:
           - postgresql/db_monitoring_postgresql_orders_queries
         metrics:
           exporters:
-          - debug
+          - coralogix
           processors:
           - memory_limiter
           - transform/prometheus
@@ -763,7 +866,7 @@ data:
           - prometheus
         metrics/db_monitoring_postgresql_inventory:
           exporters:
-          - debug
+          - coralogix
           processors:
           - memory_limiter
           - resource/db_monitoring_postgresql_inventory
@@ -775,7 +878,7 @@ data:
           - sql_query/db_monitoring_postgresql_inventory_tables_inventory
         metrics/db_monitoring_postgresql_orders:
           exporters:
-          - debug
+          - coralogix
           processors:
           - memory_limiter
           - resource/db_monitoring_postgresql_orders
