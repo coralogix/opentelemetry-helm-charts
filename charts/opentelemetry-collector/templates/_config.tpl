@@ -608,9 +608,12 @@ Build config file for deployment OpenTelemetry Collector
 {{- $_ := set $metrics "processors" (without $metrics.processors "transform/azure-host-name") }}
 {{- end }}
 {{- $rdEnv := index ($config.processors | default dict) "resourcedetection/env" }}
-{{- if and $rdEnv (has "resourcedetection/env" ($metrics.processors | default list)) }}
+{{- /* Preserve opaque provider-backed resourcedetection/env expressions; only rewrite map processors with a detectors list. */}}
+{{- if and $rdEnv (kindIs "map" $rdEnv) (has "resourcedetection/env" ($metrics.processors | default list)) }}
+{{- $rdDetectors := $rdEnv.detectors | default list }}
+{{- if kindIs "slice" $rdDetectors }}
 {{- $envOnly := list }}
-{{- range ($rdEnv.detectors | default list) }}
+{{- range $rdDetectors }}
 {{- if eq . "env" }}
 {{- $envOnly = append $envOnly . }}
 {{- end }}
@@ -619,6 +622,7 @@ Build config file for deployment OpenTelemetry Collector
 {{- $_ := set $config.processors "resourcedetection/env" (dict "detectors" $envOnly "timeout" ($rdEnv.timeout | default "2s") "override" false) }}
 {{- else }}
 {{- $_ := set $metrics "processors" (without ($metrics.processors | default list) "resourcedetection/env") }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- $_ := set $config.service "pipelines" (dict "metrics" $metrics) }}

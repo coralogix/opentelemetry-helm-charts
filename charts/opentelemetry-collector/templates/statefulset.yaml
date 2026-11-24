@@ -48,7 +48,7 @@ spec:
       {{- /* TA pool pods must not inject scraper-local k8s.node.name into OTEL_RESOURCE_ATTRIBUTES. */}}
       {{- $podValues := .Values }}
       {{- if and .Values.targetAllocator.enabled (eq .Values.targetAllocator.collectionMode "statefulset") }}
-      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "presets" (dict "resourceDetection" (dict "k8sNodeName" (dict "enabled" false)))) }}
+      {{- $podValues = mergeOverwrite (deepCopy .Values) (dict "mode" "statefulset" "presets" (dict "resourceDetection" (dict "k8sNodeName" (dict "enabled" false)))) }}
       {{- end }}
       {{- $podData := dict "Values" $podValues "configmapSuffix" "-statefulset" "isAgent" false }}
       {{- include "opentelemetry-collector.pod" ($podData | mustMergeOverwrite (deepCopy .)) | nindent 6 }}
