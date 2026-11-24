@@ -1,0 +1,17 @@
+mode: daemonset
+
+rewriteDeprecatedComponentNames: false
+
+presets:
+  kubernetesAttributes:
+    enabled: true
+
+config:
+  processors:
+    k8sattributes:
+      passthrough: false
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 200M

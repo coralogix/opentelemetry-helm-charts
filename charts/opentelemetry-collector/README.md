@@ -551,7 +551,7 @@ extraVolumeMounts:
 
 config:
   receivers:
-    hostmetrics:
+    host_metrics:
       scrapers:
         filesystem:
           include_mount_points:

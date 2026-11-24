@@ -1,0 +1,17 @@
+mode: daemonset
+
+rewriteDeprecatedComponentNames: false
+
+presets:
+  hostMetrics:
+    enabled: true
+
+config:
+  receivers:
+    hostmetrics:
+      collection_interval: 60s
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 200M
