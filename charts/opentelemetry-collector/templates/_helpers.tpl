@@ -317,19 +317,3 @@ The capitalization is important for StatefulSet.
 {{- print "StatefulSet" -}}
 {{- end -}}
 {{- end }}
-
-{{/*
-Pod dnsPolicy. With presets.k8sControlPlaneMetrics on and hostNetwork rendered, the pod needs ClusterFirstWithHostNet
-to keep resolving cluster DNS names: default it when dnsPolicy is empty and fail on any other explicit value.
-*/}}
-{{- define "opentelemetry-collector.dnsPolicy" -}}
-{{- $policy := .Values.dnsPolicy -}}
-{{- if and .Values.presets.k8sControlPlaneMetrics.enabled .Values.hostNetwork (not .Values.isWindows) -}}
-{{- if not $policy -}}
-{{- $policy = "ClusterFirstWithHostNet" -}}
-{{- else if ne $policy "ClusterFirstWithHostNet" -}}
-{{- fail (printf "[ERROR] presets.k8sControlPlaneMetrics with hostNetwork: true requires dnsPolicy: ClusterFirstWithHostNet or unset (found dnsPolicy: %s)." $policy) -}}
-{{- end -}}
-{{- end -}}
-{{- $policy -}}
-{{- end }}

@@ -325,7 +325,7 @@ spec:
   {{- end }}
   serviceAccount: {{ include "opentelemetry-collector.serviceAccountName" . }}
   hostNetwork: {{ .Values.hostNetwork }}
-  {{- with include "opentelemetry-collector.dnsPolicy" . }}
+  {{- with .Values.dnsPolicy }}
   dnsPolicy: {{ . }}
   {{- end }}
   {{- if and .Values.presets.ebpfProfiler.enabled (not .Values.isWindows) }}
