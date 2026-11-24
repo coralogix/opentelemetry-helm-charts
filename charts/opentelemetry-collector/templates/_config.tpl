@@ -625,7 +625,7 @@ Build config file for deployment OpenTelemetry Collector
 {{- end }}
 {{- end }}
 {{- end }}
-{{- /* Drop scraper-local env assignments from transform/azure-host-name; keep target-derived azure.vm.name → host.name. */}}
+{{- /* Drop scraper-local host/node identity assignments from transform/azure-host-name; keep target-derived azure.vm.name → host.name and deployment-wide ${env:...} attrs (e.g. deployment.environment.name). */}}
 {{- $azureHostXform := index ($config.processors | default dict) "transform/azure-host-name" }}
 {{- if and $azureHostXform (kindIs "map" $azureHostXform) (has "transform/azure-host-name" ($metrics.processors | default list)) }}
 {{- $azureMetricStatements := index $azureHostXform "metric_statements" | default list }}
@@ -639,7 +639,8 @@ Build config file for deployment OpenTelemetry Collector
 {{- if kindIs "slice" $stmts }}
 {{- $keptStmts := list }}
 {{- range $stmts }}
-{{- if or (contains "K8S_NODE_NAME" .) (contains "${env:" .) }}
+{{- /* Strip K8S_NODE_NAME or ${env:...} assignments to scraper-local identity attrs only; do not strip unrelated ${env:} (e.g. DEPLOYMENT_ENV). */}}
+{{- if or (contains "K8S_NODE_NAME" .) (and (contains "${env:" .) (or (contains "[\"k8s.node.name\"]" .) (contains "[\"host.id\"]" .) (contains "[\"host.name\"]" .))) }}
 {{- $azureStrippedAny = true }}
 {{- else }}
 {{- $keptStmts = append $keptStmts . }}
