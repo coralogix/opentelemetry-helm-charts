@@ -1,0 +1,17 @@
+mode: daemonset
+
+hostNetwork: true
+
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+
+presets:
+  k8sControlPlaneMetrics:
+    enabled: true
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 200M

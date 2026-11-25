@@ -78,6 +78,24 @@
 
 {{ end }}
 
+{{- if .Values.presets.k8sControlPlaneMetrics.enabled }}
+{{- if has .Values.distribution (list "eks" "gke" "gke/autopilot" "aks") }}
+{{- $cp := .Values.presets.k8sControlPlaneMetrics }}
+{{- if or $cp.controllerManager.enabled $cp.scheduler.enabled $cp.etcd.enabled }}
+[WARNING] presets.k8sControlPlaneMetrics on a managed Kubernetes distribution ({{ .Values.distribution }}): the control plane is hosted by the provider, so no controller-manager, scheduler or etcd pods exist and those targets stay silent. Set controllerManager.enabled, scheduler.enabled and etcd.enabled to false to make that explicit. Only proxy and dns can be scraped.
+{{ end }}
+{{- if and $cp.dns.enabled (has .Values.distribution (list "gke" "gke/autopilot")) }}
+[WARNING] presets.k8sControlPlaneMetrics.dns on GKE: GKE ships kube-dns, which exposes its metrics on different ports than CoreDNS, so the dns targets stay silent. Set dns.enabled to false.
+{{ end }}
+{{- if eq .Values.distribution "gke/autopilot" }}
+[WARNING] presets.k8sControlPlaneMetrics on GKE Autopilot: hostNetwork is not admitted on Autopilot, so the daemonset this preset needs cannot run.
+{{ end }}
+{{- end }}
+{{- if or .Values.isWindows (has .Values.distribution (list "standalone" "macos" "ecs" "eks/fargate")) }}
+[WARNING] presets.k8sControlPlaneMetrics is enabled for {{ if .Values.isWindows }}Windows nodes (isWindows: true){{ else }}distribution "{{ .Values.distribution }}"{{ end }}, which has no Kubernetes control plane pods to discover: the preset will stay silent.
+{{ end }}
+{{- end }}
+
 {{- if .Values.presets.coralogixExporter.pipeline }}
 [WARNING] The variable "presets.coralogixExporter.pipeline" is deprecated. Use the variable "presets.coralogixExporter.pipelines" instead. If both are present, then the "presets.coralogixExporter.pipelines" will take a precedence.
 {{- end }}

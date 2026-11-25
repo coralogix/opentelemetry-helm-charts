@@ -1,0 +1,21 @@
+---
+# Source: opentelemetry-collector/templates/clusterrole.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: example-opentelemetry-collector
+  labels:
+    helm.sh/chart: opentelemetry-collector-0.143.8
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.165.0"
+    app.kubernetes.io/managed-by: Helm
+rules:
+  # k8s_observer/control_plane watches pods.
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "watch", "list"]
+  # controller-manager and scheduler authorize /metrics through delegated SubjectAccessReview on the nonResourceURL.
+  - nonResourceURLs:
+    - "/metrics"
+    verbs: ["get"]

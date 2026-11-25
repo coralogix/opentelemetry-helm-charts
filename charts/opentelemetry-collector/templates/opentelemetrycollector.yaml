@@ -95,7 +95,7 @@ spec:
         fieldRef:
           fieldPath: metadata.name
     {{- end }}
-    {{- if or .Values.presets.kubeletPrometheusMetrics.enabled (and .Values.presets.kubernetesAttributes.enabled (or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled)) }}
+    {{- if or .Values.presets.kubeletPrometheusMetrics.enabled .Values.presets.k8sControlPlaneMetrics.enabled (and .Values.presets.kubernetesAttributes.enabled (or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled)) }}
     - name: K8S_NODE_NAME
       valueFrom:
         fieldRef:
@@ -147,6 +147,11 @@ spec:
       {{- if .subPath }}
       subPath: {{ .subPath }}
       {{- end }}
+    {{- end }}
+    {{- if and .Values.presets.k8sControlPlaneMetrics.enabled .Values.presets.k8sControlPlaneMetrics.etcd.enabled .Values.presets.k8sControlPlaneMetrics.etcd.secret.name }}
+    - name: control-plane-etcd
+      mountPath: /etc/otelcol/control-plane-etcd
+      readOnly: true
     {{- end }}
     {{- if .Values.presets.logsCollection.enabled }}
     - name: varlogpods
@@ -229,6 +234,11 @@ spec:
     - name: {{ .name }}
       secret:
         secretName: {{ .secretName }}
+    {{- end }}
+    {{- if and .Values.presets.k8sControlPlaneMetrics.enabled .Values.presets.k8sControlPlaneMetrics.etcd.enabled .Values.presets.k8sControlPlaneMetrics.etcd.secret.name }}
+    - name: control-plane-etcd
+      secret:
+        secretName: {{ .Values.presets.k8sControlPlaneMetrics.etcd.secret.name }}
     {{- end }}
     {{- if .Values.presets.logsCollection.enabled  }}
     - name: varlogpods
