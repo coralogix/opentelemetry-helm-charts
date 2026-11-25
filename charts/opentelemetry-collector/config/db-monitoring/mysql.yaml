@@ -1,0 +1,440 @@
+# MySQL receiver defaults and queries from the DB Monitoring Collector reference.
+receivers:
+  performance:
+    transport: tcp
+    collection_interval: 60s
+    statement_events:
+      digest_text_limit: 120
+      limit: 250
+      time_limit: 24h
+    metrics:
+      mysql.commands:
+        enabled: true
+      mysql.connection.count:
+        enabled: true
+      mysql.connection.errors:
+        enabled: true
+      mysql.max_used_connections:
+        enabled: true
+      mysql.query.count:
+        enabled: true
+      mysql.query.slow.count:
+        enabled: true
+      mysql.query.execution.time:
+        enabled: true
+      mysql.session.active.count:
+        enabled: true
+      mysql.joins:
+        enabled: true
+      mysql.statement_event.count:
+        enabled: true
+      mysql.statement_event.wait.time:
+        enabled: true
+      mysql.innodb.history_list.length:
+        enabled: true
+      mysql.innodb.transaction.active.count:
+        enabled: true
+      mysql.innodb.transaction.active.duration.max:
+        enabled: true
+      mysql.innodb.row_lock.wait.count:
+        enabled: true
+      mysql.innodb.row_lock.wait.duration.avg:
+        enabled: true
+      mysql.innodb.row_lock.wait.duration.max:
+        enabled: true
+      mysql.replica.sql_delay:
+        enabled: true
+      mysql.replica.temp_table.open:
+        enabled: true
+      mysql.replica.thread.running:
+        enabled: true
+      mysql.replica.time_behind_source:
+        enabled: true
+      mysql.table.rows:
+        enabled: true
+      mysql.table.size:
+        enabled: true
+      mysql.table.average_row_length:
+        enabled: true
+      mysql.table.lock_wait.read.count:
+        enabled: true
+      mysql.table.lock_wait.read.time:
+        enabled: true
+      mysql.table.lock_wait.write.count:
+        enabled: true
+      mysql.table.lock_wait.write.time:
+        enabled: true
+      mysql.server.healthy:
+        enabled: true
+    resource_attributes:
+      db.system.name:
+        enabled: true
+      db.system.version:
+        enabled: true
+  queries:
+    transport: tcp
+    collection_interval: 60s
+    resource_attributes:
+      db.system.name:
+        enabled: true
+      db.system.version:
+        enabled: true
+    query_sample_collection:
+      max_rows_per_query: 20
+    top_query_collection:
+      lookback_time: 360
+      max_query_sample_count: 1000
+      top_query_count: 50
+      collection_interval: 60s
+      query_plan_cache_size: 1000
+      query_plan_cache_ttl: 1h
+  health:
+    collection_interval: 60s
+    queries:
+    - sql: |
+        SELECT t.TABLE_SCHEMA AS `schema`, t.TABLE_NAME AS `table`, c.COLUMN_NAME AS `column`,
+               CAST(100 * t.AUTO_INCREMENT / CASE c.DATA_TYPE
+                 WHEN 'tinyint' THEN 127 WHEN 'smallint' THEN 32767 WHEN 'mediumint' THEN 8388607
+                 WHEN 'int' THEN 2147483647 WHEN 'bigint' THEN 9223372036854775807 END
+                 / IF(c.COLUMN_TYPE LIKE '%unsigned%', 2, 1) AS DOUBLE) AS used_pct
+        FROM information_schema.TABLES t
+        JOIN information_schema.COLUMNS c ON c.TABLE_SCHEMA = t.TABLE_SCHEMA AND c.TABLE_NAME = t.TABLE_NAME AND c.EXTRA LIKE '%auto_increment%'
+        WHERE t.AUTO_INCREMENT IS NOT NULL AND t.TABLE_SCHEMA NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')
+      metrics:
+      - metric_name: mysql.table.auto_increment.used
+        value_column: used_pct
+        value_type: double
+        attribute_columns:
+        - schema
+        - table
+        - column
+        description: Next auto_increment value as a percent of the column type's maximum.
+        unit: '%'
+    - sql: |
+        SELECT TABLE_SCHEMA AS `schema`, TABLE_NAME AS `table`, DATA_FREE AS free_bytes,
+               CAST(COALESCE(DATA_FREE / NULLIF(DATA_LENGTH, 0), 0) AS DOUBLE) AS free_ratio
+        FROM information_schema.TABLES
+        WHERE TABLE_TYPE = 'BASE TABLE' AND ENGINE = 'InnoDB' AND TABLE_SCHEMA NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')
+      metrics:
+      - metric_name: mysql.table.free_space
+        value_column: free_bytes
+        attribute_columns:
+        - schema
+        - table
+        unit: By
+      - metric_name: mysql.table.fragmentation
+        value_column: free_ratio
+        value_type: double
+        attribute_columns:
+        - schema
+        - table
+        description: DATA_FREE / DATA_LENGTH.
+        unit: '1'
+    - sql: SHOW BINARY LOGS
+      metrics:
+      - metric_name: mysql.binlog.file.size
+        value_column: File_size
+        attribute_columns:
+        - Log_name
+        unit: By
+  tables:
+    collection_interval: 5m
+    queries:
+    - sql: |
+        SELECT database_name AS `schema`, table_name AS `table`, TIMESTAMPDIFF(SECOND, last_update, NOW()) AS analyze_age
+        FROM mysql.innodb_table_stats
+        WHERE database_name NOT IN ('mysql', 'sys')
+      metrics:
+      - metric_name: mysql.table.analyze.age
+        value_column: analyze_age
+        attribute_columns:
+        - schema
+        - table
+        unit: s
+        description: Seconds since InnoDB last recalculated persistent statistics (ANALYZE TABLE or auto recalc).
+  details:
+    collection_interval: 5m
+    initial_delay: 30s
+    queries:
+    - sql: |
+        SELECT 'db.instance' AS state_kind,
+               @@version AS db_version,
+               IF(@@super_read_only OR @@read_only, 'replica', 'primary') AS db_role,
+               CAST(@@max_connections AS CHAR) AS max_connections,
+               (SELECT CONCAT('[', COALESCE(GROUP_CONCAT(JSON_QUOTE(SCHEMA_NAME) ORDER BY SCHEMA_NAME), ''), ']')
+                FROM information_schema.SCHEMATA
+                WHERE SCHEMA_NAME NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')) AS `databases`,
+               (SELECT CONCAT('[', COALESCE(GROUP_CONCAT(JSON_OBJECT('name', x.name, 'version', x.version, 'type', x.type) ORDER BY x.type, x.name), ''), ']')
+                FROM (SELECT PLUGIN_NAME AS name, PLUGIN_VERSION AS version, 'plugin' AS type FROM information_schema.PLUGINS WHERE PLUGIN_STATUS = 'ACTIVE'
+                      UNION ALL
+                      SELECT component_urn, NULL, 'component' FROM mysql.component) x) AS extensions,
+               (SELECT CONCAT('[', COALESCE(GROUP_CONCAT(JSON_OBJECT('name', c.CHANNEL_NAME, 'source_host', c.HOST, 'source_port', c.PORT,
+                                                                     'auto_position', CAST(IF(c.AUTO_POSITION = '1', 'true', 'false') AS JSON),
+                                                                     'service_state', s.SERVICE_STATE) ORDER BY c.CHANNEL_NAME), ''), ']')
+                FROM performance_schema.replication_connection_configuration c
+                LEFT JOIN performance_schema.replication_connection_status s ON s.CHANNEL_NAME = c.CHANNEL_NAME) AS replication_channels,
+               (SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('name', g.VARIABLE_NAME, 'value', g.VARIABLE_VALUE, 'unit', NULL,
+                                                            'default', IF(i.VARIABLE_SOURCE = 'COMPILED', g.VARIABLE_VALUE, NULL), 'source', i.VARIABLE_SOURCE,
+                                                            'context', NULL,
+                                                            'pending_restart', CAST(IF(p.VARIABLE_VALUE IS NOT NULL AND p.VARIABLE_VALUE <> g.VARIABLE_VALUE, 'true', 'false') AS JSON),
+                                                            'min', i.MIN_VALUE, 'max', i.MAX_VALUE, 'set_time', i.SET_TIME) ORDER BY g.VARIABLE_NAME), ']')
+                FROM performance_schema.global_variables g
+                JOIN performance_schema.variables_info i ON i.VARIABLE_NAME = g.VARIABLE_NAME
+                LEFT JOIN performance_schema.persisted_variables p ON p.VARIABLE_NAME = g.VARIABLE_NAME
+                WHERE g.VARIABLE_NAME NOT IN ('gtid_executed', 'gtid_purged', 'gtid_owned')) AS settings
+      logs:
+      - body_column: state_kind
+        attribute_columns:
+        - db_version
+        - db_role
+        - max_connections
+        - databases
+        - extensions
+        - replication_channels
+        - settings
+  schema:
+    collection_interval: 5m
+    initial_delay: 30s
+    queries:
+    - sql: |
+        WITH dbs AS (
+          SELECT SCHEMA_NAME AS db FROM information_schema.SCHEMATA
+          WHERE SCHEMA_NAME NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')
+        ), t AS (
+          SELECT t.TABLE_SCHEMA AS db, t.TABLE_NAME AS name, t.TABLE_TYPE AS table_type,
+                 ROW_NUMBER() OVER (PARTITION BY t.TABLE_SCHEMA ORDER BY t.TABLE_NAME) AS rn
+          FROM information_schema.TABLES t JOIN dbs ON dbs.db = t.TABLE_SCHEMA
+        ), parts AS (
+          SELECT p.TABLE_SCHEMA AS db, p.TABLE_NAME AS name, COUNT(*) AS n
+          FROM information_schema.PARTITIONS p JOIN dbs ON dbs.db = p.TABLE_SCHEMA
+          WHERE p.PARTITION_NAME IS NOT NULL
+          GROUP BY p.TABLE_SCHEMA, p.TABLE_NAME
+        ), cols AS (
+          SELECT c.TABLE_SCHEMA AS db, c.TABLE_NAME AS name,
+                 CONCAT('[', GROUP_CONCAT(JSON_OBJECT('name', c.COLUMN_NAME, 'type', c.COLUMN_TYPE,
+                                                      'nullable', CAST(IF(c.IS_NULLABLE = 'YES', 'true', 'false') AS JSON),
+                                                      'default', c.COLUMN_DEFAULT, 'extra', c.EXTRA) ORDER BY c.ORDINAL_POSITION), ']') AS j
+          FROM information_schema.COLUMNS c JOIN dbs ON dbs.db = c.TABLE_SCHEMA
+          GROUP BY c.TABLE_SCHEMA, c.TABLE_NAME
+        ), idx AS (
+          SELECT s.TABLE_SCHEMA AS db, s.TABLE_NAME AS name, s.INDEX_NAME AS index_name,
+                 MAX(s.NON_UNIQUE) = 0 AS is_unique, MAX(s.IS_VISIBLE) AS visible,
+                 CONCAT('CREATE ', IF(MAX(s.NON_UNIQUE) = 0, 'UNIQUE ', ''), 'INDEX ', s.INDEX_NAME, ' ON ', s.TABLE_NAME, ' USING ', MAX(s.INDEX_TYPE), ' (',
+                        GROUP_CONCAT(CONCAT(COALESCE(s.COLUMN_NAME, CONCAT('(', s.EXPRESSION, ')')), IF(s.SUB_PART IS NULL, '', CONCAT('(', s.SUB_PART, ')')),
+                                            IF(s.COLLATION = 'D', ' DESC', '')) ORDER BY s.SEQ_IN_INDEX SEPARATOR ', '), ')') AS definition
+          FROM information_schema.STATISTICS s JOIN dbs ON dbs.db = s.TABLE_SCHEMA
+          GROUP BY s.TABLE_SCHEMA, s.TABLE_NAME, s.INDEX_NAME
+        ), idxs AS (
+          SELECT db, name,
+                 CONCAT('[', GROUP_CONCAT(JSON_OBJECT('name', index_name, 'definition', definition,
+                                                      'unique', CAST(IF(is_unique, 'true', 'false') AS JSON),
+                                                      'primary', CAST(IF(index_name = 'PRIMARY', 'true', 'false') AS JSON),
+                                                      'visible', CAST(IF(visible = 'YES', 'true', 'false') AS JSON)) ORDER BY index_name), ']') AS j
+          FROM idx GROUP BY db, name
+        ), kcu AS (
+          SELECT k.CONSTRAINT_SCHEMA AS db, k.TABLE_NAME AS name, k.CONSTRAINT_NAME AS cname,
+                 GROUP_CONCAT(k.COLUMN_NAME ORDER BY k.ORDINAL_POSITION SEPARATOR ', ') AS cols,
+                 MAX(IF(k.REFERENCED_TABLE_SCHEMA = k.TABLE_SCHEMA, k.REFERENCED_TABLE_NAME, CONCAT(k.REFERENCED_TABLE_SCHEMA, '.', k.REFERENCED_TABLE_NAME))) AS ref_table,
+                 GROUP_CONCAT(k.REFERENCED_COLUMN_NAME ORDER BY k.ORDINAL_POSITION SEPARATOR ', ') AS ref_cols
+          FROM information_schema.KEY_COLUMN_USAGE k JOIN dbs ON dbs.db = k.CONSTRAINT_SCHEMA
+          GROUP BY k.CONSTRAINT_SCHEMA, k.TABLE_NAME, k.CONSTRAINT_NAME
+        ), cons AS (
+          SELECT tc.CONSTRAINT_SCHEMA AS db, tc.TABLE_NAME AS name,
+                 CONCAT('[', GROUP_CONCAT(JSON_OBJECT(
+                   'name', tc.CONSTRAINT_NAME,
+                   'type', CASE tc.CONSTRAINT_TYPE WHEN 'PRIMARY KEY' THEN 'p' WHEN 'FOREIGN KEY' THEN 'f' WHEN 'UNIQUE' THEN 'u' WHEN 'CHECK' THEN 'c' END,
+                   'definition', CASE tc.CONSTRAINT_TYPE
+                     WHEN 'PRIMARY KEY' THEN CONCAT('PRIMARY KEY (', k.cols, ')')
+                     WHEN 'UNIQUE' THEN CONCAT('UNIQUE (', k.cols, ')')
+                     WHEN 'FOREIGN KEY' THEN CONCAT('FOREIGN KEY (', k.cols, ') REFERENCES ', k.ref_table, '(', k.ref_cols, ')',
+                                                    IF(rc.UPDATE_RULE = 'NO ACTION', '', CONCAT(' ON UPDATE ', rc.UPDATE_RULE)),
+                                                    IF(rc.DELETE_RULE = 'NO ACTION', '', CONCAT(' ON DELETE ', rc.DELETE_RULE)))
+                     WHEN 'CHECK' THEN CONCAT('CHECK ', cc.CHECK_CLAUSE) END) ORDER BY tc.CONSTRAINT_NAME), ']') AS j
+          FROM information_schema.TABLE_CONSTRAINTS tc JOIN dbs ON dbs.db = tc.CONSTRAINT_SCHEMA
+          LEFT JOIN kcu k ON k.db = tc.CONSTRAINT_SCHEMA AND k.name = tc.TABLE_NAME AND k.cname = tc.CONSTRAINT_NAME
+          LEFT JOIN information_schema.REFERENTIAL_CONSTRAINTS rc
+            ON rc.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA AND rc.TABLE_NAME = tc.TABLE_NAME AND rc.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
+          LEFT JOIN information_schema.CHECK_CONSTRAINTS cc
+            ON cc.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA AND cc.CONSTRAINT_NAME = tc.CONSTRAINT_NAME AND tc.CONSTRAINT_TYPE = 'CHECK'
+          GROUP BY tc.CONSTRAINT_SCHEMA, tc.TABLE_NAME
+        ), tbl AS (
+          SELECT t.db, t.name, JSON_OBJECT(
+                   'schema', NULL, 'name', t.name,
+                   'kind', CASE WHEN t.table_type = 'VIEW' THEN 'view' WHEN parts.n > 0 THEN 'partitioned_table' ELSE 'table' END,
+                   'columns', CAST(cols.j AS JSON), 'indexes', CAST(idxs.j AS JSON), 'constraints', CAST(cons.j AS JSON),
+                   'partitions', COALESCE(parts.n, 0)) AS j
+          FROM t
+          LEFT JOIN parts ON parts.db = t.db AND parts.name = t.name
+          LEFT JOIN cols ON cols.db = t.db AND cols.name = t.name
+          LEFT JOIN idxs ON idxs.db = t.db AND idxs.name = t.name
+          LEFT JOIN cons ON cons.db = t.db AND cons.name = t.name
+          WHERE t.rn <= 300
+        ), per_db AS (
+          SELECT dbs.db,
+                 CONCAT('[', COALESCE(GROUP_CONCAT(tbl.j ORDER BY tbl.name), ''), ']') AS tables_json,
+                 COUNT(tbl.name) AS table_count,
+                 (SELECT COUNT(*) FROM t WHERE t.db = dbs.db) > 300 AS truncated
+          FROM dbs LEFT JOIN tbl ON tbl.db = dbs.db
+          GROUP BY dbs.db
+        ), variants AS (
+          SELECT MD5(tables_json) AS schema_hash,
+                 CONCAT('[', GROUP_CONCAT(JSON_QUOTE(db) ORDER BY db), ']') AS dbs_json,
+                 MIN(tables_json) AS tables_json, MAX(table_count) AS table_count, MAX(truncated) AS truncated
+          FROM per_db WHERE table_count > 0
+          GROUP BY MD5(tables_json)
+        )
+        SELECT 'db.schema' AS state_kind,
+               CAST((SELECT COUNT(*) FROM per_db) AS CHAR) AS database_count,
+               CAST((SELECT COUNT(*) FROM variants) AS CHAR) AS variant_count,
+               MD5(COALESCE((SELECT GROUP_CONCAT(schema_hash ORDER BY schema_hash) FROM variants), '')) AS schema_hash,
+               (SELECT CONCAT('[', COALESCE(GROUP_CONCAT(JSON_OBJECT(
+                         'schema_hash', schema_hash, 'databases', CAST(dbs_json AS JSON), 'table_count', table_count,
+                         'truncated', CAST(IF(truncated, 'true', 'false') AS JSON), 'tables', CAST(tables_json AS JSON)) ORDER BY dbs_json), ''), ']')
+                FROM variants) AS schema_variants
+      logs:
+      - body_column: state_kind
+        attribute_columns:
+        - database_count
+        - variant_count
+        - schema_hash
+        - schema_variants
+serverLogs:
+  error:
+    operators:
+    - type: json_parser
+      on_error: drop
+      timestamp:
+        parse_from: attributes.time
+        layout_type: gotime
+        layout: '2006-01-02T15:04:05.999999999Z07:00'
+      severity:
+        parse_from: attributes.label
+        mapping:
+          info: [System, Note, Information]
+          warn: Warning
+          error: Error
+    - type: move
+      from: attributes.msg
+      to: body
+      on_error: drop
+  slow:
+    multiline:
+      line_start_pattern: '^# Time: '
+    operators:
+    - type: filter
+      expr: 'not (body matches "^# Time: ")'
+    - type: regex_parser
+      on_error: drop
+      regex: '(?s)^# Time: (?P<time>[^\r\n]+)\r?\n# User@Host:[ \t]+(?P<user>[^\[\r\n]+)\[[^\]\r\n]*\][ \t]+@[ \t]+[^\[\r\n]*\[(?P<client_ip>[^\]\r\n]*)\][^\r\n]*\r?\n# Query_time:[ \t]+(?P<query_time>[0-9.]+)[ \t]+Lock_time:[ \t]+(?P<lock_time>[0-9.]+)[ \t]+Rows_sent:[ \t]+(?P<rows_sent>[0-9]+)[ \t]+Rows_examined:[ \t]+(?P<rows_examined>[0-9]+)(?P<extra>[^\r\n]*)\r?\n(?:use (?P<database>[^\r\n]+);\r?\n)?SET timestamp=[0-9]+;\r?\n(?P<sql>.+)$'
+      timestamp:
+        parse_from: attributes.time
+        layout_type: gotime
+        layout: '2006-01-02T15:04:05.999999999Z07:00'
+processors:
+  catalog:
+    error_mode: ignore
+    log_statements:
+    - context: scope
+      statements:
+      - set(attributes["otel.entity.event_as_log"], true)
+    - context: log
+      statements:
+      - merge_maps(attributes, resource.attributes, "insert")
+      - set(time, observed_time) where time_unix_nano == 0
+      - set(attributes["otel.entity.event.type"], "entity_state")
+      - set(attributes["otel.entity.type"], body)
+      - set(attributes["db.catalog.version"], "2")
+      - 'set(attributes["otel.entity.id"], {"db.instance.id": resource.attributes["cx.db.instance.id"]}) where body == "db.instance"'
+      - 'set(attributes["otel.entity.id"], {"db.schema.instance.id": resource.attributes["cx.db.instance.id"]}) where body == "db.schema"'
+      - set(attributes["db.system.version"], attributes["db_version"]) where body == "db.instance"
+      - set(attributes["db.role"], attributes["db_role"]) where body == "db.instance"
+      - set(attributes["db.max_connections"], attributes["max_connections"]) where body == "db.instance"
+      - set(attributes["db.databases"], ParseJSON(attributes["databases"])) where body == "db.instance"
+      - set(attributes["db.extensions"], ParseJSON(attributes["extensions"])) where body == "db.instance"
+      - set(attributes["db.replication_channels"], ParseJSON(attributes["replication_channels"])) where body == "db.instance"
+      - set(attributes["db.settings"], ParseJSON(attributes["settings"])) where body == "db.instance"
+      - set(attributes["db.schema.database_count"], attributes["database_count"]) where body == "db.schema"
+      - set(attributes["db.schema.variant_count"], attributes["variant_count"]) where body == "db.schema"
+      - set(attributes["db.schema.hash"], attributes["schema_hash"]) where body == "db.schema"
+      - set(attributes["db.schema.variants"], ParseJSON(attributes["schema_variants"])) where body == "db.schema"
+      - delete_matching_keys(attributes, "^(db_version|db_role|max_connections|databases|extensions|replication_channels|settings|database_count|variant_count|schema_hash|schema_variants)$")
+  semconv:
+    error_mode: ignore
+    metric_statements:
+    - context: datapoint
+      statements:
+      - set(attributes["db.namespace"], attributes["schema"]) where attributes["schema"] != nil
+      - set(attributes["db.collection.name"], attributes["table"]) where attributes["table"] != nil
+      - set(attributes["db.index.name"], attributes["index"]) where attributes["index"] != nil
+      - set(attributes["db.query.id"], attributes["digest"]) where attributes["digest"] != nil
+      - set(attributes["db.query.text"], attributes["digest_text"]) where attributes["digest_text"] != nil
+      - set(attributes["mysql.column.name"], attributes["column"]) where attributes["column"] != nil
+      - set(attributes["mysql.binlog.file.name"], attributes["Log_name"]) where attributes["Log_name"] != nil
+      - delete_matching_keys(attributes, "^(schema|table|index|digest|digest_text|column|Log_name)$")
+    log_statements:
+    - context: log
+      statements:
+      - set(attributes["event.name"], event_name) where event_name != nil and event_name != ""
+      - set(attributes["trace.id"], trace_id.string) where trace_id.string != "00000000000000000000000000000000"
+      - set(attributes["span.id"], span_id.string) where span_id.string != "0000000000000000"
+    - context: log
+      statements:
+      - delete_key(attributes, "db.namespace") where attributes["db.namespace"] == ""
+      - delete_key(attributes, "mysql.query_plan") where attributes["mysql.query_plan"] == ""
+      - set(attributes["db.plan.signature"], SHA256(attributes["mysql.query_plan"])) where attributes["mysql.query_plan"] != nil
+      - set(attributes["db.response.status_code"], String(attributes["err_code"])) where attributes["err_code"] != nil
+      - set(attributes["mysql.error.symbol"], attributes["err_symbol"]) where attributes["err_symbol"] != nil
+      - set(attributes["mysql.sql_state"], attributes["SQL_state"]) where attributes["SQL_state"] != nil
+      - set(attributes["db.response.status_code"], attributes["errno"]) where attributes["errno"] != nil and attributes["errno"] !=
+        "0"
+      - set(attributes["mysql.query_time"], Double(attributes["query_time"])) where attributes["query_time"] != nil
+      - set(attributes["mysql.lock_time"], Double(attributes["lock_time"])) where attributes["lock_time"] != nil
+      - set(attributes["mysql.rows_sent"], Int(attributes["rows_sent"])) where attributes["rows_sent"] != nil
+      - set(attributes["mysql.rows_examined"], Int(attributes["rows_examined"])) where attributes["rows_examined"] != nil
+      - set(attributes["client.address"], attributes["client_ip"]) where attributes["client_ip"] != nil and attributes["client_ip"]
+        != ""
+      - set(attributes["mysql.threads.thread_id"], Int(attributes["thread_id"])) where attributes["thread_id"] != nil
+      - delete_matching_keys(attributes, "^(mysql\\.query_plan\\.hash|err_code|err_symbol|SQL_state|errno|query_time|lock_time|rows_sent|rows_examined|client_ip|client_host|thread_id)$")
+      - delete_key(attributes, "client.address") where attributes["client.address"] == ""
+  filterQueries:
+    error_mode: ignore
+    logs:
+      log_record:
+      - attributes["db.namespace"] == "information_schema"
+      - >-
+        IsString(attributes["db.query.text"]) and IsMatch(attributes["db.query.text"],
+        "(?i)^(SHOW (GLOBAL STATUS|REPLICA STATUS|SLAVE STATUS)|SELECT \\? FROM DUAL|USE \\S+)$|(performance_schema|information_schema) \\. |thread \\. processlist_id")
+  errorLogs:
+    log_statements:
+    - context: log
+      statements:
+      - replace_pattern(body, "'(?:[^']|'')*'", "'?'")
+  slowLogs:
+    log_statements:
+    - context: log
+      statements:
+      - set(event_name, "db.server.query_sample")
+      - set(attributes["user.name"], attributes["user"])
+      - set(attributes["db.namespace"], attributes["database"]) where attributes["database"] != nil
+      - merge_maps(attributes, ExtractPatterns(attributes["extra"], "\\bErrno:\\s+(?P<errno>\\d+)"), "upsert") where attributes["extra"] != nil
+      - merge_maps(attributes, ExtractPatterns(attributes["extra"], "\\bThread_id:\\s+(?P<thread_id>\\d+)"), "upsert") where attributes["extra"] != nil
+      - set(attributes["db.query.text"], Concat([attributes["sql"], "\n"], ""))
+      - set(attributes["dbm.raw_query"], attributes["db.query.text"])
+      - delete_matching_keys(attributes, "^(sql|user|database|time|extra)$")
+      - set(body, "MySQL slow query")
+  redactSQL:
+    allow_all_keys: true
+    summary: silent
+    db_sanitizer:
+      sql:
+        enabled: true
+        attributes: [db.query.text]
+  cleanSQL:
+    log_statements:
+    - context: log
+      statements:
+      # The SQL sanitizer returns its input on parse errors.
+      - delete_key(attributes, "db.query.text") where attributes["db.query.text"] == attributes["dbm.raw_query"]
+      - delete_key(attributes, "dbm.raw_query")
+      - replace_pattern(attributes["db.query.text"], "(?s)\\s*/\\*.*\\*/", "") where attributes["db.query.text"] != nil
+      - replace_pattern(attributes["db.query.text"], "(?s)\\s*(/\\*.*|--[^\\r\\n]*)", "") where attributes["db.query.text"] != nil

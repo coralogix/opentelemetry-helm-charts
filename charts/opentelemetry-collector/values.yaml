@@ -156,9 +156,36 @@ extraConfig: {}
 # .Values.config and use the other fields supplied in the
 # values.yaml to configure k8s as necessary.
 presets:
-  # Collect PostgreSQL metrics and optional query and catalog events.
+  # Collect PostgreSQL and MySQL metrics and optional query and catalog events.
   dbMonitoring:
     enabled: false
+    mysql: []
+    # - name: storefront
+    #   host: storefront-db.example.com
+    #   port: 3306
+    #   username: otel
+    #   auth:
+    #     password: ${env:MYSQL_PASSWORD}
+    #     # aws_iam: {region: us-east-1}
+    #   # For IAM with metrics or catalog collection, set a password for the SQL receivers.
+    #   # sqlAuth: {username: otel_catalog, password: '${env:MYSQL_CATALOG_PASSWORD}'}
+    #   instanceId: production/storefront
+    #   metrics: {enabled: true}
+    #   querySamples: {enabled: false}
+    #   topQueries: {enabled: false, planEvents: false, planCacheTTL: 1h}
+    #   catalog: {enabled: false}
+    #   receivers:
+    #     performance: {collectionInterval: 60s}
+    #     health: {collectionInterval: 60s}
+    #     tables: {collectionInterval: 5m}
+    #     querySamples: {collectionInterval: 60s}
+    #     topQueries: {collectionInterval: 60s}
+    #     details: {collectionInterval: 5m, initialDelay: 30s}
+    #     schema: {collectionInterval: 5m, initialDelay: 30s}
+    #   # For self-hosted MySQL, mount the log directory into the collector first.
+    #   # serverLogs:
+    #   #   errorPaths: [/var/log/mysql/error.log.*.json]
+    #   #   slowPaths: [/var/log/mysql/slow.log]
     postgresql: []
     # - name: orders
     #   host: orders-db.example.com
