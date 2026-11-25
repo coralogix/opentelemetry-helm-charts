@@ -1,0 +1,116 @@
+mode: deployment
+replicaCount: 1
+autoscaling:
+  enabled: false
+rollout:
+  strategy: Recreate
+service:
+  enabled: false
+ports:
+  otlp:
+    enabled: false
+  otlp-http:
+    enabled: false
+
+serviceAccount:
+  annotations:
+    # Use the IAM role for your Collector workload on EKS.
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/mysql-monitoring
+
+presets:
+  otlpReceiver:
+    enabled: false
+  coralogixExporter:
+    enabled: true
+    pipelines: [metrics, logs]
+    domain: coralogix.com
+    defaultApplicationName: db-monitoring
+  dbMonitoring:
+    enabled: true
+    mysql:
+      - name: storefront
+        host: storefront-db.databases.svc.cluster.local
+        username: otel
+        auth:
+          password: ${env:MYSQL_PASSWORD}
+        instanceId: production/databases/storefront-db
+        tls:
+          insecure: true
+        resourceAttributes:
+          k8s.cluster.name: production
+          k8s.namespace.name: databases
+          k8s.statefulset.name: storefront-db
+        querySamples:
+          enabled: true
+        topQueries:
+          enabled: true
+        catalog:
+          enabled: true
+        # Enable these paths when the Collector shares MySQL's log volume.
+        # serverLogs:
+        #   errorPaths: [/var/log/mysql/error.log.*.json]
+        #   slowPaths: [/var/log/mysql/slow.log]
+      - name: inventory-mysql
+        host: inventory-mysql.abcdefghijkl.us-east-1.rds.amazonaws.com
+        instanceId: inventory-mysql
+        username: otel
+        auth:
+          aws_iam:
+            region: us-east-1
+        sqlAuth:
+          username: otel_catalog
+          password: ${env:MYSQL_CATALOG_PASSWORD}
+        tls:
+          ca_file: /etc/rds-certs/global-bundle.pem
+        resourceAttributes:
+          cloud.provider: aws
+          cloud.platform: aws_rds
+          cloud.account.id: "123456789012"
+          cloud.region: us-east-1
+          aws.rds.db_instance_identifier: inventory-mysql
+        excludeUsers: [otel, otel_catalog, rdsadmin, schema_migrator]
+        querySamples:
+          enabled: true
+        topQueries:
+          enabled: true
+        catalog:
+          enabled: true
+
+config:
+  exporters:
+    debug: null
+  service:
+    pipelines:
+      logs:
+        exporters: []
+      metrics:
+        exporters: []
+
+extraEnvs:
+  - name: CORALOGIX_PRIVATE_KEY
+    valueFrom:
+      secretKeyRef:
+        name: coralogix-keys
+        key: PRIVATE_KEY
+  - name: MYSQL_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: db-monitoring-mysql
+        key: password
+  - name: MYSQL_CATALOG_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: db-monitoring-mysql
+        key: catalog-password
+  # The MySQL sql_query driver verifies TLS against the system CA pool.
+  - name: SSL_CERT_FILE
+    value: /etc/rds-certs/global-bundle.pem
+
+extraVolumes:
+  - name: rds-ca-bundle
+    configMap:
+      name: rds-ca-bundle
+extraVolumeMounts:
+  - name: rds-ca-bundle
+    mountPath: /etc/rds-certs
+    readOnly: true
