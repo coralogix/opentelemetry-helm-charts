@@ -297,7 +297,7 @@ data:
             != nil and attributes["client_ip"] != ""
           - set(attributes["mysql.threads.thread_id"], Int(attributes["thread_id"])) where
             attributes["thread_id"] != nil
-          - delete_matching_keys(attributes, "^(mysql\\.query_plan\\.hash|err_code|err_symbol|SQL_state|errno|query_time|lock_time|rows_sent|rows_examined|client_ip|client_host|thread_id)$")
+          - delete_matching_keys(attributes, "^(err_code|err_symbol|SQL_state|errno|query_time|lock_time|rows_sent|rows_examined|client_ip|client_host|thread_id)$")
           - delete_key(attributes, "client.address") where attributes["client.address"]
             == ""
         metric_statements:

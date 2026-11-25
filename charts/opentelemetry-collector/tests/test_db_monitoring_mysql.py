@@ -87,6 +87,28 @@ class MySQLMonitoringTests(unittest.TestCase):
         self.assertIn("aws_iam_db_auth/eu-west-1", config["service"]["extensions"])
 
     @unittest.skipUnless(os.environ.get("OTELCOL_BINARY"), "Set OTELCOL_BINARY to the chart Collector binary")
+    def test_mysql_query_and_plan_events_keep_the_same_correlation_key(self):
+        item = target(metrics={"enabled": False}, querySamples={"enabled": True},
+                      topQueries={"enabled": True, "planEvents": True})
+        config = render(mysql_values(item))
+        pipeline = config["service"]["pipelines"][f"logs/{PREFIX}orders_queries"]
+        correlation_key = {"db.namespace": "shop", "mysql.query_plan.hash": "native-hash"}
+        inputs = [
+            {**correlation_key, "event.name": "db.server.top_query"},
+            {**correlation_key, "event.name": "db.server.query_sample"},
+            {**correlation_key, "event.name": "db.server.query_plan", "mysql.query_plan": '{"query_block":{}}'},
+        ]
+        records = collect_logs(config, pipeline, inputs, [{"type": "json_parser", "parse_to": "attributes"}])
+        attributes = [
+            {a["key"]: next(iter(a["value"].values())) for a in record["attributes"]}
+            for record in records
+        ]
+        self.assertCountEqual([record["event.name"] for record in attributes], [record["event.name"] for record in inputs])
+        for record in attributes:
+            with self.subTest(event=record["event.name"]):
+                self.assertEqual({key: record.get(key) for key in correlation_key}, correlation_key)
+
+    @unittest.skipUnless(os.environ.get("OTELCOL_BINARY"), "Set OTELCOL_BINARY to the chart Collector binary")
     def test_mysql_server_logs_parse_and_mask_records(self):
         item = target(metrics={"enabled": False}, serverLogs={"errorPaths": ["/logs/*.json"], "slowPaths": ["/logs/slow.log"]})
         for kind, inputs in [
