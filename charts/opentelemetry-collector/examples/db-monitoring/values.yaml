@@ -37,17 +37,13 @@ presets:
           k8s.cluster.name: production
           k8s.namespace.name: databases
           k8s.statefulset.name: orders-db
-        querySamples:
+        activitySnapshots:
           enabled: true
         topQueries:
           enabled: true
         catalog:
           enabled: true
         receivers:
-          querySamples:
-            collectionInterval: 30s
-          topQueries:
-            collectionInterval: 5m
           schema:
             collectionInterval: 30m
       - name: inventory
@@ -57,7 +53,8 @@ presets:
         auth:
           aws_iam:
             region: us-east-1
-        instanceId: production/inventory-db
+        # Match the identifier used by the Coralogix RDS integration.
+        instanceId: inventory
         connectDatabase: inventory
         rdsLogs:
           enabled: true
@@ -65,10 +62,18 @@ presets:
           ca_file: /etc/rds-certs/global-bundle.pem
         resourceAttributes:
           deployment.environment.name: production
+          cloud.provider: aws
+          cloud.platform: aws_rds
+          cloud.account.id: "123456789012"
+          cloud.region: us-east-1
+          aws.rds.db_instance_identifier: inventory
         querySamples:
+          enabled: true
+        activitySnapshots:
           enabled: true
         topQueries:
           enabled: true
+        # RDS targets exclude the logical database rdsadmin by default.
         # This list replaces the default exclusions for this target.
         excludeUsers: [inventory_monitor, otel, rdsadmin, otel_catalog, schema_migrator]
 

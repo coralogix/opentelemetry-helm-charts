@@ -124,9 +124,9 @@ hyphens. Names form the receiver and pipeline IDs. Reordering targets does not c
 those IDs. Set `instanceId` to a stable database identity. It becomes `cx.db.instance.id`.
 
 The port defaults to `5432`. `connectDatabase` defaults to `postgres`.
-`databases` defaults to `[connectDatabase]`. List all databases whose table metrics,
-query events, and schemas you want to collect. Instance health and settings can include
-other databases on that server.
+`databases` defaults to `[connectDatabase]`. List the databases whose metrics and
+schemas you want to collect. Native query receivers collect across the instance and
+honor `excludeDatabases`. Instance health and settings can include other databases.
 
 TLS is enabled and verifies the server certificate and name by default. Use
 `tls.ca_file` for a private CA. Mount certificate files with `extraVolumes` and
@@ -144,16 +144,24 @@ Configure schedules under `receivers` on each PostgreSQL target.
 
 | Receiver setting | Collection | Default interval | Enabled by |
 | --- | --- | --- | --- |
-| `receivers.performance` | Native PostgreSQL metrics | Target `collectionInterval` (`5m`) | `metrics.enabled` (on by default) |
-| `receivers.health` | Database health metrics | Target `collectionInterval` (`5m`) | `metrics.enabled` |
-| `receivers.tables` | Table metrics in each selected database | Target `collectionInterval` (`5m`) | `metrics.enabled` |
-| `receivers.querySamples` | Active query samples | Target `collectionInterval` (`5m`) | `querySamples.enabled` |
-| `receivers.topQueries` | Top queries and their plans | `5m` | `topQueries.enabled` |
-| `receivers.details` | Instance settings snapshot | `10m` | `catalog.enabled` |
-| `receivers.schema` | Schema snapshot in each selected database | `10m` | `catalog.enabled` |
+| `receivers.performance` | Native PostgreSQL metrics | `60s` | `metrics.enabled` (on by default) |
+| `receivers.health` | Database health metrics | `60s` | `metrics.enabled` |
+| `receivers.tables` | Table metrics in each selected database | `5m` | `metrics.enabled` |
+| `receivers.querySamples` | Native active query samples (up to 20 per run) | `60s` | `querySamples.enabled` |
+| `receivers.activitySnapshots` | Session snapshots from `pg_stat_activity` | `10s` | `activitySnapshots.enabled` |
+| `receivers.topQueries` | Up to 200 top queries per run, with estimated plans | `60s` | `topQueries.enabled` |
+| `receivers.details` | Instance settings snapshot | `5m` | `catalog.enabled` |
+| `receivers.schema` | Schema snapshot in each selected database | `5m` | `catalog.enabled` |
 
 Each receiver accepts `collectionInterval`, `initialDelay`, and `timeout`.
-The instance snapshot starts after `30s` and schema snapshots after `3m` by default.
+The target's `collectionInterval` overrides the defaults for performance, health,
+tables, and native query samples. Per-receiver settings take precedence.
+The instance snapshot starts after `30s` by default. Schema snapshots start after
+`3m` for self-hosted PostgreSQL and `30s` for RDS or Aurora. Catalog events report
+their receiver's collection interval.
+Activity snapshots run independently of native query samples and top queries.
+They require PostgreSQL 14 or later and a monitoring role with access to session
+details, such as a role with `pg_monitor`.
 Top queries and plans share a schedule. Set `topQueries.planCacheTTL` to change how
 long the receiver keeps a query plan in its cache. The default is `1h`.
 
@@ -163,6 +171,9 @@ the target use that login. Set the password under `auth.password`.
 For RDS or Aurora, set the database user in `username` and the AWS region in `auth.aws_iam.region`.
 Use the RDS endpoint and TLS. Configure the collector workload's IAM identity for
 `rds-db:connect` and grant the database user `rds_iam`.
+Set `instanceId` and `resourceAttributes.aws.rds.db_instance_identifier` to the RDS
+instance identifier. Include the AWS account, region, and platform resource
+attributes to link the data to the RDS integration.
 
 ```yaml
 # Settings on a PostgreSQL target
@@ -183,6 +194,10 @@ Query plans also need permission to access the referenced tables.
 By default, query events exclude the target login user, `otel`,
 `rdsadmin`, and `otel_catalog`. Set `excludeUsers` on the target to replace the
 list. Use `excludeUsers: []` to disable user filtering.
+Set `excludeDatabases` to exclude logical databases from native metrics, top
+queries, native samples, and per-database table and schema receivers. The default
+excludes `rdsadmin` for targets with an RDS endpoint, IAM database auth, RDS log
+collection, or `cloud.platform: aws_rds`. Set `excludeDatabases: []` to clear it.
 
 For RDS or Aurora PostgreSQL, enable `rdsLogs` on a target to collect actual
 query plans from its CloudWatch PostgreSQL log group. The receiver reads JSON
@@ -220,6 +235,9 @@ DB pipelines and any collector self metrics without an unused OTLP receiver.
 For each Coralogix destination, the preset sends query samples, top queries, and
 plans to subsystem `postgresql-slow-queries`. It sends catalog events with
 application `resource`, subsystem `catalog`, and the metadata ingress header.
+PostgreSQL query events use `event.name`, `postgresql.queryid`, and
+`postgresql.query_plan` when a plan is available. Sample and plan events with
+SQLCommenter trace context include `trace.id` and `span.id`.
 Other exporters receive both kinds of events as logs.
 
 Use `config` to override a generated receiver or pipeline. For example, the metrics

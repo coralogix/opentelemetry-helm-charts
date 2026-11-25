@@ -8,11 +8,11 @@
 {{- $defaults := dict
     "port" 5432
     "connectDatabase" "postgres"
-    "collectionInterval" "5m"
     "receivers" dict
     "tls" (dict "insecure" false "insecure_skip_verify" false)
     "metrics" (dict "enabled" true)
     "querySamples" (dict "enabled" false)
+    "activitySnapshots" (dict "enabled" false)
     "topQueries" (dict "enabled" false)
     "catalog" (dict "enabled" false)
     "rdsLogs" (dict "enabled" false)
@@ -23,22 +23,29 @@
 {{- end }}
 {{- $_ := set $names $target.name true }}
 {{- $target = mustMergeOverwrite (deepCopy $defaults) (deepCopy $target) }}
-{{- if not (or $target.metrics.enabled $target.querySamples.enabled $target.topQueries.enabled $target.catalog.enabled $target.rdsLogs.enabled) }}
+{{- $queryLogs := or $target.querySamples.enabled $target.activitySnapshots.enabled $target.topQueries.enabled $target.rdsLogs.enabled }}
+{{- if not (or $target.metrics.enabled $queryLogs $target.catalog.enabled) }}
 {{- continue }}
 {{- end }}
+{{- $resourceAttributes := $target.resourceAttributes | default dict }}
+{{- $rds := or $target.rdsLogs.enabled (hasKey $target.auth "aws_iam") (eq (toString (get $resourceAttributes "cloud.platform")) "aws_rds") (regexMatch "\\.rds\\.amazonaws\\.com(\\.cn)?\\.?$" $target.host) }}
 {{- $intervals := dict }}
+{{- $interval := $target.collectionInterval | default "60s" }}
 {{- if $target.metrics.enabled }}
-{{- $intervals = dict "performance" $target.collectionInterval "health" $target.collectionInterval "tables" $target.collectionInterval }}
+{{- $intervals = dict "performance" $interval "health" $interval "tables" ($target.collectionInterval | default "5m") }}
 {{- end }}
 {{- if $target.querySamples.enabled }}
-{{- $_ := set $intervals "querySamples" $target.collectionInterval }}
+{{- $_ := set $intervals "querySamples" $interval }}
+{{- end }}
+{{- if $target.activitySnapshots.enabled }}
+{{- $_ := set $intervals "activitySnapshots" $postgresql.receivers.activity.collection_interval }}
 {{- end }}
 {{- if $target.topQueries.enabled }}
 {{- $_ := set $intervals "topQueries" $postgresql.receivers.queries.top_query_collection.collection_interval }}
 {{- end }}
 {{- if $target.catalog.enabled }}
-{{- $_ := set $intervals "details" "10m" }}
-{{- $_ := set $intervals "schema" "10m" }}
+{{- $_ := set $intervals "details" "5m" }}
+{{- $_ := set $intervals "schema" "5m" }}
 {{- end }}
 {{- $options := dict }}
 {{- range $receiver, $interval := $intervals }}
@@ -66,7 +73,7 @@
 {{- end }}
 {{- $id := printf "db_monitoring_postgresql_%s" $target.name }}
 {{- $identity := printf "resource/%s" $id }}
-{{- $attributes := mustMergeOverwrite (deepCopy ($target.resourceAttributes | default dict)) (dict "db.system.name" "postgresql" "server.address" $target.host "server.port" $target.port "cx.db.instance.id" $target.instanceId) }}
+{{- $attributes := mustMergeOverwrite (deepCopy $resourceAttributes) (dict "db.system.name" "postgresql" "server.address" $target.host "server.port" $target.port "cx.db.instance.id" $target.instanceId) }}
 {{- $resource := list }}
 {{- range $key, $value := $attributes }}
 {{- $resource = append $resource (dict "key" $key "value" $value "action" "upsert") }}
@@ -81,6 +88,18 @@
 {{- $host = printf "[%s]" $host }}
 {{- end }}
 {{- $native := mustMergeOverwrite (dict "endpoint" (printf "%s:%v" $host $target.port) "connect_database" $target.connectDatabase "databases" $databases "tls" $target.tls) $credentials }}
+{{- $excludedDatabases := list }}
+{{- if hasKey $target "excludeDatabases" }}
+{{- $excludedDatabases = $target.excludeDatabases }}
+{{- else if $rds }}
+{{- $excludedDatabases = list "rdsadmin" }}
+{{- end }}
+{{- if $excludedDatabases }}
+{{- $_ := set $native "exclude_databases" $excludedDatabases }}
+{{- end }}
+{{- range $excludedDatabases }}
+{{- $databases = without $databases . }}
+{{- end }}
 {{- $sslmode := "verify-full" }}
 {{- if $target.tls.insecure }}
 {{- $sslmode = "disable" }}
@@ -108,7 +127,7 @@
 {{- $base := required "dbMonitoring metrics requires config.service.pipelines.metrics" $config.service.pipelines.metrics }}
 {{- $_ := set $generated.service.pipelines (printf "metrics/%s" $id) (dict "receivers" $receivers "processors" (list "memory_limiter" $identity $semconv "batch/db_monitoring") "exporters" $base.exporters) }}
 {{- end }}
-{{- if or $target.querySamples.enabled $target.topQueries.enabled $target.rdsLogs.enabled }}
+{{- if $queryLogs }}
 {{- $users := list $credentials.username "otel" "rdsadmin" "otel_catalog" }}
 {{- if hasKey $target "excludeUsers" }}
 {{- $users = $target.excludeUsers }}
@@ -150,6 +169,18 @@
 {{- $processors := concat (list "memory_limiter") $queryProcessors (list $semconv "batch/db_monitoring") }}
 {{- $_ := set $generated.service.pipelines (printf "logs/%s_queries" $id) (dict "receivers" $receivers "processors" $processors "exporters" $exporters) }}
 {{- end }}
+{{- if $target.activitySnapshots.enabled }}
+{{- $receiver := printf "sql_query/%s_activity" $id }}
+{{- $_ := set $generated.receivers $receiver (mustMergeOverwrite (deepCopy $postgresql.receivers.activity) $sql $options.activitySnapshots) }}
+{{- $prepare := "transform/db_monitoring_activity" }}
+{{- $redact := "redaction/db_monitoring_activity" }}
+{{- $clean := "transform/db_monitoring_activity_clean" }}
+{{- $_ := set $generated.processors $prepare $postgresql.processors.activity }}
+{{- $_ := set $generated.processors $redact $postgresql.processors.redactActivity }}
+{{- $_ := set $generated.processors $clean $postgresql.processors.cleanActivity }}
+{{- $processors := concat (list "memory_limiter") $queryProcessors (list $prepare $redact $clean $semconv "batch/db_monitoring") }}
+{{- $_ := set $generated.service.pipelines (printf "logs/%s_activity" $id) (dict "receivers" (list $receiver) "processors" $processors "exporters" $exporters) }}
+{{- end }}
 {{- if $target.rdsLogs.enabled }}
 {{- $receiver := printf "aws_cloudwatch/%s_rds_logs" $id }}
 {{- $region := required (printf "dbMonitoring.postgresql %q: rdsLogs.region is required without auth.aws_iam.region" $target.name) (coalesce $target.rdsLogs.region (dig "aws_iam" "region" "" $target.auth)) }}
@@ -166,8 +197,8 @@
 {{- $transform := "transform/db_monitoring_rds_plans" }}
 {{- $filter := "filter/db_monitoring_rds_plans" }}
 {{- $_ := set $generated.processors $transform $postgresql.processors.rdsPlans }}
-{{- $_ := set $generated.processors $filter (dict "error_mode" "ignore" "logs" (dict "log_record" (list "attributes[\"db.query.plan\"] == nil"))) }}
-{{- $processors := concat (list "memory_limiter" $transform $filter) $queryProcessors (list "batch/db_monitoring") }}
+{{- $_ := set $generated.processors $filter (dict "error_mode" "ignore" "logs" (dict "log_record" (list "attributes[\"postgresql.query_plan\"] == nil"))) }}
+{{- $processors := concat (list "memory_limiter" $transform $filter) $queryProcessors (list $semconv "batch/db_monitoring") }}
 {{- $_ := set $generated.service.pipelines (printf "logs/%s_rds_plans" $id) (dict "receivers" (list $receiver) "processors" $processors "exporters" $exporters) }}
 {{- end }}
 {{- end }}
@@ -175,15 +206,27 @@
 {{- $details := printf "sql_query/%s_details" $id }}
 {{- $_ := set $generated.receivers $details (mustMergeOverwrite (deepCopy $postgresql.receivers.details) $sql $options.details) }}
 {{- $receivers := list $details }}
+{{- $receiverOverrides := $config.receivers | default dict }}
+{{- $detailsInterval := dig $details "collection_interval" $options.details.collection_interval $receiverOverrides }}
+{{- $setInterval := "set(attributes[\"otel.entity.interval\"], Milliseconds(Duration(%s))) where %s" }}
+{{- $intervalStatements := list (printf $setInterval (toJson $detailsInterval) `body == "db.instance"`) }}
+{{- $schemaDefaults := deepCopy $postgresql.receivers.schema }}
+{{- if $rds }}
+{{- $_ := set $schemaDefaults "initial_delay" "30s" }}
+{{- end }}
 {{- range $database := $databases }}
 {{- $schema := printf "sql_query/%s_schema_%s" $id $database }}
-{{- $_ := set $generated.receivers $schema (mustMergeOverwrite (deepCopy $postgresql.receivers.schema) $sql $options.schema (dict "database" $database)) }}
+{{- $_ := set $generated.receivers $schema (mustMergeOverwrite (deepCopy $schemaDefaults) $sql $options.schema (dict "database" $database)) }}
 {{- $receivers = append $receivers $schema }}
+{{- $schemaInterval := dig $schema "collection_interval" $options.schema.collection_interval $receiverOverrides }}
+{{- $intervalStatements = append $intervalStatements (printf $setInterval (toJson $schemaInterval) (printf `body == "db.schema" and attributes["db.namespace"] == %s` (toJson $database))) }}
 {{- end }}
 {{- $catalog := "transform/db_monitoring_catalog" }}
 {{- $_ := set $generated.processors $catalog $postgresql.processors.catalog }}
+{{- $catalogInterval := printf "transform/%s_catalog_interval" $id }}
+{{- $_ := set $generated.processors $catalogInterval (dict "log_statements" (list (dict "context" "log" "statements" $intervalStatements))) }}
 {{- $exporters := include "opentelemetry-collector.dbMonitoringLogExporters" (dict "config" $config "generated" $generated.exporters "kind" "catalog") | fromYamlArray }}
-{{- $_ := set $generated.service.pipelines (printf "logs/%s_catalog" $id) (dict "receivers" $receivers "processors" (list "memory_limiter" $identity $catalog "batch/db_monitoring") "exporters" $exporters) }}
+{{- $_ := set $generated.service.pipelines (printf "logs/%s_catalog" $id) (dict "receivers" $receivers "processors" (list "memory_limiter" $identity $catalog $catalogInterval "batch/db_monitoring") "exporters" $exporters) }}
 {{- end }}
 {{- end }}
 {{- $iamExtensions := keys $generated.extensions | sortAlpha }}

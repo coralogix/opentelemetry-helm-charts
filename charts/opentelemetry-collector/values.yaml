@@ -171,8 +171,9 @@ presets:
     #   instanceId: production/orders    # Stable database identity.
     #   connectDatabase: postgres        # Default: postgres.
     #   databases: [orders, billing]     # Default: [connectDatabase].
-    #   collectionInterval: 5m           # Default for metrics and samples.
+    #   collectionInterval: 5m           # Optional override for metrics and native samples.
     #   excludeUsers: [otel, rdsadmin, otel_catalog]  # Replaces default exclusions.
+    #   excludeDatabases: [rdsadmin]    # Default on RDS and Aurora.
     #   rdsLogs:
     #     enabled: false
     #     logGroup: /aws/rds/instance/orders-db/postgresql # Override if the RDS identifier differs from name.
@@ -180,13 +181,14 @@ presets:
     #     pollInterval: 30s
     #     initialLookback: 1m
     #   receivers:                      # Each accepts collectionInterval, initialDelay and timeout.
-    #     performance: {collectionInterval: 5m}
-    #     health: {collectionInterval: 1m}
+    #     performance: {collectionInterval: 60s}
+    #     health: {collectionInterval: 60s}
     #     tables: {collectionInterval: 5m}
-    #     querySamples: {collectionInterval: 30s}
-    #     topQueries: {collectionInterval: 5m}
-    #     details: {collectionInterval: 10m, initialDelay: 30s}
-    #     schema: {collectionInterval: 10m, initialDelay: 3m}
+    #     querySamples: {collectionInterval: 60s}
+    #     activitySnapshots: {collectionInterval: 10s}
+    #     topQueries: {collectionInterval: 60s}
+    #     details: {collectionInterval: 5m, initialDelay: 30s}
+    #     schema: {collectionInterval: 5m, initialDelay: 3m} # RDS and Aurora start after 30s.
     #   tls:
     #     insecure: false                # Default: use TLS.
     #     insecure_skip_verify: false    # Default: verify certificate and name.
@@ -197,6 +199,7 @@ presets:
     #     k8s.statefulset.name: orders-db
     #   metrics: {enabled: true}         # Includes health and per-database table metrics.
     #   querySamples: {enabled: false}
+    #   activitySnapshots: {enabled: false}
     #   topQueries: {enabled: false, planCacheTTL: 1h}
     #   catalog: {enabled: false}         # Instance settings and per-database schemas.
   # Adds ECS container logs attributes enrichment processor that extracts container_id from log.file.path

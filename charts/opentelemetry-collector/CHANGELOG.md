@@ -6,10 +6,14 @@
 ### v0.143.9 / 2026-11-25
 
 - [Feat] Add per-receiver monitoring interval configuration to the DB monitoring preset.
-- [Feat] Configure password or AWS IAM authentication once per PostgreSQL target. The example shows both methods.
-- [Feat] Add configurable query user exclusions and show a custom list in the example.
+- [Feat] Configure password or AWS IAM authentication once per PostgreSQL target.
+- [Feat] Add configurable query user exclusions.
 - [Feat] Send query samples, top queries, and plans to the `postgresql-slow-queries` subsystem.
 - [Feat] Add opt-in CloudWatch collection of PostgreSQL `auto_explain` plans per RDS or Aurora target.
+- [Change] Collect up to 200 PostgreSQL top queries every 60 seconds by default.
+- [Feat] Add PostgreSQL activity snapshots every 10 seconds by default.
+- [Fix] Report the configured collection interval on PostgreSQL catalog events.
+- [Fix] Exclude the `rdsadmin` database on RDS and Aurora targets.
 
 ### v0.143.8 / 2026-11-24
 

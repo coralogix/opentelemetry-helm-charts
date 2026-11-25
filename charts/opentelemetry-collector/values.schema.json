@@ -488,6 +488,12 @@
                     "uniqueItems": true,
                     "items": { "type": "string", "minLength": 1 }
                   },
+                  "excludeDatabases": {
+                    "description": "Exclude logical databases from native PostgreSQL receivers and per-database table and schema receivers. Defaults to rdsadmin for RDS and Aurora targets.",
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": { "type": "string", "minLength": 1 }
+                  },
                   "rdsLogs": {
                     "description": "Read PostgreSQL auto_explain plans from a CloudWatch log group.",
                     "type": "object",
@@ -517,6 +523,7 @@
                       "health": { "$ref": "#/$defs/dbMonitoringReceiver" },
                       "tables": { "$ref": "#/$defs/dbMonitoringReceiver" },
                       "querySamples": { "$ref": "#/$defs/dbMonitoringReceiver" },
+                      "activitySnapshots": { "$ref": "#/$defs/dbMonitoringReceiver" },
                       "topQueries": { "$ref": "#/$defs/dbMonitoringReceiver" },
                       "details": { "$ref": "#/$defs/dbMonitoringReceiver" },
                       "schema": { "$ref": "#/$defs/dbMonitoringReceiver" }
@@ -548,6 +555,14 @@
                       "enabled": {
                         "type": "boolean"
                       }
+                    }
+                  },
+                  "activitySnapshots": {
+                    "description": "Collect PostgreSQL session snapshots from pg_stat_activity.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "enabled": { "type": "boolean" }
                     }
                   },
                   "topQueries": {

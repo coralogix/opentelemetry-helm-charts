@@ -15,6 +15,9 @@ import yaml
 
 CHART = Path(__file__).resolve().parents[1]
 PREFIX = "db_monitoring_postgresql_"
+TRACE_ID = "4bf92f3577b34da6a3ce929d0e0e4736"
+SPAN_ID = "00f067aa0ba902b7"
+TRACEPARENT = f"00-{TRACE_ID}-{SPAN_ID}-01"
 
 
 def render(values):
@@ -105,7 +108,7 @@ class DbMonitoringTests(unittest.TestCase):
             self.assertFalse(any(p.startswith("resourcedetection/") for p in pipeline["processors"]))
 
     def test_features_are_independent_and_all_disabled_emits_nothing(self):
-        switches = {key: {"enabled": False} for key in ["metrics", "querySamples", "topQueries", "catalog"]}
+        switches = {key: {"enabled": False} for key in ["metrics", "querySamples", "activitySnapshots", "topQueries", "catalog"]}
         self.assertEqual(render({}), render(values(target(**switches))))
         for feature in switches:
             with self.subTest(feature=feature):
@@ -178,11 +181,12 @@ class DbMonitoringTests(unittest.TestCase):
         configured = values(target(
             databases=["orders", "billing"], collectionInterval="45s",
             querySamples={"enabled": True}, topQueries={"enabled": True, "planCacheTTL": "2h"},
-            catalog={"enabled": True},
+            activitySnapshots={"enabled": True}, catalog={"enabled": True},
             receivers={
                 "health": {"collectionInterval": "1m"},
                 "tables": {"collectionInterval": "2m"},
                 "querySamples": {"collectionInterval": "10s", "initialDelay": "0s"},
+                "activitySnapshots": {"collectionInterval": "15s", "initialDelay": "2s", "timeout": "8s"},
                 "topQueries": {"collectionInterval": "3m", "initialDelay": "30s", "timeout": "20s"},
                 "details": {"collectionInterval": "15m", "initialDelay": "1m"},
                 "schema": {"collectionInterval": "30m", "initialDelay": "4m"},
@@ -194,6 +198,7 @@ class DbMonitoringTests(unittest.TestCase):
             f"postgresql/{PREFIX}orders_metrics": "45s",
             f"postgresql/{PREFIX}orders_samples": "10s",
             f"postgresql/{PREFIX}orders_queries": "3m",
+            f"sql_query/{PREFIX}orders_activity": "15s",
             f"sql_query/{PREFIX}orders_health": "1m",
             f"sql_query/{PREFIX}orders_details": "15m",
         }
@@ -208,6 +213,9 @@ class DbMonitoringTests(unittest.TestCase):
         self.assertEqual(samples["initial_delay"], "0s")
         self.assertEqual(top["initial_delay"], "30s")
         self.assertEqual(top["timeout"], "20s")
+        activity = receivers[f"sql_query/{PREFIX}orders_activity"]
+        self.assertEqual(activity["initial_delay"], "2s")
+        self.assertEqual(activity["timeout"], "8s")
         self.assertEqual(top["top_query_collection"]["collection_interval"], "3m")
         self.assertEqual(top["top_query_collection"]["query_plan_cache_ttl"], "2h")
         self.assertTrue(samples["events"]["db.server.query_sample"]["enabled"])
@@ -217,9 +225,62 @@ class DbMonitoringTests(unittest.TestCase):
         pipeline = config["service"]["pipelines"][f"logs/{PREFIX}orders_queries"]
         self.assertEqual(set(pipeline["receivers"]), {f"postgresql/{PREFIX}orders_queries", f"postgresql/{PREFIX}orders_samples"})
 
+    def test_top_queries_and_activity_snapshots_use_separate_default_schedules(self):
+        config = render(values(target(collectionInterval="45s", topQueries={"enabled": True},
+                                      activitySnapshots={"enabled": True})))
+        pipelines = config["service"]["pipelines"]
+        queries = pipelines[f"logs/{PREFIX}orders_queries"]
+        snapshots = pipelines[f"logs/{PREFIX}orders_activity"]
+        top = config["receivers"][queries["receivers"][0]]
+        activity = config["receivers"][snapshots["receivers"][0]]
+        self.assertEqual(top["collection_interval"], "60s")
+        self.assertEqual(top["top_query_collection"]["collection_interval"], "60s")
+        self.assertEqual(top["top_query_collection"]["top_n_query"], 200)
+        self.assertEqual(top["top_query_collection"]["max_rows_per_query"], 200)
+        self.assertFalse(top["events"]["db.server.query_sample"]["enabled"])
+        self.assertEqual(activity["collection_interval"], "10s")
+        self.assertEqual(snapshots["exporters"], queries["exporters"])
+
+    def test_postgresql_default_schedules_and_rds_database_exclusions(self):
+        features = {
+            "databases": ["postgres", "rdsadmin"],
+            "querySamples": {"enabled": True}, "topQueries": {"enabled": True}, "catalog": {"enabled": True},
+        }
+        inventory = target("inventory", **features)
+        inventory["host"] = "inventory.example.us-east-1.rds.amazonaws.com"
+        config = render(values(target(**features), inventory))
+        receivers = config["receivers"]
+        for name, schema_delay in [("orders", "3m"), ("inventory", "30s")]:
+            prefix = f"{PREFIX}{name}"
+            expected = {
+                f"postgresql/{prefix}_metrics": "60s",
+                f"postgresql/{prefix}_queries": "60s",
+                f"sql_query/{prefix}_health": "60s",
+                f"sql_query/{prefix}_tables_postgres": "5m",
+                f"sql_query/{prefix}_details": "5m",
+                f"sql_query/{prefix}_schema_postgres": "5m",
+            }
+            self.assertEqual({key: receivers[key]["collection_interval"] for key in expected}, expected)
+            self.assertEqual(receivers[f"sql_query/{prefix}_details"]["initial_delay"], "30s")
+            self.assertEqual(receivers[f"sql_query/{prefix}_schema_postgres"]["initial_delay"], schema_delay)
+            self.assertTrue(receivers[f"postgresql/{prefix}_queries"]["events"]["db.server.query_sample"]["enabled"])
+
+        for component in ["metrics", "queries"]:
+            self.assertEqual(receivers[f"postgresql/{PREFIX}inventory_{component}"]["exclude_databases"], ["rdsadmin"])
+            self.assertNotIn("exclude_databases", receivers[f"postgresql/{PREFIX}orders_{component}"])
+        for component in ["tables", "schema"]:
+            self.assertNotIn(f"sql_query/{PREFIX}inventory_{component}_rdsadmin", receivers)
+            self.assertIn(f"sql_query/{PREFIX}orders_{component}_rdsadmin", receivers)
+
+        inventory["excludeDatabases"] = []
+        receivers = render(values(inventory))["receivers"]
+        self.assertNotIn("exclude_databases", receivers[f"postgresql/{PREFIX}inventory_queries"])
+        self.assertIn(f"sql_query/{PREFIX}inventory_schema_rdsadmin", receivers)
+
     def test_auth_applies_to_every_receiver_for_each_target(self):
         features = {
             "querySamples": {"enabled": True}, "topQueries": {"enabled": True}, "catalog": {"enabled": True},
+            "activitySnapshots": {"enabled": True},
             "receivers": {"querySamples": {"collectionInterval": "30s"}},
         }
         orders = target(**features)
@@ -239,7 +300,7 @@ class DbMonitoringTests(unittest.TestCase):
         ]:
             receiver_id = PREFIX + item["name"]
             receivers = [receiver for name, receiver in config["receivers"].items() if f"/{receiver_id}_" in name]
-            self.assertEqual(len(receivers), 7)
+            self.assertEqual(len(receivers), 8)
             for receiver in receivers:
                 self.assertEqual({key: receiver[key] for key in ["username", "password", "db_auth"] if key in receiver}, expected)
             conditions = config["processors"][f"filter/{receiver_id}_own_queries"]["logs"]["log_record"]
@@ -385,7 +446,7 @@ class DbMonitoringTests(unittest.TestCase):
             return result.stdout.strip()
 
         schema = "dbm_test_" + uuid.uuid4().hex
-        config = render(values(target(catalog={"enabled": True})))
+        config = render(values(target(catalog={"enabled": True}, activitySnapshots={"enabled": True})))
         sql(f'CREATE SCHEMA "{schema}"; CREATE TABLE "{schema}".orders (id integer PRIMARY KEY, total numeric NOT NULL) WITH (fillfactor = 80);')
         try:
             for name, receiver in config["receivers"].items():
@@ -410,6 +471,32 @@ class DbMonitoringTests(unittest.TestCase):
             sql(f'DROP SCHEMA "{schema}" CASCADE')
 
     @unittest.skipUnless(os.environ.get("OTELCOL_BINARY"), "Set OTELCOL_BINARY to the collector version in Chart.yaml")
+    def test_catalog_events_report_their_receiver_interval(self):
+        configured = values(target(
+            metrics={"enabled": False}, databases=["orders", "billing"], catalog={"enabled": True},
+            receivers={"details": {"collectionInterval": "7m"}, "schema": {"collectionInterval": "30m"}},
+        ))
+        configured["config"] = {"receivers": {
+            f"sql_query/{PREFIX}orders_schema_billing": {"collection_interval": "12m"},
+        }}
+        config = render(configured)
+        pipeline = config["service"]["pipelines"][f"logs/{PREFIX}orders_catalog"]
+        records = collect_logs(config, pipeline, [
+            {"kind": "db.instance", "databases": "[]", "extensions": "[]", "replication_slots": "[]", "settings": "[]"},
+            {"kind": "db.schema", "datname": "orders", "schema_variants": "[]"},
+            {"kind": "db.schema", "datname": "billing", "schema_variants": "[]"},
+        ], [
+            {"type": "json_parser", "parse_to": "attributes"},
+            {"type": "move", "from": "attributes.kind", "to": "body"},
+        ])
+        intervals = {}
+        for record in records:
+            attributes = {a["key"]: a["value"] for a in record["attributes"]}
+            key = attributes.get("db.namespace", record["body"])["stringValue"]
+            intervals[key] = int(attributes["otel.entity.interval"]["intValue"])
+        self.assertEqual(intervals, {"db.instance": 420_000, "orders": 1_800_000, "billing": 720_000})
+
+    @unittest.skipUnless(os.environ.get("OTELCOL_BINARY"), "Set OTELCOL_BINARY to the collector version in Chart.yaml")
     def test_collector_filters_both_query_user_fields(self):
         config = render(values(target(metrics={"enabled": False}, querySamples={"enabled": True})))
         pipeline = config["service"]["pipelines"][f"logs/{PREFIX}orders_queries"]
@@ -422,16 +509,66 @@ class DbMonitoringTests(unittest.TestCase):
             self.assertEqual(attributes["user.name"], "application")
 
     @unittest.skipUnless(os.environ.get("OTELCOL_BINARY"), "Set OTELCOL_BINARY to the collector version in Chart.yaml")
+    def test_collector_normalizes_and_redacts_activity_snapshots(self):
+        config = render(values(target(metrics={"enabled": False}, activitySnapshots={"enabled": True})))
+        pipeline = config["service"]["pipelines"][f"logs/{PREFIX}orders_activity"]
+        inputs = [
+            {"user.name": user, "db.query.text": query, "postgresql.pid": str(pid),
+             "postgresql.queryid": "101", "postgresql.state": "active", "postgresql.total_exec_time": "12",
+             "dbm.traceparent": traceparent, "message": f"{pid} active"}
+            for pid, user, query, traceparent in [
+                (1, "app", f"SELECT * FROM orders WHERE id = 42 AND email = 'secret' /*traceparent='{TRACEPARENT}'*/", TRACEPARENT),
+                (2, "app", "SELECT 'incomplete secret", ""),
+                (3, "app", "SELECT order２ FROM orders", f"00-{'0' * 32}-{SPAN_ID}-01"),
+                (4, "monitor", "SELECT 1", ""),
+            ]
+        ]
+        records = collect_logs(config, pipeline, inputs, [
+            {"type": "json_parser", "parse_to": "attributes"},
+            {"type": "move", "from": "attributes.message", "to": "body"},
+        ])
+        self.assertEqual(len(records), 3)
+        queries = {}
+        for record in records:
+            attributes = {a["key"]: next(iter(a["value"].values())) for a in record["attributes"]}
+            pid = attributes["postgresql.pid"]
+            self.assertEqual(record["eventName"], "db.server.query_sample")
+            self.assertEqual(attributes["event.name"], "db.server.query_sample")
+            self.assertEqual(record["body"]["stringValue"], f"{pid} active")
+            self.assertEqual(attributes["postgresql.queryid"], "101")
+            self.assertEqual(attributes["postgresql.state"], "active")
+            self.assertEqual(attributes["postgresql.total_exec_time"], "12")
+            self.assertNotIn("db.event.kind", attributes)
+            self.assertNotIn("db.query.id", attributes)
+            self.assertNotIn("dbm.raw_query", attributes)
+            self.assertNotIn("dbm.activity_body", attributes)
+            self.assertNotIn("dbm.traceparent", attributes)
+            if pid == "1":
+                self.assertEqual(attributes["trace.id"], TRACE_ID)
+                self.assertEqual(attributes["span.id"], SPAN_ID)
+                self.assertEqual(record["traceId"], TRACE_ID)
+                self.assertEqual(record["spanId"], SPAN_ID)
+            else:
+                self.assertNotIn("trace.id", attributes)
+                self.assertNotIn("span.id", attributes)
+            queries[pid] = attributes.get("db.query.text")
+        self.assertEqual(queries, {
+            "1": "SELECT * FROM orders WHERE id = ? AND email = ?",
+            "2": "SELECT ?",
+            "3": "SELECT order2 FROM orders",
+        })
+
+    @unittest.skipUnless(os.environ.get("OTELCOL_BINARY"), "Set OTELCOL_BINARY to the collector version in Chart.yaml")
     def test_collector_extracts_and_sanitizes_rds_plans(self):
         config = render(values(target(metrics={"enabled": False}, rdsLogs={
             "enabled": True, "region": "us-east-1",
         })))
         pipeline = config["service"]["pipelines"][f"logs/{PREFIX}orders_rds_plans"]
 
-        def message(user, query_id, extra=""):
+        def message(user, query_id, extra="", query="SELECT secret"):
             plan = json.dumps({
                 "Query Identifier": query_id,
-                "Query Text": "SELECT secret",
+                "Query Text": query,
                 "Query Parameters": "$1 = 'secret'",
                 "Plan": {"Node Type": "Seq Scan", "Alias": "someone's table", "Filter": "(email = 'secret'::text)"},
             }, indent=2)
@@ -440,7 +577,7 @@ class DbMonitoringTests(unittest.TestCase):
         extended = "16:00000:2026-11-25 11:00:00 UTC:SELECT:1:abc.123:db-client:"
         inputs = [{"message": line} for line in [
             message("application", -9223372036854775807),
-            message("application", 42, extended),
+            message("application", 42, extended, f"SELECT 1 /*traceparent='{TRACEPARENT}'*/"),
             message("monitor", 43),
             message("rdsadmin", 44),
             message("application", 0),
@@ -457,18 +594,25 @@ class DbMonitoringTests(unittest.TestCase):
             self.assertEqual(record["eventName"], "db.server.query_plan")
             self.assertEqual(record["body"]["stringValue"], "auto_explain plan")
             attributes = {a["key"]: next(iter(a["value"].values())) for a in record["attributes"]}
+            self.assertEqual(attributes["event.name"], "db.server.query_plan")
             self.assertEqual(attributes["db.plan.source"], "auto_explain")
             self.assertEqual(attributes["db.query.duration_ms"], 12.5)
             self.assertEqual(attributes["db.namespace"], "orders")
             self.assertEqual(attributes["client.address"], "2001:db8::1")
-            query_id = int(attributes["db.query.id"])
+            self.assertNotIn("db.query.plan", attributes)
+            self.assertNotIn("dbm.traceparent", attributes)
+            query_id = int(attributes["postgresql.queryid"])
             ids.add(query_id)
-            self.assertEqual(json.loads(attributes["db.query.plan"]), {
+            self.assertEqual(json.loads(attributes["postgresql.query_plan"]), {
                 "Query Identifier": query_id,
                 "Plan": {"Node Type": "Seq Scan", "Alias": "someone's table", "Filter": "(email = '?'::text)"},
             })
             if query_id == 42:
                 self.assertEqual(attributes["postgresql.application_name"], "db-client")
+                self.assertEqual(attributes["trace.id"], TRACE_ID)
+                self.assertEqual(attributes["span.id"], SPAN_ID)
+            else:
+                self.assertNotIn("trace.id", attributes)
         self.assertEqual(ids, {-9223372036854775807, 42})
 
 
