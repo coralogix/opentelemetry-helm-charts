@@ -49,7 +49,9 @@ substantial rewrites; do not refactor existing presets just to conform.
   makes review hard and surprises customers. Duplicating two similar blocks literally is
   always preferable to one clever helper.
 * When a preset fans out over a user-supplied list (e.g. a list of database targets), `range`
-  over it and emit literal YAML per item; do not assemble dicts.
+  over it and emit literal YAML per item; do not assemble dicts. Existing presets that
+  predate this rule (e.g. `dbMonitoring` in `templates/_db-monitoring.tpl`) keep their local
+  style when extended; do not use them as templates for new presets.
 * The established patterns stay: pipeline wiring via `set`/`append | uniq` in `apply<Preset>`,
   `mustMergeOverwrite (include "...Config" | fromYaml) .config` so user `config` always wins,
   small scalar locals, validation defines that `fail` with a clear `[ERROR]` message.
@@ -71,10 +73,14 @@ prometheus/scheduler:
     config:
       scrape_configs:
         - job_name: kubernetes-scheduler
+          scheme: https
           static_configs:
             - targets: ["127.0.0.1:10259"]
 {{- end }}
 ```
+
+Other scrape settings (metrics_path, bearer token, TLS) are elided — see the reference
+implementation for the complete block.
 
 Bad (magic dicts):
 
