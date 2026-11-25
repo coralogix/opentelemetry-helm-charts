@@ -3,6 +3,13 @@
 ## OpenTelemetry Collector
 
 
+### v0.143.9 / 2026-11-25
+
+- [Feat] Add per-receiver monitoring interval configuration to the DB monitoring preset.
+- [Feat] Configure password or AWS IAM authentication once per PostgreSQL target. The example shows both methods.
+- [Feat] Add configurable query user exclusions and show a custom list in the example.
+- [Feat] Send query samples, top queries, and plans to the `postgresql-slow-queries` subsystem.
+
 ### v0.143.8 / 2026-11-24
 
 - [Feat] Add `presets.k8sControlPlaneMetrics` (CX-41498), a sibling of `kubernetesApiServerMetrics`, that scrapes the self-managed Kubernetes control plane from a `hostNetwork` daemonset: kube-controller-manager, kube-scheduler, kube-proxy, DNS (CoreDNS, plus the NodeLocal DNSCache addon with `dns.nodeLocal.enabled`) and, opt-in, etcd (plain http on `127.0.0.1:2381`, or mTLS on `:2379` with a client certificate from an existing Secret via `etcd.secret`; the chart never creates Secrets). The receivers are static, literal template blocks under a dedicated `k8s_observer/control_plane` and `receiver_creator/control_plane` scoped to the agent's node. The values surface is `enabled`, `scrapeInterval`, per-component `enabled` and the etcd `port`/`skipVerify`/`secret` keys; targets, ports and label rules are overridden by deep-merging the receivers through `config`. The preset fails at render time (also when `configMap.create` is false) unless `mode: daemonset`, at least one component is enabled and, for loopback targets, `hostNetwork: true`; `dns.nodeLocal.enabled` without `dns.enabled` and incomplete etcd `secret` settings are rejected too. The ClusterRole grants the `/metrics` nonResourceURL only when `controllerManager` or `scheduler` is enabled, the only components that authorize through delegated SubjectAccessReview. No metric filtering: every metric a component exposes is shipped. `NOTES.txt` warns that controller-manager, scheduler and etcd stay silent on EKS, GKE and AKS, that dns needs `dns.enabled: false` on GKE, that GKE Autopilot cannot run the preset, and that the preset stays silent on standalone, macos, ecs, eks/fargate and `isWindows`. On OpenShift the preset finds nothing; API server coverage is `kubernetesApiServerMetrics`. The etcd mTLS docs warn that the kubeadm `healthcheck-client` certificate is cluster-admin equivalent. Adds a `daemonset-control-plane-metrics` example and a `ci/preset-k8scontrolplanemetrics-values.yaml` test values file.

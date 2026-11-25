@@ -27,7 +27,8 @@ presets:
       - name: orders
         host: orders-db.databases.svc.cluster.local
         username: otel
-        password: ${env:ORDERS_DB_PASSWORD}
+        auth:
+          password: ${env:ORDERS_DB_PASSWORD}
         instanceId: production/databases/orders-db
         databases: [orders, billing]
         tls:
@@ -42,15 +43,32 @@ presets:
           enabled: true
         catalog:
           enabled: true
+        receivers:
+          querySamples:
+            collectionInterval: 30s
+          topQueries:
+            collectionInterval: 5m
+          schema:
+            collectionInterval: 30m
       - name: inventory
-        host: inventory-db.example.com
-        port: 5433
-        username: otel
-        password: ${env:INVENTORY_DB_PASSWORD}
+        # Use the RDS endpoint and give the collector's AWS identity rds-db:connect.
+        host: inventory-db.abcdefghijkl.us-east-1.rds.amazonaws.com
+        username: inventory_monitor
+        auth:
+          aws_iam:
+            region: us-east-1
         instanceId: production/inventory-db
         connectDatabase: inventory
+        tls:
+          ca_file: /etc/rds-certs/global-bundle.pem
         resourceAttributes:
           deployment.environment.name: production
+        querySamples:
+          enabled: true
+        topQueries:
+          enabled: true
+        # This list replaces the default exclusions for this target.
+        excludeUsers: [inventory_monitor, otel, rdsadmin, otel_catalog, schema_migrator]
 
 config:
   exporters:
@@ -73,8 +91,16 @@ extraEnvs:
       secretKeyRef:
         name: db-monitoring
         key: orders-password
-  - name: INVENTORY_DB_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: db-monitoring
-        key: inventory-password
+
+# Create this ConfigMap in the collector namespace with the AWS RDS CA bundle.
+extraVolumes:
+  - name: rds-ca-bundle
+    configMap:
+      name: rds-ca-bundle
+      items:
+        - key: global-bundle.pem
+          path: global-bundle.pem
+extraVolumeMounts:
+  - name: rds-ca-bundle
+    mountPath: /etc/rds-certs
+    readOnly: true

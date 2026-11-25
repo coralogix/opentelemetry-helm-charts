@@ -1,6 +1,19 @@
 {
   "$schema": "http://json-schema.org/schema#",
   "$defs": {
+    "dbMonitoringDuration": {
+      "type": "string",
+      "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))+$"
+    },
+    "dbMonitoringReceiver": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "collectionInterval": { "$ref": "#/$defs/dbMonitoringDuration" },
+        "initialDelay": { "$ref": "#/$defs/dbMonitoringDuration" },
+        "timeout": { "$ref": "#/$defs/dbMonitoringDuration" }
+      }
+    },
     "intOrString": {
       "anyOf": [
         {
@@ -409,7 +422,7 @@
                   "name",
                   "host",
                   "username",
-                  "password",
+                  "auth",
                   "instanceId"
                 ],
                 "properties": {
@@ -430,8 +443,25 @@
                     "type": "string",
                     "minLength": 1
                   },
-                  "password": {
-                    "type": "string"
+                  "auth": {
+                    "description": "Choose one authentication method for the PostgreSQL target.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "minProperties": 1,
+                    "maxProperties": 1,
+                    "properties": {
+                      "password": {
+                        "type": "string"
+                      },
+                      "aws_iam": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["region"],
+                        "properties": {
+                          "region": { "type": "string", "pattern": "^[a-z0-9-]+$" }
+                        }
+                      }
+                    }
                   },
                   "instanceId": {
                     "type": "string",
@@ -451,8 +481,25 @@
                     }
                   },
                   "collectionInterval": {
-                    "type": "string",
-                    "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))+$"
+                    "$ref": "#/$defs/dbMonitoringDuration"
+                  },
+                  "excludeUsers": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": { "type": "string", "minLength": 1 }
+                  },
+                  "receivers": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "performance": { "$ref": "#/$defs/dbMonitoringReceiver" },
+                      "health": { "$ref": "#/$defs/dbMonitoringReceiver" },
+                      "tables": { "$ref": "#/$defs/dbMonitoringReceiver" },
+                      "querySamples": { "$ref": "#/$defs/dbMonitoringReceiver" },
+                      "topQueries": { "$ref": "#/$defs/dbMonitoringReceiver" },
+                      "details": { "$ref": "#/$defs/dbMonitoringReceiver" },
+                      "schema": { "$ref": "#/$defs/dbMonitoringReceiver" }
+                    }
                   },
                   "resourceAttributes": {
                     "type": "object",
@@ -488,6 +535,9 @@
                     "properties": {
                       "enabled": {
                         "type": "boolean"
+                      },
+                      "planCacheTTL": {
+                        "$ref": "#/$defs/dbMonitoringDuration"
                       }
                     }
                   },

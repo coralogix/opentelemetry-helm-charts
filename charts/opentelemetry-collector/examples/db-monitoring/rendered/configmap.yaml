@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.143.8
+    helm.sh/chart: opentelemetry-collector-0.143.9
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.165.0"
@@ -96,17 +96,76 @@ data:
         traces:
           headers:
             X-Coralogix-Distribution: helm-otel-integration/
+      coralogix/coralogix_db_monitoring_queries:
+        application_name: db-monitoring
+        application_name_attributes:
+        - k8s.namespace.name
+        - service.namespace
+        domain: coralogix.com
+        domain_settings:
+          keepalive:
+            enabled: true
+            permit_without_stream: false
+            time: 30s
+            timeout: 10s
+        logs:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        metrics:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        private_key: ${env:CORALOGIX_PRIVATE_KEY}
+        profiles:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+            x-coralogix-ingress: otlp/v1.10.0
+        sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
+          enabled: true
+          num_consumers: 20
+          queue_size: 209715200
+          sizer: bytes
+        subsystem_name: postgresql-slow-queries
+        subsystem_name_attributes: []
+        timeout: 30s
+        traces:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
     extensions:
+      aws_iam_db_auth/us-east-1:
+        region: us-east-1
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
     processors:
       batch/db_monitoring: {}
+      filter/db_monitoring_postgresql_inventory_own_queries:
+        error_mode: ignore
+        logs:
+          log_record:
+          - attributes["postgresql.rolname"] == "inventory_monitor"
+          - attributes["user.name"] == "inventory_monitor"
+          - attributes["postgresql.rolname"] == "otel"
+          - attributes["user.name"] == "otel"
+          - attributes["postgresql.rolname"] == "rdsadmin"
+          - attributes["user.name"] == "rdsadmin"
+          - attributes["postgresql.rolname"] == "otel_catalog"
+          - attributes["user.name"] == "otel_catalog"
+          - attributes["postgresql.rolname"] == "schema_migrator"
+          - attributes["user.name"] == "schema_migrator"
       filter/db_monitoring_postgresql_orders_own_queries:
         error_mode: ignore
         logs:
           log_record:
           - attributes["postgresql.rolname"] == "otel"
           - attributes["user.name"] == "otel"
+          - attributes["postgresql.rolname"] == "rdsadmin"
+          - attributes["user.name"] == "rdsadmin"
+          - attributes["postgresql.rolname"] == "otel_catalog"
+          - attributes["user.name"] == "otel_catalog"
       memory_limiter:
         check_interval: 5s
         limit_percentage: 80
@@ -124,10 +183,10 @@ data:
           value: production
         - action: upsert
           key: server.address
-          value: inventory-db.example.com
+          value: inventory-db.abcdefghijkl.us-east-1.rds.amazonaws.com
         - action: upsert
           key: server.port
-          value: 5433
+          value: 5432
       resource/db_monitoring_postgresql_orders:
         attributes:
         - action: upsert
@@ -360,7 +419,8 @@ data:
         connect_database: inventory
         databases:
         - inventory
-        endpoint: inventory-db.example.com:5433
+        db_auth: aws_iam_db_auth/us-east-1
+        endpoint: inventory-db.abcdefghijkl.us-east-1.rds.amazonaws.com:5432
         metrics:
           postgresql.blks_hit:
             enabled: true
@@ -390,15 +450,43 @@ data:
             enabled: true
           postgresql.wal.delay:
             enabled: true
-        password: ${env:INVENTORY_DB_PASSWORD}
         resource_attributes:
           db.system.version:
             enabled: true
         tls:
+          ca_file: /etc/rds-certs/global-bundle.pem
           insecure: false
           insecure_skip_verify: false
         transport: tcp
-        username: otel
+        username: inventory_monitor
+      postgresql/db_monitoring_postgresql_inventory_queries:
+        collection_interval: 5m
+        connect_database: inventory
+        databases:
+        - inventory
+        db_auth: aws_iam_db_auth/us-east-1
+        endpoint: inventory-db.abcdefghijkl.us-east-1.rds.amazonaws.com:5432
+        events:
+          db.server.query_sample:
+            enabled: true
+          db.server.top_query:
+            enabled: true
+        query_sample_collection:
+          max_rows_per_query: 20
+        resource_attributes:
+          db.system.version:
+            enabled: true
+        tls:
+          ca_file: /etc/rds-certs/global-bundle.pem
+          insecure: false
+          insecure_skip_verify: false
+        top_query_collection:
+          collection_interval: 5m
+          max_explain_each_interval: 10
+          max_rows_per_query: 200
+          top_n_query: 50
+        transport: tcp
+        username: inventory_monitor
       postgresql/db_monitoring_postgresql_orders_metrics:
         collection_interval: 5m
         connect_database: postgres
@@ -453,9 +541,37 @@ data:
         endpoint: orders-db.databases.svc.cluster.local:5432
         events:
           db.server.query_sample:
-            enabled: true
+            enabled: false
           db.server.top_query:
             enabled: true
+        password: ${env:ORDERS_DB_PASSWORD}
+        query_sample_collection:
+          max_rows_per_query: 20
+        resource_attributes:
+          db.system.version:
+            enabled: true
+        tls:
+          insecure: true
+          insecure_skip_verify: false
+        top_query_collection:
+          collection_interval: 5m
+          max_explain_each_interval: 10
+          max_rows_per_query: 200
+          top_n_query: 50
+        transport: tcp
+        username: otel
+      postgresql/db_monitoring_postgresql_orders_samples:
+        collection_interval: 30s
+        connect_database: postgres
+        databases:
+        - orders
+        - billing
+        endpoint: orders-db.databases.svc.cluster.local:5432
+        events:
+          db.server.query_sample:
+            enabled: true
+          db.server.top_query:
+            enabled: false
         password: ${env:ORDERS_DB_PASSWORD}
         query_sample_collection:
           max_rows_per_query: 20
@@ -483,12 +599,13 @@ data:
       sql_query/db_monitoring_postgresql_inventory_health:
         additional_params:
           sslmode: verify-full
+          sslrootcert: /etc/rds-certs/global-bundle.pem
         collection_interval: 5m
         database: inventory
+        db_auth: aws_iam_db_auth/us-east-1
         driver: postgres
-        host: inventory-db.example.com
-        password: ${env:INVENTORY_DB_PASSWORD}
-        port: 5433
+        host: inventory-db.abcdefghijkl.us-east-1.rds.amazonaws.com
+        port: 5432
         queries:
         - metrics:
           - attribute_columns:
@@ -525,16 +642,17 @@ data:
             value_column: wal_bytes
           sql: SELECT COALESCE(sum(size), 0)::bigint AS wal_bytes, count(*) AS wal_files
             FROM pg_ls_waldir()
-        username: otel
+        username: inventory_monitor
       sql_query/db_monitoring_postgresql_inventory_tables_inventory:
         additional_params:
           sslmode: verify-full
+          sslrootcert: /etc/rds-certs/global-bundle.pem
         collection_interval: 5m
         database: inventory
+        db_auth: aws_iam_db_auth/us-east-1
         driver: postgres
-        host: inventory-db.example.com
-        password: ${env:INVENTORY_DB_PASSWORD}
-        port: 5433
+        host: inventory-db.abcdefghijkl.us-east-1.rds.amazonaws.com
+        port: 5432
         queries:
         - metrics:
           - attribute_columns:
@@ -558,7 +676,7 @@ data:
                    COALESCE(EXTRACT(EPOCH FROM now() - GREATEST(last_vacuum, last_autovacuum)), -1)::bigint AS vacuum_age,
                    COALESCE(EXTRACT(EPOCH FROM now() - GREATEST(last_analyze, last_autoanalyze)), -1)::bigint AS analyze_age
             FROM pg_stat_user_tables
-        username: otel
+        username: inventory_monitor
       sql_query/db_monitoring_postgresql_orders_details:
         additional_params:
           sslmode: disable
@@ -644,7 +762,7 @@ data:
       sql_query/db_monitoring_postgresql_orders_schema_billing:
         additional_params:
           sslmode: disable
-        collection_interval: 10m
+        collection_interval: 30m
         database: billing
         driver: postgres
         host: orders-db.databases.svc.cluster.local
@@ -705,7 +823,7 @@ data:
       sql_query/db_monitoring_postgresql_orders_schema_orders:
         additional_params:
           sslmode: disable
-        collection_interval: 10m
+        collection_interval: 30m
         database: orders
         driver: postgres
         host: orders-db.databases.svc.cluster.local
@@ -832,7 +950,19 @@ data:
     service:
       extensions:
       - health_check
+      - aws_iam_db_auth/us-east-1
       pipelines:
+        logs/db_monitoring_postgresql_inventory_queries:
+          exporters:
+          - coralogix/coralogix_db_monitoring_queries
+          processors:
+          - memory_limiter
+          - filter/db_monitoring_postgresql_inventory_own_queries
+          - resource/db_monitoring_postgresql_inventory
+          - transform/db_monitoring_postgresql
+          - batch/db_monitoring
+          receivers:
+          - postgresql/db_monitoring_postgresql_inventory_queries
         logs/db_monitoring_postgresql_orders_catalog:
           exporters:
           - coralogix/coralogix_db_monitoring_catalog
@@ -847,7 +977,7 @@ data:
           - sql_query/db_monitoring_postgresql_orders_schema_billing
         logs/db_monitoring_postgresql_orders_queries:
           exporters:
-          - coralogix
+          - coralogix/coralogix_db_monitoring_queries
           processors:
           - memory_limiter
           - filter/db_monitoring_postgresql_orders_own_queries
@@ -856,6 +986,7 @@ data:
           - batch/db_monitoring
           receivers:
           - postgresql/db_monitoring_postgresql_orders_queries
+          - postgresql/db_monitoring_postgresql_orders_samples
         metrics:
           exporters:
           - coralogix

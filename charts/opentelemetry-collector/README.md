@@ -92,8 +92,7 @@ Use `presets.dbMonitoring` to monitor PostgreSQL targets. Each target creates it
 pipelines. Use one collector replica to avoid collecting the same database more than once.
 For a dedicated DB collector, disable OTLP and autoscaling. Use `rollout.strategy: Recreate`
 to avoid overlapping collectors during upgrades. Upgrades will have a short collection gap.
-The preset supports password authentication. MySQL, IAM authentication, and server log
-files are outside this first version.
+The PostgreSQL preset supports password and AWS IAM database authentication.
 
 ```yaml
 mode: deployment
@@ -105,7 +104,8 @@ presets:
       - name: orders
         host: orders-db.example.com
         username: otel
-        password: ${env:ORDERS_DB_PASSWORD}
+        auth:
+          password: ${env:ORDERS_DB_PASSWORD}
         instanceId: production/orders
         databases: [orders, billing]
 extraEnvs:
@@ -126,7 +126,7 @@ those IDs. Set `instanceId` to a stable database identity. It becomes `cx.db.ins
 The port defaults to `5432`. `connectDatabase` defaults to `postgres`.
 `databases` defaults to `[connectDatabase]`. List all databases whose table metrics,
 query events, and schemas you want to collect. Instance health and settings can include
-other databases on that server. The collection interval defaults to `5m`.
+other databases on that server.
 
 TLS is enabled and verifies the server certificate and name by default. Use
 `tls.ca_file` for a private CA. Mount certificate files with `extraVolumes` and
@@ -140,14 +140,39 @@ the database. Database pipelines do not use the collector's host enrichment proc
 The preset sets `db.system.name`, `server.address`, `server.port`, and `cx.db.instance.id`
 from the connection and identity fields.
 
-Each target supports these collection switches:
+Configure schedules under `receivers` on each PostgreSQL target.
 
-| Setting | Default | Collection |
-| --- | --- | --- |
-| `metrics.enabled` | `true` | Performance, health, and per-database table metrics |
-| `querySamples.enabled` | `false` | Active query samples |
-| `topQueries.enabled` | `false` | Top queries and plans, every 5 minutes |
-| `catalog.enabled` | `false` | Instance settings and database schemas, every 10 minutes |
+| Receiver setting | Collection | Default interval | Enabled by |
+| --- | --- | --- | --- |
+| `receivers.performance` | Native PostgreSQL metrics | Target `collectionInterval` (`5m`) | `metrics.enabled` (on by default) |
+| `receivers.health` | Database health metrics | Target `collectionInterval` (`5m`) | `metrics.enabled` |
+| `receivers.tables` | Table metrics in each selected database | Target `collectionInterval` (`5m`) | `metrics.enabled` |
+| `receivers.querySamples` | Active query samples | Target `collectionInterval` (`5m`) | `querySamples.enabled` |
+| `receivers.topQueries` | Top queries and their plans | `5m` | `topQueries.enabled` |
+| `receivers.details` | Instance settings snapshot | `10m` | `catalog.enabled` |
+| `receivers.schema` | Schema snapshot in each selected database | `10m` | `catalog.enabled` |
+
+Each receiver accepts `collectionInterval`, `initialDelay`, and `timeout`.
+The instance snapshot starts after `30s` and schema snapshots after `3m` by default.
+Top queries and plans share a schedule. Set `topQueries.planCacheTTL` to change how
+long the receiver keeps a query plan in its cache. The default is `1h`.
+
+Each target requires a `username` and one method under `auth`. All receivers for
+the target use that login. Set the password under `auth.password`.
+
+For RDS or Aurora, set the database user in `username` and the AWS region in `auth.aws_iam.region`.
+Use the RDS endpoint and TLS. Configure the collector workload's IAM identity for
+`rds-db:connect` and grant the database user `rds_iam`.
+
+```yaml
+# Settings on a PostgreSQL target
+username: otel
+auth:
+  aws_iam:
+    region: us-east-1
+```
+
+See the [AWS IAM database auth extension](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.165.0/extension/dbauth/awsiamdbauthextension/README.md).
 
 The monitoring role needs `CONNECT` on each selected database and `pg_monitor`.
 The WAL size metric also needs `EXECUTE` on `pg_catalog.pg_ls_waldir()`.
@@ -155,7 +180,9 @@ The database administrator must grant these permissions. The chart does not chan
 Top query collection needs `pg_stat_statements` loaded on the server and created in
 `connectDatabase`. See the [PostgreSQL receiver prerequisites](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.164.0/receiver/postgresqlreceiver/README.md).
 Query plans also need permission to access the referenced tables.
-The preset excludes the monitoring user's queries from query events.
+By default, query events exclude the target login user, `otel`,
+`rdsadmin`, and `otel_catalog`. Set `excludeUsers` on the target to replace the
+list. Use `excludeUsers: []` to disable user filtering.
 
 Catalog collection opens a direct connection to each selected database. It does not
 need `dblink`. It emits one `db.instance` entity per target and one `db.schema` entity
@@ -168,9 +195,10 @@ exporters from `config.service.pipelines.logs`. Keep those base pipelines config
 the features you enable, even when OTLP is disabled. After the DB pipelines inherit their
 exporters, the chart removes pipelines without receivers or exporters. This keeps the
 DB pipelines and any collector self metrics without an unused OTLP receiver.
-Catalog events use the log exporters too. For each Coralogix
-destination, the preset creates a catalog exporter with application `resource`, subsystem
-`catalog`, and the metadata ingress header. Other exporters receive catalog events as logs.
+For each Coralogix destination, the preset sends query samples, top queries, and
+plans to subsystem `postgresql-slow-queries`. It sends catalog events with
+application `resource`, subsystem `catalog`, and the metadata ingress header.
+Other exporters receive both kinds of events as logs.
 
 Use `config` to override a generated receiver or pipeline. For example, the metrics
 receiver for target `orders` is `postgresql/db_monitoring_postgresql_orders_metrics`.

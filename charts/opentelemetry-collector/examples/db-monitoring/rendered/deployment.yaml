@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.143.8
+    helm.sh/chart: opentelemetry-collector-0.143.9
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.165.0"
@@ -24,7 +24,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: 9f0976ea4627423c4ba69460c34cd3f3ffafe7c65bd2550ad498d01b25521e02
+        checksum/config: 67ac0193a4c87a72afb887d1c9cfe40e883f741f0472a71441b7fac67ae55302
         
       labels:
         app.kubernetes.io/name: opentelemetry-collector
@@ -65,11 +65,6 @@ spec:
                 secretKeyRef:
                   key: orders-password
                   name: db-monitoring
-            - name: INVENTORY_DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  key: inventory-password
-                  name: db-monitoring
           livenessProbe:
             httpGet:
               path: /
@@ -81,6 +76,9 @@ spec:
           volumeMounts:
             - mountPath: /conf
               name: opentelemetry-collector-configmap
+            - mountPath: /etc/rds-certs
+              name: rds-ca-bundle
+              readOnly: true
       volumes:
         - name: opentelemetry-collector-configmap
           configMap:
@@ -88,6 +86,12 @@ spec:
             items:
               - key: relay
                 path: relay.yaml
+        - configMap:
+            items:
+            - key: global-bundle.pem
+              path: global-bundle.pem
+            name: rds-ca-bundle
+          name: rds-ca-bundle
       nodeSelector:
         kubernetes.io/os: linux
       hostNetwork: false

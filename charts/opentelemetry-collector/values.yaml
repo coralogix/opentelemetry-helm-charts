@@ -164,11 +164,23 @@ presets:
     #   host: orders-db.example.com
     #   port: 5432                       # Default: 5432.
     #   username: otel
-    #   password: ${env:ORDERS_DB_PASSWORD}
+    #   auth:                            # Choose exactly one method for the target.
+    #     password: ${env:ORDERS_DB_PASSWORD}
+    #     # aws_iam:
+    #     #   region: us-east-1
     #   instanceId: production/orders    # Stable database identity.
     #   connectDatabase: postgres        # Default: postgres.
     #   databases: [orders, billing]     # Default: [connectDatabase].
-    #   collectionInterval: 5m           # Metrics and query samples.
+    #   collectionInterval: 5m           # Default for metrics and samples.
+    #   excludeUsers: [otel, rdsadmin, otel_catalog]  # Replaces default exclusions.
+    #   receivers:                      # Each accepts collectionInterval, initialDelay and timeout.
+    #     performance: {collectionInterval: 5m}
+    #     health: {collectionInterval: 1m}
+    #     tables: {collectionInterval: 5m}
+    #     querySamples: {collectionInterval: 30s}
+    #     topQueries: {collectionInterval: 5m}
+    #     details: {collectionInterval: 10m, initialDelay: 30s}
+    #     schema: {collectionInterval: 10m, initialDelay: 3m}
     #   tls:
     #     insecure: false                # Default: use TLS.
     #     insecure_skip_verify: false    # Default: verify certificate and name.
@@ -179,8 +191,8 @@ presets:
     #     k8s.statefulset.name: orders-db
     #   metrics: {enabled: true}         # Includes health and per-database table metrics.
     #   querySamples: {enabled: false}
-    #   topQueries: {enabled: false}      # Collection interval: 5m.
-    #   catalog: {enabled: false}         # Instance settings and per-database schemas, every 10m.
+    #   topQueries: {enabled: false, planCacheTTL: 1h}
+    #   catalog: {enabled: false}         # Instance settings and per-database schemas.
   # Adds ECS container logs attributes enrichment processor that extracts container_id from log.file.path
   # NOTE: The preset name is incorrect; it should be ecsContainerAttributes.
   ecsAttributesContainerLogs:

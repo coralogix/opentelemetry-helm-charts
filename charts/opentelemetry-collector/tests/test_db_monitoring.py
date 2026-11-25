@@ -36,9 +36,11 @@ def values(*targets):
     }}}
 
 
-def target(name="orders", **options):
-    return dict(name=name, host=f"{name}.example.com", username="monitor",
-                password=f"${{env:{name.upper()}_PASSWORD}}", instanceId=f"production/{name}", **options)
+def target(name="orders", *, username="monitor", auth=None, **options):
+    if auth is None:
+        auth = {"password": f"${{env:{name.upper()}_PASSWORD}}"}
+    return dict(name=name, host=f"{name}.example.com", username=username, auth=auth,
+                instanceId=f"production/{name}", **options)
 
 
 class DbMonitoringTests(unittest.TestCase):
@@ -58,7 +60,7 @@ class DbMonitoringTests(unittest.TestCase):
             pipeline = config["service"]["pipelines"][f"metrics/{PREFIX}{item['name']}"]
             for receiver in pipeline["receivers"]:
                 connection = config["receivers"][receiver]
-                self.assertEqual(connection["password"], item["password"])
+                self.assertEqual(connection["password"], item["auth"]["password"])
                 if receiver.startswith("sql_query/"):
                     self.assertEqual(connection["host"], item["host"])
             identity = config["processors"][f"resource/{PREFIX}{item['name']}"]
@@ -105,8 +107,8 @@ class DbMonitoringTests(unittest.TestCase):
         self.assertEqual(config["receivers"][f"postgresql/{PREFIX}orders_metrics"]["endpoint"], "[2001:db8::1]:5432")
         self.assertEqual(config["receivers"][f"sql_query/{PREFIX}orders_health"]["host"], item["host"])
 
-    def test_catalog_routes_each_coralogix_destination_without_changing_normal_logs(self):
-        configured = values(target(catalog={"enabled": True}))
+    def test_database_logs_route_each_coralogix_destination_without_changing_normal_logs(self):
+        configured = values(target(catalog={"enabled": True}, topQueries={"enabled": True}))
         configured["presets"]["coralogixExporter"] = {
             "enabled": True, "domain": "example.com", "privateKey": "${env:CX_KEY}",
             "additionalEndpoints": [{"enabled": True, "name": "secondary", "domain": "other.example.com", "privateKey": "${env:SECOND_KEY}"}],
@@ -114,17 +116,111 @@ class DbMonitoringTests(unittest.TestCase):
         config = render(configured)
         regular = config["service"]["pipelines"]["logs"]["exporters"]
         catalog = config["service"]["pipelines"][f"logs/{PREFIX}orders_catalog"]["exporters"]
+        queries = config["service"]["pipelines"][f"logs/{PREFIX}orders_queries"]["exporters"]
         self.assertIn("coralogix", regular)
+        self.assertIn("debug", queries)
+        self.assertIn("debug", catalog)
         for source in ["coralogix", "coralogix/secondary"]:
-            clone = f"coralogix/{source.split('/')[-1]}_db_monitoring_catalog"
-            self.assertIn(clone, catalog)
-            self.assertNotIn(clone, regular)
-            settings = config["exporters"][clone]
-            self.assertEqual(settings["domain"], config["exporters"][source]["domain"])
-            self.assertEqual(settings["private_key"], config["exporters"][source]["private_key"])
-            self.assertEqual(settings["logs"]["headers"]["x-coralogix-ingress"], "metadata-as-otlp-logs/v1")
-            self.assertEqual(settings["application_name_attributes"], [])
-            self.assertEqual(settings["subsystem_name_attributes"], [])
+            original = config["exporters"][source]
+            for kind, exporters in [("catalog", catalog), ("queries", queries)]:
+                clone = f"coralogix/{source.split('/')[-1]}_db_monitoring_{kind}"
+                self.assertIn(clone, exporters)
+                self.assertNotIn(source, exporters)
+                self.assertNotIn(clone, regular)
+                settings = config["exporters"][clone]
+                self.assertEqual(settings["domain"], original["domain"])
+                self.assertEqual(settings["private_key"], original["private_key"])
+                self.assertEqual(settings["subsystem_name_attributes"], [])
+                if kind == "catalog":
+                    self.assertEqual(settings["logs"]["headers"]["x-coralogix-ingress"], "metadata-as-otlp-logs/v1")
+                    self.assertEqual(settings["application_name_attributes"], [])
+                else:
+                    self.assertEqual(settings["subsystem_name"], "postgresql-slow-queries")
+                    self.assertEqual(settings["application_name_attributes"], original["application_name_attributes"])
+                    self.assertEqual(settings["logs"], original["logs"])
+
+    def test_receiver_schedules_and_plan_cache_can_be_set_independently(self):
+        configured = values(target(
+            databases=["orders", "billing"], collectionInterval="45s",
+            querySamples={"enabled": True}, topQueries={"enabled": True, "planCacheTTL": "2h"},
+            catalog={"enabled": True},
+            receivers={
+                "health": {"collectionInterval": "1m"},
+                "tables": {"collectionInterval": "2m"},
+                "querySamples": {"collectionInterval": "10s", "initialDelay": "0s"},
+                "topQueries": {"collectionInterval": "3m", "initialDelay": "30s", "timeout": "20s"},
+                "details": {"collectionInterval": "15m", "initialDelay": "1m"},
+                "schema": {"collectionInterval": "30m", "initialDelay": "4m"},
+            },
+        ))
+        config = render(configured)
+        receivers = config["receivers"]
+        expected = {
+            f"postgresql/{PREFIX}orders_metrics": "45s",
+            f"postgresql/{PREFIX}orders_samples": "10s",
+            f"postgresql/{PREFIX}orders_queries": "3m",
+            f"sql_query/{PREFIX}orders_health": "1m",
+            f"sql_query/{PREFIX}orders_details": "15m",
+        }
+        for database in ["orders", "billing"]:
+            expected[f"sql_query/{PREFIX}orders_tables_{database}"] = "2m"
+            expected[f"sql_query/{PREFIX}orders_schema_{database}"] = "30m"
+            self.assertEqual(receivers[f"sql_query/{PREFIX}orders_schema_{database}"]["initial_delay"], "4m")
+        self.assertEqual({name: receivers[name]["collection_interval"] for name in expected}, expected)
+        self.assertEqual(receivers[f"sql_query/{PREFIX}orders_details"]["initial_delay"], "1m")
+        samples = receivers[f"postgresql/{PREFIX}orders_samples"]
+        top = receivers[f"postgresql/{PREFIX}orders_queries"]
+        self.assertEqual(samples["initial_delay"], "0s")
+        self.assertEqual(top["initial_delay"], "30s")
+        self.assertEqual(top["timeout"], "20s")
+        self.assertEqual(top["top_query_collection"]["collection_interval"], "3m")
+        self.assertEqual(top["top_query_collection"]["query_plan_cache_ttl"], "2h")
+        self.assertTrue(samples["events"]["db.server.query_sample"]["enabled"])
+        self.assertFalse(samples["events"]["db.server.top_query"]["enabled"])
+        self.assertFalse(top["events"]["db.server.query_sample"]["enabled"])
+        self.assertTrue(top["events"]["db.server.top_query"]["enabled"])
+        pipeline = config["service"]["pipelines"][f"logs/{PREFIX}orders_queries"]
+        self.assertEqual(set(pipeline["receivers"]), {f"postgresql/{PREFIX}orders_queries", f"postgresql/{PREFIX}orders_samples"})
+
+    def test_auth_applies_to_every_receiver_for_each_target(self):
+        features = {
+            "querySamples": {"enabled": True}, "topQueries": {"enabled": True}, "catalog": {"enabled": True},
+            "receivers": {"querySamples": {"collectionInterval": "30s"}},
+        }
+        orders = target(**features)
+        inventory = target("inventory", username="inventory_reader", auth={"aws_iam": {"region": "us-east-1"}}, **features)
+        billing = target("billing", username="billing_reader", auth={"aws_iam": {"region": "us-west-2"}}, **features)
+        config = render(values(orders, inventory, billing))
+        east, west = "aws_iam_db_auth/us-east-1", "aws_iam_db_auth/us-west-2"
+        self.assertEqual(config["extensions"][east]["region"], "us-east-1")
+        self.assertEqual(config["extensions"][west]["region"], "us-west-2")
+        self.assertEqual(config["service"]["extensions"].count(east), 1)
+        self.assertEqual(config["service"]["extensions"].count(west), 1)
+        self.assertIn("health_check", config["service"]["extensions"])
+        for item, expected in [
+            (orders, {"username": "monitor", "password": orders["auth"]["password"]}),
+            (inventory, {"username": "inventory_reader", "db_auth": east}),
+            (billing, {"username": "billing_reader", "db_auth": west}),
+        ]:
+            receiver_id = PREFIX + item["name"]
+            receivers = [receiver for name, receiver in config["receivers"].items() if f"/{receiver_id}_" in name]
+            self.assertEqual(len(receivers), 7)
+            for receiver in receivers:
+                self.assertEqual({key: receiver[key] for key in ["username", "password", "db_auth"] if key in receiver}, expected)
+            conditions = config["processors"][f"filter/{receiver_id}_own_queries"]["logs"]["log_record"]
+            self.assertIn(f'attributes["user.name"] == "{expected["username"]}"', conditions)
+
+    def test_custom_query_exclusions_replace_defaults(self):
+        filter_name = f"filter/{PREFIX}orders_own_queries"
+        switches = {"metrics": {"enabled": False}, "querySamples": {"enabled": True}}
+        config = render(values(target(excludeUsers=['custom"reader'], **switches)))
+        self.assertEqual(config["processors"][filter_name]["logs"]["log_record"], [
+            'attributes["postgresql.rolname"] == "custom\\"reader"',
+            'attributes["user.name"] == "custom\\"reader"',
+        ])
+        config = render(values(target(excludeUsers=[], **switches)))
+        self.assertNotIn(filter_name, config["processors"])
+        self.assertNotIn(filter_name, config["service"]["pipelines"][f"logs/{PREFIX}orders_queries"]["processors"])
 
     def test_config_overrides_generated_receiver(self):
         configured = values(target())
@@ -151,7 +247,8 @@ class DbMonitoringTests(unittest.TestCase):
                 self.assertEqual("metrics" in pipelines, self_metrics)
                 self.assertNotIn("otlp", config["receivers"])
                 self.assertEqual(pipelines[f"metrics/{PREFIX}orders"]["exporters"], ["coralogix"])
-                self.assertEqual(pipelines[f"logs/{PREFIX}orders_queries"]["exporters"], ["coralogix"])
+                self.assertEqual(pipelines[f"logs/{PREFIX}orders_queries"]["exporters"],
+                                 ["coralogix/coralogix_db_monitoring_queries"])
                 self.assertEqual(pipelines[f"logs/{PREFIX}orders_catalog"]["exporters"],
                                  ["coralogix/coralogix_db_monitoring_catalog"])
                 for pipeline in pipelines.values():
@@ -162,23 +259,30 @@ class DbMonitoringTests(unittest.TestCase):
         configured = values(target(querySamples={"enabled": True}))
         configured["presets"]["otlpReceiver"] = {"enabled": False}
         configured["config"] = {
-            "receivers": {"filelog/application": {"include": ["/var/log/application/*.log"]}},
-            "service": {"pipelines": {"logs": {"receivers": ["filelog/application"]}}},
+            "receivers": {"file_log/application": {"include": ["/var/log/application/*.log"]}},
+            "service": {"pipelines": {"logs": {"receivers": ["file_log/application"]}}},
         }
         config = render(configured)
-        self.assertEqual(config["service"]["pipelines"]["logs"]["receivers"], ["filelog/application"])
+        self.assertEqual(config["service"]["pipelines"]["logs"]["receivers"], ["file_log/application"])
         self.assertIn(f"logs/{PREFIX}orders_queries", config["service"]["pipelines"])
 
     def test_invalid_targets_fail_before_deploy(self):
         cases = [values(target(), target())]
         for field, value in [("port", 0), ("port", 65536), ("host", ""), ("name", "bad/name"),
-                             ("databases", []), ("databases", ["orders", "orders"]), ("typo", True)]:
+                             ("databases", []), ("databases", ["orders", "orders"]), ("typo", True),
+                             ("receivers", {"unknown": {}}), ("receivers", {"performance": {"collectionInterval": "never"}}),
+                             ("receivers", {"health": {"dbAuth": "aws_iam"}}),
+                             ("auth", {}), ("auth", {"basic": {"password": "test"}}), ("auth", {"aws_iam": {}}),
+                             ("auth", {"aws_iam": {"username": "monitor", "region": "us-east-1"}}),
+                             ("auth", {"password": "test", "aws_iam": {"region": "us-east-1"}})]:
             item = target()
             item[field] = value
             cases.append(values(item))
-        item = target()
-        del item["instanceId"]
-        cases.append(values(item))
+        for field in ["instanceId", "username", "auth"]:
+            item = target()
+            del item[field]
+            cases.append(values(item))
+        cases.append(values(target(auth={"aws_iam": {"region": "us-east-1"}}, tls={"insecure": True})))
         for configured in cases:
             with self.subTest(configured=configured), self.assertRaises(ValueError):
                 render(configured)
@@ -190,7 +294,6 @@ class DbMonitoringTests(unittest.TestCase):
             os.environ,
             MY_POD_IP="127.0.0.1",
             ORDERS_DB_PASSWORD="test",
-            INVENTORY_DB_PASSWORD="test",
             CORALOGIX_PRIVATE_KEY="test",
         )
         for mode in ["daemonset", "deployment", "statefulset"]:
@@ -247,7 +350,7 @@ class DbMonitoringTests(unittest.TestCase):
             output = directory / "output.jsonl"
             source.write_text("".join(json.dumps({field: user}) + "\n"
                                       for field in ["postgresql.rolname", "user.name"]
-                                      for user in ["monitor", "application"]))
+                                      for user in ["monitor", "otel", "rdsadmin", "otel_catalog", "application"]))
             config["receivers"] = {"filelog": {
                 "include": [str(source)], "start_at": "beginning",
                 "operators": [{"type": "json_parser", "parse_to": "attributes"}],
