@@ -34,35 +34,59 @@ Whenever you make a change that will ship with the chart, you **must** perform t
 
 Presets are the product surface for enterprise customers: they turn one `enabled: true` into
 a complete, working configuration with sensible defaults. Prefer presets that work out of the
-box and stay readable, over flexible machinery.
+box and stay readable, over flexible machinery. These rules apply to new presets and
+substantial rewrites; do not refactor existing presets just to conform.
 
 * Write the preset's collector config as literal declarative YAML inside its `...Config`
-  define in `templates/_config.tpl`. A reviewer (or an agent) must be able to read the final
-  config straight from the template — each component block guarded by a plain
-  `{{- if $cp.component.enabled }}`, with a one-line comment stating what it targets and why.
+  define in `charts/opentelemetry-collector/templates/_config.tpl`. A reviewer (or an agent)
+  must be able to read the final config straight from the template — each component block
+  guarded by a plain `{{- if $preset.<component>.enabled }}` (bind the preset's values to a
+  short local), with a one-line comment stating what it targets and why.
 * Do NOT build component config with code: no `$receivers := dict` populated with `set`/
   `append` and then serialized, no parametric helpers that render receiver YAML from dict
   arguments, no dict-of-regex keep-lists or `printf`-assembled fragments. We deliberately
   avoid these "magic dicts": they hide the final config behind a layer of Helm code, which
   makes review hard and surprises customers. Duplicating two similar blocks literally is
   always preferable to one clever helper.
+* When a preset fans out over a user-supplied list (e.g. a list of database targets), `range`
+  over it and emit literal YAML per item; do not assemble dicts.
 * The established patterns stay: pipeline wiring via `set`/`append | uniq` in `apply<Preset>`,
   `mustMergeOverwrite (include "...Config" | fromYaml) .config` so user `config` always wins,
   small scalar locals, validation defines that `fail` with a clear `[ERROR]` message.
 * Hide complexity behind values, not templates: keep the values surface small and flat — an
   `enabled` flag per component plus simple scalars (interval, endpoint). Anything more
   advanced goes through the `config` deep-merge escape hatch, which always wins over preset
-  defaults. See `presets.dbMonitoring.postgresql` in the telemetry-shippers otel-integration
-  repo for the consumer-side pattern.
+  defaults.
 * Always expose an `enabled: false` default so customers opt in explicitly; validate at render
   time and `fail` with a `[ERROR] presets.<name>...` message when prerequisites are missing.
 
-Good (literal, readable): the `prometheus/scheduler:` block written out under
-`{{- if $cp.scheduler.enabled }}` — see `k8sControlPlaneMetricsConfig` in `templates/_config.tpl`
-for the reference implementation.
+Good (literal, readable):
 
-Bad (magic dicts): `$receivers := dict` filled via a `controlPlaneReceiver`-style helper and
-`set`, then serialized — see commit 424330086 for the rejected shape.
+```
+{{- if $cp.scheduler.enabled }}
+# kube-scheduler: kubeadm static pod, https on 127.0.0.1:10259 (needs hostNetwork)
+prometheus/scheduler:
+  rule: 'type == "pod" && namespace == "kube-system" && ((labels["component"] == "kube-scheduler" && labels["tier"] == "control-plane") || labels["k8s-app"] == "kube-scheduler")'
+  config:
+    config:
+      scrape_configs:
+        - job_name: kubernetes-scheduler
+          static_configs:
+            - targets: ["127.0.0.1:10259"]
+{{- end }}
+```
+
+Bad (magic dicts):
+
+```
+{{- $_ := set $receivers "prometheus/scheduler" (include "opentelemetry-collector.controlPlaneReceiver"
+  (dict "job" "kubernetes-scheduler" "target" "127.0.0.1:10259") | fromYaml) -}}
+```
+
+The reference implementation of the good shape is `k8sControlPlaneMetricsConfig` in
+`charts/opentelemetry-collector/templates/_config.tpl` (lands with PR #559; until then see
+that PR's branch). The rejected shape was introduced in PR #559's first commit and removed
+in the same PR — its history is preserved in the #559 discussion.
 
 ## Shippers repository changes
 
