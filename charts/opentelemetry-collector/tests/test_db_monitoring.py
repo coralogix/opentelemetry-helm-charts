@@ -43,6 +43,41 @@ def target(name="orders", *, username="monitor", auth=None, **options):
                 instanceId=f"production/{name}", **options)
 
 
+def collect_logs(config, pipeline, inputs, operators):
+    with tempfile.TemporaryDirectory() as directory:
+        directory = Path(directory)
+        source = directory / "input.jsonl"
+        output = directory / "output.jsonl"
+        source.write_text("".join(json.dumps(record) + "\n" for record in inputs))
+        config["receivers"] = {"file_log": {
+            "include": [str(source)], "start_at": "beginning", "operators": operators,
+        }}
+        config["exporters"] = {"file": {"path": str(output), "flush_interval": "100ms"}}
+        pipeline.update(receivers=["file_log"], exporters=["file"])
+        config["service"] = {"pipelines": {"logs/test": pipeline}, "telemetry": {"metrics": {"level": "none"}}}
+        path = directory / "config.yaml"
+        path.write_text(yaml.safe_dump(config))
+        with (directory / "collector.log").open("w+") as log:
+            process = subprocess.Popen([os.environ["OTELCOL_BINARY"], "--config", str(path)],
+                                       stdout=log, stderr=log)
+            try:
+                deadline = time.monotonic() + 10
+                while time.monotonic() < deadline and process.poll() is None:
+                    if output.exists() and output.stat().st_size:
+                        break
+                    time.sleep(0.1)
+            finally:
+                if process.poll() is None:
+                    process.terminate()
+                process.wait(timeout=5)
+            log.seek(0)
+            if process.returncode != 0 or not output.exists():
+                raise AssertionError(log.read())
+        return [record for line in output.read_text().splitlines()
+                for resource in json.loads(line).get("resourceLogs", [])
+                for scope in resource["scopeLogs"] for record in scope["logRecords"]]
+
+
 class DbMonitoringTests(unittest.TestCase):
     def test_disabled_preset_does_not_change_config(self):
         configured = values(target())
@@ -266,6 +301,39 @@ class DbMonitoringTests(unittest.TestCase):
         self.assertEqual(config["service"]["pipelines"]["logs"]["receivers"], ["file_log/application"])
         self.assertIn(f"logs/{PREFIX}orders_queries", config["service"]["pipelines"])
 
+    def test_rds_logs_read_only_configured_groups_and_streams(self):
+        instance = "/aws/rds/instance/inventory/postgresql"
+        cluster = "/aws/rds/cluster/billing/postgresql"
+        inventory = target(
+            "inventory", auth={"aws_iam": {"region": "us-east-1"}}, metrics={"enabled": False},
+            rdsLogs={"enabled": True},
+        )
+        billing = target(
+            "billing", querySamples={"enabled": True}, excludeUsers=["migrator"],
+            rdsLogs={"enabled": True, "region": "us-west-2", "logGroup": cluster,
+                     "logStreams": ["billing-reader"], "pollInterval": "15s", "initialLookback": "2m"},
+        )
+        configured = values(target(), inventory, billing)
+        configured["presets"]["coralogixExporter"] = {"enabled": True, "domain": "example.com"}
+        config = render(configured)
+        receivers = {key: entry for key, entry in config["receivers"].items() if key.startswith("aws_cloudwatch/")}
+        self.assertEqual(receivers, {
+            f"aws_cloudwatch/{PREFIX}inventory_rds_logs": {"region": "us-east-1", "logs": {
+                "poll_interval": "30s", "initial_lookback": "1m", "groups": {"named": {instance: {}}},
+            }},
+            f"aws_cloudwatch/{PREFIX}billing_rds_logs": {"region": "us-west-2", "logs": {
+                "poll_interval": "15s", "initial_lookback": "2m",
+                "groups": {"named": {cluster: {"names": ["billing-reader"]}}},
+            }},
+        })
+        self.assertNotIn("aws_iam_db_auth/us-east-1", config["extensions"])
+        pipelines = config["service"]["pipelines"]
+        plans = pipelines[f"logs/{PREFIX}billing_rds_plans"]
+        queries = pipelines[f"logs/{PREFIX}billing_queries"]
+        self.assertEqual(plans["exporters"], queries["exporters"])
+        self.assertIn("coralogix/coralogix_db_monitoring_queries", plans["exporters"])
+        self.assertIn(f"filter/{PREFIX}billing_own_queries", plans["processors"])
+
     def test_invalid_targets_fail_before_deploy(self):
         cases = [values(target(), target())]
         for field, value in [("port", 0), ("port", 65536), ("host", ""), ("name", "bad/name"),
@@ -283,6 +351,7 @@ class DbMonitoringTests(unittest.TestCase):
             del item[field]
             cases.append(values(item))
         cases.append(values(target(auth={"aws_iam": {"region": "us-east-1"}}, tls={"insecure": True})))
+        cases.append(values(target(rdsLogs={"enabled": True})))
         for configured in cases:
             with self.subTest(configured=configured), self.assertRaises(ValueError):
                 render(configured)
@@ -344,44 +413,63 @@ class DbMonitoringTests(unittest.TestCase):
     def test_collector_filters_both_query_user_fields(self):
         config = render(values(target(metrics={"enabled": False}, querySamples={"enabled": True})))
         pipeline = config["service"]["pipelines"][f"logs/{PREFIX}orders_queries"]
-        with tempfile.TemporaryDirectory() as directory:
-            directory = Path(directory)
-            source = directory / "queries.jsonl"
-            output = directory / "output.jsonl"
-            source.write_text("".join(json.dumps({field: user}) + "\n"
-                                      for field in ["postgresql.rolname", "user.name"]
-                                      for user in ["monitor", "otel", "rdsadmin", "otel_catalog", "application"]))
-            config["receivers"] = {"filelog": {
-                "include": [str(source)], "start_at": "beginning",
-                "operators": [{"type": "json_parser", "parse_to": "attributes"}],
-            }}
-            config["exporters"] = {"file": {"path": str(output), "flush_interval": "100ms"}}
-            pipeline.update(receivers=["filelog"], exporters=["file"])
-            config["service"] = {"pipelines": {"logs/test": pipeline}, "telemetry": {"metrics": {"level": "none"}}}
-            path = directory / "config.yaml"
-            path.write_text(yaml.safe_dump(config))
-            with (directory / "collector.log").open("w+") as log:
-                process = subprocess.Popen([os.environ["OTELCOL_BINARY"], "--config", str(path)],
-                                           stdout=log, stderr=log)
-                try:
-                    deadline = time.monotonic() + 10
-                    while time.monotonic() < deadline and process.poll() is None:
-                        if output.exists() and output.stat().st_size:
-                            break
-                        time.sleep(0.1)
-                finally:
-                    if process.poll() is None:
-                        process.terminate()
-                    process.wait(timeout=5)
-                log.seek(0)
-                self.assertEqual(process.returncode, 0, log.read())
-            records = [record for line in output.read_text().splitlines()
-                       for resource in json.loads(line).get("resourceLogs", [])
-                       for scope in resource["scopeLogs"] for record in scope["logRecords"]]
-            self.assertEqual(len(records), 2)
-            for record in records:
-                attributes = {a["key"]: a["value"].get("stringValue") for a in record["attributes"]}
-                self.assertEqual(attributes["user.name"], "application")
+        inputs = [{field: user} for field in ["postgresql.rolname", "user.name"]
+                  for user in ["monitor", "otel", "rdsadmin", "otel_catalog", "application"]]
+        records = collect_logs(config, pipeline, inputs, [{"type": "json_parser", "parse_to": "attributes"}])
+        self.assertEqual(len(records), 2)
+        for record in records:
+            attributes = {a["key"]: a["value"].get("stringValue") for a in record["attributes"]}
+            self.assertEqual(attributes["user.name"], "application")
+
+    @unittest.skipUnless(os.environ.get("OTELCOL_BINARY"), "Set OTELCOL_BINARY to the collector version in Chart.yaml")
+    def test_collector_extracts_and_sanitizes_rds_plans(self):
+        config = render(values(target(metrics={"enabled": False}, rdsLogs={
+            "enabled": True, "region": "us-east-1",
+        })))
+        pipeline = config["service"]["pipelines"][f"logs/{PREFIX}orders_rds_plans"]
+
+        def message(user, query_id, extra=""):
+            plan = json.dumps({
+                "Query Identifier": query_id,
+                "Query Text": "SELECT secret",
+                "Query Parameters": "$1 = 'secret'",
+                "Plan": {"Node Type": "Seq Scan", "Alias": "someone's table", "Filter": "(email = 'secret'::text)"},
+            }, indent=2)
+            return f"2026-11-25 12:00:00 UTC:2001:db8::1(9000):{user}@orders:[123]:{extra}LOG:  duration: 12.5 ms  plan:\n{plan}"
+
+        extended = "16:00000:2026-11-25 11:00:00 UTC:SELECT:1:abc.123:db-client:"
+        inputs = [{"message": line} for line in [
+            message("application", -9223372036854775807),
+            message("application", 42, extended),
+            message("monitor", 43),
+            message("rdsadmin", 44),
+            message("application", 0),
+            message("application", 45)[:-3],
+            "2026-11-25 12:00:00 UTC:LOG: ordinary PostgreSQL message",
+        ]]
+        records = collect_logs(config, pipeline, inputs, [
+            {"type": "json_parser", "parse_to": "attributes"},
+            {"type": "move", "from": "attributes.message", "to": "body"},
+        ])
+        self.assertEqual(len(records), 2)
+        ids = set()
+        for record in records:
+            self.assertEqual(record["eventName"], "db.server.query_plan")
+            self.assertEqual(record["body"]["stringValue"], "auto_explain plan")
+            attributes = {a["key"]: next(iter(a["value"].values())) for a in record["attributes"]}
+            self.assertEqual(attributes["db.plan.source"], "auto_explain")
+            self.assertEqual(attributes["db.query.duration_ms"], 12.5)
+            self.assertEqual(attributes["db.namespace"], "orders")
+            self.assertEqual(attributes["client.address"], "2001:db8::1")
+            query_id = int(attributes["db.query.id"])
+            ids.add(query_id)
+            self.assertEqual(json.loads(attributes["db.query.plan"]), {
+                "Query Identifier": query_id,
+                "Plan": {"Node Type": "Seq Scan", "Alias": "someone's table", "Filter": "(email = '?'::text)"},
+            })
+            if query_id == 42:
+                self.assertEqual(attributes["postgresql.application_name"], "db-client")
+        self.assertEqual(ids, {-9223372036854775807, 42})
 
 
 if __name__ == "__main__":

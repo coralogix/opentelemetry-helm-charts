@@ -52,13 +52,15 @@ presets:
             collectionInterval: 30m
       - name: inventory
         # Use the RDS endpoint and give the collector's AWS identity rds-db:connect.
-        host: inventory-db.abcdefghijkl.us-east-1.rds.amazonaws.com
+        host: inventory.abcdefghijkl.us-east-1.rds.amazonaws.com
         username: inventory_monitor
         auth:
           aws_iam:
             region: us-east-1
         instanceId: production/inventory-db
         connectDatabase: inventory
+        rdsLogs:
+          enabled: true
         tls:
           ca_file: /etc/rds-certs/global-bundle.pem
         resourceAttributes:

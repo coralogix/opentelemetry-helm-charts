@@ -166,6 +166,11 @@ data:
           - attributes["user.name"] == "rdsadmin"
           - attributes["postgresql.rolname"] == "otel_catalog"
           - attributes["user.name"] == "otel_catalog"
+      filter/db_monitoring_rds_plans:
+        error_mode: ignore
+        logs:
+          log_record:
+          - attributes["db.query.plan"] == nil
       memory_limiter:
         check_interval: 5s
         limit_percentage: 80
@@ -183,7 +188,7 @@ data:
           value: production
         - action: upsert
           key: server.address
-          value: inventory-db.abcdefghijkl.us-east-1.rds.amazonaws.com
+          value: inventory.abcdefghijkl.us-east-1.rds.amazonaws.com
         - action: upsert
           key: server.port
           value: 5432
@@ -350,6 +355,46 @@ data:
           - set(attributes["db.collection.name"], attributes["relname"]) where attributes["relname"]
             != nil
           - delete_matching_keys(attributes, "^(datname|schemaname|relname)$")
+      transform/db_monitoring_rds_plans:
+        error_mode: ignore
+        log_statements:
+        - context: log
+          statements:
+          - 'merge_maps(cache, ExtractPatterns(body, "^\\d{4}-\\d\\d-\\d\\d \\d\\d:\\d\\d:\\d\\d(?:\\.\\d+)?
+            \\w+:(?P<client>[^()]*?)(?:\\(\\d+\\))?:(?P<user>[^@:]*)@(?P<db>[^:]*):\\[\\d+\\]:(?:\\d+:[0-9A-Z]{5}:\\d{4}-\\d\\d-\\d\\d
+            \\d\\d:\\d\\d:\\d\\d \\w+:[^:]*:\\d+:[0-9a-f]+\\.[0-9a-f]+:(?:(?P<app>.*?):)?)?LOG:\\s+duration:
+            (?P<duration>[0-9.]+) ms\\s+plan:\\s*(?P<plan>\\{[\\s\\S]*\\})\\s*$"), "upsert")
+            where IsString(body)'
+          - set(cache["decoded"], ParseJSON(cache["plan"])) where cache["plan"] != nil
+          - merge_maps(cache, ExtractPatterns(cache["plan"], "\"Query Identifier\"\\s*:\\s*(?P<queryid>-?[1-9]\\d*)\\s*[,}]"),
+            "upsert") where cache["decoded"] != nil and IsMap(cache["decoded"]["Plan"])
+            and cache["decoded"]["Query Identifier"] != nil
+          - set(cache["decoded"]["Query Identifier"], Int(cache["queryid"])) where cache["queryid"]
+            != nil
+          - delete_key(cache["decoded"], "Query Text") where cache["queryid"] != nil
+          - delete_key(cache["decoded"], "Query Parameters") where cache["queryid"] !=
+            nil
+          - set(cache["sanitized"], String(cache["decoded"])) where cache["queryid"] !=
+            nil and IsInt(cache["decoded"]["Query Identifier"])
+          - replace_pattern(cache["sanitized"], "'(?:[^'\"\\\\]|\\\\.|'')*'", "'?'") where
+            cache["sanitized"] != nil
+          - set(attributes["db.query.plan"], cache["sanitized"]) where cache["sanitized"]
+            != nil
+          - set(attributes["db.query.id"], cache["queryid"]) where cache["sanitized"]
+            != nil
+          - set(event_name, "db.server.query_plan") where cache["sanitized"] != nil
+          - set(attributes["db.event.kind"], event_name) where cache["sanitized"] != nil
+          - set(attributes["db.plan.source"], "auto_explain") where cache["sanitized"]
+            != nil
+          - set(attributes["db.query.duration_ms"], Double(cache["duration"])) where cache["sanitized"]
+            != nil
+          - set(attributes["user.name"], cache["user"]) where cache["sanitized"] != nil
+          - set(attributes["db.namespace"], cache["db"]) where cache["sanitized"] != nil
+          - set(attributes["client.address"], cache["client"]) where cache["sanitized"]
+            != nil and cache["client"] != ""
+          - set(attributes["postgresql.application_name"], cache["app"]) where cache["sanitized"]
+            != nil and cache["app"] != ""
+          - set(body, "auto_explain plan") where cache["sanitized"] != nil
       transform/prometheus:
         error_mode: ignore
         metric_statements:
@@ -414,13 +459,21 @@ data:
           - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
             == "opentelemetry-collector"
     receivers:
+      aws_cloudwatch/db_monitoring_postgresql_inventory_rds_logs:
+        logs:
+          groups:
+            named:
+              /aws/rds/instance/inventory/postgresql: {}
+          initial_lookback: 1m
+          poll_interval: 30s
+        region: us-east-1
       postgresql/db_monitoring_postgresql_inventory_metrics:
         collection_interval: 5m
         connect_database: inventory
         databases:
         - inventory
         db_auth: aws_iam_db_auth/us-east-1
-        endpoint: inventory-db.abcdefghijkl.us-east-1.rds.amazonaws.com:5432
+        endpoint: inventory.abcdefghijkl.us-east-1.rds.amazonaws.com:5432
         metrics:
           postgresql.blks_hit:
             enabled: true
@@ -465,7 +518,7 @@ data:
         databases:
         - inventory
         db_auth: aws_iam_db_auth/us-east-1
-        endpoint: inventory-db.abcdefghijkl.us-east-1.rds.amazonaws.com:5432
+        endpoint: inventory.abcdefghijkl.us-east-1.rds.amazonaws.com:5432
         events:
           db.server.query_sample:
             enabled: true
@@ -604,7 +657,7 @@ data:
         database: inventory
         db_auth: aws_iam_db_auth/us-east-1
         driver: postgres
-        host: inventory-db.abcdefghijkl.us-east-1.rds.amazonaws.com
+        host: inventory.abcdefghijkl.us-east-1.rds.amazonaws.com
         port: 5432
         queries:
         - metrics:
@@ -651,7 +704,7 @@ data:
         database: inventory
         db_auth: aws_iam_db_auth/us-east-1
         driver: postgres
-        host: inventory-db.abcdefghijkl.us-east-1.rds.amazonaws.com
+        host: inventory.abcdefghijkl.us-east-1.rds.amazonaws.com
         port: 5432
         queries:
         - metrics:
@@ -963,6 +1016,18 @@ data:
           - batch/db_monitoring
           receivers:
           - postgresql/db_monitoring_postgresql_inventory_queries
+        logs/db_monitoring_postgresql_inventory_rds_plans:
+          exporters:
+          - coralogix/coralogix_db_monitoring_queries
+          processors:
+          - memory_limiter
+          - transform/db_monitoring_rds_plans
+          - filter/db_monitoring_rds_plans
+          - filter/db_monitoring_postgresql_inventory_own_queries
+          - resource/db_monitoring_postgresql_inventory
+          - batch/db_monitoring
+          receivers:
+          - aws_cloudwatch/db_monitoring_postgresql_inventory_rds_logs
         logs/db_monitoring_postgresql_orders_catalog:
           exporters:
           - coralogix/coralogix_db_monitoring_catalog

@@ -193,6 +193,37 @@ receivers:
         - schema_hash
         - schema_variants
 processors:
+  rdsPlans:
+    error_mode: ignore
+    log_statements:
+    - context: log
+      statements:
+      - >-
+        merge_maps(cache, ExtractPatterns(body,
+        "^\\d{4}-\\d\\d-\\d\\d \\d\\d:\\d\\d:\\d\\d(?:\\.\\d+)? \\w+:(?P<client>[^()]*?)(?:\\(\\d+\\))?:(?P<user>[^@:]*)@(?P<db>[^:]*):\\[\\d+\\]:(?:\\d+:[0-9A-Z]{5}:\\d{4}-\\d\\d-\\d\\d \\d\\d:\\d\\d:\\d\\d \\w+:[^:]*:\\d+:[0-9a-f]+\\.[0-9a-f]+:(?:(?P<app>.*?):)?)?LOG:\\s+duration: (?P<duration>[0-9.]+) ms\\s+plan:\\s*(?P<plan>\\{[\\s\\S]*\\})\\s*$"),
+        "upsert") where IsString(body)
+      - set(cache["decoded"], ParseJSON(cache["plan"])) where cache["plan"] != nil
+      # ParseJSON reads numbers as doubles. Recover the exact PostgreSQL query ID from the text.
+      - >-
+        merge_maps(cache, ExtractPatterns(cache["plan"], "\"Query Identifier\"\\s*:\\s*(?P<queryid>-?[1-9]\\d*)\\s*[,}]"), "upsert")
+        where cache["decoded"] != nil and IsMap(cache["decoded"]["Plan"]) and cache["decoded"]["Query Identifier"] != nil
+      - set(cache["decoded"]["Query Identifier"], Int(cache["queryid"])) where cache["queryid"] != nil
+      - delete_key(cache["decoded"], "Query Text") where cache["queryid"] != nil
+      - delete_key(cache["decoded"], "Query Parameters") where cache["queryid"] != nil
+      - set(cache["sanitized"], String(cache["decoded"])) where cache["queryid"] != nil and IsInt(cache["decoded"]["Query Identifier"])
+      - >-
+        replace_pattern(cache["sanitized"], "'(?:[^'\"\\\\]|\\\\.|'')*'", "'?'") where cache["sanitized"] != nil
+      - set(attributes["db.query.plan"], cache["sanitized"]) where cache["sanitized"] != nil
+      - set(attributes["db.query.id"], cache["queryid"]) where cache["sanitized"] != nil
+      - set(event_name, "db.server.query_plan") where cache["sanitized"] != nil
+      - set(attributes["db.event.kind"], event_name) where cache["sanitized"] != nil
+      - set(attributes["db.plan.source"], "auto_explain") where cache["sanitized"] != nil
+      - set(attributes["db.query.duration_ms"], Double(cache["duration"])) where cache["sanitized"] != nil
+      - set(attributes["user.name"], cache["user"]) where cache["sanitized"] != nil
+      - set(attributes["db.namespace"], cache["db"]) where cache["sanitized"] != nil
+      - set(attributes["client.address"], cache["client"]) where cache["sanitized"] != nil and cache["client"] != ""
+      - set(attributes["postgresql.application_name"], cache["app"]) where cache["sanitized"] != nil and cache["app"] != ""
+      - set(body, "auto_explain plan") where cache["sanitized"] != nil
   semconv:
     error_mode: ignore
     metric_statements:

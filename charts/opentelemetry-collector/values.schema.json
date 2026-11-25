@@ -488,6 +488,27 @@
                     "uniqueItems": true,
                     "items": { "type": "string", "minLength": 1 }
                   },
+                  "rdsLogs": {
+                    "description": "Read PostgreSQL auto_explain plans from a CloudWatch log group.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "enabled": { "type": "boolean" },
+                      "region": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+                      "logGroup": {
+                        "description": "Defaults to /aws/rds/instance/<target name>/postgresql.",
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "logStreams": {
+                        "type": "array",
+                        "uniqueItems": true,
+                        "items": { "type": "string", "minLength": 1 }
+                      },
+                      "pollInterval": { "$ref": "#/$defs/dbMonitoringDuration" },
+                      "initialLookback": { "$ref": "#/$defs/dbMonitoringDuration" }
+                    }
+                  },
                   "receivers": {
                     "type": "object",
                     "additionalProperties": false,

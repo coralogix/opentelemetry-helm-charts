@@ -173,6 +173,12 @@ presets:
     #   databases: [orders, billing]     # Default: [connectDatabase].
     #   collectionInterval: 5m           # Default for metrics and samples.
     #   excludeUsers: [otel, rdsadmin, otel_catalog]  # Replaces default exclusions.
+    #   rdsLogs:
+    #     enabled: false
+    #     logGroup: /aws/rds/instance/orders-db/postgresql # Override if the RDS identifier differs from name.
+    #     region: us-east-1              # Defaults to auth.aws_iam.region.
+    #     pollInterval: 30s
+    #     initialLookback: 1m
     #   receivers:                      # Each accepts collectionInterval, initialDelay and timeout.
     #     performance: {collectionInterval: 5m}
     #     health: {collectionInterval: 1m}

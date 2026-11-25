@@ -15,6 +15,7 @@
     "querySamples" (dict "enabled" false)
     "topQueries" (dict "enabled" false)
     "catalog" (dict "enabled" false)
+    "rdsLogs" (dict "enabled" false)
 }}
 {{- range $target := $root.Values.presets.dbMonitoring.postgresql }}
 {{- if hasKey $names $target.name }}
@@ -22,7 +23,7 @@
 {{- end }}
 {{- $_ := set $names $target.name true }}
 {{- $target = mustMergeOverwrite (deepCopy $defaults) (deepCopy $target) }}
-{{- if not (or $target.metrics.enabled $target.querySamples.enabled $target.topQueries.enabled $target.catalog.enabled) }}
+{{- if not (or $target.metrics.enabled $target.querySamples.enabled $target.topQueries.enabled $target.catalog.enabled $target.rdsLogs.enabled) }}
 {{- continue }}
 {{- end }}
 {{- $intervals := dict }}
@@ -54,7 +55,7 @@
 {{- $credentials := dict "username" $target.username }}
 {{- if hasKey $target.auth "password" }}
 {{- $_ := set $credentials "password" $target.auth.password }}
-{{- else }}
+{{- else if $intervals }}
 {{- $iam := $target.auth.aws_iam }}
 {{- if $target.tls.insecure }}
 {{- fail (printf "dbMonitoring.postgresql %q: AWS IAM authentication requires TLS" $target.name) }}
@@ -107,6 +108,24 @@
 {{- $base := required "dbMonitoring metrics requires config.service.pipelines.metrics" $config.service.pipelines.metrics }}
 {{- $_ := set $generated.service.pipelines (printf "metrics/%s" $id) (dict "receivers" $receivers "processors" (list "memory_limiter" $identity $semconv "batch/db_monitoring") "exporters" $base.exporters) }}
 {{- end }}
+{{- if or $target.querySamples.enabled $target.topQueries.enabled $target.rdsLogs.enabled }}
+{{- $users := list $credentials.username "otel" "rdsadmin" "otel_catalog" }}
+{{- if hasKey $target "excludeUsers" }}
+{{- $users = $target.excludeUsers }}
+{{- end }}
+{{- $queryProcessors := list }}
+{{- with $users }}
+{{- $conditions := list }}
+{{- range $user := uniq . }}
+{{- $conditions = append $conditions (printf "attributes[\"postgresql.rolname\"] == %s" (toJson $user)) }}
+{{- $conditions = append $conditions (printf "attributes[\"user.name\"] == %s" (toJson $user)) }}
+{{- end }}
+{{- $filter := printf "filter/%s_own_queries" $id }}
+{{- $_ := set $generated.processors $filter (dict "error_mode" "ignore" "logs" (dict "log_record" $conditions)) }}
+{{- $queryProcessors = append $queryProcessors $filter }}
+{{- end }}
+{{- $queryProcessors = append $queryProcessors $identity }}
+{{- $exporters := include "opentelemetry-collector.dbMonitoringLogExporters" (dict "config" $config "generated" $generated.exporters "kind" "queries") | fromYamlArray }}
 {{- if or $target.querySamples.enabled $target.topQueries.enabled }}
 {{- $receiver := printf "postgresql/%s_queries" $id }}
 {{- $receivers := list $receiver }}
@@ -128,24 +147,29 @@
 {{- $_ := set $generated.receivers $sampleReceiver (mustMergeOverwrite (deepCopy $postgresql.receivers.queries) $native $options.querySamples (dict "events" $sampleEvents)) }}
 {{- $receivers = append $receivers $sampleReceiver }}
 {{- end }}
-{{- $users := list $credentials.username "otel" "rdsadmin" "otel_catalog" }}
-{{- if hasKey $target "excludeUsers" }}
-{{- $users = $target.excludeUsers }}
-{{- end }}
-{{- $processors := list "memory_limiter" }}
-{{- with $users }}
-{{- $conditions := list }}
-{{- range $user := uniq . }}
-{{- $conditions = append $conditions (printf "attributes[\"postgresql.rolname\"] == %s" (toJson $user)) }}
-{{- $conditions = append $conditions (printf "attributes[\"user.name\"] == %s" (toJson $user)) }}
-{{- end }}
-{{- $filter := printf "filter/%s_own_queries" $id }}
-{{- $_ := set $generated.processors $filter (dict "error_mode" "ignore" "logs" (dict "log_record" $conditions)) }}
-{{- $processors = append $processors $filter }}
-{{- end }}
-{{- $processors = concat $processors (list $identity $semconv "batch/db_monitoring") }}
-{{- $exporters := include "opentelemetry-collector.dbMonitoringLogExporters" (dict "config" $config "generated" $generated.exporters "kind" "queries") | fromYamlArray }}
+{{- $processors := concat (list "memory_limiter") $queryProcessors (list $semconv "batch/db_monitoring") }}
 {{- $_ := set $generated.service.pipelines (printf "logs/%s_queries" $id) (dict "receivers" $receivers "processors" $processors "exporters" $exporters) }}
+{{- end }}
+{{- if $target.rdsLogs.enabled }}
+{{- $receiver := printf "aws_cloudwatch/%s_rds_logs" $id }}
+{{- $region := required (printf "dbMonitoring.postgresql %q: rdsLogs.region is required without auth.aws_iam.region" $target.name) (coalesce $target.rdsLogs.region (dig "aws_iam" "region" "" $target.auth)) }}
+{{- $logGroup := $target.rdsLogs.logGroup | default (printf "/aws/rds/instance/%s/postgresql" $target.name) }}
+{{- $group := dict }}
+{{- with $target.rdsLogs.logStreams }}
+{{- $_ := set $group "names" . }}
+{{- end }}
+{{- $logs := dict
+    "poll_interval" ($target.rdsLogs.pollInterval | default "30s")
+    "initial_lookback" ($target.rdsLogs.initialLookback | default "1m")
+    "groups" (dict "named" (dict $logGroup $group)) }}
+{{- $_ := set $generated.receivers $receiver (dict "region" $region "logs" $logs) }}
+{{- $transform := "transform/db_monitoring_rds_plans" }}
+{{- $filter := "filter/db_monitoring_rds_plans" }}
+{{- $_ := set $generated.processors $transform $postgresql.processors.rdsPlans }}
+{{- $_ := set $generated.processors $filter (dict "error_mode" "ignore" "logs" (dict "log_record" (list "attributes[\"db.query.plan\"] == nil"))) }}
+{{- $processors := concat (list "memory_limiter" $transform $filter) $queryProcessors (list "batch/db_monitoring") }}
+{{- $_ := set $generated.service.pipelines (printf "logs/%s_rds_plans" $id) (dict "receivers" (list $receiver) "processors" $processors "exporters" $exporters) }}
+{{- end }}
 {{- end }}
 {{- if $target.catalog.enabled }}
 {{- $details := printf "sql_query/%s_details" $id }}

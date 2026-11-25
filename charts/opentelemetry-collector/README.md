@@ -184,6 +184,28 @@ By default, query events exclude the target login user, `otel`,
 `rdsadmin`, and `otel_catalog`. Set `excludeUsers` on the target to replace the
 list. Use `excludeUsers: []` to disable user filtering.
 
+For RDS or Aurora PostgreSQL, enable `rdsLogs` on a target to collect actual
+query plans from its CloudWatch PostgreSQL log group. The receiver reads JSON
+`auto_explain` plans with a query ID and applies the target's query user exclusions.
+Configure PostgreSQL log exports and `auto_explain.log_format = json` on the database.
+Give the Collector's AWS identity `logs:FilterLogEvents` on the log group.
+See the [RDS log export guide](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_LogAccess.Concepts.PostgreSQL.html).
+
+```yaml
+# Settings on a PostgreSQL target
+rdsLogs:
+  enabled: true
+```
+
+The default group is `/aws/rds/instance/<name>/postgresql`, where `name` is the
+target name. Set `rdsLogs.logGroup` if the RDS instance identifier differs from
+the target name or if you use an Aurora cluster log group.
+`rdsLogs.region` defaults to `auth.aws_iam.region`. Set it explicitly for a
+password-authenticated target. `pollInterval` defaults to `30s` and
+`initialLookback` to `1m`. For an Aurora cluster log group, use `logStreams` to
+limit collection to the streams for the instances this target represents. This pipeline exports
+plan events to the same destinations as query samples and top queries.
+
 Catalog collection opens a direct connection to each selected database. It does not
 need `dblink`. It emits one `db.instance` entity per target and one `db.schema` entity
 per database. Schema entity IDs include both the instance ID and `db.namespace`.

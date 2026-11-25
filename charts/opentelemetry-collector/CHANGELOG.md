@@ -9,6 +9,7 @@
 - [Feat] Configure password or AWS IAM authentication once per PostgreSQL target. The example shows both methods.
 - [Feat] Add configurable query user exclusions and show a custom list in the example.
 - [Feat] Send query samples, top queries, and plans to the `postgresql-slow-queries` subsystem.
+- [Feat] Add opt-in CloudWatch collection of PostgreSQL `auto_explain` plans per RDS or Aurora target.
 
 ### v0.143.8 / 2026-11-24
 
