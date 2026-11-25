@@ -1,0 +1,207 @@
+diff --git a/charts/opentelemetry-collector/CHANGELOG.md b/charts/opentelemetry-collector/CHANGELOG.md
+index 28e9b6af7..cc2a4c052 100644
+--- a/charts/opentelemetry-collector/CHANGELOG.md
++++ b/charts/opentelemetry-collector/CHANGELOG.md
+@@ -2,6 +2,10 @@
+ 
+ ## OpenTelemetry Collector
+ 
++### v0.143.8 / 2026-11-25
++
++- [Feat] Add the opt-in `kubeletStats` preset (`presets.kubeletStats.enabled`, default `false`, and `scrapeInterval`, default `30s`) to scrape each node's kubelet `/metrics` endpoint (`https://${env:K8S_NODE_NAME}:10250/metrics`) via a `prometheus/kubelet_stats` receiver with the service-account bearer token and `insecure_skip_verify: true`. Requires `mode: daemonset` on a Kubernetes distribution and automatically creates the required ClusterRole/ClusterRoleBinding rules.
++
+ <<<<<<< HEAD
+ ### v0.143.7 / 2026-11-24
+ 
+diff --git a/charts/opentelemetry-collector/Chart.yaml b/charts/opentelemetry-collector/Chart.yaml
+index cd5a71ff6..10bb3d3e6 100644
+--- a/charts/opentelemetry-collector/Chart.yaml
++++ b/charts/opentelemetry-collector/Chart.yaml
+@@ -1,6 +1,6 @@
+ apiVersion: v2
+ name: opentelemetry-collector
+-version: 0.143.7
++version: 0.143.8
+ description: OpenTelemetry Collector Helm chart for Kubernetes
+ type: application
+ home: https://opentelemetry.io/
+diff --git a/charts/opentelemetry-collector/README.md b/charts/opentelemetry-collector/README.md
+index 930a8e20f..f9c989207 100644
+--- a/charts/opentelemetry-collector/README.md
++++ b/charts/opentelemetry-collector/README.md
+@@ -440,6 +440,18 @@ presets:
+     semconv: true
+ ```
+ 
++### Configuration for Kubelet Stats (`/metrics`)
++
++The `kubeletStats` preset scrapes each node's kubelet `/metrics` endpoint (`https://${env:K8S_NODE_NAME}:10250/metrics`) using a `prometheus/kubelet_stats` receiver authenticated with the service-account bearer token (`insecure_skip_verify: true`). It is disabled by default and requires `mode: daemonset` on a Kubernetes distribution. Further receiver customization can be supplied via `config` overrides.
++
++```yaml
++mode: daemonset
++presets:
++  kubeletStats:
++    enabled: true
++    scrapeInterval: 30s
++```
++
+ ### Configuration for Kubernetes Cluster Metrics
+ 
+ The collector can be configured to collects cluster-level metrics from the Kubernetes API server. A single instance of this receiver can be used to monitor a cluster.
+diff --git a/charts/opentelemetry-collector/templates/_config.tpl b/charts/opentelemetry-collector/templates/_config.tpl
+index 6acf9b943..c17a4db32 100644
+--- a/charts/opentelemetry-collector/templates/_config.tpl
++++ b/charts/opentelemetry-collector/templates/_config.tpl
+@@ -179,6 +179,9 @@ Build config file for daemonset OpenTelemetry Collector
+ {{- if .Values.presets.kubeletPrometheusMetrics.enabled }}
+ {{- $config = (include "opentelemetry-collector.applyKubeletPrometheusMetrics" (dict "Values" $data "config" $config) | fromYaml) }}
+ {{- end }}
++{{- if .Values.presets.kubeletStats.enabled }}
++{{- $config = (include "opentelemetry-collector.applyKubeletStatsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
++{{- end }}
+ {{- if .Values.presets.clusterMetrics.enabled }}
+ {{- $config = (include "opentelemetry-collector.applyClusterMetricsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+ {{- end }}
+@@ -408,6 +411,9 @@ Build config file for deployment OpenTelemetry Collector
+ {{- if .Values.presets.kubeletPrometheusMetrics.enabled }}
+ {{- $config = (include "opentelemetry-collector.applyKubeletPrometheusMetrics" (dict "Values" $data "config" $config) | fromYaml) }}
+ {{- end }}
++{{- if .Values.presets.kubeletStats.enabled }}
++{{- $config = (include "opentelemetry-collector.applyKubeletStatsConfig" (dict "Values" $data "config" $config) | fromYaml) }}
++{{- end }}
+ {{- if .Values.presets.metadata.enabled }}
+ {{- $config = (include "opentelemetry-collector.applyMetadataConfig" (dict "Values" $data "config" $config) | fromYaml) }}
+ {{- end }}
+@@ -1587,6 +1593,48 @@ processors:
+ {{- end }}
+ {{- end }}
+ 
++{{- define "opentelemetry-collector.validateKubeletStats" -}}
++{{- $values := .Values.Values -}}
++{{- if ne $values.mode "daemonset" }}
++{{- fail (printf "[ERROR] presets.kubeletStats requires mode=daemonset (got mode=%q) so every node's kubelet /metrics endpoint is scraped." $values.mode) }}
++{{- end }}
++{{- if or (eq $values.distribution "ecs") (eq $values.distribution "standalone") (eq $values.distribution "macos") }}
++{{- fail (printf "[ERROR] presets.kubeletStats requires a Kubernetes distribution (K8S_NODE_NAME and the service-account token are unavailable when distribution=%q)." $values.distribution) }}
++{{- end }}
++{{- if not ((.config.service).pipelines).metrics }}
++{{- fail "[ERROR] presets.kubeletStats requires config.service.pipelines.metrics to be configured." }}
++{{- end }}
++{{- end }}
++
++{{- define "opentelemetry-collector.applyKubeletStatsConfig" -}}
++{{- include "opentelemetry-collector.validateKubeletStats" . -}}
++{{- $config := mustMergeOverwrite (include "opentelemetry-collector.kubeletStatsConfig" .Values | fromYaml) .config }}
++{{- $_ := set $config.service.pipelines.metrics "receivers" (append $config.service.pipelines.metrics.receivers "prometheus/kubelet_stats" | uniq) }}
++{{- $config | toYaml }}
++{{- end }}
++
++{{- define "opentelemetry-collector.kubeletStatsConfig" -}}
++{{- $ks := .Values.presets.kubeletStats -}}
++{{- $scrapeInterval := $ks.scrapeInterval | default "30s" -}}
++{{- if $ks.enabled }}
++receivers:
++  # kubelet /metrics on the local node: https on ${env:K8S_NODE_NAME}:10250 using the service-account token
++  prometheus/kubelet_stats:
++    config:
++      scrape_configs:
++      - job_name: kubelet-stats
++        scrape_interval: {{ $scrapeInterval | quote }}
++        metrics_path: /metrics
++        scheme: https
++        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
++        static_configs:
++          - targets: ["${env:K8S_NODE_NAME}:10250"]
++        tls_config:
++          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
++          insecure_skip_verify: true
++{{- end }}
++{{- end }}
++
+ {{- define "opentelemetry-collector.applyKubernetesApiServerMetrics" -}}
+ {{- $scrapeAll := .Values.Values.presets.kubernetesApiServerMetrics.scrapeAll | default false }}
+ {{- $config := mustMergeOverwrite (include "opentelemetry-collector.kubernetesApiServerMetricsConfig" (dict "Values" .Values.Values "scrapeAll" $scrapeAll) | fromYaml) .config }}
+diff --git a/charts/opentelemetry-collector/templates/clusterrole.yaml b/charts/opentelemetry-collector/templates/clusterrole.yaml
+index e25b91f54..5ce999cea 100644
+--- a/charts/opentelemetry-collector/templates/clusterrole.yaml
++++ b/charts/opentelemetry-collector/templates/clusterrole.yaml
+@@ -1,4 +1,4 @@
+-{{- if or (.Values.clusterRole.create) (.Values.presets.kubernetesAttributes.enabled) (.Values.presets.clusterMetrics.enabled) (.Values.presets.kubeletMetrics.enabled) (.Values.presets.kubernetesEvents.enabled) (.Values.presets.mysql.metrics.enabled) (.Values.presets.kubernetesResources.enabled) (and (.Values.presets.profilesCollection.enabled) (.Values.presets.profilesK8sAttributes.enabled)) (.Values.presets.loadBalancing.k8s.enabled) (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesApiServerMetrics.enabled) (.Values.presets.kubeletPrometheusMetrics.enabled) (.Values.presets.prometheusAnnotationDiscovery.enabled) (.Values.presets.pprofReceiver.pull.enabled) (eq .Values.distribution "eks/fargate") -}}
++{{- if or (.Values.clusterRole.create) (.Values.presets.kubernetesAttributes.enabled) (.Values.presets.clusterMetrics.enabled) (.Values.presets.kubeletMetrics.enabled) (.Values.presets.kubernetesEvents.enabled) (.Values.presets.mysql.metrics.enabled) (.Values.presets.kubernetesResources.enabled) (and (.Values.presets.profilesCollection.enabled) (.Values.presets.profilesK8sAttributes.enabled)) (.Values.presets.loadBalancing.k8s.enabled) (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesApiServerMetrics.enabled) (.Values.presets.kubeletPrometheusMetrics.enabled) (.Values.presets.kubeletStats.enabled) (.Values.presets.prometheusAnnotationDiscovery.enabled) (.Values.presets.pprofReceiver.pull.enabled) (eq .Values.distribution "eks/fargate") -}}
+ apiVersion: rbac.authorization.k8s.io/v1
+ kind: ClusterRole
+ metadata:
+@@ -53,7 +53,7 @@ rules:
+     resources: ["horizontalpodautoscalers"]
+     verbs: ["get", "list", "watch"]
+   {{- end}}
+-  {{- if or (.Values.presets.kubeletMetrics.enabled) (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesApiServerMetrics.enabled) (.Values.presets.kubeletPrometheusMetrics.enabled)}}
++  {{- if or (.Values.presets.kubeletMetrics.enabled) (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesApiServerMetrics.enabled) (.Values.presets.kubeletPrometheusMetrics.enabled) (.Values.presets.kubeletStats.enabled) }}
+   - apiGroups: [""]
+     {{- if and (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesExtraMetrics.perNode) (not .Values.presets.kubernetesApiServerMetrics.enabled) }}
+     resources: ["nodes", "nodes/stats", "nodes/metrics"]
+diff --git a/charts/opentelemetry-collector/templates/clusterrolebinding.yaml b/charts/opentelemetry-collector/templates/clusterrolebinding.yaml
+index cb8c6cb63..38d7838f6 100644
+--- a/charts/opentelemetry-collector/templates/clusterrolebinding.yaml
++++ b/charts/opentelemetry-collector/templates/clusterrolebinding.yaml
+@@ -1,4 +1,4 @@
+-{{- if or (.Values.clusterRole.create) (.Values.presets.kubernetesAttributes.enabled) (.Values.presets.clusterMetrics.enabled) (.Values.presets.kubeletMetrics.enabled) (.Values.presets.kubernetesEvents.enabled) (.Values.presets.mysql.metrics.enabled) (.Values.presets.kubernetesResources.enabled) (and (.Values.presets.profilesCollection.enabled) (.Values.presets.profilesK8sAttributes.enabled)) (.Values.presets.loadBalancing.k8s.enabled) (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesApiServerMetrics.enabled) (.Values.presets.kubeletPrometheusMetrics.enabled) (eq .Values.distribution "eks/fargate") -}}
++{{- if or (.Values.clusterRole.create) (.Values.presets.kubernetesAttributes.enabled) (.Values.presets.clusterMetrics.enabled) (.Values.presets.kubeletMetrics.enabled) (.Values.presets.kubernetesEvents.enabled) (.Values.presets.mysql.metrics.enabled) (.Values.presets.kubernetesResources.enabled) (and (.Values.presets.profilesCollection.enabled) (.Values.presets.profilesK8sAttributes.enabled)) (.Values.presets.loadBalancing.k8s.enabled) (.Values.presets.kubernetesExtraMetrics.enabled) (.Values.presets.kubernetesApiServerMetrics.enabled) (.Values.presets.kubeletPrometheusMetrics.enabled) (.Values.presets.kubeletStats.enabled) (eq .Values.distribution "eks/fargate") -}}
+ apiVersion: rbac.authorization.k8s.io/v1
+ kind: ClusterRoleBinding
+ metadata:
+diff --git a/charts/opentelemetry-collector/templates/opentelemetrycollector.yaml b/charts/opentelemetry-collector/templates/opentelemetrycollector.yaml
+index 7da438aa3..ea0f24b3f 100644
+--- a/charts/opentelemetry-collector/templates/opentelemetrycollector.yaml
++++ b/charts/opentelemetry-collector/templates/opentelemetrycollector.yaml
+@@ -95,7 +95,7 @@ spec:
+         fieldRef:
+           fieldPath: metadata.name
+     {{- end }}
+-    {{- if or .Values.presets.kubeletPrometheusMetrics.enabled (and .Values.presets.kubernetesAttributes.enabled (or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled)) }}
++    {{- if or .Values.presets.kubeletPrometheusMetrics.enabled .Values.presets.kubeletStats.enabled (and .Values.presets.kubernetesAttributes.enabled (or (eq .Values.mode "daemonset") .Values.presets.kubernetesAttributes.nodeFilter.enabled)) }}
+     - name: K8S_NODE_NAME
+       valueFrom:
+         fieldRef:
+diff --git a/charts/opentelemetry-collector/values.schema.json b/charts/opentelemetry-collector/values.schema.json
+index 77b173cd4..a110ec2d2 100644
+--- a/charts/opentelemetry-collector/values.schema.json
++++ b/charts/opentelemetry-collector/values.schema.json
+@@ -1150,6 +1150,20 @@
+             }
+           }
+         },
++        "kubeletStats": {
++          "type": "object",
++          "additionalProperties": false,
++          "properties": {
++            "enabled": {
++              "description": "Specifies whether the collector should scrape the kubelet /metrics endpoint on every node.",
++              "type": "boolean"
++            },
++            "scrapeInterval": {
++              "description": "Scrape interval for the kubelet /metrics endpoint.",
++              "type": "string"
++            }
++          }
++        },
+         "metadata": {
+           "type": "object",
+           "additionalProperties": false,
+diff --git a/charts/opentelemetry-collector/values.yaml b/charts/opentelemetry-collector/values.yaml
+index 061b2a03d..028491721 100644
+--- a/charts/opentelemetry-collector/values.yaml
++++ b/charts/opentelemetry-collector/values.yaml
+@@ -449,6 +449,12 @@ presets:
+     # (e.g. namespace -> k8s.namespace.name, pod -> k8s.pod.name). k8s.node.name is always set on the resource.
+     semconv: true
+ 
++  # Configures the collector to scrape the kubelet's own Prometheus /metrics endpoint on every node.
++  # Requires mode = daemonset on a Kubernetes distribution.
++  kubeletStats:
++    enabled: false
++    scrapeInterval: 30s
++
+   # Configures the collector to add k8s.cluster.name and cx.otel_integration.name
+   # to metrics
+   metadata:
