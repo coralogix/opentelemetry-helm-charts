@@ -6,7 +6,7 @@ metadata:
   name: example-opentelemetry-collector
   namespace: default
   labels:
-    helm.sh/chart: opentelemetry-collector-0.143.8
+    helm.sh/chart: opentelemetry-collector-0.143.9
     app.kubernetes.io/name: opentelemetry-collector
     app.kubernetes.io/instance: example
     app.kubernetes.io/version: "0.165.0"
@@ -96,26 +96,113 @@ data:
         traces:
           headers:
             X-Coralogix-Distribution: helm-otel-integration/
+      coralogix/coralogix_db_monitoring_queries:
+        application_name: db-monitoring
+        application_name_attributes:
+        - k8s.namespace.name
+        - service.namespace
+        domain: coralogix.com
+        domain_settings:
+          keepalive:
+            enabled: true
+            permit_without_stream: false
+            time: 30s
+            timeout: 10s
+        logs:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        metrics:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        private_key: ${env:CORALOGIX_PRIVATE_KEY}
+        profiles:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+            x-coralogix-ingress: otlp/v1.10.0
+        sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
+          enabled: true
+          num_consumers: 20
+          queue_size: 209715200
+          sizer: bytes
+        subsystem_name: postgresql-slow-queries
+        subsystem_name_attributes: []
+        timeout: 30s
+        traces:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
     extensions:
+      aws_iam_db_auth/us-east-1:
+        region: us-east-1
       health_check:
         endpoint: ${env:MY_POD_IP}:13133
     processors:
       batch/db_monitoring: {}
+      filter/db_monitoring_postgresql_inventory_own_queries:
+        error_mode: ignore
+        logs:
+          log_record:
+          - attributes["postgresql.rolname"] == "inventory_monitor"
+          - attributes["user.name"] == "inventory_monitor"
+          - attributes["postgresql.rolname"] == "otel"
+          - attributes["user.name"] == "otel"
+          - attributes["postgresql.rolname"] == "rdsadmin"
+          - attributes["user.name"] == "rdsadmin"
+          - attributes["postgresql.rolname"] == "otel_catalog"
+          - attributes["user.name"] == "otel_catalog"
+          - attributes["postgresql.rolname"] == "schema_migrator"
+          - attributes["user.name"] == "schema_migrator"
       filter/db_monitoring_postgresql_orders_own_queries:
         error_mode: ignore
         logs:
           log_record:
           - attributes["postgresql.rolname"] == "otel"
           - attributes["user.name"] == "otel"
+          - attributes["postgresql.rolname"] == "rdsadmin"
+          - attributes["user.name"] == "rdsadmin"
+          - attributes["postgresql.rolname"] == "otel_catalog"
+          - attributes["user.name"] == "otel_catalog"
+      filter/db_monitoring_rds_plans:
+        error_mode: ignore
+        logs:
+          log_record:
+          - attributes["postgresql.query_plan"] == nil
       memory_limiter:
         check_interval: 5s
         limit_percentage: 80
         spike_limit_percentage: 25
+      redaction/db_monitoring_activity:
+        allow_all_keys: true
+        db_sanitizer:
+          sql:
+            attributes:
+            - db.query.text
+            enabled: true
+        summary: silent
       resource/db_monitoring_postgresql_inventory:
         attributes:
         - action: upsert
+          key: aws.rds.db_instance_identifier
+          value: inventory
+        - action: upsert
+          key: cloud.account.id
+          value: "123456789012"
+        - action: upsert
+          key: cloud.platform
+          value: aws_rds
+        - action: upsert
+          key: cloud.provider
+          value: aws
+        - action: upsert
+          key: cloud.region
+          value: us-east-1
+        - action: upsert
           key: cx.db.instance.id
-          value: production/inventory-db
+          value: inventory
         - action: upsert
           key: db.system.name
           value: postgresql
@@ -124,10 +211,10 @@ data:
           value: production
         - action: upsert
           key: server.address
-          value: inventory-db.example.com
+          value: inventory.abcdefghijkl.us-east-1.rds.amazonaws.com
         - action: upsert
           key: server.port
-          value: 5433
+          value: 5432
       resource/db_monitoring_postgresql_orders:
         attributes:
         - action: upsert
@@ -151,6 +238,46 @@ data:
         - action: upsert
           key: server.port
           value: 5432
+      transform/db_monitoring_activity:
+        log_statements:
+        - context: log
+          statements:
+          - set(event_name, "db.server.query_sample")
+          - delete_key(attributes, "db.query.text") where attributes["db.query.text"]
+            == ""
+          - set(attributes["db.query.text"], Concat([attributes["db.query.text"], "\n"],
+            "")) where attributes["db.query.text"] != nil
+          - set(attributes["dbm.raw_query"], attributes["db.query.text"]) where attributes["db.query.text"]
+            != nil
+          - set(attributes["dbm.activity_body"], body)
+      transform/db_monitoring_activity_clean:
+        log_statements:
+        - context: log
+          statements:
+          - delete_key(attributes, "db.query.text") where attributes["db.query.text"]
+            == attributes["dbm.raw_query"]
+          - delete_key(attributes, "dbm.raw_query")
+          - replace_pattern(attributes["db.query.text"], "(?s)\\s*/\\*.*\\*/", "") where
+            attributes["db.query.text"] != nil
+          - replace_pattern(attributes["db.query.text"], "(?s)\\s*(/\\*.*|--[^\\r\\n]*)",
+            "") where attributes["db.query.text"] != nil
+          - set(body, attributes["dbm.activity_body"])
+          - delete_key(attributes, "dbm.activity_body")
+        - conditions:
+          - attributes["db.query.text"] != nil and IsMatch(attributes["db.query.text"],
+            "[０-９]")
+          context: log
+          statements:
+          - replace_pattern(attributes["db.query.text"], "０", "0")
+          - replace_pattern(attributes["db.query.text"], "１", "1")
+          - replace_pattern(attributes["db.query.text"], "２", "2")
+          - replace_pattern(attributes["db.query.text"], "３", "3")
+          - replace_pattern(attributes["db.query.text"], "４", "4")
+          - replace_pattern(attributes["db.query.text"], "５", "5")
+          - replace_pattern(attributes["db.query.text"], "６", "6")
+          - replace_pattern(attributes["db.query.text"], "７", "7")
+          - replace_pattern(attributes["db.query.text"], "８", "8")
+          - replace_pattern(attributes["db.query.text"], "９", "9")
       transform/db_monitoring_catalog:
         error_mode: ignore
         log_statements:
@@ -166,7 +293,6 @@ data:
           - set(attributes["otel.entity.event.type"], "entity_state")
           - set(attributes["otel.entity.type"], body)
           - set(attributes["db.catalog.version"], "2")
-          - set(attributes["otel.entity.interval"], Milliseconds(Duration("1h")))
           - 'set(attributes["otel.entity.id"], {"db.instance.id": resource.attributes["cx.db.instance.id"]})
             where body == "db.instance"'
           - 'set(attributes["otel.entity.id"], {"db.schema.instance.id": resource.attributes["cx.db.instance.id"],
@@ -205,7 +331,7 @@ data:
           - delete_key(attributes, "postgresql.database.name")
         - context: log
           statements:
-          - set(attributes["db.event.kind"], event_name) where event_name != nil and event_name
+          - set(attributes["event.name"], event_name) where event_name != nil and event_name
             != ""
           - set(attributes["postgresql.queryid"], attributes["postgresql.query_id"]) where
             attributes["postgresql.query_id"] != nil
@@ -228,52 +354,22 @@ data:
           - resource.attributes["db.system.name"] == "postgresql"
           context: log
           statements:
-          - set(attributes["db.query.id"], attributes["postgresql.queryid"]) where attributes["postgresql.queryid"]
-            != nil and attributes["postgresql.queryid"] != ""
-          - set(attributes["db.query.calls"], attributes["postgresql.calls"]) where attributes["postgresql.calls"]
-            != nil
-          - set(attributes["db.query.total_duration_ms"], attributes["postgresql.total_exec_time"]
-            * 1000.0) where attributes["postgresql.calls"] != nil
-          - set(attributes["db.query.rows"], attributes["postgresql.rows"]) where attributes["postgresql.rows"]
-            != nil
-          - set(attributes["db.query.plan"], attributes["postgresql.query_plan"]) where
-            attributes["postgresql.query_plan"] != nil
-          - set(attributes["db.query.cache.hit_blocks"], attributes["postgresql.shared_blks_hit"])
-            where attributes["postgresql.shared_blks_hit"] != nil
-          - set(attributes["db.query.cache.read_blocks"], attributes["postgresql.shared_blks_read"])
-            where attributes["postgresql.shared_blks_read"] != nil
-          - set(attributes["db.query.temp_blocks"], attributes["postgresql.temp_blks_read"]
-            + attributes["postgresql.temp_blks_written"]) where attributes["postgresql.temp_blks_read"]
-            != nil and attributes["postgresql.temp_blks_written"] != nil
-          - delete_key(attributes, "postgresql.total_exec_time") where attributes["postgresql.calls"]
-            != nil
-          - delete_matching_keys(attributes, "^postgresql\\.(queryid|calls|rows|query_plan|shared_blks_(hit|read)|temp_blks_(read|written))$")
-          - set(attributes["db.session.id"], attributes["postgresql.pid"]) where attributes["postgresql.pid"]
-            != nil
-          - set(attributes["db.session.state"], attributes["postgresql.state"]) where
-            attributes["postgresql.state"] != nil and attributes["postgresql.state"] !=
-            ""
-          - 'set(attributes["db.session.wait_event"], Concat([attributes["postgresql.wait_event_type"],
-            attributes["postgresql.wait_event"]], ": ")) where attributes["postgresql.wait_event_type"]
-            != nil and attributes["postgresql.wait_event_type"] != ""'
-          - set(attributes["db.session.application"], attributes["postgresql.application_name"])
-            where attributes["db.event.kind"] == "db.server.query_sample" and attributes["postgresql.application_name"]
-            != nil and attributes["postgresql.application_name"] != ""
           - set(attributes["client.address"], attributes["network.peer.address"]) where
             attributes["network.peer.address"] != nil and attributes["network.peer.address"]
             != ""
           - replace_pattern(attributes["client.address"], "/\\d+$", "") where attributes["client.address"]
             != nil
-          - set(attributes["db.session.blocked_by"], attributes["postgresql.blocking.pids"])
-            where attributes["postgresql.blocking.pids"] != nil and attributes["postgresql.blocking.pids"]
-            != "{}" and attributes["postgresql.blocking.pids"] != ""
-          - replace_pattern(attributes["db.session.blocked_by"], "^\\{|\\}$", "") where
-            attributes["db.session.blocked_by"] != nil
-          - set(attributes["db.query.duration_ms"], attributes["postgresql.total_exec_time"])
-            where attributes["db.event.kind"] == "db.server.query_sample" and attributes["postgresql.total_exec_time"]
-            != nil
-          - delete_matching_keys(attributes, "^postgresql\\.(pid|state|wait_event|wait_event_type|application_name|blocking\\.pids|total_exec_time)$")
-            where attributes["db.event.kind"] == "db.server.query_sample"
+          - merge_maps(cache, ExtractPatterns(attributes["dbm.traceparent"], "^00-(?P<trace_id>[0-9a-f]{32})-(?P<span_id>[0-9a-f]{16})-[0-9a-f]{2}$"),
+            "upsert") where attributes["dbm.traceparent"] != nil and attributes["dbm.traceparent"]
+            != ""
+          - set(trace_id.string, cache["trace_id"]) where cache["trace_id"] != nil and
+            cache["trace_id"] != "00000000000000000000000000000000" and cache["span_id"]
+            != "0000000000000000"
+          - set(span_id.string, cache["span_id"]) where cache["span_id"] != nil and cache["trace_id"]
+            != "00000000000000000000000000000000" and cache["span_id"] != "0000000000000000"
+          - set(attributes["trace.id"], trace_id.string) where trace_id.string != "00000000000000000000000000000000"
+          - set(attributes["span.id"], span_id.string) where span_id.string != "0000000000000000"
+          - delete_key(attributes, "dbm.traceparent")
         metric_statements:
         - context: resource
           statements:
@@ -291,6 +387,60 @@ data:
           - set(attributes["db.collection.name"], attributes["relname"]) where attributes["relname"]
             != nil
           - delete_matching_keys(attributes, "^(datname|schemaname|relname)$")
+      transform/db_monitoring_postgresql_orders_catalog_interval:
+        log_statements:
+        - context: log
+          statements:
+          - set(attributes["otel.entity.interval"], Milliseconds(Duration("5m"))) where
+            body == "db.instance"
+          - set(attributes["otel.entity.interval"], Milliseconds(Duration("30m"))) where
+            body == "db.schema" and attributes["db.namespace"] == "orders"
+          - set(attributes["otel.entity.interval"], Milliseconds(Duration("30m"))) where
+            body == "db.schema" and attributes["db.namespace"] == "billing"
+      transform/db_monitoring_rds_plans:
+        error_mode: ignore
+        log_statements:
+        - context: log
+          statements:
+          - 'merge_maps(cache, ExtractPatterns(body, "^\\d{4}-\\d\\d-\\d\\d \\d\\d:\\d\\d:\\d\\d(?:\\.\\d+)?
+            \\w+:(?P<client>[^()]*?)(?:\\(\\d+\\))?:(?P<user>[^@:]*)@(?P<db>[^:]*):\\[\\d+\\]:(?:\\d+:[0-9A-Z]{5}:\\d{4}-\\d\\d-\\d\\d
+            \\d\\d:\\d\\d:\\d\\d \\w+:[^:]*:\\d+:[0-9a-f]+\\.[0-9a-f]+:(?:(?P<app>.*?):)?)?LOG:\\s+duration:
+            (?P<duration>[0-9.]+) ms\\s+plan:\\s*(?P<plan>\\{[\\s\\S]*\\})\\s*$"), "upsert")
+            where IsString(body)'
+          - set(cache["decoded"], ParseJSON(cache["plan"])) where cache["plan"] != nil
+          - merge_maps(cache, ExtractPatterns(cache["plan"], "\"Query Identifier\"\\s*:\\s*(?P<queryid>-?[1-9]\\d*)\\s*[,}]"),
+            "upsert") where cache["decoded"] != nil and IsMap(cache["decoded"]["Plan"])
+            and cache["decoded"]["Query Identifier"] != nil
+          - set(cache["decoded"]["Query Identifier"], Int(cache["queryid"])) where cache["queryid"]
+            != nil
+          - merge_maps(cache, ExtractPatterns(cache["decoded"]["Query Text"], "/\\*[^*]*\\btraceparent\\s*=\\s*'(?P<traceparent>00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2})'[^*]*\\*/\\s*;?\\s*$"),
+            "upsert") where cache["queryid"] != nil and IsString(cache["decoded"]["Query
+            Text"])
+          - delete_key(cache["decoded"], "Query Text") where cache["queryid"] != nil
+          - delete_key(cache["decoded"], "Query Parameters") where cache["queryid"] !=
+            nil
+          - set(cache["sanitized"], String(cache["decoded"])) where cache["queryid"] !=
+            nil and IsInt(cache["decoded"]["Query Identifier"])
+          - replace_pattern(cache["sanitized"], "'(?:[^'\"\\\\]|\\\\.|'')*'", "'?'") where
+            cache["sanitized"] != nil
+          - set(attributes["postgresql.query_plan"], cache["sanitized"]) where cache["sanitized"]
+            != nil
+          - set(attributes["postgresql.queryid"], cache["queryid"]) where cache["sanitized"]
+            != nil
+          - set(event_name, "db.server.query_plan") where cache["sanitized"] != nil
+          - set(attributes["dbm.traceparent"], cache["traceparent"]) where cache["sanitized"]
+            != nil and cache["traceparent"] != nil
+          - set(attributes["db.plan.source"], "auto_explain") where cache["sanitized"]
+            != nil
+          - set(attributes["db.query.duration_ms"], Double(cache["duration"])) where cache["sanitized"]
+            != nil
+          - set(attributes["user.name"], cache["user"]) where cache["sanitized"] != nil
+          - set(attributes["db.namespace"], cache["db"]) where cache["sanitized"] != nil
+          - set(attributes["client.address"], cache["client"]) where cache["sanitized"]
+            != nil and cache["client"] != ""
+          - set(attributes["postgresql.application_name"], cache["app"]) where cache["sanitized"]
+            != nil and cache["app"] != ""
+          - set(body, "auto_explain plan") where cache["sanitized"] != nil
       transform/prometheus:
         error_mode: ignore
         metric_statements:
@@ -355,12 +505,23 @@ data:
           - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
             == "opentelemetry-collector"
     receivers:
+      aws_cloudwatch/db_monitoring_postgresql_inventory_rds_logs:
+        logs:
+          groups:
+            named:
+              /aws/rds/instance/inventory/postgresql: {}
+          initial_lookback: 1m
+          poll_interval: 30s
+        region: us-east-1
       postgresql/db_monitoring_postgresql_inventory_metrics:
-        collection_interval: 5m
+        collection_interval: 60s
         connect_database: inventory
         databases:
         - inventory
-        endpoint: inventory-db.example.com:5433
+        db_auth: aws_iam_db_auth/us-east-1
+        endpoint: inventory.abcdefghijkl.us-east-1.rds.amazonaws.com:5432
+        exclude_databases:
+        - rdsadmin
         metrics:
           postgresql.blks_hit:
             enabled: true
@@ -390,17 +551,47 @@ data:
             enabled: true
           postgresql.wal.delay:
             enabled: true
-        password: ${env:INVENTORY_DB_PASSWORD}
         resource_attributes:
           db.system.version:
             enabled: true
         tls:
+          ca_file: /etc/rds-certs/global-bundle.pem
           insecure: false
           insecure_skip_verify: false
         transport: tcp
-        username: otel
+        username: inventory_monitor
+      postgresql/db_monitoring_postgresql_inventory_queries:
+        collection_interval: 60s
+        connect_database: inventory
+        databases:
+        - inventory
+        db_auth: aws_iam_db_auth/us-east-1
+        endpoint: inventory.abcdefghijkl.us-east-1.rds.amazonaws.com:5432
+        events:
+          db.server.query_sample:
+            enabled: true
+          db.server.top_query:
+            enabled: true
+        exclude_databases:
+        - rdsadmin
+        query_sample_collection:
+          max_rows_per_query: 20
+        resource_attributes:
+          db.system.version:
+            enabled: true
+        tls:
+          ca_file: /etc/rds-certs/global-bundle.pem
+          insecure: false
+          insecure_skip_verify: false
+        top_query_collection:
+          collection_interval: 60s
+          max_explain_each_interval: 10
+          max_rows_per_query: 200
+          top_n_query: 200
+        transport: tcp
+        username: inventory_monitor
       postgresql/db_monitoring_postgresql_orders_metrics:
-        collection_interval: 5m
+        collection_interval: 60s
         connect_database: postgres
         databases:
         - orders
@@ -445,7 +636,7 @@ data:
         transport: tcp
         username: otel
       postgresql/db_monitoring_postgresql_orders_queries:
-        collection_interval: 5m
+        collection_interval: 60s
         connect_database: postgres
         databases:
         - orders
@@ -453,7 +644,7 @@ data:
         endpoint: orders-db.databases.svc.cluster.local:5432
         events:
           db.server.query_sample:
-            enabled: true
+            enabled: false
           db.server.top_query:
             enabled: true
         password: ${env:ORDERS_DB_PASSWORD}
@@ -466,10 +657,10 @@ data:
           insecure: true
           insecure_skip_verify: false
         top_query_collection:
-          collection_interval: 5m
+          collection_interval: 60s
           max_explain_each_interval: 10
           max_rows_per_query: 200
-          top_n_query: 50
+          top_n_query: 200
         transport: tcp
         username: otel
       prometheus:
@@ -480,15 +671,81 @@ data:
             static_configs:
             - targets:
               - ${env:MY_POD_IP}:8888
+      sql_query/db_monitoring_postgresql_inventory_activity:
+        additional_params:
+          sslmode: verify-full
+          sslrootcert: /etc/rds-certs/global-bundle.pem
+        collection_interval: 10s
+        database: inventory
+        db_auth: aws_iam_db_auth/us-east-1
+        driver: postgres
+        host: inventory.abcdefghijkl.us-east-1.rds.amazonaws.com
+        port: 5432
+        queries:
+        - logs:
+          - attribute_columns:
+            - db.snapshot.time
+            - postgresql.pid
+            - postgresql.state
+            - postgresql.wait_event_type
+            - postgresql.wait_event
+            - postgresql.application_name
+            - client.address
+            - user.name
+            - db.namespace
+            - postgresql.queryid
+            - postgresql.backend_type
+            - postgresql.query_start
+            - postgresql.total_exec_time
+            - postgresql.blocking.pids
+            - postgresql.lock_wait
+            - postgresql.vacuum.phase
+            - postgresql.vacuum.relid
+            - postgresql.vacuum.scanned_pct
+            - dbm.traceparent
+            - db.query.text
+            body_column: body
+          sql: |
+            SELECT a.pid::text || ' ' || coalesce(a.state, a.backend_type) AS body,
+                   (extract(epoch FROM now()) * 1000)::bigint::text AS "db.snapshot.time",
+                   a.pid::text AS "postgresql.pid",
+                   coalesce(a.state, '') AS "postgresql.state",
+                   coalesce(a.wait_event_type, '') AS "postgresql.wait_event_type",
+                   coalesce(a.wait_event, '') AS "postgresql.wait_event",
+                   coalesce(a.application_name, '') AS "postgresql.application_name",
+                   coalesce(host(a.client_addr), '') AS "client.address",
+                   coalesce(a.usename, '') AS "user.name",
+                   coalesce(a.datname, '') AS "db.namespace",
+                   coalesce(a.query_id::text, '') AS "postgresql.queryid",
+                   a.backend_type AS "postgresql.backend_type",
+                   coalesce(to_char(a.query_start AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS.US') || '+00', '') AS "postgresql.query_start",
+                   coalesce(round(extract(epoch FROM clock_timestamp() - a.query_start) * 1000)::text, '') AS "postgresql.total_exec_time",
+                   pg_blocking_pids(a.pid)::text AS "postgresql.blocking.pids",
+                   coalesce((SELECT string_agg(l.mode || ' ' || coalesce(l.relation::regclass::text, l.locktype), ', ')
+                             FROM pg_locks l WHERE l.pid = a.pid AND NOT l.granted), '') AS "postgresql.lock_wait",
+                   coalesce(v.phase, '') AS "postgresql.vacuum.phase",
+                   coalesce(v.relid::text, '') AS "postgresql.vacuum.relid",
+                   coalesce(round(100.0 * v.heap_blks_scanned / nullif(v.heap_blks_total, 0))::text, '') AS "postgresql.vacuum.scanned_pct",
+                   coalesce(substring(a.query FROM '/\*[^*]*\mtraceparent[[:space:]]*=[[:space:]]*''(00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2})''[^*]*\*/[[:space:]]*;?[[:space:]]*$'), '') AS "dbm.traceparent",
+                   coalesce((SELECT string_agg(CASE WHEN m[1] IS NULL THEN m[2]
+                                                    ELSE translate(m[1], '0123456789', '０１２３４５６７８９') END, '' ORDER BY n)
+                             FROM regexp_matches(a.query, '([[:alpha:]_][[:alnum:]_]*)|(\$[[:alpha:]_][[:alnum:]_]*\$|\$[0-9]+|[0-9][[:alnum:]_.]*|[^[:alnum:]_$]+|\$)', 'g')
+                                  WITH ORDINALITY AS tokens(m, n)), '') AS "db.query.text"
+            FROM pg_stat_activity a
+            LEFT JOIN pg_stat_progress_vacuum v ON v.pid = a.pid
+            WHERE a.pid <> pg_backend_pid()
+              AND (a.backend_type IN ('client backend', 'autovacuum worker') OR v.pid IS NOT NULL)
+        username: inventory_monitor
       sql_query/db_monitoring_postgresql_inventory_health:
         additional_params:
           sslmode: verify-full
-        collection_interval: 5m
+          sslrootcert: /etc/rds-certs/global-bundle.pem
+        collection_interval: 60s
         database: inventory
+        db_auth: aws_iam_db_auth/us-east-1
         driver: postgres
-        host: inventory-db.example.com
-        password: ${env:INVENTORY_DB_PASSWORD}
-        port: 5433
+        host: inventory.abcdefghijkl.us-east-1.rds.amazonaws.com
+        port: 5432
         queries:
         - metrics:
           - attribute_columns:
@@ -525,16 +782,17 @@ data:
             value_column: wal_bytes
           sql: SELECT COALESCE(sum(size), 0)::bigint AS wal_bytes, count(*) AS wal_files
             FROM pg_ls_waldir()
-        username: otel
+        username: inventory_monitor
       sql_query/db_monitoring_postgresql_inventory_tables_inventory:
         additional_params:
           sslmode: verify-full
+          sslrootcert: /etc/rds-certs/global-bundle.pem
         collection_interval: 5m
         database: inventory
+        db_auth: aws_iam_db_auth/us-east-1
         driver: postgres
-        host: inventory-db.example.com
-        password: ${env:INVENTORY_DB_PASSWORD}
-        port: 5433
+        host: inventory.abcdefghijkl.us-east-1.rds.amazonaws.com
+        port: 5432
         queries:
         - metrics:
           - attribute_columns:
@@ -558,11 +816,75 @@ data:
                    COALESCE(EXTRACT(EPOCH FROM now() - GREATEST(last_vacuum, last_autovacuum)), -1)::bigint AS vacuum_age,
                    COALESCE(EXTRACT(EPOCH FROM now() - GREATEST(last_analyze, last_autoanalyze)), -1)::bigint AS analyze_age
             FROM pg_stat_user_tables
+        username: inventory_monitor
+      sql_query/db_monitoring_postgresql_orders_activity:
+        additional_params:
+          sslmode: disable
+        collection_interval: 10s
+        database: postgres
+        driver: postgres
+        host: orders-db.databases.svc.cluster.local
+        password: ${env:ORDERS_DB_PASSWORD}
+        port: 5432
+        queries:
+        - logs:
+          - attribute_columns:
+            - db.snapshot.time
+            - postgresql.pid
+            - postgresql.state
+            - postgresql.wait_event_type
+            - postgresql.wait_event
+            - postgresql.application_name
+            - client.address
+            - user.name
+            - db.namespace
+            - postgresql.queryid
+            - postgresql.backend_type
+            - postgresql.query_start
+            - postgresql.total_exec_time
+            - postgresql.blocking.pids
+            - postgresql.lock_wait
+            - postgresql.vacuum.phase
+            - postgresql.vacuum.relid
+            - postgresql.vacuum.scanned_pct
+            - dbm.traceparent
+            - db.query.text
+            body_column: body
+          sql: |
+            SELECT a.pid::text || ' ' || coalesce(a.state, a.backend_type) AS body,
+                   (extract(epoch FROM now()) * 1000)::bigint::text AS "db.snapshot.time",
+                   a.pid::text AS "postgresql.pid",
+                   coalesce(a.state, '') AS "postgresql.state",
+                   coalesce(a.wait_event_type, '') AS "postgresql.wait_event_type",
+                   coalesce(a.wait_event, '') AS "postgresql.wait_event",
+                   coalesce(a.application_name, '') AS "postgresql.application_name",
+                   coalesce(host(a.client_addr), '') AS "client.address",
+                   coalesce(a.usename, '') AS "user.name",
+                   coalesce(a.datname, '') AS "db.namespace",
+                   coalesce(a.query_id::text, '') AS "postgresql.queryid",
+                   a.backend_type AS "postgresql.backend_type",
+                   coalesce(to_char(a.query_start AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS.US') || '+00', '') AS "postgresql.query_start",
+                   coalesce(round(extract(epoch FROM clock_timestamp() - a.query_start) * 1000)::text, '') AS "postgresql.total_exec_time",
+                   pg_blocking_pids(a.pid)::text AS "postgresql.blocking.pids",
+                   coalesce((SELECT string_agg(l.mode || ' ' || coalesce(l.relation::regclass::text, l.locktype), ', ')
+                             FROM pg_locks l WHERE l.pid = a.pid AND NOT l.granted), '') AS "postgresql.lock_wait",
+                   coalesce(v.phase, '') AS "postgresql.vacuum.phase",
+                   coalesce(v.relid::text, '') AS "postgresql.vacuum.relid",
+                   coalesce(round(100.0 * v.heap_blks_scanned / nullif(v.heap_blks_total, 0))::text, '') AS "postgresql.vacuum.scanned_pct",
+                   coalesce(substring(a.query FROM '/\*[^*]*\mtraceparent[[:space:]]*=[[:space:]]*''(00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2})''[^*]*\*/[[:space:]]*;?[[:space:]]*$'), '') AS "dbm.traceparent",
+                   coalesce((SELECT string_agg(CASE WHEN m[1] IS NULL THEN m[2]
+                                                    ELSE translate(m[1], '0123456789', '０１２３４５６７８９') END, '' ORDER BY n)
+                             FROM regexp_matches(a.query, '([[:alpha:]_][[:alnum:]_]*)|(\$[[:alpha:]_][[:alnum:]_]*\$|\$[0-9]+|[0-9][[:alnum:]_.]*|[^[:alnum:]_$]+|\$)', 'g')
+                                  WITH ORDINALITY AS tokens(m, n)), '') AS "db.query.text"
+            FROM pg_stat_activity a
+            LEFT JOIN pg_stat_progress_vacuum v ON v.pid = a.pid
+            WHERE a.pid <> pg_backend_pid()
+              AND (a.backend_type IN ('client backend', 'autovacuum worker') OR v.pid IS NOT NULL)
         username: otel
       sql_query/db_monitoring_postgresql_orders_details:
         additional_params:
           sslmode: disable
-        collection_interval: 10m
+        collection_interval: 5m
         database: postgres
         driver: postgres
         host: orders-db.databases.svc.cluster.local
@@ -598,7 +920,7 @@ data:
       sql_query/db_monitoring_postgresql_orders_health:
         additional_params:
           sslmode: disable
-        collection_interval: 5m
+        collection_interval: 60s
         database: postgres
         driver: postgres
         host: orders-db.databases.svc.cluster.local
@@ -644,7 +966,7 @@ data:
       sql_query/db_monitoring_postgresql_orders_schema_billing:
         additional_params:
           sslmode: disable
-        collection_interval: 10m
+        collection_interval: 30m
         database: billing
         driver: postgres
         host: orders-db.databases.svc.cluster.local
@@ -705,7 +1027,7 @@ data:
       sql_query/db_monitoring_postgresql_orders_schema_orders:
         additional_params:
           sslmode: disable
-        collection_interval: 10m
+        collection_interval: 30m
         database: orders
         driver: postgres
         host: orders-db.databases.svc.cluster.local
@@ -832,7 +1154,60 @@ data:
     service:
       extensions:
       - health_check
+      - aws_iam_db_auth/us-east-1
       pipelines:
+        logs/db_monitoring_postgresql_inventory_activity:
+          exporters:
+          - coralogix/coralogix_db_monitoring_queries
+          processors:
+          - memory_limiter
+          - filter/db_monitoring_postgresql_inventory_own_queries
+          - resource/db_monitoring_postgresql_inventory
+          - transform/db_monitoring_activity
+          - redaction/db_monitoring_activity
+          - transform/db_monitoring_activity_clean
+          - transform/db_monitoring_postgresql
+          - batch/db_monitoring
+          receivers:
+          - sql_query/db_monitoring_postgresql_inventory_activity
+        logs/db_monitoring_postgresql_inventory_queries:
+          exporters:
+          - coralogix/coralogix_db_monitoring_queries
+          processors:
+          - memory_limiter
+          - filter/db_monitoring_postgresql_inventory_own_queries
+          - resource/db_monitoring_postgresql_inventory
+          - transform/db_monitoring_postgresql
+          - batch/db_monitoring
+          receivers:
+          - postgresql/db_monitoring_postgresql_inventory_queries
+        logs/db_monitoring_postgresql_inventory_rds_plans:
+          exporters:
+          - coralogix/coralogix_db_monitoring_queries
+          processors:
+          - memory_limiter
+          - transform/db_monitoring_rds_plans
+          - filter/db_monitoring_rds_plans
+          - filter/db_monitoring_postgresql_inventory_own_queries
+          - resource/db_monitoring_postgresql_inventory
+          - transform/db_monitoring_postgresql
+          - batch/db_monitoring
+          receivers:
+          - aws_cloudwatch/db_monitoring_postgresql_inventory_rds_logs
+        logs/db_monitoring_postgresql_orders_activity:
+          exporters:
+          - coralogix/coralogix_db_monitoring_queries
+          processors:
+          - memory_limiter
+          - filter/db_monitoring_postgresql_orders_own_queries
+          - resource/db_monitoring_postgresql_orders
+          - transform/db_monitoring_activity
+          - redaction/db_monitoring_activity
+          - transform/db_monitoring_activity_clean
+          - transform/db_monitoring_postgresql
+          - batch/db_monitoring
+          receivers:
+          - sql_query/db_monitoring_postgresql_orders_activity
         logs/db_monitoring_postgresql_orders_catalog:
           exporters:
           - coralogix/coralogix_db_monitoring_catalog
@@ -840,6 +1215,7 @@ data:
           - memory_limiter
           - resource/db_monitoring_postgresql_orders
           - transform/db_monitoring_catalog
+          - transform/db_monitoring_postgresql_orders_catalog_interval
           - batch/db_monitoring
           receivers:
           - sql_query/db_monitoring_postgresql_orders_details
@@ -847,7 +1223,7 @@ data:
           - sql_query/db_monitoring_postgresql_orders_schema_billing
         logs/db_monitoring_postgresql_orders_queries:
           exporters:
-          - coralogix
+          - coralogix/coralogix_db_monitoring_queries
           processors:
           - memory_limiter
           - filter/db_monitoring_postgresql_orders_own_queries

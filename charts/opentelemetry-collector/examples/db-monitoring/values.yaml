@@ -27,7 +27,8 @@ presets:
       - name: orders
         host: orders-db.databases.svc.cluster.local
         username: otel
-        password: ${env:ORDERS_DB_PASSWORD}
+        auth:
+          password: ${env:ORDERS_DB_PASSWORD}
         instanceId: production/databases/orders-db
         databases: [orders, billing]
         tls:
@@ -36,21 +37,45 @@ presets:
           k8s.cluster.name: production
           k8s.namespace.name: databases
           k8s.statefulset.name: orders-db
-        querySamples:
+        activitySnapshots:
           enabled: true
         topQueries:
           enabled: true
         catalog:
           enabled: true
+        receivers:
+          schema:
+            collectionInterval: 30m
       - name: inventory
-        host: inventory-db.example.com
-        port: 5433
-        username: otel
-        password: ${env:INVENTORY_DB_PASSWORD}
-        instanceId: production/inventory-db
+        # Use the RDS endpoint and give the collector's AWS identity rds-db:connect.
+        host: inventory.abcdefghijkl.us-east-1.rds.amazonaws.com
+        username: inventory_monitor
+        auth:
+          aws_iam:
+            region: us-east-1
+        # Match the identifier used by the Coralogix RDS integration.
+        instanceId: inventory
         connectDatabase: inventory
+        rdsLogs:
+          enabled: true
+        tls:
+          ca_file: /etc/rds-certs/global-bundle.pem
         resourceAttributes:
           deployment.environment.name: production
+          cloud.provider: aws
+          cloud.platform: aws_rds
+          cloud.account.id: "123456789012"
+          cloud.region: us-east-1
+          aws.rds.db_instance_identifier: inventory
+        querySamples:
+          enabled: true
+        activitySnapshots:
+          enabled: true
+        topQueries:
+          enabled: true
+        # RDS targets exclude the logical database rdsadmin by default.
+        # This list replaces the default exclusions for this target.
+        excludeUsers: [inventory_monitor, otel, rdsadmin, otel_catalog, schema_migrator]
 
 config:
   exporters:
@@ -73,8 +98,16 @@ extraEnvs:
       secretKeyRef:
         name: db-monitoring
         key: orders-password
-  - name: INVENTORY_DB_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: db-monitoring
-        key: inventory-password
+
+# Create this ConfigMap in the collector namespace with the AWS RDS CA bundle.
+extraVolumes:
+  - name: rds-ca-bundle
+    configMap:
+      name: rds-ca-bundle
+      items:
+        - key: global-bundle.pem
+          path: global-bundle.pem
+extraVolumeMounts:
+  - name: rds-ca-bundle
+    mountPath: /etc/rds-certs
+    readOnly: true
