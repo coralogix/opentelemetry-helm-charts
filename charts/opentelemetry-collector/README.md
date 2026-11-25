@@ -558,8 +558,13 @@ presets:
     # Optional custom metrics for Kubernetes dashboard compatibility
     customMetrics:
       enabled: true
+    # Optional container status reasons (nine series per container)
+    containerStatusReason:
+      enabled: true
     # collectionInterval: 30s
 ```
+
+The `containerStatusReason` option is disabled by default. When enabled, the `k8s_cluster` receiver emits `k8s.container.status.reason` for the supported container status reasons. It emits one series per supported reason for each container (nine series per container), so enable it with the resulting metric cardinality in mind.
 
 ### Configuration for Retrieving Kubernetes Events
 

@@ -1164,6 +1164,17 @@
                   "type": "boolean"
                 }
               }
+            },
+            "containerStatusReason": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "description": "Specifies whether to collect the k8s.container.status.reason metric (nine reason series per container).",
+                  "type": "boolean",
+                  "default": false
+                }
+              }
             }
           }
         },
