@@ -2,6 +2,10 @@
 
 ## OpenTelemetry Collector
 
+### v0.143.10 / 2026-11-25
+
+- [Feat] Add opt-in `presets.clusterMetrics.containerStatusReason.enabled` to collect `k8s.container.status.reason`. It is disabled by default and emits nine reason series per container.
+
 
 ### v0.143.10 / 2026-11-25
 

@@ -807,9 +807,17 @@ receivers:
         enabled: true
       k8s.container.status.last_terminated_reason:
         enabled: true
+    {{- end }}
+    {{- if or (and .Values.presets.clusterMetrics.customMetrics .Values.presets.clusterMetrics.customMetrics.enabled) (and .Values.presets.clusterMetrics.containerStatusReason .Values.presets.clusterMetrics.containerStatusReason.enabled) }}
     metrics:
+      {{- if and .Values.presets.clusterMetrics.customMetrics .Values.presets.clusterMetrics.customMetrics.enabled }}
       k8s.pod.status_reason:
         enabled: true
+      {{- end }}
+      {{- if and .Values.presets.clusterMetrics.containerStatusReason .Values.presets.clusterMetrics.containerStatusReason.enabled }}
+      k8s.container.status.reason:
+        enabled: true
+      {{- end }}
     {{- end }}
 processors:
   {{- if  .Values.presets.clusterMetrics.customMetrics.enabled }}

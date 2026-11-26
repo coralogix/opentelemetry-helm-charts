@@ -456,6 +456,9 @@ presets:
     # collectionInterval: 30s
     customMetrics:
       enabled: false
+    # Enables k8s.container.status.reason, which emits nine reason series per container.
+    containerStatusReason:
+      enabled: false
 
   # Configures the Delta to Cumulative processor to convert metrics from delta temporality to cumulative.
   # Adds the deltatocumulative processor to the metrics pipeline.
