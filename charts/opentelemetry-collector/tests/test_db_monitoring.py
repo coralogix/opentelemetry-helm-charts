@@ -46,13 +46,14 @@ def target(name="orders", *, username="monitor", auth=None, **options):
                 instanceId=f"production/{name}", **options)
 
 
-def collect_logs(config, pipeline, inputs, operators):
+def collect_logs(config, pipeline, inputs, operators, *, receiver_options=None):
     with tempfile.TemporaryDirectory() as directory:
         directory = Path(directory)
         source = directory / "input.jsonl"
         output = directory / "output.jsonl"
-        source.write_text("".join(json.dumps(record) + "\n" for record in inputs))
+        source.write_text(inputs if isinstance(inputs, str) else "".join(json.dumps(record) + "\n" for record in inputs))
         config["receivers"] = {"file_log": {
+            **(receiver_options or {}),
             "include": [str(source)], "start_at": "beginning", "operators": operators,
         }}
         config["exporters"] = {"file": {"path": str(output), "flush_interval": "100ms"}}

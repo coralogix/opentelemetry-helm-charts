@@ -14,6 +14,16 @@
         "timeout": { "$ref": "#/$defs/dbMonitoringDuration" }
       }
     },
+    "dbMonitoringToggle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": { "enabled": { "type": "boolean" } }
+    },
+    "dbMonitoringFilePaths": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
     "intOrString": {
       "anyOf": [
         {
@@ -406,12 +416,107 @@
       "additionalProperties": false,
       "properties": {
         "dbMonitoring": {
-          "description": "Collect PostgreSQL metrics and optional query and catalog events.",
+          "description": "Collect PostgreSQL and MySQL metrics and optional query and catalog events.",
           "type": "object",
           "additionalProperties": false,
           "properties": {
             "enabled": {
               "type": "boolean"
+            },
+            "mysql": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["name", "host", "username", "auth", "instanceId"],
+                "properties": {
+                  "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+                  "host": { "type": "string", "minLength": 1 },
+                  "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+                  "username": { "type": "string", "minLength": 1 },
+                  "auth": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "minProperties": 1,
+                    "maxProperties": 1,
+                    "properties": {
+                      "password": { "type": "string" },
+                      "aws_iam": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": ["region"],
+                        "properties": { "region": { "type": "string", "pattern": "^[a-z0-9-]+$" } }
+                      }
+                    }
+                  },
+                  "sqlAuth": {
+                    "description": "Password credentials for SQL health, table, and catalog receivers when different from the native receiver login.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["username", "password"],
+                    "properties": {
+                      "username": { "type": "string", "minLength": 1 },
+                      "password": { "type": "string" }
+                    }
+                  },
+                  "instanceId": { "type": "string", "minLength": 1 },
+                  "collectionInterval": { "$ref": "#/$defs/dbMonitoringDuration" },
+                  "excludeUsers": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": { "type": "string", "minLength": 1 }
+                  },
+                  "receivers": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "performance": { "$ref": "#/$defs/dbMonitoringReceiver" },
+                      "health": { "$ref": "#/$defs/dbMonitoringReceiver" },
+                      "tables": { "$ref": "#/$defs/dbMonitoringReceiver" },
+                      "querySamples": { "$ref": "#/$defs/dbMonitoringReceiver" },
+                      "topQueries": { "$ref": "#/$defs/dbMonitoringReceiver" },
+                      "details": { "$ref": "#/$defs/dbMonitoringReceiver" },
+                      "schema": { "$ref": "#/$defs/dbMonitoringReceiver" }
+                    }
+                  },
+                  "resourceAttributes": {
+                    "type": "object",
+                    "additionalProperties": { "type": ["string", "number", "boolean"] }
+                  },
+                  "metrics": { "$ref": "#/$defs/dbMonitoringToggle" },
+                  "querySamples": { "$ref": "#/$defs/dbMonitoringToggle" },
+                  "catalog": { "$ref": "#/$defs/dbMonitoringToggle" },
+                  "topQueries": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "enabled": { "type": "boolean" },
+                      "planEvents": { "type": "boolean" },
+                      "planCacheTTL": { "$ref": "#/$defs/dbMonitoringDuration" }
+                    }
+                  },
+                  "serverLogs": {
+                    "description": "Collect local MySQL JSON error and FILE slow logs.",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "errorPaths": { "$ref": "#/$defs/dbMonitoringFilePaths" },
+                      "slowPaths": { "$ref": "#/$defs/dbMonitoringFilePaths" },
+                      "pollInterval": { "$ref": "#/$defs/dbMonitoringDuration" },
+                      "startAt": { "enum": ["beginning", "end"] }
+                    }
+                  },
+                  "tls": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "insecure": { "type": "boolean" },
+                      "insecure_skip_verify": { "type": "boolean" },
+                      "ca_file": { "type": "string", "minLength": 1 }
+                    }
+                  }
+                }
+              }
             },
             "postgresql": {
               "type": "array",

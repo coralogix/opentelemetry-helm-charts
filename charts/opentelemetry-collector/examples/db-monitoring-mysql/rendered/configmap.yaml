@@ -1,0 +1,1261 @@
+---
+# Source: opentelemetry-collector/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-opentelemetry-collector
+  namespace: default
+  labels:
+    helm.sh/chart: opentelemetry-collector-0.143.10
+    app.kubernetes.io/name: opentelemetry-collector
+    app.kubernetes.io/instance: example
+    app.kubernetes.io/version: "0.165.0"
+    app.kubernetes.io/managed-by: Helm
+data:
+  relay: |
+    exporters:
+      coralogix:
+        application_name: db-monitoring
+        application_name_attributes:
+        - k8s.namespace.name
+        - service.namespace
+        domain: coralogix.com
+        domain_settings:
+          keepalive:
+            enabled: true
+            permit_without_stream: false
+            time: 30s
+            timeout: 10s
+        logs:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        metrics:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        private_key: ${env:CORALOGIX_PRIVATE_KEY}
+        profiles:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+            x-coralogix-ingress: otlp/v1.10.0
+        sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
+          enabled: true
+          num_consumers: 20
+          queue_size: 209715200
+          sizer: bytes
+        subsystem_name: ""
+        subsystem_name_attributes:
+        - k8s.deployment.name
+        - k8s.statefulset.name
+        - k8s.daemonset.name
+        - k8s.cronjob.name
+        - service.name
+        timeout: 30s
+        traces:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+      coralogix/coralogix_db_monitoring_catalog:
+        application_name: resource
+        application_name_attributes: []
+        domain: coralogix.com
+        domain_settings:
+          keepalive:
+            enabled: true
+            permit_without_stream: false
+            time: 30s
+            timeout: 10s
+        logs:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+            x-coralogix-ingress: metadata-as-otlp-logs/v1
+        metrics:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        private_key: ${env:CORALOGIX_PRIVATE_KEY}
+        profiles:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+            x-coralogix-ingress: otlp/v1.10.0
+        sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
+          enabled: true
+          num_consumers: 20
+          queue_size: 209715200
+          sizer: bytes
+        subsystem_name: catalog
+        subsystem_name_attributes: []
+        timeout: 30s
+        traces:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+      coralogix/coralogix_db_monitoring_mysql_metrics:
+        application_name: db-monitoring
+        application_name_attributes:
+        - k8s.namespace.name
+        - service.namespace
+        domain: coralogix.com
+        domain_settings:
+          keepalive:
+            enabled: true
+            permit_without_stream: false
+            time: 30s
+            timeout: 10s
+        logs:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        metrics:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        private_key: ${env:CORALOGIX_PRIVATE_KEY}
+        profiles:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+            x-coralogix-ingress: otlp/v1.10.0
+        sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
+          enabled: true
+          num_consumers: 20
+          queue_size: 209715200
+          sizer: bytes
+        subsystem_name: mysql
+        subsystem_name_attributes: []
+        timeout: 30s
+        traces:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+      coralogix/coralogix_db_monitoring_mysql_queries:
+        application_name: db-monitoring
+        application_name_attributes:
+        - k8s.namespace.name
+        - service.namespace
+        domain: coralogix.com
+        domain_settings:
+          keepalive:
+            enabled: true
+            permit_without_stream: false
+            time: 30s
+            timeout: 10s
+        logs:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        metrics:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+        private_key: ${env:CORALOGIX_PRIVATE_KEY}
+        profiles:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+            x-coralogix-ingress: otlp/v1.10.0
+        sending_queue:
+          batch:
+            flush_timeout: 250ms
+            max_size: 2097152
+            min_size: 1048576
+            sizer: bytes
+          enabled: true
+          num_consumers: 20
+          queue_size: 209715200
+          sizer: bytes
+        subsystem_name: mysql-slow-queries
+        subsystem_name_attributes: []
+        timeout: 30s
+        traces:
+          headers:
+            X-Coralogix-Distribution: helm-otel-integration/
+    extensions:
+      aws_iam_db_auth/us-east-1:
+        region: us-east-1
+      health_check:
+        endpoint: ${env:MY_POD_IP}:13133
+    processors:
+      batch/db_monitoring: {}
+      filter/db_monitoring_mysql_inventory-mysql_own_queries:
+        error_mode: ignore
+        logs:
+          log_record:
+          - attributes["db.namespace"] == "information_schema"
+          - IsString(attributes["db.query.text"]) and IsMatch(attributes["db.query.text"],
+            "(?i)^(SHOW (GLOBAL STATUS|REPLICA STATUS|SLAVE STATUS)|SELECT \\? FROM DUAL|USE
+            \\S+)$|(performance_schema|information_schema) \\. |thread \\. processlist_id")
+          - attributes["user.name"] == "otel"
+          - attributes["user.name"] == "otel_catalog"
+          - attributes["user.name"] == "rdsadmin"
+          - attributes["user.name"] == "schema_migrator"
+      filter/db_monitoring_mysql_storefront_own_queries:
+        error_mode: ignore
+        logs:
+          log_record:
+          - attributes["db.namespace"] == "information_schema"
+          - IsString(attributes["db.query.text"]) and IsMatch(attributes["db.query.text"],
+            "(?i)^(SHOW (GLOBAL STATUS|REPLICA STATUS|SLAVE STATUS)|SELECT \\? FROM DUAL|USE
+            \\S+)$|(performance_schema|information_schema) \\. |thread \\. processlist_id")
+          - attributes["user.name"] == "otel"
+          - attributes["user.name"] == "otel_catalog"
+          - attributes["user.name"] == "rdsadmin"
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      resource/db_monitoring_mysql_inventory-mysql:
+        attributes:
+        - action: upsert
+          key: aws.rds.db_instance_identifier
+          value: inventory-mysql
+        - action: upsert
+          key: cloud.account.id
+          value: "123456789012"
+        - action: upsert
+          key: cloud.platform
+          value: aws_rds
+        - action: upsert
+          key: cloud.provider
+          value: aws
+        - action: upsert
+          key: cloud.region
+          value: us-east-1
+        - action: upsert
+          key: cx.db.instance.id
+          value: inventory-mysql
+        - action: upsert
+          key: db.system.name
+          value: mysql
+        - action: upsert
+          key: server.address
+          value: inventory-mysql.abcdefghijkl.us-east-1.rds.amazonaws.com
+        - action: upsert
+          key: server.port
+          value: 3306
+      resource/db_monitoring_mysql_storefront:
+        attributes:
+        - action: upsert
+          key: cx.db.instance.id
+          value: production/databases/storefront-db
+        - action: upsert
+          key: db.system.name
+          value: mysql
+        - action: upsert
+          key: k8s.cluster.name
+          value: production
+        - action: upsert
+          key: k8s.namespace.name
+          value: databases
+        - action: upsert
+          key: k8s.statefulset.name
+          value: storefront-db
+        - action: upsert
+          key: server.address
+          value: storefront-db.databases.svc.cluster.local
+        - action: upsert
+          key: server.port
+          value: 3306
+      transform/db_monitoring_mysql:
+        error_mode: ignore
+        log_statements:
+        - context: log
+          statements:
+          - set(attributes["event.name"], event_name) where event_name != nil and event_name
+            != ""
+          - set(attributes["trace.id"], trace_id.string) where trace_id.string != "00000000000000000000000000000000"
+          - set(attributes["span.id"], span_id.string) where span_id.string != "0000000000000000"
+        - context: log
+          statements:
+          - delete_key(attributes, "db.namespace") where attributes["db.namespace"] ==
+            ""
+          - delete_key(attributes, "mysql.query_plan") where attributes["mysql.query_plan"]
+            == ""
+          - set(attributes["db.plan.signature"], SHA256(attributes["mysql.query_plan"]))
+            where attributes["mysql.query_plan"] != nil
+          - set(attributes["db.response.status_code"], String(attributes["err_code"]))
+            where attributes["err_code"] != nil
+          - set(attributes["mysql.error.symbol"], attributes["err_symbol"]) where attributes["err_symbol"]
+            != nil
+          - set(attributes["mysql.sql_state"], attributes["SQL_state"]) where attributes["SQL_state"]
+            != nil
+          - set(attributes["db.response.status_code"], attributes["errno"]) where attributes["errno"]
+            != nil and attributes["errno"] != "0"
+          - set(attributes["mysql.query_time"], Double(attributes["query_time"])) where
+            attributes["query_time"] != nil
+          - set(attributes["mysql.lock_time"], Double(attributes["lock_time"])) where
+            attributes["lock_time"] != nil
+          - set(attributes["mysql.rows_sent"], Int(attributes["rows_sent"])) where attributes["rows_sent"]
+            != nil
+          - set(attributes["mysql.rows_examined"], Int(attributes["rows_examined"])) where
+            attributes["rows_examined"] != nil
+          - set(attributes["client.address"], attributes["client_ip"]) where attributes["client_ip"]
+            != nil and attributes["client_ip"] != ""
+          - set(attributes["mysql.threads.thread_id"], Int(attributes["thread_id"])) where
+            attributes["thread_id"] != nil
+          - delete_matching_keys(attributes, "^(err_code|err_symbol|SQL_state|errno|query_time|lock_time|rows_sent|rows_examined|client_ip|client_host|thread_id)$")
+          - delete_key(attributes, "client.address") where attributes["client.address"]
+            == ""
+        metric_statements:
+        - context: datapoint
+          statements:
+          - set(attributes["db.namespace"], attributes["schema"]) where attributes["schema"]
+            != nil
+          - set(attributes["db.collection.name"], attributes["table"]) where attributes["table"]
+            != nil
+          - set(attributes["db.index.name"], attributes["index"]) where attributes["index"]
+            != nil
+          - set(attributes["db.query.id"], attributes["digest"]) where attributes["digest"]
+            != nil
+          - set(attributes["db.query.text"], attributes["digest_text"]) where attributes["digest_text"]
+            != nil
+          - set(attributes["mysql.column.name"], attributes["column"]) where attributes["column"]
+            != nil
+          - set(attributes["mysql.binlog.file.name"], attributes["Log_name"]) where attributes["Log_name"]
+            != nil
+          - delete_matching_keys(attributes, "^(schema|table|index|digest|digest_text|column|Log_name)$")
+      transform/db_monitoring_mysql_catalog:
+        error_mode: ignore
+        log_statements:
+        - context: scope
+          statements:
+          - set(attributes["otel.entity.event_as_log"], true)
+        - context: log
+          statements:
+          - merge_maps(attributes, resource.attributes, "insert")
+          - set(time, observed_time) where time_unix_nano == 0
+          - set(attributes["otel.entity.event.type"], "entity_state")
+          - set(attributes["otel.entity.type"], body)
+          - set(attributes["db.catalog.version"], "2")
+          - 'set(attributes["otel.entity.id"], {"db.instance.id": resource.attributes["cx.db.instance.id"]})
+            where body == "db.instance"'
+          - 'set(attributes["otel.entity.id"], {"db.schema.instance.id": resource.attributes["cx.db.instance.id"]})
+            where body == "db.schema"'
+          - set(attributes["db.system.version"], attributes["db_version"]) where body
+            == "db.instance"
+          - set(attributes["db.role"], attributes["db_role"]) where body == "db.instance"
+          - set(attributes["db.max_connections"], attributes["max_connections"]) where
+            body == "db.instance"
+          - set(attributes["db.databases"], ParseJSON(attributes["databases"])) where
+            body == "db.instance"
+          - set(attributes["db.extensions"], ParseJSON(attributes["extensions"])) where
+            body == "db.instance"
+          - set(attributes["db.replication_channels"], ParseJSON(attributes["replication_channels"]))
+            where body == "db.instance"
+          - set(attributes["db.settings"], ParseJSON(attributes["settings"])) where body
+            == "db.instance"
+          - set(attributes["db.schema.database_count"], attributes["database_count"])
+            where body == "db.schema"
+          - set(attributes["db.schema.variant_count"], attributes["variant_count"]) where
+            body == "db.schema"
+          - set(attributes["db.schema.hash"], attributes["schema_hash"]) where body ==
+            "db.schema"
+          - set(attributes["db.schema.variants"], ParseJSON(attributes["schema_variants"]))
+            where body == "db.schema"
+          - delete_matching_keys(attributes, "^(db_version|db_role|max_connections|databases|extensions|replication_channels|settings|database_count|variant_count|schema_hash|schema_variants)$")
+      transform/db_monitoring_mysql_inventory-mysql_catalog_interval:
+        log_statements:
+        - context: log
+          statements:
+          - set(attributes["otel.entity.interval"], Milliseconds(Duration("5m"))) where
+            body == "db.instance"
+          - set(attributes["otel.entity.interval"], Milliseconds(Duration("5m"))) where
+            body == "db.schema"
+      transform/db_monitoring_mysql_storefront_catalog_interval:
+        log_statements:
+        - context: log
+          statements:
+          - set(attributes["otel.entity.interval"], Milliseconds(Duration("5m"))) where
+            body == "db.instance"
+          - set(attributes["otel.entity.interval"], Milliseconds(Duration("5m"))) where
+            body == "db.schema"
+      transform/prometheus:
+        error_mode: ignore
+        metric_statements:
+        - context: metric
+          statements:
+          - replace_pattern(metric.name, "_total$", "") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_cpu_seconds_seconds$", "otelcol_process_cpu_seconds")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_heap_alloc_bytes_bytes$",
+            "otelcol_process_runtime_heap_alloc_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_total_alloc_bytes_bytes$",
+            "otelcol_process_runtime_total_alloc_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_process_runtime_total_sys_memory_bytes_bytes$",
+            "otelcol_process_runtime_total_sys_memory_bytes") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_fileconsumer_open_files$", "otelcol_fileconsumer_open_files_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_fileconsumer_reading_files$", "otelcol_fileconsumer_reading_files_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_ip_lookup_miss$", "otelcol_otelsvc_k8s_ip_lookup_miss_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_added$", "otelcol_otelsvc_k8s_pod_added_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_updated$", "otelcol_otelsvc_k8s_pod_updated_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_otelsvc_k8s_pod_deleted$", "otelcol_otelsvc_k8s_pod_deleted_ratio")
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_log_records$",
+            "otelcol_processor_accepted_log_records") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_metric_points$",
+            "otelcol_processor_accepted_metric_points") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_accepted_spans$",
+            "otelcol_processor_accepted_spans") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_log_records$",
+            "otelcol_processor_refused_log_records") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_metric_points$",
+            "otelcol_processor_refused_metric_points") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_memory_limiter_refused_spans$",
+            "otelcol_processor_refused_spans") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - replace_pattern(metric.name, "^otelcol_processor_filter_spans\\.filtered$",
+            "otelcol_processor_filter_spans.filtered_ratio") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+        - context: resource
+          statements:
+          - set(resource.attributes["k8s.pod.ip"], resource.attributes["net.host.name"])
+            where resource.attributes["service.name"] == "opentelemetry-collector"
+          - delete_key(resource.attributes, "service_name") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+        - context: datapoint
+          statements:
+          - delete_key(datapoint.attributes, "service_name") where resource.attributes["service.name"]
+            == "opentelemetry-collector"
+          - delete_key(datapoint.attributes, "otel_scope_name") where datapoint.attributes["service.name"]
+            == "opentelemetry-collector"
+    receivers:
+      mysql/db_monitoring_mysql_inventory-mysql_metrics:
+        collection_interval: 60s
+        db_auth: aws_iam_db_auth/us-east-1
+        endpoint: inventory-mysql.abcdefghijkl.us-east-1.rds.amazonaws.com:3306
+        metrics:
+          mysql.commands:
+            enabled: true
+          mysql.connection.count:
+            enabled: true
+          mysql.connection.errors:
+            enabled: true
+          mysql.innodb.history_list.length:
+            enabled: true
+          mysql.innodb.row_lock.wait.count:
+            enabled: true
+          mysql.innodb.row_lock.wait.duration.avg:
+            enabled: true
+          mysql.innodb.row_lock.wait.duration.max:
+            enabled: true
+          mysql.innodb.transaction.active.count:
+            enabled: true
+          mysql.innodb.transaction.active.duration.max:
+            enabled: true
+          mysql.joins:
+            enabled: true
+          mysql.max_used_connections:
+            enabled: true
+          mysql.query.count:
+            enabled: true
+          mysql.query.execution.time:
+            enabled: true
+          mysql.query.slow.count:
+            enabled: true
+          mysql.replica.sql_delay:
+            enabled: true
+          mysql.replica.temp_table.open:
+            enabled: true
+          mysql.replica.thread.running:
+            enabled: true
+          mysql.replica.time_behind_source:
+            enabled: true
+          mysql.server.healthy:
+            enabled: true
+          mysql.session.active.count:
+            enabled: true
+          mysql.statement_event.count:
+            enabled: true
+          mysql.statement_event.wait.time:
+            enabled: true
+          mysql.table.average_row_length:
+            enabled: true
+          mysql.table.lock_wait.read.count:
+            enabled: true
+          mysql.table.lock_wait.read.time:
+            enabled: true
+          mysql.table.lock_wait.write.count:
+            enabled: true
+          mysql.table.lock_wait.write.time:
+            enabled: true
+          mysql.table.rows:
+            enabled: true
+          mysql.table.size:
+            enabled: true
+        resource_attributes:
+          db.system.name:
+            enabled: true
+          db.system.version:
+            enabled: true
+        statement_events:
+          digest_text_limit: 120
+          limit: 250
+          time_limit: 24h
+        tls:
+          ca_file: /etc/rds-certs/global-bundle.pem
+          insecure: false
+          insecure_skip_verify: false
+        transport: tcp
+        username: otel
+      mysql/db_monitoring_mysql_inventory-mysql_queries:
+        collection_interval: 60s
+        db_auth: aws_iam_db_auth/us-east-1
+        endpoint: inventory-mysql.abcdefghijkl.us-east-1.rds.amazonaws.com:3306
+        events:
+          db.server.query_plan:
+            enabled: false
+          db.server.query_sample:
+            enabled: true
+          db.server.top_query:
+            enabled: true
+        query_sample_collection:
+          max_rows_per_query: 20
+        resource_attributes:
+          db.system.name:
+            enabled: true
+          db.system.version:
+            enabled: true
+        tls:
+          ca_file: /etc/rds-certs/global-bundle.pem
+          insecure: false
+          insecure_skip_verify: false
+        top_query_collection:
+          collection_interval: 60s
+          lookback_time: 360
+          max_query_sample_count: 1000
+          query_plan_cache_size: 1000
+          query_plan_cache_ttl: 1h
+          top_query_count: 50
+        transport: tcp
+        username: otel
+      mysql/db_monitoring_mysql_storefront_metrics:
+        collection_interval: 60s
+        endpoint: storefront-db.databases.svc.cluster.local:3306
+        metrics:
+          mysql.commands:
+            enabled: true
+          mysql.connection.count:
+            enabled: true
+          mysql.connection.errors:
+            enabled: true
+          mysql.innodb.history_list.length:
+            enabled: true
+          mysql.innodb.row_lock.wait.count:
+            enabled: true
+          mysql.innodb.row_lock.wait.duration.avg:
+            enabled: true
+          mysql.innodb.row_lock.wait.duration.max:
+            enabled: true
+          mysql.innodb.transaction.active.count:
+            enabled: true
+          mysql.innodb.transaction.active.duration.max:
+            enabled: true
+          mysql.joins:
+            enabled: true
+          mysql.max_used_connections:
+            enabled: true
+          mysql.query.count:
+            enabled: true
+          mysql.query.execution.time:
+            enabled: true
+          mysql.query.slow.count:
+            enabled: true
+          mysql.replica.sql_delay:
+            enabled: true
+          mysql.replica.temp_table.open:
+            enabled: true
+          mysql.replica.thread.running:
+            enabled: true
+          mysql.replica.time_behind_source:
+            enabled: true
+          mysql.server.healthy:
+            enabled: true
+          mysql.session.active.count:
+            enabled: true
+          mysql.statement_event.count:
+            enabled: true
+          mysql.statement_event.wait.time:
+            enabled: true
+          mysql.table.average_row_length:
+            enabled: true
+          mysql.table.lock_wait.read.count:
+            enabled: true
+          mysql.table.lock_wait.read.time:
+            enabled: true
+          mysql.table.lock_wait.write.count:
+            enabled: true
+          mysql.table.lock_wait.write.time:
+            enabled: true
+          mysql.table.rows:
+            enabled: true
+          mysql.table.size:
+            enabled: true
+        password: ${env:MYSQL_PASSWORD}
+        resource_attributes:
+          db.system.name:
+            enabled: true
+          db.system.version:
+            enabled: true
+        statement_events:
+          digest_text_limit: 120
+          limit: 250
+          time_limit: 24h
+        tls:
+          insecure: true
+          insecure_skip_verify: false
+        transport: tcp
+        username: otel
+      mysql/db_monitoring_mysql_storefront_queries:
+        collection_interval: 60s
+        endpoint: storefront-db.databases.svc.cluster.local:3306
+        events:
+          db.server.query_plan:
+            enabled: false
+          db.server.query_sample:
+            enabled: true
+          db.server.top_query:
+            enabled: true
+        password: ${env:MYSQL_PASSWORD}
+        query_sample_collection:
+          max_rows_per_query: 20
+        resource_attributes:
+          db.system.name:
+            enabled: true
+          db.system.version:
+            enabled: true
+        tls:
+          insecure: true
+          insecure_skip_verify: false
+        top_query_collection:
+          collection_interval: 60s
+          lookback_time: 360
+          max_query_sample_count: 1000
+          query_plan_cache_size: 1000
+          query_plan_cache_ttl: 1h
+          top_query_count: 50
+        transport: tcp
+        username: otel
+      prometheus:
+        config:
+          scrape_configs:
+          - job_name: opentelemetry-collector
+            scrape_interval: 30s
+            static_configs:
+            - targets:
+              - ${env:MY_POD_IP}:8888
+      sql_query/db_monitoring_mysql_inventory-mysql_details:
+        additional_params:
+          group_concat_max_len: 67108864
+          information_schema_stats_expiry: 0
+          tls: "true"
+        collection_interval: 5m
+        database: information_schema
+        driver: mysql
+        host: inventory-mysql.abcdefghijkl.us-east-1.rds.amazonaws.com
+        initial_delay: 30s
+        password: ${env:MYSQL_CATALOG_PASSWORD}
+        port: 3306
+        queries:
+        - logs:
+          - attribute_columns:
+            - db_version
+            - db_role
+            - max_connections
+            - databases
+            - extensions
+            - replication_channels
+            - settings
+            body_column: state_kind
+          sql: |
+            SELECT 'db.instance' AS state_kind,
+                   @@version AS db_version,
+                   IF(@@super_read_only OR @@read_only, 'replica', 'primary') AS db_role,
+                   CAST(@@max_connections AS CHAR) AS max_connections,
+                   (SELECT CONCAT('[', COALESCE(GROUP_CONCAT(JSON_QUOTE(SCHEMA_NAME) ORDER BY SCHEMA_NAME), ''), ']')
+                    FROM information_schema.SCHEMATA
+                    WHERE SCHEMA_NAME NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')) AS `databases`,
+                   (SELECT CONCAT('[', COALESCE(GROUP_CONCAT(JSON_OBJECT('name', x.name, 'version', x.version, 'type', x.type) ORDER BY x.type, x.name), ''), ']')
+                    FROM (SELECT PLUGIN_NAME AS name, PLUGIN_VERSION AS version, 'plugin' AS type FROM information_schema.PLUGINS WHERE PLUGIN_STATUS = 'ACTIVE'
+                          UNION ALL
+                          SELECT component_urn, NULL, 'component' FROM mysql.component) x) AS extensions,
+                   (SELECT CONCAT('[', COALESCE(GROUP_CONCAT(JSON_OBJECT('name', c.CHANNEL_NAME, 'source_host', c.HOST, 'source_port', c.PORT,
+                                                                         'auto_position', CAST(IF(c.AUTO_POSITION = '1', 'true', 'false') AS JSON),
+                                                                         'service_state', s.SERVICE_STATE) ORDER BY c.CHANNEL_NAME), ''), ']')
+                    FROM performance_schema.replication_connection_configuration c
+                    LEFT JOIN performance_schema.replication_connection_status s ON s.CHANNEL_NAME = c.CHANNEL_NAME) AS replication_channels,
+                   (SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('name', g.VARIABLE_NAME, 'value', g.VARIABLE_VALUE, 'unit', NULL,
+                                                                'default', IF(i.VARIABLE_SOURCE = 'COMPILED', g.VARIABLE_VALUE, NULL), 'source', i.VARIABLE_SOURCE,
+                                                                'context', NULL,
+                                                                'pending_restart', CAST(IF(p.VARIABLE_VALUE IS NOT NULL AND p.VARIABLE_VALUE <> g.VARIABLE_VALUE, 'true', 'false') AS JSON),
+                                                                'min', i.MIN_VALUE, 'max', i.MAX_VALUE, 'set_time', i.SET_TIME) ORDER BY g.VARIABLE_NAME), ']')
+                    FROM performance_schema.global_variables g
+                    JOIN performance_schema.variables_info i ON i.VARIABLE_NAME = g.VARIABLE_NAME
+                    LEFT JOIN performance_schema.persisted_variables p ON p.VARIABLE_NAME = g.VARIABLE_NAME
+                    WHERE g.VARIABLE_NAME NOT IN ('gtid_executed', 'gtid_purged', 'gtid_owned')) AS settings
+        username: otel_catalog
+      sql_query/db_monitoring_mysql_inventory-mysql_health:
+        additional_params:
+          group_concat_max_len: 67108864
+          information_schema_stats_expiry: 0
+          tls: "true"
+        collection_interval: 60s
+        database: information_schema
+        driver: mysql
+        host: inventory-mysql.abcdefghijkl.us-east-1.rds.amazonaws.com
+        password: ${env:MYSQL_CATALOG_PASSWORD}
+        port: 3306
+        queries:
+        - metrics:
+          - attribute_columns:
+            - schema
+            - table
+            - column
+            description: Next auto_increment value as a percent of the column type's maximum.
+            metric_name: mysql.table.auto_increment.used
+            unit: '%'
+            value_column: used_pct
+            value_type: double
+          sql: |
+            SELECT t.TABLE_SCHEMA AS `schema`, t.TABLE_NAME AS `table`, c.COLUMN_NAME AS `column`,
+                   CAST(100 * t.AUTO_INCREMENT / CASE c.DATA_TYPE
+                     WHEN 'tinyint' THEN 127 WHEN 'smallint' THEN 32767 WHEN 'mediumint' THEN 8388607
+                     WHEN 'int' THEN 2147483647 WHEN 'bigint' THEN 9223372036854775807 END
+                     / IF(c.COLUMN_TYPE LIKE '%unsigned%', 2, 1) AS DOUBLE) AS used_pct
+            FROM information_schema.TABLES t
+            JOIN information_schema.COLUMNS c ON c.TABLE_SCHEMA = t.TABLE_SCHEMA AND c.TABLE_NAME = t.TABLE_NAME AND c.EXTRA LIKE '%auto_increment%'
+            WHERE t.AUTO_INCREMENT IS NOT NULL AND t.TABLE_SCHEMA NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')
+        - metrics:
+          - attribute_columns:
+            - schema
+            - table
+            metric_name: mysql.table.free_space
+            unit: By
+            value_column: free_bytes
+          - attribute_columns:
+            - schema
+            - table
+            description: DATA_FREE / DATA_LENGTH.
+            metric_name: mysql.table.fragmentation
+            unit: "1"
+            value_column: free_ratio
+            value_type: double
+          sql: |
+            SELECT TABLE_SCHEMA AS `schema`, TABLE_NAME AS `table`, DATA_FREE AS free_bytes,
+                   CAST(COALESCE(DATA_FREE / NULLIF(DATA_LENGTH, 0), 0) AS DOUBLE) AS free_ratio
+            FROM information_schema.TABLES
+            WHERE TABLE_TYPE = 'BASE TABLE' AND ENGINE = 'InnoDB' AND TABLE_SCHEMA NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')
+        - metrics:
+          - attribute_columns:
+            - Log_name
+            metric_name: mysql.binlog.file.size
+            unit: By
+            value_column: File_size
+          sql: SHOW BINARY LOGS
+        username: otel_catalog
+      sql_query/db_monitoring_mysql_inventory-mysql_schema:
+        additional_params:
+          group_concat_max_len: 67108864
+          information_schema_stats_expiry: 0
+          tls: "true"
+        collection_interval: 5m
+        database: information_schema
+        driver: mysql
+        host: inventory-mysql.abcdefghijkl.us-east-1.rds.amazonaws.com
+        initial_delay: 30s
+        password: ${env:MYSQL_CATALOG_PASSWORD}
+        port: 3306
+        queries:
+        - logs:
+          - attribute_columns:
+            - database_count
+            - variant_count
+            - schema_hash
+            - schema_variants
+            body_column: state_kind
+          sql: |
+            WITH dbs AS (
+              SELECT SCHEMA_NAME AS db FROM information_schema.SCHEMATA
+              WHERE SCHEMA_NAME NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')
+            ), t AS (
+              SELECT t.TABLE_SCHEMA AS db, t.TABLE_NAME AS name, t.TABLE_TYPE AS table_type,
+                     ROW_NUMBER() OVER (PARTITION BY t.TABLE_SCHEMA ORDER BY t.TABLE_NAME) AS rn
+              FROM information_schema.TABLES t JOIN dbs ON dbs.db = t.TABLE_SCHEMA
+            ), parts AS (
+              SELECT p.TABLE_SCHEMA AS db, p.TABLE_NAME AS name, COUNT(*) AS n
+              FROM information_schema.PARTITIONS p JOIN dbs ON dbs.db = p.TABLE_SCHEMA
+              WHERE p.PARTITION_NAME IS NOT NULL
+              GROUP BY p.TABLE_SCHEMA, p.TABLE_NAME
+            ), cols AS (
+              SELECT c.TABLE_SCHEMA AS db, c.TABLE_NAME AS name,
+                     CONCAT('[', GROUP_CONCAT(JSON_OBJECT('name', c.COLUMN_NAME, 'type', c.COLUMN_TYPE,
+                                                          'nullable', CAST(IF(c.IS_NULLABLE = 'YES', 'true', 'false') AS JSON),
+                                                          'default', c.COLUMN_DEFAULT, 'extra', c.EXTRA) ORDER BY c.ORDINAL_POSITION), ']') AS j
+              FROM information_schema.COLUMNS c JOIN dbs ON dbs.db = c.TABLE_SCHEMA
+              GROUP BY c.TABLE_SCHEMA, c.TABLE_NAME
+            ), idx AS (
+              SELECT s.TABLE_SCHEMA AS db, s.TABLE_NAME AS name, s.INDEX_NAME AS index_name,
+                     MAX(s.NON_UNIQUE) = 0 AS is_unique, MAX(s.IS_VISIBLE) AS visible,
+                     CONCAT('CREATE ', IF(MAX(s.NON_UNIQUE) = 0, 'UNIQUE ', ''), 'INDEX ', s.INDEX_NAME, ' ON ', s.TABLE_NAME, ' USING ', MAX(s.INDEX_TYPE), ' (',
+                            GROUP_CONCAT(CONCAT(COALESCE(s.COLUMN_NAME, CONCAT('(', s.EXPRESSION, ')')), IF(s.SUB_PART IS NULL, '', CONCAT('(', s.SUB_PART, ')')),
+                                                IF(s.COLLATION = 'D', ' DESC', '')) ORDER BY s.SEQ_IN_INDEX SEPARATOR ', '), ')') AS definition
+              FROM information_schema.STATISTICS s JOIN dbs ON dbs.db = s.TABLE_SCHEMA
+              GROUP BY s.TABLE_SCHEMA, s.TABLE_NAME, s.INDEX_NAME
+            ), idxs AS (
+              SELECT db, name,
+                     CONCAT('[', GROUP_CONCAT(JSON_OBJECT('name', index_name, 'definition', definition,
+                                                          'unique', CAST(IF(is_unique, 'true', 'false') AS JSON),
+                                                          'primary', CAST(IF(index_name = 'PRIMARY', 'true', 'false') AS JSON),
+                                                          'visible', CAST(IF(visible = 'YES', 'true', 'false') AS JSON)) ORDER BY index_name), ']') AS j
+              FROM idx GROUP BY db, name
+            ), kcu AS (
+              SELECT k.CONSTRAINT_SCHEMA AS db, k.TABLE_NAME AS name, k.CONSTRAINT_NAME AS cname,
+                     GROUP_CONCAT(k.COLUMN_NAME ORDER BY k.ORDINAL_POSITION SEPARATOR ', ') AS cols,
+                     MAX(IF(k.REFERENCED_TABLE_SCHEMA = k.TABLE_SCHEMA, k.REFERENCED_TABLE_NAME, CONCAT(k.REFERENCED_TABLE_SCHEMA, '.', k.REFERENCED_TABLE_NAME))) AS ref_table,
+                     GROUP_CONCAT(k.REFERENCED_COLUMN_NAME ORDER BY k.ORDINAL_POSITION SEPARATOR ', ') AS ref_cols
+              FROM information_schema.KEY_COLUMN_USAGE k JOIN dbs ON dbs.db = k.CONSTRAINT_SCHEMA
+              GROUP BY k.CONSTRAINT_SCHEMA, k.TABLE_NAME, k.CONSTRAINT_NAME
+            ), cons AS (
+              SELECT tc.CONSTRAINT_SCHEMA AS db, tc.TABLE_NAME AS name,
+                     CONCAT('[', GROUP_CONCAT(JSON_OBJECT(
+                       'name', tc.CONSTRAINT_NAME,
+                       'type', CASE tc.CONSTRAINT_TYPE WHEN 'PRIMARY KEY' THEN 'p' WHEN 'FOREIGN KEY' THEN 'f' WHEN 'UNIQUE' THEN 'u' WHEN 'CHECK' THEN 'c' END,
+                       'definition', CASE tc.CONSTRAINT_TYPE
+                         WHEN 'PRIMARY KEY' THEN CONCAT('PRIMARY KEY (', k.cols, ')')
+                         WHEN 'UNIQUE' THEN CONCAT('UNIQUE (', k.cols, ')')
+                         WHEN 'FOREIGN KEY' THEN CONCAT('FOREIGN KEY (', k.cols, ') REFERENCES ', k.ref_table, '(', k.ref_cols, ')',
+                                                        IF(rc.UPDATE_RULE = 'NO ACTION', '', CONCAT(' ON UPDATE ', rc.UPDATE_RULE)),
+                                                        IF(rc.DELETE_RULE = 'NO ACTION', '', CONCAT(' ON DELETE ', rc.DELETE_RULE)))
+                         WHEN 'CHECK' THEN CONCAT('CHECK ', cc.CHECK_CLAUSE) END) ORDER BY tc.CONSTRAINT_NAME), ']') AS j
+              FROM information_schema.TABLE_CONSTRAINTS tc JOIN dbs ON dbs.db = tc.CONSTRAINT_SCHEMA
+              LEFT JOIN kcu k ON k.db = tc.CONSTRAINT_SCHEMA AND k.name = tc.TABLE_NAME AND k.cname = tc.CONSTRAINT_NAME
+              LEFT JOIN information_schema.REFERENTIAL_CONSTRAINTS rc
+                ON rc.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA AND rc.TABLE_NAME = tc.TABLE_NAME AND rc.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
+              LEFT JOIN information_schema.CHECK_CONSTRAINTS cc
+                ON cc.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA AND cc.CONSTRAINT_NAME = tc.CONSTRAINT_NAME AND tc.CONSTRAINT_TYPE = 'CHECK'
+              GROUP BY tc.CONSTRAINT_SCHEMA, tc.TABLE_NAME
+            ), tbl AS (
+              SELECT t.db, t.name, JSON_OBJECT(
+                       'schema', NULL, 'name', t.name,
+                       'kind', CASE WHEN t.table_type = 'VIEW' THEN 'view' WHEN parts.n > 0 THEN 'partitioned_table' ELSE 'table' END,
+                       'columns', CAST(cols.j AS JSON), 'indexes', CAST(idxs.j AS JSON), 'constraints', CAST(cons.j AS JSON),
+                       'partitions', COALESCE(parts.n, 0)) AS j
+              FROM t
+              LEFT JOIN parts ON parts.db = t.db AND parts.name = t.name
+              LEFT JOIN cols ON cols.db = t.db AND cols.name = t.name
+              LEFT JOIN idxs ON idxs.db = t.db AND idxs.name = t.name
+              LEFT JOIN cons ON cons.db = t.db AND cons.name = t.name
+              WHERE t.rn <= 300
+            ), per_db AS (
+              SELECT dbs.db,
+                     CONCAT('[', COALESCE(GROUP_CONCAT(tbl.j ORDER BY tbl.name), ''), ']') AS tables_json,
+                     COUNT(tbl.name) AS table_count,
+                     (SELECT COUNT(*) FROM t WHERE t.db = dbs.db) > 300 AS truncated
+              FROM dbs LEFT JOIN tbl ON tbl.db = dbs.db
+              GROUP BY dbs.db
+            ), variants AS (
+              SELECT MD5(tables_json) AS schema_hash,
+                     CONCAT('[', GROUP_CONCAT(JSON_QUOTE(db) ORDER BY db), ']') AS dbs_json,
+                     MIN(tables_json) AS tables_json, MAX(table_count) AS table_count, MAX(truncated) AS truncated
+              FROM per_db WHERE table_count > 0
+              GROUP BY MD5(tables_json)
+            )
+            SELECT 'db.schema' AS state_kind,
+                   CAST((SELECT COUNT(*) FROM per_db) AS CHAR) AS database_count,
+                   CAST((SELECT COUNT(*) FROM variants) AS CHAR) AS variant_count,
+                   MD5(COALESCE((SELECT GROUP_CONCAT(schema_hash ORDER BY schema_hash) FROM variants), '')) AS schema_hash,
+                   (SELECT CONCAT('[', COALESCE(GROUP_CONCAT(JSON_OBJECT(
+                             'schema_hash', schema_hash, 'databases', CAST(dbs_json AS JSON), 'table_count', table_count,
+                             'truncated', CAST(IF(truncated, 'true', 'false') AS JSON), 'tables', CAST(tables_json AS JSON)) ORDER BY dbs_json), ''), ']')
+                    FROM variants) AS schema_variants
+        username: otel_catalog
+      sql_query/db_monitoring_mysql_inventory-mysql_tables:
+        additional_params:
+          group_concat_max_len: 67108864
+          information_schema_stats_expiry: 0
+          tls: "true"
+        collection_interval: 5m
+        database: information_schema
+        driver: mysql
+        host: inventory-mysql.abcdefghijkl.us-east-1.rds.amazonaws.com
+        password: ${env:MYSQL_CATALOG_PASSWORD}
+        port: 3306
+        queries:
+        - metrics:
+          - attribute_columns:
+            - schema
+            - table
+            description: Seconds since InnoDB last recalculated persistent statistics
+              (ANALYZE TABLE or auto recalc).
+            metric_name: mysql.table.analyze.age
+            unit: s
+            value_column: analyze_age
+          sql: |
+            SELECT database_name AS `schema`, table_name AS `table`, TIMESTAMPDIFF(SECOND, last_update, NOW()) AS analyze_age
+            FROM mysql.innodb_table_stats
+            WHERE database_name NOT IN ('mysql', 'sys')
+        username: otel_catalog
+      sql_query/db_monitoring_mysql_storefront_details:
+        additional_params:
+          group_concat_max_len: 67108864
+          information_schema_stats_expiry: 0
+          tls: "false"
+        collection_interval: 5m
+        database: information_schema
+        driver: mysql
+        host: storefront-db.databases.svc.cluster.local
+        initial_delay: 30s
+        password: ${env:MYSQL_PASSWORD}
+        port: 3306
+        queries:
+        - logs:
+          - attribute_columns:
+            - db_version
+            - db_role
+            - max_connections
+            - databases
+            - extensions
+            - replication_channels
+            - settings
+            body_column: state_kind
+          sql: |
+            SELECT 'db.instance' AS state_kind,
+                   @@version AS db_version,
+                   IF(@@super_read_only OR @@read_only, 'replica', 'primary') AS db_role,
+                   CAST(@@max_connections AS CHAR) AS max_connections,
+                   (SELECT CONCAT('[', COALESCE(GROUP_CONCAT(JSON_QUOTE(SCHEMA_NAME) ORDER BY SCHEMA_NAME), ''), ']')
+                    FROM information_schema.SCHEMATA
+                    WHERE SCHEMA_NAME NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')) AS `databases`,
+                   (SELECT CONCAT('[', COALESCE(GROUP_CONCAT(JSON_OBJECT('name', x.name, 'version', x.version, 'type', x.type) ORDER BY x.type, x.name), ''), ']')
+                    FROM (SELECT PLUGIN_NAME AS name, PLUGIN_VERSION AS version, 'plugin' AS type FROM information_schema.PLUGINS WHERE PLUGIN_STATUS = 'ACTIVE'
+                          UNION ALL
+                          SELECT component_urn, NULL, 'component' FROM mysql.component) x) AS extensions,
+                   (SELECT CONCAT('[', COALESCE(GROUP_CONCAT(JSON_OBJECT('name', c.CHANNEL_NAME, 'source_host', c.HOST, 'source_port', c.PORT,
+                                                                         'auto_position', CAST(IF(c.AUTO_POSITION = '1', 'true', 'false') AS JSON),
+                                                                         'service_state', s.SERVICE_STATE) ORDER BY c.CHANNEL_NAME), ''), ']')
+                    FROM performance_schema.replication_connection_configuration c
+                    LEFT JOIN performance_schema.replication_connection_status s ON s.CHANNEL_NAME = c.CHANNEL_NAME) AS replication_channels,
+                   (SELECT CONCAT('[', GROUP_CONCAT(JSON_OBJECT('name', g.VARIABLE_NAME, 'value', g.VARIABLE_VALUE, 'unit', NULL,
+                                                                'default', IF(i.VARIABLE_SOURCE = 'COMPILED', g.VARIABLE_VALUE, NULL), 'source', i.VARIABLE_SOURCE,
+                                                                'context', NULL,
+                                                                'pending_restart', CAST(IF(p.VARIABLE_VALUE IS NOT NULL AND p.VARIABLE_VALUE <> g.VARIABLE_VALUE, 'true', 'false') AS JSON),
+                                                                'min', i.MIN_VALUE, 'max', i.MAX_VALUE, 'set_time', i.SET_TIME) ORDER BY g.VARIABLE_NAME), ']')
+                    FROM performance_schema.global_variables g
+                    JOIN performance_schema.variables_info i ON i.VARIABLE_NAME = g.VARIABLE_NAME
+                    LEFT JOIN performance_schema.persisted_variables p ON p.VARIABLE_NAME = g.VARIABLE_NAME
+                    WHERE g.VARIABLE_NAME NOT IN ('gtid_executed', 'gtid_purged', 'gtid_owned')) AS settings
+        username: otel
+      sql_query/db_monitoring_mysql_storefront_health:
+        additional_params:
+          group_concat_max_len: 67108864
+          information_schema_stats_expiry: 0
+          tls: "false"
+        collection_interval: 60s
+        database: information_schema
+        driver: mysql
+        host: storefront-db.databases.svc.cluster.local
+        password: ${env:MYSQL_PASSWORD}
+        port: 3306
+        queries:
+        - metrics:
+          - attribute_columns:
+            - schema
+            - table
+            - column
+            description: Next auto_increment value as a percent of the column type's maximum.
+            metric_name: mysql.table.auto_increment.used
+            unit: '%'
+            value_column: used_pct
+            value_type: double
+          sql: |
+            SELECT t.TABLE_SCHEMA AS `schema`, t.TABLE_NAME AS `table`, c.COLUMN_NAME AS `column`,
+                   CAST(100 * t.AUTO_INCREMENT / CASE c.DATA_TYPE
+                     WHEN 'tinyint' THEN 127 WHEN 'smallint' THEN 32767 WHEN 'mediumint' THEN 8388607
+                     WHEN 'int' THEN 2147483647 WHEN 'bigint' THEN 9223372036854775807 END
+                     / IF(c.COLUMN_TYPE LIKE '%unsigned%', 2, 1) AS DOUBLE) AS used_pct
+            FROM information_schema.TABLES t
+            JOIN information_schema.COLUMNS c ON c.TABLE_SCHEMA = t.TABLE_SCHEMA AND c.TABLE_NAME = t.TABLE_NAME AND c.EXTRA LIKE '%auto_increment%'
+            WHERE t.AUTO_INCREMENT IS NOT NULL AND t.TABLE_SCHEMA NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')
+        - metrics:
+          - attribute_columns:
+            - schema
+            - table
+            metric_name: mysql.table.free_space
+            unit: By
+            value_column: free_bytes
+          - attribute_columns:
+            - schema
+            - table
+            description: DATA_FREE / DATA_LENGTH.
+            metric_name: mysql.table.fragmentation
+            unit: "1"
+            value_column: free_ratio
+            value_type: double
+          sql: |
+            SELECT TABLE_SCHEMA AS `schema`, TABLE_NAME AS `table`, DATA_FREE AS free_bytes,
+                   CAST(COALESCE(DATA_FREE / NULLIF(DATA_LENGTH, 0), 0) AS DOUBLE) AS free_ratio
+            FROM information_schema.TABLES
+            WHERE TABLE_TYPE = 'BASE TABLE' AND ENGINE = 'InnoDB' AND TABLE_SCHEMA NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')
+        - metrics:
+          - attribute_columns:
+            - Log_name
+            metric_name: mysql.binlog.file.size
+            unit: By
+            value_column: File_size
+          sql: SHOW BINARY LOGS
+        username: otel
+      sql_query/db_monitoring_mysql_storefront_schema:
+        additional_params:
+          group_concat_max_len: 67108864
+          information_schema_stats_expiry: 0
+          tls: "false"
+        collection_interval: 5m
+        database: information_schema
+        driver: mysql
+        host: storefront-db.databases.svc.cluster.local
+        initial_delay: 30s
+        password: ${env:MYSQL_PASSWORD}
+        port: 3306
+        queries:
+        - logs:
+          - attribute_columns:
+            - database_count
+            - variant_count
+            - schema_hash
+            - schema_variants
+            body_column: state_kind
+          sql: |
+            WITH dbs AS (
+              SELECT SCHEMA_NAME AS db FROM information_schema.SCHEMATA
+              WHERE SCHEMA_NAME NOT IN ('mysql', 'sys', 'performance_schema', 'information_schema')
+            ), t AS (
+              SELECT t.TABLE_SCHEMA AS db, t.TABLE_NAME AS name, t.TABLE_TYPE AS table_type,
+                     ROW_NUMBER() OVER (PARTITION BY t.TABLE_SCHEMA ORDER BY t.TABLE_NAME) AS rn
+              FROM information_schema.TABLES t JOIN dbs ON dbs.db = t.TABLE_SCHEMA
+            ), parts AS (
+              SELECT p.TABLE_SCHEMA AS db, p.TABLE_NAME AS name, COUNT(*) AS n
+              FROM information_schema.PARTITIONS p JOIN dbs ON dbs.db = p.TABLE_SCHEMA
+              WHERE p.PARTITION_NAME IS NOT NULL
+              GROUP BY p.TABLE_SCHEMA, p.TABLE_NAME
+            ), cols AS (
+              SELECT c.TABLE_SCHEMA AS db, c.TABLE_NAME AS name,
+                     CONCAT('[', GROUP_CONCAT(JSON_OBJECT('name', c.COLUMN_NAME, 'type', c.COLUMN_TYPE,
+                                                          'nullable', CAST(IF(c.IS_NULLABLE = 'YES', 'true', 'false') AS JSON),
+                                                          'default', c.COLUMN_DEFAULT, 'extra', c.EXTRA) ORDER BY c.ORDINAL_POSITION), ']') AS j
+              FROM information_schema.COLUMNS c JOIN dbs ON dbs.db = c.TABLE_SCHEMA
+              GROUP BY c.TABLE_SCHEMA, c.TABLE_NAME
+            ), idx AS (
+              SELECT s.TABLE_SCHEMA AS db, s.TABLE_NAME AS name, s.INDEX_NAME AS index_name,
+                     MAX(s.NON_UNIQUE) = 0 AS is_unique, MAX(s.IS_VISIBLE) AS visible,
+                     CONCAT('CREATE ', IF(MAX(s.NON_UNIQUE) = 0, 'UNIQUE ', ''), 'INDEX ', s.INDEX_NAME, ' ON ', s.TABLE_NAME, ' USING ', MAX(s.INDEX_TYPE), ' (',
+                            GROUP_CONCAT(CONCAT(COALESCE(s.COLUMN_NAME, CONCAT('(', s.EXPRESSION, ')')), IF(s.SUB_PART IS NULL, '', CONCAT('(', s.SUB_PART, ')')),
+                                                IF(s.COLLATION = 'D', ' DESC', '')) ORDER BY s.SEQ_IN_INDEX SEPARATOR ', '), ')') AS definition
+              FROM information_schema.STATISTICS s JOIN dbs ON dbs.db = s.TABLE_SCHEMA
+              GROUP BY s.TABLE_SCHEMA, s.TABLE_NAME, s.INDEX_NAME
+            ), idxs AS (
+              SELECT db, name,
+                     CONCAT('[', GROUP_CONCAT(JSON_OBJECT('name', index_name, 'definition', definition,
+                                                          'unique', CAST(IF(is_unique, 'true', 'false') AS JSON),
+                                                          'primary', CAST(IF(index_name = 'PRIMARY', 'true', 'false') AS JSON),
+                                                          'visible', CAST(IF(visible = 'YES', 'true', 'false') AS JSON)) ORDER BY index_name), ']') AS j
+              FROM idx GROUP BY db, name
+            ), kcu AS (
+              SELECT k.CONSTRAINT_SCHEMA AS db, k.TABLE_NAME AS name, k.CONSTRAINT_NAME AS cname,
+                     GROUP_CONCAT(k.COLUMN_NAME ORDER BY k.ORDINAL_POSITION SEPARATOR ', ') AS cols,
+                     MAX(IF(k.REFERENCED_TABLE_SCHEMA = k.TABLE_SCHEMA, k.REFERENCED_TABLE_NAME, CONCAT(k.REFERENCED_TABLE_SCHEMA, '.', k.REFERENCED_TABLE_NAME))) AS ref_table,
+                     GROUP_CONCAT(k.REFERENCED_COLUMN_NAME ORDER BY k.ORDINAL_POSITION SEPARATOR ', ') AS ref_cols
+              FROM information_schema.KEY_COLUMN_USAGE k JOIN dbs ON dbs.db = k.CONSTRAINT_SCHEMA
+              GROUP BY k.CONSTRAINT_SCHEMA, k.TABLE_NAME, k.CONSTRAINT_NAME
+            ), cons AS (
+              SELECT tc.CONSTRAINT_SCHEMA AS db, tc.TABLE_NAME AS name,
+                     CONCAT('[', GROUP_CONCAT(JSON_OBJECT(
+                       'name', tc.CONSTRAINT_NAME,
+                       'type', CASE tc.CONSTRAINT_TYPE WHEN 'PRIMARY KEY' THEN 'p' WHEN 'FOREIGN KEY' THEN 'f' WHEN 'UNIQUE' THEN 'u' WHEN 'CHECK' THEN 'c' END,
+                       'definition', CASE tc.CONSTRAINT_TYPE
+                         WHEN 'PRIMARY KEY' THEN CONCAT('PRIMARY KEY (', k.cols, ')')
+                         WHEN 'UNIQUE' THEN CONCAT('UNIQUE (', k.cols, ')')
+                         WHEN 'FOREIGN KEY' THEN CONCAT('FOREIGN KEY (', k.cols, ') REFERENCES ', k.ref_table, '(', k.ref_cols, ')',
+                                                        IF(rc.UPDATE_RULE = 'NO ACTION', '', CONCAT(' ON UPDATE ', rc.UPDATE_RULE)),
+                                                        IF(rc.DELETE_RULE = 'NO ACTION', '', CONCAT(' ON DELETE ', rc.DELETE_RULE)))
+                         WHEN 'CHECK' THEN CONCAT('CHECK ', cc.CHECK_CLAUSE) END) ORDER BY tc.CONSTRAINT_NAME), ']') AS j
+              FROM information_schema.TABLE_CONSTRAINTS tc JOIN dbs ON dbs.db = tc.CONSTRAINT_SCHEMA
+              LEFT JOIN kcu k ON k.db = tc.CONSTRAINT_SCHEMA AND k.name = tc.TABLE_NAME AND k.cname = tc.CONSTRAINT_NAME
+              LEFT JOIN information_schema.REFERENTIAL_CONSTRAINTS rc
+                ON rc.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA AND rc.TABLE_NAME = tc.TABLE_NAME AND rc.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
+              LEFT JOIN information_schema.CHECK_CONSTRAINTS cc
+                ON cc.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA AND cc.CONSTRAINT_NAME = tc.CONSTRAINT_NAME AND tc.CONSTRAINT_TYPE = 'CHECK'
+              GROUP BY tc.CONSTRAINT_SCHEMA, tc.TABLE_NAME
+            ), tbl AS (
+              SELECT t.db, t.name, JSON_OBJECT(
+                       'schema', NULL, 'name', t.name,
+                       'kind', CASE WHEN t.table_type = 'VIEW' THEN 'view' WHEN parts.n > 0 THEN 'partitioned_table' ELSE 'table' END,
+                       'columns', CAST(cols.j AS JSON), 'indexes', CAST(idxs.j AS JSON), 'constraints', CAST(cons.j AS JSON),
+                       'partitions', COALESCE(parts.n, 0)) AS j
+              FROM t
+              LEFT JOIN parts ON parts.db = t.db AND parts.name = t.name
+              LEFT JOIN cols ON cols.db = t.db AND cols.name = t.name
+              LEFT JOIN idxs ON idxs.db = t.db AND idxs.name = t.name
+              LEFT JOIN cons ON cons.db = t.db AND cons.name = t.name
+              WHERE t.rn <= 300
+            ), per_db AS (
+              SELECT dbs.db,
+                     CONCAT('[', COALESCE(GROUP_CONCAT(tbl.j ORDER BY tbl.name), ''), ']') AS tables_json,
+                     COUNT(tbl.name) AS table_count,
+                     (SELECT COUNT(*) FROM t WHERE t.db = dbs.db) > 300 AS truncated
+              FROM dbs LEFT JOIN tbl ON tbl.db = dbs.db
+              GROUP BY dbs.db
+            ), variants AS (
+              SELECT MD5(tables_json) AS schema_hash,
+                     CONCAT('[', GROUP_CONCAT(JSON_QUOTE(db) ORDER BY db), ']') AS dbs_json,
+                     MIN(tables_json) AS tables_json, MAX(table_count) AS table_count, MAX(truncated) AS truncated
+              FROM per_db WHERE table_count > 0
+              GROUP BY MD5(tables_json)
+            )
+            SELECT 'db.schema' AS state_kind,
+                   CAST((SELECT COUNT(*) FROM per_db) AS CHAR) AS database_count,
+                   CAST((SELECT COUNT(*) FROM variants) AS CHAR) AS variant_count,
+                   MD5(COALESCE((SELECT GROUP_CONCAT(schema_hash ORDER BY schema_hash) FROM variants), '')) AS schema_hash,
+                   (SELECT CONCAT('[', COALESCE(GROUP_CONCAT(JSON_OBJECT(
+                             'schema_hash', schema_hash, 'databases', CAST(dbs_json AS JSON), 'table_count', table_count,
+                             'truncated', CAST(IF(truncated, 'true', 'false') AS JSON), 'tables', CAST(tables_json AS JSON)) ORDER BY dbs_json), ''), ']')
+                    FROM variants) AS schema_variants
+        username: otel
+      sql_query/db_monitoring_mysql_storefront_tables:
+        additional_params:
+          group_concat_max_len: 67108864
+          information_schema_stats_expiry: 0
+          tls: "false"
+        collection_interval: 5m
+        database: information_schema
+        driver: mysql
+        host: storefront-db.databases.svc.cluster.local
+        password: ${env:MYSQL_PASSWORD}
+        port: 3306
+        queries:
+        - metrics:
+          - attribute_columns:
+            - schema
+            - table
+            description: Seconds since InnoDB last recalculated persistent statistics
+              (ANALYZE TABLE or auto recalc).
+            metric_name: mysql.table.analyze.age
+            unit: s
+            value_column: analyze_age
+          sql: |
+            SELECT database_name AS `schema`, table_name AS `table`, TIMESTAMPDIFF(SECOND, last_update, NOW()) AS analyze_age
+            FROM mysql.innodb_table_stats
+            WHERE database_name NOT IN ('mysql', 'sys')
+        username: otel
+    service:
+      extensions:
+      - health_check
+      - aws_iam_db_auth/us-east-1
+      pipelines:
+        logs/db_monitoring_mysql_inventory-mysql_catalog:
+          exporters:
+          - coralogix/coralogix_db_monitoring_catalog
+          processors:
+          - memory_limiter
+          - resource/db_monitoring_mysql_inventory-mysql
+          - transform/db_monitoring_mysql_catalog
+          - transform/db_monitoring_mysql_inventory-mysql_catalog_interval
+          - batch/db_monitoring
+          receivers:
+          - sql_query/db_monitoring_mysql_inventory-mysql_details
+          - sql_query/db_monitoring_mysql_inventory-mysql_schema
+        logs/db_monitoring_mysql_inventory-mysql_queries:
+          exporters:
+          - coralogix/coralogix_db_monitoring_mysql_queries
+          processors:
+          - memory_limiter
+          - filter/db_monitoring_mysql_inventory-mysql_own_queries
+          - resource/db_monitoring_mysql_inventory-mysql
+          - transform/db_monitoring_mysql
+          - batch/db_monitoring
+          receivers:
+          - mysql/db_monitoring_mysql_inventory-mysql_queries
+        logs/db_monitoring_mysql_storefront_catalog:
+          exporters:
+          - coralogix/coralogix_db_monitoring_catalog
+          processors:
+          - memory_limiter
+          - resource/db_monitoring_mysql_storefront
+          - transform/db_monitoring_mysql_catalog
+          - transform/db_monitoring_mysql_storefront_catalog_interval
+          - batch/db_monitoring
+          receivers:
+          - sql_query/db_monitoring_mysql_storefront_details
+          - sql_query/db_monitoring_mysql_storefront_schema
+        logs/db_monitoring_mysql_storefront_queries:
+          exporters:
+          - coralogix/coralogix_db_monitoring_mysql_queries
+          processors:
+          - memory_limiter
+          - filter/db_monitoring_mysql_storefront_own_queries
+          - resource/db_monitoring_mysql_storefront
+          - transform/db_monitoring_mysql
+          - batch/db_monitoring
+          receivers:
+          - mysql/db_monitoring_mysql_storefront_queries
+        metrics:
+          exporters:
+          - coralogix
+          processors:
+          - memory_limiter
+          - transform/prometheus
+          receivers:
+          - prometheus
+        metrics/db_monitoring_mysql_inventory-mysql:
+          exporters:
+          - coralogix/coralogix_db_monitoring_mysql_metrics
+          processors:
+          - memory_limiter
+          - resource/db_monitoring_mysql_inventory-mysql
+          - transform/db_monitoring_mysql
+          - batch/db_monitoring
+          receivers:
+          - mysql/db_monitoring_mysql_inventory-mysql_metrics
+          - sql_query/db_monitoring_mysql_inventory-mysql_health
+          - sql_query/db_monitoring_mysql_inventory-mysql_tables
+        metrics/db_monitoring_mysql_storefront:
+          exporters:
+          - coralogix/coralogix_db_monitoring_mysql_metrics
+          processors:
+          - memory_limiter
+          - resource/db_monitoring_mysql_storefront
+          - transform/db_monitoring_mysql
+          - batch/db_monitoring
+          receivers:
+          - mysql/db_monitoring_mysql_storefront_metrics
+          - sql_query/db_monitoring_mysql_storefront_health
+          - sql_query/db_monitoring_mysql_storefront_tables
+      telemetry:
+        logs:
+          encoding: json
+        metrics:
+          readers:
+          - pull:
+              exporter:
+                prometheus:
+                  host: ${env:MY_POD_IP}
+                  port: 8888
+                  without_scope_info: false
+                  without_type_suffix: false
+                  without_units: false

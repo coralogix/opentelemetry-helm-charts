@@ -144,7 +144,7 @@
 {{- $queryProcessors = append $queryProcessors $filter }}
 {{- end }}
 {{- $queryProcessors = append $queryProcessors $identity }}
-{{- $exporters := include "opentelemetry-collector.dbMonitoringLogExporters" (dict "config" $config "generated" $generated.exporters "kind" "queries") | fromYamlArray }}
+{{- $exporters := include "opentelemetry-collector.dbMonitoringExporters" (dict "config" $config "generated" $generated.exporters "kind" "queries") | fromYamlArray }}
 {{- if or $target.querySamples.enabled $target.topQueries.enabled }}
 {{- $receiver := printf "postgresql/%s_queries" $id }}
 {{- $receivers := list $receiver }}
@@ -225,9 +225,12 @@
 {{- $_ := set $generated.processors $catalog $postgresql.processors.catalog }}
 {{- $catalogInterval := printf "transform/%s_catalog_interval" $id }}
 {{- $_ := set $generated.processors $catalogInterval (dict "log_statements" (list (dict "context" "log" "statements" $intervalStatements))) }}
-{{- $exporters := include "opentelemetry-collector.dbMonitoringLogExporters" (dict "config" $config "generated" $generated.exporters "kind" "catalog") | fromYamlArray }}
+{{- $exporters := include "opentelemetry-collector.dbMonitoringExporters" (dict "config" $config "generated" $generated.exporters "kind" "catalog") | fromYamlArray }}
 {{- $_ := set $generated.service.pipelines (printf "logs/%s_catalog" $id) (dict "receivers" $receivers "processors" (list "memory_limiter" $identity $catalog $catalogInterval "batch/db_monitoring") "exporters" $exporters) }}
 {{- end }}
+{{- end }}
+{{- if $root.Values.presets.dbMonitoring.mysql }}
+{{- $_ := include "opentelemetry-collector.addDbMonitoringMysql" (dict "root" $root "config" $config "generated" $generated) }}
 {{- end }}
 {{- $iamExtensions := keys $generated.extensions | sortAlpha }}
 {{- $result := mustMergeOverwrite $generated $config }}
@@ -237,8 +240,9 @@
 {{- $result | toYaml }}
 {{- end }}
 
-{{- define "opentelemetry-collector.dbMonitoringLogExporters" -}}
-{{- $base := required (printf "dbMonitoring %s requires config.service.pipelines.logs" .kind) .config.service.pipelines.logs }}
+{{- define "opentelemetry-collector.dbMonitoringExporters" -}}
+{{- $signal := ternary "metrics" "logs" (eq .kind "metrics") }}
+{{- $base := required (printf "dbMonitoring %s requires config.service.pipelines.%s" .kind $signal) (get .config.service.pipelines $signal) }}
 {{- $exporters := list }}
 {{- range $exporter := $base.exporters }}
 {{- if eq (first (splitList "/" $exporter)) "coralogix" }}
@@ -249,7 +253,17 @@
 {{- $settings = mustMergeOverwrite $settings (dict "application_name" "resource" "subsystem_name" "catalog" "logs" (dict "headers" (dict "x-coralogix-ingress" "metadata-as-otlp-logs/v1"))) }}
 {{- $_ := set $settings "application_name_attributes" list }}
 {{- else }}
-{{- $_ := set $settings "subsystem_name" "postgresql-slow-queries" }}
+{{- $engine := $.engine | default "postgresql" }}
+{{- $subsystem := printf "%s-slow-queries" $engine }}
+{{- if $.engine }}
+{{- $name = printf "coralogix/%s_db_monitoring_%s_%s" (last (splitList "/" $exporter)) $engine $.kind }}
+{{- end }}
+{{- if eq $.kind "metrics" }}
+{{- $subsystem = $engine }}
+{{- else if eq $.kind "server_logs" }}
+{{- $subsystem = printf "%s-logs" $engine }}
+{{- end }}
+{{- $_ := set $settings "subsystem_name" $subsystem }}
 {{- end }}
 {{- $_ := set $.generated $name $settings }}
 {{- $exporters = append $exporters $name }}

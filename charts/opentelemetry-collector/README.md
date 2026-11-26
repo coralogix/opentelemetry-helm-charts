@@ -88,11 +88,13 @@ The chart also provides several presets, detailed below, to help configure impor
 > [!WARNING]
 > Database monitoring is highly experimental. It may introduce breaking changes, not work or be removed at any time.
 
-Use `presets.dbMonitoring` to monitor PostgreSQL targets. Each target creates its own
+Use `presets.dbMonitoring` to monitor PostgreSQL and MySQL targets. Each target creates its own
 pipelines. Use one collector replica to avoid collecting the same database more than once.
 For a dedicated DB collector, disable OTLP and autoscaling. Use `rollout.strategy: Recreate`
 to avoid overlapping collectors during upgrades. Upgrades will have a short collection gap.
 The PostgreSQL preset supports password and AWS IAM database authentication.
+
+#### PostgreSQL
 
 ```yaml
 mode: deployment
@@ -244,6 +246,70 @@ Use `config` to override a generated receiver or pipeline. For example, the metr
 receiver for target `orders` is `postgresql/db_monitoring_postgresql_orders_metrics`.
 See [the dedicated collector example](examples/db-monitoring/values.yaml). It disables the
 OTLP receiver, Service, and OTLP ports. It uses one replica with `Recreate` updates.
+
+#### MySQL
+
+Add targets under `presets.dbMonitoring.mysql`. The preset targets MySQL 8.0 and
+8.4 with `performance_schema` enabled. Each target needs `name`, `host`,
+`username`, `auth`, and `instanceId`. The default port is `3306`.
+For RDS, use the RDS instance identifier as `instanceId` and include its AWS
+identity in `resourceAttributes`. The [MySQL example](examples/db-monitoring-mysql/values.yaml)
+shows a self-hosted target and an RDS target.
+
+Set `auth.password` to use one login for all receivers. Set `auth.aws_iam.region`
+for native MySQL receivers on RDS. For any SQL collection with IAM, set
+`sqlAuth.username` and `sqlAuth.password`. The Collector's `sql_query` receiver
+requires a password for MySQL. You can also use `sqlAuth` with password
+authentication to give SQL collection its own login.
+
+TLS verifies the host and certificate by default. For a private CA or RDS CA,
+set `tls.ca_file` for the native receiver and add the CA to the Collector's
+system trust store for the SQL receiver. The example mounts the RDS CA and sets
+`SSL_CERT_FILE`. Set `tls.insecure: true` for a self-hosted database without TLS.
+For IAM, enable IAM authentication on the database, configure the MySQL user
+for `AWSAuthenticationPlugin`, and give the Collector's AWS identity
+`rds-db:connect`.
+
+| Receiver setting | Collection | Default interval | Enabled by |
+| --- | --- | --- | --- |
+| `receivers.performance` | Native MySQL metrics | `60s` | `metrics.enabled` (on by default) |
+| `receivers.health` | Auto-increment usage, fragmentation, free space, binlog sizes | `60s` | `metrics.enabled` |
+| `receivers.tables` | InnoDB table analyze age | `5m` | `metrics.enabled` |
+| `receivers.querySamples` | Up to 20 native query samples | `60s` | `querySamples.enabled` |
+| `receivers.topQueries` | Up to 50 top queries from a 360-second lookback | `60s` | `topQueries.enabled` |
+| `receivers.details` | Instance settings and replication channels | `5m` | `catalog.enabled` |
+| `receivers.schema` | Schema snapshot across databases | `5m` | `catalog.enabled` |
+
+Each receiver accepts `collectionInterval`, `initialDelay`, and `timeout`. MySQL
+catalog receivers start after `30s` and report their configured intervals in
+catalog events. A target's `collectionInterval` overrides the defaults for
+performance, health, tables, and samples. Per-receiver values take precedence.
+Set `topQueries.planEvents: true` to emit estimated plans as separate
+`db.server.query_plan` events. The native receiver can attach plans inline
+when this setting is off. Plans use the same receiver schedule and a cache
+with a default TTL of `1h`.
+
+The MySQL account needs access to `performance_schema`, process status, and
+replica status for native collection. SQL health also needs access to
+`mysql.innodb_table_stats` and `SHOW BINARY LOGS`. Catalog collection reads
+`mysql.component`, `performance_schema`, and visible application schemas.
+Estimated plans require privileges for the statements you want to explain.
+The preset uses the Collector receiver's MySQL permissions and does not create
+database accounts. See the [MySQL receiver prerequisites](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.165.0/receiver/mysqlreceiver/README.md).
+
+Set `excludeUsers` to replace the login exclusions. The default excludes both
+configured logins, `otel`, `otel_catalog`, and `rdsadmin`. The preset also
+filters MySQL monitoring statements by SQL text. It sends Coralogix metrics to
+`mysql`, query events to `mysql-slow-queries`, and catalog events to
+`resource/catalog`.
+
+For self-hosted MySQL, mount the log directory read-only and set
+`serverLogs.errorPaths` for JSON error logs or `serverLogs.slowPaths` for
+`FILE` slow query logs. You can configure the file `pollInterval` and `startAt`.
+The default reads existing records from the beginning. The preset redacts
+slow-query text and sends server logs to `mysql-logs`. See the MySQL guides for
+[JSON error logs](https://dev.mysql.com/doc/refman/8.4/en/error-log-json.html)
+and [slow query logs](https://dev.mysql.com/doc/refman/8.4/en/slow-query-log.html).
 
 If you enable Fleet Management with Supervisor, set
 `presets.fleetManagement.supervisor.minimalCollectorConfig: false` to keep the DB preset
